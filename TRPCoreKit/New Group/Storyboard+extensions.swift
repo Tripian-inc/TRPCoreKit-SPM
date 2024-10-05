@@ -44,7 +44,8 @@ extension UIStoryboard {
     
     
     class func makeMyTripTableView() -> MyTripTableViewVC {
-        return load(from: .myTrip, identifier: "MyTripTableViewVC") as! MyTripTableViewVC
+        let vc = load(from: .myTrip, identifier: "MyTripTableViewVC")
+        return vc as! MyTripTableViewVC
     }
     
     class func actionViewController() -> ActionViewController {
