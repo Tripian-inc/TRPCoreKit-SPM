@@ -1,0 +1,12 @@
+{
+  "images" : [
+    {
+      "filename" : "btn_create_trip_close.svg",
+      "idiom" : "universal"
+    }
+  ],
+  "info" : {
+    "author" : "xcode",
+    "version" : 1
+  }
+}

@@ -1,0 +1,205 @@
+/* 
+  localization.strings
+  TRPCoreKit
+
+  Created by Evren Yaşar on 23.05.2019.
+  Copyright © 2019 Tripian Inc. All rights reserved.
+*/
+"title" = "french title";
+"UPCOMING TRIPS" = "VOYAGES À VENIR";
+"PAST TRIPS" = "VOYAGES PASSÉS";
+"My Trips" = "Mes Excursions";
+"Select City" = "Choisir une ville";
+"Eat & Drink" = "Manger et boire";
+"Attractions" = "Attractions";
+"Favorites" = "Favoris";
+"Search" = "Recherche";
+"ITINERARY" = "ITINERARY";
+"Show Alternatives" = "Afficher les alternatives";
+"Report A Problem" = "Signaler Un Problème";
+"Global rating:" = "Note globale:";
+"Price range:" = "Échelle des prix:";
+
+"Set Time" = "Régler le temps";
+"Apply" = "Appliquer";
+"Continue" = "Continuer";
+"Done" = "Terminé";
+"Flight Details" = "Les détails du vol";
+"Arrival Date" = "Date d'arrivée";
+"Departure Date" = "Date de départ";
+"Date" = "Date";
+"Time (Default 9:00)" = "Heure (défaut 9:00)";
+"Time (Default 21:00)" = "Heure (défaut 21:00)";
+"Number Of Travelers" = "Nombre de voyageurs";
+"Adults" = "Adultes";
+"Adults Count (Default 1)" = "Nombre d'adultes (1 par défaut)";
+"How old are you?" = "Quel âge avez-vous?";
+"Children" = "Les enfants";
+"Children Count (Default 0)" = "Nombre d'enfants (0 par défaut)";
+"Children Age Ratio" = "Ratio d'âge des enfants";
+"Set Adult Age" = "Définir l'âge adulte";
+"Set Children Age" = "Définir l'âge des enfants";
+"Set Child Count" = "Définir le nombre d'enfants";
+"Where Will You Stay?" = "Où allez-vous rester?";
+"Type The Address" = "Tapez l'adresse";
+"Trip Details" = "Détails du voyage";
+"Changes will only effect future trips." = "Les changements n'affecteront que les voyages futurs.";
+"You don't have any companions yet." = "Vous n'avez encore aucun compagnon.";
+"This will be your homebase." = "Ce sera votre base.";
+
+//AddPlace
+"Attractions" = "Attractions";
+"Restaurants" = "Restaurants";
+"Nightlife" = "Vie nocturne";
+"Cool Finds" = "Trouvailles";
+"Cafes" = "Les cafés";
+"Religious Places" = "Lieux religieux";
+"Theater" = "Théâtre";
+"Cinema" = "Cinéma";
+"Stadium" = "Stade";
+"Civic Center" = "Centre civique";
+"Museum" = "Musées";
+"Bar" = "Les bars";
+"Art Gallery" = "Galerie d'art";
+"Bakery" = "Boulangeries";
+"Shopping Center" = "Centre commercial";
+"Brewery" = "Brasserie";
+"Dessert" = "Dessert";
+
+//My Trips
+"Edit Trip" = "Modifier le Voyage";
+"Delete Trip" = "Supprimer le Voyage";
+"Loading your trips." = "Chargement de vos voyages.";
+
+
+"Updated Successfully." = "Mis à jour avec succés.";
+"Update" = "Mettre à jour";
+//Profile Page
+"Profile" = "Profil";
+"Your E-mail" = "Votre E-mail";
+"Edit Profile" = "Editer le profil";
+"Travel Companions" = "Compagnons de Voyage";
+"Change Password" = "Changer le mot de passe";
+"Help Desk" = "Bureau D'aide";
+"Sign Out" = "Déconnexion";
+
+//Edit Profile
+"Edit Profile" = "Editer le profil";
+"Your information is successfully updated!" = "Votre information est mise à jour avec succès!";
+"Couldn't update" = "Impossible de mettre à jour";
+"Password must contain at least" = "Le mot de passe doit contenir au moins";
+" one uppercase letter" = " une lettre majuscule";
+" one numeric digit" = " un chiffre";
+" one lowercase letter" = " une lettre minuscule";
+"First Name" = "Prénom";
+"Last Name" = "Nom de Famille";
+"Age" = "Âge";
+"My Preferences" = "Mes préférences";
+
+"Successfully added." = "Ajouté avec succès.";
+"Successfully updated." = "Mise à jour réussie.";
+
+//User Preferences
+"User Preferences" = "Préférences de l'utilisateur";
+
+"Add places to your itinerary." = "Ajoutez des lieux à votre itinéraire.";
+"No recommendations due to arrival time." = "Aucune recommandation en raison de l'heure d'arrivée.";
+"No recommendations due to departure time." = "Aucune recommandation en raison de l'heure de départ.";
+"No recommendations." = "Aucune recommandation.";
+
+"No recommendations." = "Aucune recommandation.";
+"Your current location is not " = "Votre position actuelle n'est pas ";
+//Payment Status
+"Your account is not active yet. Please visit our website to complete your payment." = "Votre compte n'est pas encore actif. S'il vous plaît visitez notre site Web pour compléter votre paiement.";
+"You haven't done your payment." = "Vous n'avez pas effectué votre paiement.";
+
+//Travel Companions
+"List is empty.\n Create travel companions" = "La liste est vide.\n Créer des compagnons de voyage";
+"Are you sure you want to delete" = "Etes-vous sûr que vous voulez supprimer";
+
+"Something went wrong with routing. Please delete this trip and re-create it." = "Quelque chose ne va pas avec le routage. S'il vous plaît supprimer ce voyage et le recréer.";
+
+//Select Travel Companions
+"Select Travel Companions" = "Sélectionnez Compagnons De Voyage";
+"Create travel companions" = "Créer Des Compagnons De Voyage";
+
+//Travel Companions - Companion Detail
+"Name field is required." = "Le champ Nom est obligatoire.";
+"Create A Companion" = "Créer Un Compagnon";
+"Name" = "Prénom";
+"Age" = "Âge";
+"Close" = "Fermer";
+"Companion Preferences" = "Préférences Compagnon";
+"Successfully edited!" = "Édité avec succès!";
+
+"List" = "Liste";
+//Change Password
+"Please Enter Your New Password" = "S'il vous plaît entrez votre nouveau mot de passe";
+"Your New Password" = "Votre nouveau mot de passe";
+"Save" = "Sauvegarder";
+
+//Sign Out
+"Are you sure you want to sign out?" = "Êtes-vous certain de vouloir vous déconnecter?";
+"Yes" = "Oui";
+
+//Maps - Set Time Field
+"Starts from 9:00" = "Commence à partir de 9h00";
+"Till 18:00" = "Jusqu'à 18h00";
+"Show" = "Spectacle";
+"Day 1" = "Jour 1";
+"My travel" = "Mon Voyage";
+
+"No past trips yet." = "Pas de voyages passés pour le moment.";
+"No upcoming trips.\n Create a new trip" = "Pas de voyages à venir.\n Créer un nouveau voyage";
+
+"Recommended POI list" = "Liste de POI recommandée"; // How can I convert Poi ?
+"Nearby POI list" = "Liste de POI à proximité";
+"No available poi" = "Aucun poi disponible";
+"Favorites" = "Favoris";
+"Search Places" = "Rechercher des lieux";
+
+"No available favorite pois" = "Aucun pois favori disponible";
+"No favorites yet" = "Pas encore de favoris";
+"Search..." = "Rechercher...";
+"Search for restaurants, cafes, museums..." = "Recherchez des restaurants, des cafés, des musées ...";
+
+"Search This Area" = "Rechercher dans cette zone";
+"Clean Result" = "Résultat propre";
+
+"Recommendation" = "Recommandation";
+"Nearby" = "Proche";
+"Sort by" = "Trier par";
+"Day" = "Jour";
+
+"Recommendations will based on all selected profiles." = "Les recommandations seront basées sur tous les profils sélectionnés.";
+
+
+"Your trip is going to be updated." = "Votre voyage va être mis à jour.";
+
+"Complete Registration" = "Enregistrement complet";
+
+/**
+ Alert
+ */
+//Calendar
+"You must select date" = "Vous devez choisir la date";
+
+"No result for this area." = "Aucun résultat pour cette zone.";
+"Please enable Location Services from your phone settings." = "Veuillez activer les services de localisation à partir des paramètres de votre téléphone.";
+"Are you sure you want to delete your trip?" = "Êtes-vous sûr de vouloir supprimer votre voyage?";
+"Delete" = "Effacer";
+"Cancel" = "Annuler";
+"Pull to refresh" = "Tirer pour rafraîchir";
+"Success" = "Succès";
+"Coundn't update" = "Pas de mise à jour";
+
+"Global rating:" = "Note globale:";
+"Distance" = "Distance";
+"- We suggest that you use Taxi" = "- Nous vous suggérons d'utiliser Taxi";
+"All" = "Tout";
+
+"Alternative Locations to" = "Emplacements alternatifs à";
+
+//TODO: - Fransızcası eklenecek
+//Select Travelers
+"Select number of adults and children" = "Select number of adults and children";

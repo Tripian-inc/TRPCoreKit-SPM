@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.XIB" version="3.0" toolsVersion="21507" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES">
+    <device id="retina6_1" orientation="portrait" appearance="light"/>
+    <dependencies>
+        <deployment identifier="iOS"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="21505"/>
+        <capability name="Safe area layout guides" minToolsVersion="9.0"/>
+        <capability name="System colors in document resources" minToolsVersion="11.0"/>
+        <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
+    </dependencies>
+    <objects>
+        <placeholder placeholderIdentifier="IBFilesOwner" id="-1" userLabel="File's Owner" customClass="BlackTabbar" customModule="TRPCoreKit" customModuleProvider="target">
+            <connections>
+                <outlet property="containerView" destination="gpm-mW-GBk" id="Rqa-bc-jpW"/>
+            </connections>
+        </placeholder>
+        <placeholder placeholderIdentifier="IBFirstResponder" id="-2" customClass="UIResponder"/>
+        <view contentMode="scaleToFill" id="iN0-l3-epB">
+            <rect key="frame" x="0.0" y="0.0" width="414" height="105"/>
+            <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+            <subviews>
+                <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="gpm-mW-GBk" userLabel="ContainerView">
+                    <rect key="frame" x="0.0" y="0.0" width="414" height="105"/>
+                    <subviews>
+                        <stackView opaque="NO" contentMode="scaleToFill" distribution="fillEqually" translatesAutoresizingMaskIntoConstraints="NO" id="tZM-sR-aVC">
+                            <rect key="frame" x="0.0" y="0.0" width="414" height="93"/>
+                            <subviews>
+                                <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" lineBreakMode="tailTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="5gn-lg-7EK" customClass="TabbarButton" customModule="TRPCoreKit" customModuleProvider="target">
+                                    <rect key="frame" x="0.0" y="0.0" width="103.66666666666667" height="93"/>
+                                    <state key="normal" title="Favourites" image="tab_favorites">
+                                        <color key="titleColor" white="0.0" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                                    </state>
+                                    <connections>
+                                        <action selector="favoriteAction:" destination="-1" eventType="touchUpInside" id="9Pl-iS-pXr"/>
+                                    </connections>
+                                </button>
+                                <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="laV-54-6Vl" customClass="TabbarButton" customModule="TRPCoreKit" customModuleProvider="target">
+                                    <rect key="frame" x="103.66666666666669" y="0.0" width="103.33333333333331" height="93"/>
+                                    <state key="normal" title="Planner" image="tab_itinerary_new">
+                                        <color key="titleColor" white="0.0" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                                    </state>
+                                    <connections>
+                                        <action selector="itineraryPressed:" destination="-1" eventType="touchUpInside" id="xaa-0A-76O"/>
+                                    </connections>
+                                </button>
+                                <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" lineBreakMode="tailTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="rVU-1J-9Ts" customClass="TabbarButton" customModule="TRPCoreKit" customModuleProvider="target">
+                                    <rect key="frame" x="206.99999999999997" y="0.0" width="103.66666666666666" height="93"/>
+                                    <inset key="titleEdgeInsets" minX="-30" minY="40" maxX="0.0" maxY="0.0"/>
+                                    <inset key="imageEdgeInsets" minX="30" minY="0.0" maxX="0.0" maxY="0.0"/>
+                                    <state key="normal" title="Experiences" image="tab_experiences">
+                                        <color key="titleColor" white="0.0" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                                    </state>
+                                    <connections>
+                                        <action selector="localExperiencesPressed:" destination="-1" eventType="touchUpInside" id="5jE-Vf-bKv"/>
+                                    </connections>
+                                </button>
+                                <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="yFc-nM-NFo" customClass="TabbarButton" customModule="TRPCoreKit" customModuleProvider="target">
+                                    <rect key="frame" x="310.66666666666669" y="0.0" width="103.33333333333331" height="93"/>
+                                    <state key="normal" title="Places" image="tab_explore_places">
+                                        <color key="titleColor" white="0.0" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                                    </state>
+                                    <connections>
+                                        <action selector="searchPressed:" destination="-1" eventType="touchUpInside" id="5B4-SB-b3O"/>
+                                    </connections>
+                                </button>
+                            </subviews>
+                        </stackView>
+                    </subviews>
+                    <color key="backgroundColor" systemColor="systemBackgroundColor"/>
+                    <constraints>
+                        <constraint firstAttribute="trailing" secondItem="tZM-sR-aVC" secondAttribute="trailing" id="2pO-g5-UEy"/>
+                        <constraint firstItem="tZM-sR-aVC" firstAttribute="top" secondItem="gpm-mW-GBk" secondAttribute="top" id="9Ar-Xs-WB9"/>
+                        <constraint firstItem="tZM-sR-aVC" firstAttribute="leading" secondItem="gpm-mW-GBk" secondAttribute="leading" id="J7G-P7-L3E"/>
+                    </constraints>
+                </view>
+            </subviews>
+            <viewLayoutGuide key="safeArea" id="vUN-kp-3ea"/>
+            <color key="backgroundColor" systemColor="systemBackgroundColor"/>
+            <constraints>
+                <constraint firstItem="gpm-mW-GBk" firstAttribute="trailing" secondItem="vUN-kp-3ea" secondAttribute="trailing" id="3VV-ea-f7Y"/>
+                <constraint firstItem="gpm-mW-GBk" firstAttribute="top" secondItem="iN0-l3-epB" secondAttribute="top" id="Bt6-gS-N45"/>
+                <constraint firstItem="gpm-mW-GBk" firstAttribute="bottom" secondItem="vUN-kp-3ea" secondAttribute="bottom" id="CBs-ma-XHw"/>
+                <constraint firstItem="vUN-kp-3ea" firstAttribute="bottom" secondItem="tZM-sR-aVC" secondAttribute="bottom" constant="12" id="Q5w-79-nIk"/>
+                <constraint firstItem="gpm-mW-GBk" firstAttribute="leading" secondItem="vUN-kp-3ea" secondAttribute="leading" id="REf-Fv-dwt"/>
+            </constraints>
+            <freeformSimulatedSizeMetrics key="simulatedDestinationMetrics"/>
+            <point key="canvasLocation" x="0.0" y="84.040178571428569"/>
+        </view>
+    </objects>
+    <resources>
+        <image name="tab_experiences" width="33" height="32"/>
+        <image name="tab_explore_places" width="33" height="32"/>
+        <image name="tab_favorites" width="32" height="32"/>
+        <image name="tab_itinerary_new" width="33" height="32"/>
+        <systemColor name="systemBackgroundColor">
+            <color white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+        </systemColor>
+    </resources>
+</document>

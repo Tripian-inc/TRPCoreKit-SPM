@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="14315.18" systemVersion="18A391" minimumToolsVersion="Automatic" sourceLanguage="Swift" userDefinedModelVersionIdentifier="">
+    <entity name="TripEntity" representedClassName="TripEntity" syncable="YES">
+        <attribute name="arrivalDate" optional="YES" attributeType="Date" usesScalarValueType="NO" syncable="YES"/>
+        <attribute name="cityId" optional="YES" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES" syncable="YES"/>
+        <attribute name="cityName" optional="YES" attributeType="String" syncable="YES"/>
+        <attribute name="departureDate" optional="YES" attributeType="Date" usesScalarValueType="NO" syncable="YES"/>
+        <attribute name="id" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES" syncable="YES"/>
+        <attribute name="lat" optional="YES" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES" syncable="YES"/>
+        <attribute name="lon" optional="YES" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES" syncable="YES"/>
+        <attribute name="triphash" optional="YES" attributeType="String" syncable="YES"/>
+        <relationship name="user" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="UserEntity" inverseName="trip" inverseEntity="UserEntity" syncable="YES"/>
+    </entity>
+    <entity name="UserEntity" representedClassName="UserEntity" syncable="YES">
+        <attribute name="hashCode" optional="YES" attributeType="String" syncable="YES"/>
+        <relationship name="trip" optional="YES" toMany="YES" deletionRule="No Action" destinationEntity="TripEntity" inverseName="user" inverseEntity="TripEntity" syncable="YES"/>
+    </entity>
+    <elements>
+        <element name="TripEntity" positionX="-685.0625" positionY="-253.66796875" width="128" height="178"/>
+        <element name="UserEntity" positionX="-936.06640625" positionY="-226.57421875" width="128" height="73"/>
+    </elements>
+</model>

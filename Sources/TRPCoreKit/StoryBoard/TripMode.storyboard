@@ -1,0 +1,166 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="32700.99.1234" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES">
+    <device id="retina5_5" orientation="portrait" appearance="light"/>
+    <dependencies>
+        <deployment identifier="iOS"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="22685"/>
+        <capability name="Safe area layout guides" minToolsVersion="9.0"/>
+        <capability name="System colors in document resources" minToolsVersion="11.0"/>
+        <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
+    </dependencies>
+    <scenes>
+        <!--Trip ModeVC-->
+        <scene sceneID="d4I-sA-67z">
+            <objects>
+                <viewController storyboardIdentifier="TRPTripModeVC" id="SrL-Ac-TAI" customClass="TRPTripModeVC" customModule="TRPCoreKit" customModuleProvider="target" sceneMemberID="viewController">
+                    <view key="view" contentMode="scaleToFill" id="5gE-h4-DMF">
+                        <rect key="frame" x="0.0" y="0.0" width="414" height="736"/>
+                        <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                        <subviews>
+                            <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="x8M-6m-9bg">
+                                <rect key="frame" x="0.0" y="20" width="414" height="628"/>
+                                <color key="backgroundColor" systemColor="systemBackgroundColor"/>
+                            </view>
+                            <button opaque="NO" contentMode="center" contentHorizontalAlignment="center" contentVerticalAlignment="center" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="UEB-Rn-2aY">
+                                <rect key="frame" x="354" y="65" width="40" height="40"/>
+                                <color key="backgroundColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                                <constraints>
+                                    <constraint firstAttribute="width" constant="40" id="HEo-QY-6qc"/>
+                                    <constraint firstAttribute="height" constant="40" id="sqv-Fg-Fpz"/>
+                                </constraints>
+                                <inset key="imageEdgeInsets" minX="5" minY="5" maxX="5" maxY="5"/>
+                                <state key="normal" image="btn_google_export"/>
+                                <connections>
+                                    <action selector="googleExportPressed:" destination="SrL-Ac-TAI" eventType="touchUpInside" id="EA6-e4-CwJ"/>
+                                </connections>
+                            </button>
+                            <button hidden="YES" opaque="NO" contentMode="scaleAspectFit" contentHorizontalAlignment="center" contentVerticalAlignment="center" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="GKa-d8-ELO">
+                                <rect key="frame" x="20" y="65" width="40" height="40"/>
+                                <color key="backgroundColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                                <constraints>
+                                    <constraint firstAttribute="width" constant="40" id="GuG-Dv-PEV"/>
+                                    <constraint firstAttribute="height" constant="40" id="QWF-1p-CDE"/>
+                                </constraints>
+                                <inset key="imageEdgeInsets" minX="5" minY="5" maxX="5" maxY="5"/>
+                                <state key="normal" image="btn_search_offer"/>
+                                <connections>
+                                    <action selector="searchOfferPressed:" destination="SrL-Ac-TAI" eventType="touchUpInside" id="0yx-oP-O37"/>
+                                </connections>
+                            </button>
+                            <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="17Y-A7-Sb2" customClass="TopCurlView" customModule="TRPCoreKit" customModuleProvider="target">
+                                <rect key="frame" x="0.0" y="-5" width="414" height="50"/>
+                                <color key="backgroundColor" systemColor="systemBackgroundColor"/>
+                                <constraints>
+                                    <constraint firstAttribute="height" constant="50" id="Tdx-Gx-4Wm"/>
+                                </constraints>
+                            </view>
+                            <stackView opaque="NO" contentMode="scaleToFill" axis="vertical" spacing="10" translatesAutoresizingMaskIntoConstraints="NO" id="MiB-gA-9Yj">
+                                <rect key="frame" x="354" y="596" width="40" height="40"/>
+                                <subviews>
+                                    <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="dPq-im-PPS">
+                                        <rect key="frame" x="0.0" y="0.0" width="40" height="40"/>
+                                        <color key="backgroundColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                                        <constraints>
+                                            <constraint firstAttribute="height" constant="40" id="3yU-4f-hL2"/>
+                                            <constraint firstAttribute="width" constant="40" id="ahy-h9-PJE"/>
+                                        </constraints>
+                                        <inset key="imageEdgeInsets" minX="5" minY="5" maxX="5" maxY="5"/>
+                                        <state key="normal" image="btn_user_location"/>
+                                        <connections>
+                                            <action selector="userLocationPressed:" destination="SrL-Ac-TAI" eventType="touchUpInside" id="TDf-wS-tST"/>
+                                        </connections>
+                                    </button>
+                                    <button hidden="YES" opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="ne6-TP-0Ta">
+                                        <rect key="frame" x="0.0" y="0.0" width="40" height="40"/>
+                                        <color key="backgroundColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                                        <constraints>
+                                            <constraint firstAttribute="height" constant="40" id="FPX-vA-Pkr"/>
+                                            <constraint firstAttribute="width" constant="40" id="Fbb-Al-gXR"/>
+                                        </constraints>
+                                        <inset key="imageEdgeInsets" minX="5" minY="5" maxX="5" maxY="5"/>
+                                        <state key="normal" image="btn_show_city_center"/>
+                                        <connections>
+                                            <action selector="showCityCenterPressed:" destination="SrL-Ac-TAI" eventType="touchUpInside" id="XP7-sM-jsZ"/>
+                                        </connections>
+                                    </button>
+                                </subviews>
+                            </stackView>
+                            <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="ipj-eE-Vlq">
+                                <rect key="frame" x="20" y="596" width="40" height="40"/>
+                                <color key="backgroundColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                                <constraints>
+                                    <constraint firstAttribute="height" constant="40" id="BxH-qv-aA9"/>
+                                    <constraint firstAttribute="width" constant="40" id="IkW-GG-2Ab"/>
+                                </constraints>
+                                <inset key="imageEdgeInsets" minX="5" minY="5" maxX="5" maxY="5"/>
+                                <state key="normal" image="btn_alternatives"/>
+                                <connections>
+                                    <action selector="alternativesPressed:" destination="SrL-Ac-TAI" eventType="touchUpInside" id="zqy-lD-GSn"/>
+                                </connections>
+                            </button>
+                            <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="mp3-g5-qFZ" customClass="BlackTabbar" customModule="TRPCoreKit" customModuleProvider="target">
+                                <rect key="frame" x="0.0" y="656" width="414" height="80"/>
+                                <color key="backgroundColor" systemColor="systemBackgroundColor"/>
+                                <constraints>
+                                    <constraint firstAttribute="height" constant="80" id="Z8s-kv-e6f"/>
+                                </constraints>
+                            </view>
+                            <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="Msc-41-rLC">
+                                <rect key="frame" x="0.0" y="736" width="414" height="0.0"/>
+                                <color key="backgroundColor" systemColor="systemBackgroundColor"/>
+                            </view>
+                        </subviews>
+                        <viewLayoutGuide key="safeArea" id="Z9C-QQ-2TU"/>
+                        <color key="backgroundColor" systemColor="systemBackgroundColor"/>
+                        <constraints>
+                            <constraint firstItem="Z9C-QQ-2TU" firstAttribute="trailing" secondItem="MiB-gA-9Yj" secondAttribute="trailing" constant="20" id="1TC-Tg-mRq"/>
+                            <constraint firstItem="x8M-6m-9bg" firstAttribute="top" secondItem="Z9C-QQ-2TU" secondAttribute="top" id="5c7-f6-Ycx"/>
+                            <constraint firstItem="mp3-g5-qFZ" firstAttribute="trailing" secondItem="Z9C-QQ-2TU" secondAttribute="trailing" id="5qt-99-mFn"/>
+                            <constraint firstItem="mp3-g5-qFZ" firstAttribute="leading" secondItem="Z9C-QQ-2TU" secondAttribute="leading" id="7OK-Iu-XUU"/>
+                            <constraint firstItem="GKa-d8-ELO" firstAttribute="leading" secondItem="Z9C-QQ-2TU" secondAttribute="leading" constant="20" id="EBx-hS-Si2"/>
+                            <constraint firstAttribute="trailing" secondItem="Msc-41-rLC" secondAttribute="trailing" id="Fw3-yp-SFE"/>
+                            <constraint firstItem="x8M-6m-9bg" firstAttribute="trailing" secondItem="Z9C-QQ-2TU" secondAttribute="trailing" id="Gmt-2Y-zz0"/>
+                            <constraint firstItem="mp3-g5-qFZ" firstAttribute="top" secondItem="MiB-gA-9Yj" secondAttribute="bottom" constant="20" id="Gp7-gQ-wjI"/>
+                            <constraint firstItem="17Y-A7-Sb2" firstAttribute="leading" secondItem="Z9C-QQ-2TU" secondAttribute="leading" id="Grg-O1-VE3"/>
+                            <constraint firstItem="mp3-g5-qFZ" firstAttribute="top" secondItem="ipj-eE-Vlq" secondAttribute="bottom" constant="20" id="IyO-mm-xys"/>
+                            <constraint firstItem="mp3-g5-qFZ" firstAttribute="top" secondItem="x8M-6m-9bg" secondAttribute="bottom" constant="8" symbolic="YES" id="N34-mo-20U"/>
+                            <constraint firstItem="mp3-g5-qFZ" firstAttribute="bottom" secondItem="Z9C-QQ-2TU" secondAttribute="bottom" id="UOa-NV-ppR"/>
+                            <constraint firstAttribute="bottom" secondItem="Msc-41-rLC" secondAttribute="bottom" id="Z18-En-MEe"/>
+                            <constraint firstItem="17Y-A7-Sb2" firstAttribute="trailing" secondItem="Z9C-QQ-2TU" secondAttribute="trailing" id="gKW-RH-Bvy"/>
+                            <constraint firstItem="Z9C-QQ-2TU" firstAttribute="trailing" secondItem="UEB-Rn-2aY" secondAttribute="trailing" constant="20" id="n5m-bJ-ynm"/>
+                            <constraint firstItem="ipj-eE-Vlq" firstAttribute="leading" secondItem="Z9C-QQ-2TU" secondAttribute="leading" constant="20" id="n93-Zi-ePu"/>
+                            <constraint firstItem="x8M-6m-9bg" firstAttribute="leading" secondItem="Z9C-QQ-2TU" secondAttribute="leading" id="ogy-yT-tJg"/>
+                            <constraint firstItem="GKa-d8-ELO" firstAttribute="top" secondItem="17Y-A7-Sb2" secondAttribute="bottom" constant="20" id="sDd-FH-zXc"/>
+                            <constraint firstItem="Msc-41-rLC" firstAttribute="top" secondItem="mp3-g5-qFZ" secondAttribute="bottom" id="srC-y6-rn9"/>
+                            <constraint firstItem="Msc-41-rLC" firstAttribute="leading" secondItem="5gE-h4-DMF" secondAttribute="leading" id="u3G-CZ-idN"/>
+                            <constraint firstItem="UEB-Rn-2aY" firstAttribute="centerY" secondItem="GKa-d8-ELO" secondAttribute="centerY" id="wI2-37-zzP"/>
+                            <constraint firstItem="17Y-A7-Sb2" firstAttribute="top" secondItem="Z9C-QQ-2TU" secondAttribute="top" constant="-25" id="wYo-d7-D3L"/>
+                        </constraints>
+                    </view>
+                    <connections>
+                        <outlet property="alternativesBtn" destination="ipj-eE-Vlq" id="dRj-g3-Uks"/>
+                        <outlet property="blackTabbar" destination="mp3-g5-qFZ" id="feW-od-2aO"/>
+                        <outlet property="bottomSpace" destination="Msc-41-rLC" id="CAx-pL-xjs"/>
+                        <outlet property="googleExportBtn" destination="UEB-Rn-2aY" id="UUW-29-QAf"/>
+                        <outlet property="mapContainer" destination="x8M-6m-9bg" id="TGP-Dl-vZx"/>
+                        <outlet property="searchOfferBtn" destination="GKa-d8-ELO" id="0XQ-wB-oUf"/>
+                        <outlet property="showCityCenterBtn" destination="ne6-TP-0Ta" id="qMX-Am-sGc"/>
+                        <outlet property="userLocationBtn" destination="dPq-im-PPS" id="7de-Xx-pVV"/>
+                    </connections>
+                </viewController>
+                <placeholder placeholderIdentifier="IBFirstResponder" id="eYg-9d-a3i" userLabel="First Responder" customClass="UIResponder" sceneMemberID="firstResponder"/>
+            </objects>
+            <point key="canvasLocation" x="137.68115942028987" y="180.16304347826087"/>
+        </scene>
+    </scenes>
+    <resources>
+        <image name="btn_alternatives" width="640" height="512"/>
+        <image name="btn_google_export" width="512" height="512"/>
+        <image name="btn_search_offer" width="122.87999725341797" height="122.87999725341797"/>
+        <image name="btn_show_city_center" width="24" height="24"/>
+        <image name="btn_user_location" width="188.11099243164062" height="188.11099243164062"/>
+        <systemColor name="systemBackgroundColor">
+            <color white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+        </systemColor>
+    </resources>
+</document>
