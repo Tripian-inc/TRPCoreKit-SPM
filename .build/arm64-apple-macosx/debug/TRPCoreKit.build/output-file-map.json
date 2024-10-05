@@ -1,0 +1,11 @@
+{
+  "": {
+    "swift-dependencies": "/Users/cemcaygoz/Documents/GitHub/ModularIOS/SPM/TRPCoreKit/.build/arm64-apple-macosx/debug/TRPCoreKit.build/master.swiftdeps"
+  },
+  "/Users/cemcaygoz/Documents/GitHub/ModularIOS/SPM/TRPCoreKit/Sources/TRPCoreKit/TRPCoreKit.swift": {
+    "dependencies": "/Users/cemcaygoz/Documents/GitHub/ModularIOS/SPM/TRPCoreKit/.build/arm64-apple-macosx/debug/TRPCoreKit.build/TRPCoreKit.d",
+    "object": "/Users/cemcaygoz/Documents/GitHub/ModularIOS/SPM/TRPCoreKit/.build/arm64-apple-macosx/debug/TRPCoreKit.build/TRPCoreKit.swift.o",
+    "swiftmodule": "/Users/cemcaygoz/Documents/GitHub/ModularIOS/SPM/TRPCoreKit/.build/arm64-apple-macosx/debug/TRPCoreKit.build/TRPCoreKit~partial.swiftmodule",
+    "swift-dependencies": "/Users/cemcaygoz/Documents/GitHub/ModularIOS/SPM/TRPCoreKit/.build/arm64-apple-macosx/debug/TRPCoreKit.build/TRPCoreKit.swiftdeps"
+  }
+}

@@ -1,0 +1,123 @@
+{
+  "originHash" : "959dacae9d8fe1f765b4c879ae5b851f0148d0179090ec31b6f3bdad0809cbc7",
+  "pins" : [
+    {
+      "identity" : "alamofire",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/Alamofire/Alamofire.git",
+      "state" : {
+        "revision" : "f455c2975872ccd2d9c81594c658af65716e9b9a",
+        "version" : "5.9.1"
+      }
+    },
+    {
+      "identity" : "fscalendar",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/WenchaoD/FSCalendar.git",
+      "state" : {
+        "revision" : "0fbdec5172fccb90f707472eeaea4ffe095278f6",
+        "version" : "2.8.4"
+      }
+    },
+    {
+      "identity" : "mapbox-directions-swift",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/mapbox/mapbox-directions-swift.git",
+      "state" : {
+        "revision" : "6512320ee7f0091a4c55abe2bc6414f078da88c8",
+        "version" : "2.14.0"
+      }
+    },
+    {
+      "identity" : "parchment",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/rechsteiner/Parchment.git",
+      "state" : {
+        "revision" : "b2348005a13c2f36015944cd205b1ba73488ab89",
+        "version" : "3.4.0"
+      }
+    },
+    {
+      "identity" : "polyline",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/raphaelmor/Polyline.git",
+      "state" : {
+        "revision" : "353f80378dcd8f17eefe8550090c6b1ae3c9da23",
+        "version" : "5.1.0"
+      }
+    },
+    {
+      "identity" : "sdwebimage",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/SDWebImage/SDWebImage.git",
+      "state" : {
+        "revision" : "8a1be70a625683bc04d6903e2935bf23f3c6d609",
+        "version" : "5.19.7"
+      }
+    },
+    {
+      "identity" : "swift-argument-parser",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/apple/swift-argument-parser",
+      "state" : {
+        "revision" : "41982a3656a71c768319979febd796c6fd111d5c",
+        "version" : "1.5.0"
+      }
+    },
+    {
+      "identity" : "trpdatalayer-spm",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/Tripian-inc/TRPDataLayer-SPM.git",
+      "state" : {
+        "revision" : "2c93677672d4e69380a037abc837064a246e31b0",
+        "version" : "1.0.0"
+      }
+    },
+    {
+      "identity" : "trpfoundationkit",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/Tripian-inc/TRPFoundationKit.git",
+      "state" : {
+        "branch" : "feature/spm",
+        "revision" : "8280ed7725c3de69bb871a55ce103716a97ccd05"
+      }
+    },
+    {
+      "identity" : "trpprovider-spm",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/Tripian-inc/TRPProvider-SPM.git",
+      "state" : {
+        "revision" : "61670e848b0f35c263218fa59904b66c1afdc0a3",
+        "version" : "1.0.0"
+      }
+    },
+    {
+      "identity" : "trprestkit-spm",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/Tripian-inc/TRPRestKit-SPM.git",
+      "state" : {
+        "revision" : "e9b132b469f760b775eb3005db32fc51732a9f9d",
+        "version" : "1.0.0"
+      }
+    },
+    {
+      "identity" : "trpuikit-spm",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/Tripian-inc/TRPUIKit-SPM.git",
+      "state" : {
+        "revision" : "cf3ca3a864cc484157de928cbab77915d504be80",
+        "version" : "1.0.0"
+      }
+    },
+    {
+      "identity" : "turf-swift",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/mapbox/turf-swift.git",
+      "state" : {
+        "revision" : "213050191cfcb3d5aa76e1fa90c6ff1e182a42ca",
+        "version" : "2.8.0"
+      }
+    }
+  ],
+  "version" : 3
+}

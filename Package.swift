@@ -12,12 +12,24 @@ let package = Package(
             name: "TRPCoreKit",
             targets: ["TRPCoreKit"]),
     ],
+    dependencies: [
+        .package(url: "https://github.com/Alamofire/Alamofire.git", from: "5.8.1"),
+        .package(url: "https://github.com/WenchaoD/FSCalendar.git", from: "2.8.3"),
+        .package(url: "https://github.com/mapbox/mapbox-directions-swift.git", from: "2.0.0"),
+        .package(url: "https://github.com/rechsteiner/Parchment.git", from: "3.1.0"),
+        .package(url: "https://github.com/SDWebImage/SDWebImage.git", from: "5.19.7"),
+        .package(url: "https://github.com/Tripian-inc/TRPRestKit-SPM.git", from: "1.0.0"),
+        .package(url: "https://github.com/Tripian-inc/TRPDataLayer-SPM.git", from: "1.0.0"),
+        .package(url: "https://github.com/Tripian-inc/TRPProvider-SPM.git", from: "1.0.0"),
+        .package(url: "https://github.com/Tripian-inc/TRPUIKit-SPM.git", from: "1.0.0"),
+        .package(url: "https://github.com/Tripian-inc/TRPFoundationKit.git", branch: "feature/spm"),
+    ],
     targets: [
         // Targets are the basic building blocks of a package, defining a module or a test suite.
         // Targets can depend on other targets in this package and products from dependencies.
         .target(
             name: "TRPCoreKit",
-            path: "TRPCoreKit/TRPCoreKit"),
+            path: "Sources/TRPCoreKit"),
         .testTarget(
             name: "TRPCoreKitTests",
             dependencies: ["TRPCoreKit"]

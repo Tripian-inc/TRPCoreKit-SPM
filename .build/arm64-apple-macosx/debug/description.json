@@ -1,0 +1,568 @@
+{
+  "builtTestProducts" : [
+    {
+      "binaryPath" : "/Users/cemcaygoz/Documents/GitHub/ModularIOS/SPM/TRPCoreKit/.build/arm64-apple-macosx/debug/TRPCoreKitPackageTests.xctest/Contents/MacOS/TRPCoreKitPackageTests",
+      "packagePath" : "/Users/cemcaygoz/Documents/GitHub/ModularIOS/SPM/TRPCoreKit",
+      "productName" : "TRPCoreKitPackageTests"
+    }
+  ],
+  "copyCommands" : {
+
+  },
+  "explicitTargetDependencyImportCheckingMode" : {
+    "none" : {
+
+    }
+  },
+  "generatedSourceTargetSet" : [
+
+  ],
+  "pluginDescriptions" : [
+
+  ],
+  "swiftCommands" : {
+    "C.TRPCoreKit-arm64-apple-macosx15.0-debug.module" : {
+      "executable" : "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc",
+      "fileList" : "/Users/cemcaygoz/Documents/GitHub/ModularIOS/SPM/TRPCoreKit/.build/arm64-apple-macosx/debug/TRPCoreKit.build/sources",
+      "importPath" : "/Users/cemcaygoz/Documents/GitHub/ModularIOS/SPM/TRPCoreKit/.build/arm64-apple-macosx/debug/Modules",
+      "inputs" : [
+        {
+          "kind" : "file",
+          "name" : "/Users/cemcaygoz/Documents/GitHub/ModularIOS/SPM/TRPCoreKit/Sources/TRPCoreKit/TRPCoreKit.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/cemcaygoz/Documents/GitHub/ModularIOS/SPM/TRPCoreKit/.build/arm64-apple-macosx/debug/swift-version--58304C5D6DBC2206.txt"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/cemcaygoz/Documents/GitHub/ModularIOS/SPM/TRPCoreKit/.build/arm64-apple-macosx/debug/TRPCoreKit.build/sources"
+        }
+      ],
+      "isLibrary" : true,
+      "moduleName" : "TRPCoreKit",
+      "moduleOutputPath" : "/Users/cemcaygoz/Documents/GitHub/ModularIOS/SPM/TRPCoreKit/.build/arm64-apple-macosx/debug/Modules/TRPCoreKit.swiftmodule",
+      "objects" : [
+        "/Users/cemcaygoz/Documents/GitHub/ModularIOS/SPM/TRPCoreKit/.build/arm64-apple-macosx/debug/TRPCoreKit.build/TRPCoreKit.swift.o"
+      ],
+      "otherArguments" : [
+        "-target",
+        "arm64-apple-macosx10.13",
+        "-enable-batch-mode",
+        "-index-store-path",
+        "/Users/cemcaygoz/Documents/GitHub/ModularIOS/SPM/TRPCoreKit/.build/arm64-apple-macosx/debug/index/store",
+        "-Onone",
+        "-enable-testing",
+        "-j10",
+        "-DSWIFT_PACKAGE",
+        "-DDEBUG",
+        "-module-cache-path",
+        "/Users/cemcaygoz/Documents/GitHub/ModularIOS/SPM/TRPCoreKit/.build/arm64-apple-macosx/debug/ModuleCache",
+        "-parseable-output",
+        "-parse-as-library",
+        "-emit-objc-header",
+        "-emit-objc-header-path",
+        "/Users/cemcaygoz/Documents/GitHub/ModularIOS/SPM/TRPCoreKit/.build/arm64-apple-macosx/debug/TRPCoreKit.build/TRPCoreKit-Swift.h",
+        "-color-diagnostics",
+        "-swift-version",
+        "6",
+        "-sdk",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.0.sdk",
+        "-F",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+        "-I",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+        "-L",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+        "-g",
+        "-Xcc",
+        "-isysroot",
+        "-Xcc",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.0.sdk",
+        "-Xcc",
+        "-F",
+        "-Xcc",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+        "-Xcc",
+        "-fPIC",
+        "-Xcc",
+        "-g",
+        "-package-name",
+        "trpcorekit"
+      ],
+      "outputFileMapPath" : "/Users/cemcaygoz/Documents/GitHub/ModularIOS/SPM/TRPCoreKit/.build/arm64-apple-macosx/debug/TRPCoreKit.build/output-file-map.json",
+      "outputs" : [
+        {
+          "kind" : "file",
+          "name" : "/Users/cemcaygoz/Documents/GitHub/ModularIOS/SPM/TRPCoreKit/.build/arm64-apple-macosx/debug/TRPCoreKit.build/TRPCoreKit.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/cemcaygoz/Documents/GitHub/ModularIOS/SPM/TRPCoreKit/.build/arm64-apple-macosx/debug/Modules/TRPCoreKit.swiftmodule"
+        }
+      ],
+      "prepareForIndexing" : false,
+      "sources" : [
+        "/Users/cemcaygoz/Documents/GitHub/ModularIOS/SPM/TRPCoreKit/Sources/TRPCoreKit/TRPCoreKit.swift"
+      ],
+      "tempsPath" : "/Users/cemcaygoz/Documents/GitHub/ModularIOS/SPM/TRPCoreKit/.build/arm64-apple-macosx/debug/TRPCoreKit.build",
+      "wholeModuleOptimization" : false
+    },
+    "C.TRPCoreKitPackageTests-arm64-apple-macosx15.0-debug.module" : {
+      "executable" : "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc",
+      "fileList" : "/Users/cemcaygoz/Documents/GitHub/ModularIOS/SPM/TRPCoreKit/.build/arm64-apple-macosx/debug/TRPCoreKitPackageTests.build/sources",
+      "importPath" : "/Users/cemcaygoz/Documents/GitHub/ModularIOS/SPM/TRPCoreKit/.build/arm64-apple-macosx/debug/Modules",
+      "inputs" : [
+        {
+          "kind" : "file",
+          "name" : "/Users/cemcaygoz/Documents/GitHub/ModularIOS/SPM/TRPCoreKit/.build/arm64-apple-macosx/debug/TRPCoreKitPackageTests.derived/runner.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/cemcaygoz/Documents/GitHub/ModularIOS/SPM/TRPCoreKit/.build/arm64-apple-macosx/debug/swift-version--58304C5D6DBC2206.txt"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/cemcaygoz/Documents/GitHub/ModularIOS/SPM/TRPCoreKit/.build/arm64-apple-macosx/debug/Modules/TRPCoreKitTests.swiftmodule"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/cemcaygoz/Documents/GitHub/ModularIOS/SPM/TRPCoreKit/.build/arm64-apple-macosx/debug/TRPCoreKitPackageTests.build/sources"
+        }
+      ],
+      "isLibrary" : true,
+      "moduleName" : "TRPCoreKitPackageTests",
+      "moduleOutputPath" : "/Users/cemcaygoz/Documents/GitHub/ModularIOS/SPM/TRPCoreKit/.build/arm64-apple-macosx/debug/Modules/TRPCoreKitPackageTests.swiftmodule",
+      "objects" : [
+        "/Users/cemcaygoz/Documents/GitHub/ModularIOS/SPM/TRPCoreKit/.build/arm64-apple-macosx/debug/TRPCoreKitPackageTests.build/runner.swift.o"
+      ],
+      "otherArguments" : [
+        "-target",
+        "arm64-apple-macosx10.13",
+        "-enable-batch-mode",
+        "-index-store-path",
+        "/Users/cemcaygoz/Documents/GitHub/ModularIOS/SPM/TRPCoreKit/.build/arm64-apple-macosx/debug/index/store",
+        "-Onone",
+        "-enable-testing",
+        "-j10",
+        "-DSWIFT_PACKAGE",
+        "-DDEBUG",
+        "-module-cache-path",
+        "/Users/cemcaygoz/Documents/GitHub/ModularIOS/SPM/TRPCoreKit/.build/arm64-apple-macosx/debug/ModuleCache",
+        "-parseable-output",
+        "-parse-as-library",
+        "-emit-objc-header",
+        "-emit-objc-header-path",
+        "/Users/cemcaygoz/Documents/GitHub/ModularIOS/SPM/TRPCoreKit/.build/arm64-apple-macosx/debug/TRPCoreKitPackageTests.build/TRPCoreKitPackageTests-Swift.h",
+        "-color-diagnostics",
+        "-sdk",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.0.sdk",
+        "-F",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+        "-I",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+        "-L",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+        "-g",
+        "-Xcc",
+        "-isysroot",
+        "-Xcc",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.0.sdk",
+        "-Xcc",
+        "-F",
+        "-Xcc",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+        "-Xcc",
+        "-fPIC",
+        "-Xcc",
+        "-g",
+        "-package-name",
+        "trpcorekit"
+      ],
+      "outputFileMapPath" : "/Users/cemcaygoz/Documents/GitHub/ModularIOS/SPM/TRPCoreKit/.build/arm64-apple-macosx/debug/TRPCoreKitPackageTests.build/output-file-map.json",
+      "outputs" : [
+        {
+          "kind" : "file",
+          "name" : "/Users/cemcaygoz/Documents/GitHub/ModularIOS/SPM/TRPCoreKit/.build/arm64-apple-macosx/debug/TRPCoreKitPackageTests.build/runner.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/cemcaygoz/Documents/GitHub/ModularIOS/SPM/TRPCoreKit/.build/arm64-apple-macosx/debug/Modules/TRPCoreKitPackageTests.swiftmodule"
+        }
+      ],
+      "prepareForIndexing" : false,
+      "sources" : [
+        "/Users/cemcaygoz/Documents/GitHub/ModularIOS/SPM/TRPCoreKit/.build/arm64-apple-macosx/debug/TRPCoreKitPackageTests.derived/runner.swift"
+      ],
+      "tempsPath" : "/Users/cemcaygoz/Documents/GitHub/ModularIOS/SPM/TRPCoreKit/.build/arm64-apple-macosx/debug/TRPCoreKitPackageTests.build",
+      "wholeModuleOptimization" : false
+    },
+    "C.TRPCoreKitTests-arm64-apple-macosx15.0-debug.module" : {
+      "executable" : "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc",
+      "fileList" : "/Users/cemcaygoz/Documents/GitHub/ModularIOS/SPM/TRPCoreKit/.build/arm64-apple-macosx/debug/TRPCoreKitTests.build/sources",
+      "importPath" : "/Users/cemcaygoz/Documents/GitHub/ModularIOS/SPM/TRPCoreKit/.build/arm64-apple-macosx/debug/Modules",
+      "inputs" : [
+        {
+          "kind" : "file",
+          "name" : "/Users/cemcaygoz/Documents/GitHub/ModularIOS/SPM/TRPCoreKit/Tests/TRPCoreKitTests/TRPCoreKitTests.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/cemcaygoz/Documents/GitHub/ModularIOS/SPM/TRPCoreKit/.build/arm64-apple-macosx/debug/swift-version--58304C5D6DBC2206.txt"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/cemcaygoz/Documents/GitHub/ModularIOS/SPM/TRPCoreKit/.build/arm64-apple-macosx/debug/Modules/TRPCoreKit.swiftmodule"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/cemcaygoz/Documents/GitHub/ModularIOS/SPM/TRPCoreKit/.build/arm64-apple-macosx/debug/TRPCoreKitTests.build/sources"
+        }
+      ],
+      "isLibrary" : true,
+      "moduleName" : "TRPCoreKitTests",
+      "moduleOutputPath" : "/Users/cemcaygoz/Documents/GitHub/ModularIOS/SPM/TRPCoreKit/.build/arm64-apple-macosx/debug/Modules/TRPCoreKitTests.swiftmodule",
+      "objects" : [
+        "/Users/cemcaygoz/Documents/GitHub/ModularIOS/SPM/TRPCoreKit/.build/arm64-apple-macosx/debug/TRPCoreKitTests.build/TRPCoreKitTests.swift.o"
+      ],
+      "otherArguments" : [
+        "-target",
+        "arm64-apple-macosx13.0",
+        "-enable-batch-mode",
+        "-index-store-path",
+        "/Users/cemcaygoz/Documents/GitHub/ModularIOS/SPM/TRPCoreKit/.build/arm64-apple-macosx/debug/index/store",
+        "-Onone",
+        "-enable-testing",
+        "-j10",
+        "-DSWIFT_PACKAGE",
+        "-DDEBUG",
+        "-module-cache-path",
+        "/Users/cemcaygoz/Documents/GitHub/ModularIOS/SPM/TRPCoreKit/.build/arm64-apple-macosx/debug/ModuleCache",
+        "-parseable-output",
+        "-parse-as-library",
+        "-color-diagnostics",
+        "-swift-version",
+        "6",
+        "-sdk",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.0.sdk",
+        "-F",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+        "-I",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+        "-L",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+        "-g",
+        "-Xcc",
+        "-isysroot",
+        "-Xcc",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.0.sdk",
+        "-Xcc",
+        "-F",
+        "-Xcc",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+        "-Xcc",
+        "-fPIC",
+        "-Xcc",
+        "-g",
+        "-package-name",
+        "trpcorekit"
+      ],
+      "outputFileMapPath" : "/Users/cemcaygoz/Documents/GitHub/ModularIOS/SPM/TRPCoreKit/.build/arm64-apple-macosx/debug/TRPCoreKitTests.build/output-file-map.json",
+      "outputs" : [
+        {
+          "kind" : "file",
+          "name" : "/Users/cemcaygoz/Documents/GitHub/ModularIOS/SPM/TRPCoreKit/.build/arm64-apple-macosx/debug/TRPCoreKitTests.build/TRPCoreKitTests.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/cemcaygoz/Documents/GitHub/ModularIOS/SPM/TRPCoreKit/.build/arm64-apple-macosx/debug/Modules/TRPCoreKitTests.swiftmodule"
+        }
+      ],
+      "prepareForIndexing" : false,
+      "sources" : [
+        "/Users/cemcaygoz/Documents/GitHub/ModularIOS/SPM/TRPCoreKit/Tests/TRPCoreKitTests/TRPCoreKitTests.swift"
+      ],
+      "tempsPath" : "/Users/cemcaygoz/Documents/GitHub/ModularIOS/SPM/TRPCoreKit/.build/arm64-apple-macosx/debug/TRPCoreKitTests.build",
+      "wholeModuleOptimization" : false
+    }
+  },
+  "swiftFrontendCommands" : {
+
+  },
+  "swiftTargetScanArgs" : {
+    "TRPCoreKit" : [
+      "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc",
+      "-module-name",
+      "TRPCoreKit",
+      "-package-name",
+      "trpcorekit",
+      "-incremental",
+      "-c",
+      "/Users/cemcaygoz/Documents/GitHub/ModularIOS/SPM/TRPCoreKit/Sources/TRPCoreKit/TRPCoreKit.swift",
+      "-I",
+      "/Users/cemcaygoz/Documents/GitHub/ModularIOS/SPM/TRPCoreKit/.build/arm64-apple-macosx/debug/Modules",
+      "-target",
+      "arm64-apple-macosx10.13",
+      "-enable-batch-mode",
+      "-index-store-path",
+      "/Users/cemcaygoz/Documents/GitHub/ModularIOS/SPM/TRPCoreKit/.build/arm64-apple-macosx/debug/index/store",
+      "-Onone",
+      "-enable-testing",
+      "-j10",
+      "-DSWIFT_PACKAGE",
+      "-DDEBUG",
+      "-module-cache-path",
+      "/Users/cemcaygoz/Documents/GitHub/ModularIOS/SPM/TRPCoreKit/.build/arm64-apple-macosx/debug/ModuleCache",
+      "-parseable-output",
+      "-parse-as-library",
+      "-emit-objc-header",
+      "-emit-objc-header-path",
+      "/Users/cemcaygoz/Documents/GitHub/ModularIOS/SPM/TRPCoreKit/.build/arm64-apple-macosx/debug/TRPCoreKit.build/TRPCoreKit-Swift.h",
+      "-color-diagnostics",
+      "-swift-version",
+      "6",
+      "-sdk",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.0.sdk",
+      "-F",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+      "-I",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+      "-L",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+      "-g",
+      "-Xcc",
+      "-isysroot",
+      "-Xcc",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.0.sdk",
+      "-Xcc",
+      "-F",
+      "-Xcc",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+      "-Xcc",
+      "-fPIC",
+      "-Xcc",
+      "-g",
+      "-package-name",
+      "trpcorekit",
+      "-driver-use-frontend-path",
+      "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc"
+    ],
+    "TRPCoreKitPackageTests" : [
+      "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc",
+      "-module-name",
+      "TRPCoreKitPackageTests",
+      "-package-name",
+      "trpcorekit",
+      "-incremental",
+      "-c",
+      "/Users/cemcaygoz/Documents/GitHub/ModularIOS/SPM/TRPCoreKit/.build/arm64-apple-macosx/debug/TRPCoreKitPackageTests.derived/runner.swift",
+      "-I",
+      "/Users/cemcaygoz/Documents/GitHub/ModularIOS/SPM/TRPCoreKit/.build/arm64-apple-macosx/debug/Modules",
+      "-target",
+      "arm64-apple-macosx10.13",
+      "-enable-batch-mode",
+      "-index-store-path",
+      "/Users/cemcaygoz/Documents/GitHub/ModularIOS/SPM/TRPCoreKit/.build/arm64-apple-macosx/debug/index/store",
+      "-Onone",
+      "-enable-testing",
+      "-j10",
+      "-DSWIFT_PACKAGE",
+      "-DDEBUG",
+      "-module-cache-path",
+      "/Users/cemcaygoz/Documents/GitHub/ModularIOS/SPM/TRPCoreKit/.build/arm64-apple-macosx/debug/ModuleCache",
+      "-parseable-output",
+      "-parse-as-library",
+      "-emit-objc-header",
+      "-emit-objc-header-path",
+      "/Users/cemcaygoz/Documents/GitHub/ModularIOS/SPM/TRPCoreKit/.build/arm64-apple-macosx/debug/TRPCoreKitPackageTests.build/TRPCoreKitPackageTests-Swift.h",
+      "-color-diagnostics",
+      "-sdk",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.0.sdk",
+      "-F",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+      "-I",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+      "-L",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+      "-g",
+      "-Xcc",
+      "-isysroot",
+      "-Xcc",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.0.sdk",
+      "-Xcc",
+      "-F",
+      "-Xcc",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+      "-Xcc",
+      "-fPIC",
+      "-Xcc",
+      "-g",
+      "-package-name",
+      "trpcorekit",
+      "-driver-use-frontend-path",
+      "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc"
+    ],
+    "TRPCoreKitTests" : [
+      "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc",
+      "-module-name",
+      "TRPCoreKitTests",
+      "-package-name",
+      "trpcorekit",
+      "-incremental",
+      "-c",
+      "/Users/cemcaygoz/Documents/GitHub/ModularIOS/SPM/TRPCoreKit/Tests/TRPCoreKitTests/TRPCoreKitTests.swift",
+      "-I",
+      "/Users/cemcaygoz/Documents/GitHub/ModularIOS/SPM/TRPCoreKit/.build/arm64-apple-macosx/debug/Modules",
+      "-target",
+      "arm64-apple-macosx13.0",
+      "-enable-batch-mode",
+      "-index-store-path",
+      "/Users/cemcaygoz/Documents/GitHub/ModularIOS/SPM/TRPCoreKit/.build/arm64-apple-macosx/debug/index/store",
+      "-Onone",
+      "-enable-testing",
+      "-j10",
+      "-DSWIFT_PACKAGE",
+      "-DDEBUG",
+      "-module-cache-path",
+      "/Users/cemcaygoz/Documents/GitHub/ModularIOS/SPM/TRPCoreKit/.build/arm64-apple-macosx/debug/ModuleCache",
+      "-parseable-output",
+      "-parse-as-library",
+      "-color-diagnostics",
+      "-swift-version",
+      "6",
+      "-sdk",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.0.sdk",
+      "-F",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+      "-I",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+      "-L",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+      "-g",
+      "-Xcc",
+      "-isysroot",
+      "-Xcc",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.0.sdk",
+      "-Xcc",
+      "-F",
+      "-Xcc",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+      "-Xcc",
+      "-fPIC",
+      "-Xcc",
+      "-g",
+      "-package-name",
+      "trpcorekit",
+      "-driver-use-frontend-path",
+      "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc"
+    ]
+  },
+  "targetDependencyMap" : {
+    "TRPCoreKit" : [
+
+    ],
+    "TRPCoreKitPackageTests" : [
+      "TRPCoreKitTests",
+      "TRPCoreKit"
+    ],
+    "TRPCoreKitTests" : [
+      "TRPCoreKit"
+    ]
+  },
+  "testDiscoveryCommands" : {
+
+  },
+  "testEntryPointCommands" : {
+    "/Users/cemcaygoz/Documents/GitHub/ModularIOS/SPM/TRPCoreKit/.build/arm64-apple-macosx/debug/TRPCoreKitPackageTests.derived/runner.swift" : {
+      "inputs" : [
+
+      ],
+      "outputs" : [
+        {
+          "kind" : "file",
+          "name" : "/Users/cemcaygoz/Documents/GitHub/ModularIOS/SPM/TRPCoreKit/.build/arm64-apple-macosx/debug/TRPCoreKitPackageTests.derived/runner.swift"
+        }
+      ]
+    }
+  },
+  "writeCommands" : {
+    "/Users/cemcaygoz/Documents/GitHub/ModularIOS/SPM/TRPCoreKit/.build/arm64-apple-macosx/debug/TRPCoreKit.build/sources" : {
+      "alwaysOutOfDate" : false,
+      "inputs" : [
+        {
+          "kind" : "virtual",
+          "name" : "<sources-file-list>"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/cemcaygoz/Documents/GitHub/ModularIOS/SPM/TRPCoreKit/Sources/TRPCoreKit/TRPCoreKit.swift"
+        }
+      ],
+      "outputFilePath" : "/Users/cemcaygoz/Documents/GitHub/ModularIOS/SPM/TRPCoreKit/.build/arm64-apple-macosx/debug/TRPCoreKit.build/sources"
+    },
+    "/Users/cemcaygoz/Documents/GitHub/ModularIOS/SPM/TRPCoreKit/.build/arm64-apple-macosx/debug/TRPCoreKitPackageTests.build/sources" : {
+      "alwaysOutOfDate" : false,
+      "inputs" : [
+        {
+          "kind" : "virtual",
+          "name" : "<sources-file-list>"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/cemcaygoz/Documents/GitHub/ModularIOS/SPM/TRPCoreKit/.build/arm64-apple-macosx/debug/TRPCoreKitPackageTests.derived/runner.swift"
+        }
+      ],
+      "outputFilePath" : "/Users/cemcaygoz/Documents/GitHub/ModularIOS/SPM/TRPCoreKit/.build/arm64-apple-macosx/debug/TRPCoreKitPackageTests.build/sources"
+    },
+    "/Users/cemcaygoz/Documents/GitHub/ModularIOS/SPM/TRPCoreKit/.build/arm64-apple-macosx/debug/TRPCoreKitPackageTests.product/Objects.LinkFileList" : {
+      "alwaysOutOfDate" : false,
+      "inputs" : [
+        {
+          "kind" : "virtual",
+          "name" : "<link-file-list>"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/cemcaygoz/Documents/GitHub/ModularIOS/SPM/TRPCoreKit/.build/arm64-apple-macosx/debug/TRPCoreKit.build/TRPCoreKit.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/cemcaygoz/Documents/GitHub/ModularIOS/SPM/TRPCoreKit/.build/arm64-apple-macosx/debug/TRPCoreKitPackageTests.build/runner.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/cemcaygoz/Documents/GitHub/ModularIOS/SPM/TRPCoreKit/.build/arm64-apple-macosx/debug/TRPCoreKitTests.build/TRPCoreKitTests.swift.o"
+        }
+      ],
+      "outputFilePath" : "/Users/cemcaygoz/Documents/GitHub/ModularIOS/SPM/TRPCoreKit/.build/arm64-apple-macosx/debug/TRPCoreKitPackageTests.product/Objects.LinkFileList"
+    },
+    "/Users/cemcaygoz/Documents/GitHub/ModularIOS/SPM/TRPCoreKit/.build/arm64-apple-macosx/debug/TRPCoreKitTests.build/sources" : {
+      "alwaysOutOfDate" : false,
+      "inputs" : [
+        {
+          "kind" : "virtual",
+          "name" : "<sources-file-list>"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/cemcaygoz/Documents/GitHub/ModularIOS/SPM/TRPCoreKit/Tests/TRPCoreKitTests/TRPCoreKitTests.swift"
+        }
+      ],
+      "outputFilePath" : "/Users/cemcaygoz/Documents/GitHub/ModularIOS/SPM/TRPCoreKit/.build/arm64-apple-macosx/debug/TRPCoreKitTests.build/sources"
+    },
+    "/Users/cemcaygoz/Documents/GitHub/ModularIOS/SPM/TRPCoreKit/.build/arm64-apple-macosx/debug/swift-version--58304C5D6DBC2206.txt" : {
+      "alwaysOutOfDate" : true,
+      "inputs" : [
+        {
+          "kind" : "virtual",
+          "name" : "<swift-get-version>"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc"
+        }
+      ],
+      "outputFilePath" : "/Users/cemcaygoz/Documents/GitHub/ModularIOS/SPM/TRPCoreKit/.build/arm64-apple-macosx/debug/swift-version--58304C5D6DBC2206.txt"
+    }
+  }
+}
