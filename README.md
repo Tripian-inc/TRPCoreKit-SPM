@@ -62,10 +62,10 @@ Note that if you're using one of the quickstart samples, the Xcode project and P
 * Tripian APIs require a Tripian account and API access token.
 
    * TRPCoreKit uses [TRPRestKit framework](https://github.com/tripian/trpRestKitIOS/) to handle networking implementations of Tripian Rest API. 
-   * Import TRPRestKit in `AppDelegate`:
+   *  in `AppDelegate`:
    
        ```swift
-       import TRPRestKit
+       
        ```
    * Then, set the access token with calling the TRPClient.start() in your app's `application:didFinishLaunchingWithOptions:` method:
    

@@ -51,6 +51,11 @@
 		6B15A5D428F9898F003FDC5A /* CreateTripQuestionsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6B15A5D328F9898F003FDC5A /* CreateTripQuestionsViewModel.swift */; };
 		6B18F9A1274FAFF70004494C /* Parchment in Frameworks */ = {isa = PBXBuildFile; productRef = 6B18F9A0274FAFF70004494C /* Parchment */; };
 		6B18F9A4274FCF920004494C /* MapboxDirections in Frameworks */ = {isa = PBXBuildFile; productRef = 6B18F9A3274FCF920004494C /* MapboxDirections */; };
+		6B1C07812CB16A770075EEA0 /* TRPFoundationKit in Frameworks */ = {isa = PBXBuildFile; productRef = 6B1C07802CB16A770075EEA0 /* TRPFoundationKit */; };
+		6B1C07842CB16A960075EEA0 /* TRPDataLayer in Frameworks */ = {isa = PBXBuildFile; productRef = 6B1C07832CB16A960075EEA0 /* TRPDataLayer */; };
+		6B1C07872CB16AB30075EEA0 /* TRPUIKit in Frameworks */ = {isa = PBXBuildFile; productRef = 6B1C07862CB16AB30075EEA0 /* TRPUIKit */; };
+		6B1C078A2CB16ACB0075EEA0 /* TRPRestKit in Frameworks */ = {isa = PBXBuildFile; productRef = 6B1C07892CB16ACB0075EEA0 /* TRPRestKit */; };
+		6B1C078D2CB16AEA0075EEA0 /* TRPProvider in Frameworks */ = {isa = PBXBuildFile; productRef = 6B1C078C2CB16AEA0075EEA0 /* TRPProvider */; };
 		6B1EFED928E8E50B00DE6695 /* CreateTripTextFieldRightTextCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6B1EFED828E8E50B00DE6695 /* CreateTripTextFieldRightTextCell.swift */; };
 		6B1EFEDC28E8E7CC00DE6695 /* CreateTripSelectDateViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6B1EFEDB28E8E7CC00DE6695 /* CreateTripSelectDateViewModel.swift */; };
 		6B1EFEDF28E9AD4200DE6695 /* CreateTripSelectTimeVC.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6B1EFEDE28E9AD4200DE6695 /* CreateTripSelectTimeVC.swift */; };
@@ -83,24 +88,9 @@
 		6BA8014A2CAED112009050F1 /* MapboxMobileEvents.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6BA801482CAED112009050F1 /* MapboxMobileEvents.framework */; };
 		6BA8014B2CAED112009050F1 /* Mapbox.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6BA801472CAED112009050F1 /* Mapbox.framework */; platformFilter = ios; };
 		6BA8014C2CAED112009050F1 /* MapboxMobileEvents.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6BA801482CAED112009050F1 /* MapboxMobileEvents.framework */; };
-		6BA801E02CB0361B009050F1 /* TRPDataLayer.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6BA801DB2CB0361B009050F1 /* TRPDataLayer.framework */; platformFilter = ios; };
-		6BA801E12CB0361B009050F1 /* TRPFoundationKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6BA801DC2CB0361B009050F1 /* TRPFoundationKit.framework */; };
-		6BA801E22CB0361B009050F1 /* TRPUIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6BA801DF2CB0361B009050F1 /* TRPUIKit.framework */; };
-		6BA801E32CB0361B009050F1 /* TRPProvider.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6BA801DD2CB0361B009050F1 /* TRPProvider.framework */; platformFilter = ios; };
-		6BA801E42CB0361B009050F1 /* TRPRestKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6BA801DE2CB0361B009050F1 /* TRPRestKit.framework */; platformFilter = ios; };
 		6BA801F52CB03F50009050F1 /* Alamofire in Frameworks */ = {isa = PBXBuildFile; productRef = 6BA801F42CB03F50009050F1 /* Alamofire */; };
 		6BA802602CB05769009050F1 /* SDWebImage in Frameworks */ = {isa = PBXBuildFile; productRef = 6BA8025F2CB05769009050F1 /* SDWebImage */; };
 		6BA802622CB05769009050F1 /* SDWebImageMapKit in Frameworks */ = {isa = PBXBuildFile; productRef = 6BA802612CB05769009050F1 /* SDWebImageMapKit */; };
-		6BA802632CB066AA009050F1 /* TRPDataLayer.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6BA801DB2CB0361B009050F1 /* TRPDataLayer.framework */; };
-		6BA802642CB066AA009050F1 /* TRPDataLayer.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 6BA801DB2CB0361B009050F1 /* TRPDataLayer.framework */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
-		6BA802662CB066AC009050F1 /* TRPFoundationKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6BA801DC2CB0361B009050F1 /* TRPFoundationKit.framework */; };
-		6BA802672CB066AC009050F1 /* TRPFoundationKit.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 6BA801DC2CB0361B009050F1 /* TRPFoundationKit.framework */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
-		6BA802682CB066AD009050F1 /* TRPProvider.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6BA801DD2CB0361B009050F1 /* TRPProvider.framework */; };
-		6BA802692CB066AD009050F1 /* TRPProvider.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 6BA801DD2CB0361B009050F1 /* TRPProvider.framework */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
-		6BA8026A2CB066AE009050F1 /* TRPRestKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6BA801DE2CB0361B009050F1 /* TRPRestKit.framework */; };
-		6BA8026B2CB066AE009050F1 /* TRPRestKit.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 6BA801DE2CB0361B009050F1 /* TRPRestKit.framework */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
-		6BA8026C2CB066AF009050F1 /* TRPUIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6BA801DF2CB0361B009050F1 /* TRPUIKit.framework */; };
-		6BA8026D2CB066AF009050F1 /* TRPUIKit.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 6BA801DF2CB0361B009050F1 /* TRPUIKit.framework */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		6BAF34F92674A8B600FD7722 /* StayAddressCellModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6BAF34F82674A8B600FD7722 /* StayAddressCellModel.swift */; };
 		6BAF34FB2674E1CA00FD7722 /* CreateTripStayAddress.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 6BAF34FA2674E1CA00FD7722 /* CreateTripStayAddress.storyboard */; };
 		6BAF34FE267594E500FD7722 /* CompanionQuestionAnswersCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6BAF34FD267594E500FD7722 /* CompanionQuestionAnswersCell.swift */; };
@@ -287,7 +277,6 @@
 		B26CA65F24FF751100805EB7 /* ObserverProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = B26CA65E24FF751100805EB7 /* ObserverProtocol.swift */; };
 		B26CA679250045E100805EB7 /* AddRemovePoiStatus.swift in Sources */ = {isa = PBXBuildFile; fileRef = B26CA678250045E100805EB7 /* AddRemovePoiStatus.swift */; };
 		B26CA67B2500466A00805EB7 /* AddPlaceListContentType.swift in Sources */ = {isa = PBXBuildFile; fileRef = B26CA67A2500466A00805EB7 /* AddPlaceListContentType.swift */; };
-		B271983B2296C518000DA957 /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = B271983D2296C518000DA957 /* Localizable.strings */; };
 		B274E78525149E7300406948 /* ExperienceDetailCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = B274E78425149E7300406948 /* ExperienceDetailCell.swift */; };
 		B274E79125162D8E00406948 /* ExperienceDetailImageCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = B274E79025162D8E00406948 /* ExperienceDetailImageCell.swift */; };
 		B27507B52556BA300020F5F7 /* ExperienceBasicCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = B27507B42556BA300020F5F7 /* ExperienceBasicCell.swift */; };
@@ -432,11 +421,6 @@
 			dstPath = "";
 			dstSubfolderSpec = 10;
 			files = (
-				6BA8026B2CB066AE009050F1 /* TRPRestKit.framework in Embed Frameworks */,
-				6BA802642CB066AA009050F1 /* TRPDataLayer.framework in Embed Frameworks */,
-				6BA802692CB066AD009050F1 /* TRPProvider.framework in Embed Frameworks */,
-				6BA802672CB066AC009050F1 /* TRPFoundationKit.framework in Embed Frameworks */,
-				6BA8026D2CB066AF009050F1 /* TRPUIKit.framework in Embed Frameworks */,
 			);
 			name = "Embed Frameworks";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -510,11 +494,6 @@
 		6B7D7DFC28F6F9F900BC1DC6 /* CreateTripPickedInformationViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreateTripPickedInformationViewModel.swift; sourceTree = "<group>"; };
 		6BA801472CAED112009050F1 /* Mapbox.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; path = Mapbox.framework; sourceTree = "<group>"; };
 		6BA801482CAED112009050F1 /* MapboxMobileEvents.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; path = MapboxMobileEvents.framework; sourceTree = "<group>"; };
-		6BA801DB2CB0361B009050F1 /* TRPDataLayer.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; path = TRPDataLayer.framework; sourceTree = "<group>"; };
-		6BA801DC2CB0361B009050F1 /* TRPFoundationKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; path = TRPFoundationKit.framework; sourceTree = "<group>"; };
-		6BA801DD2CB0361B009050F1 /* TRPProvider.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; path = TRPProvider.framework; sourceTree = "<group>"; };
-		6BA801DE2CB0361B009050F1 /* TRPRestKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; path = TRPRestKit.framework; sourceTree = "<group>"; };
-		6BA801DF2CB0361B009050F1 /* TRPUIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; path = TRPUIKit.framework; sourceTree = "<group>"; };
 		6BAF34F82674A8B600FD7722 /* StayAddressCellModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StayAddressCellModel.swift; sourceTree = "<group>"; };
 		6BAF34FA2674E1CA00FD7722 /* CreateTripStayAddress.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = CreateTripStayAddress.storyboard; sourceTree = "<group>"; };
 		6BAF34FD267594E500FD7722 /* CompanionQuestionAnswersCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompanionQuestionAnswersCell.swift; sourceTree = "<group>"; };
@@ -831,19 +810,19 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				6B1C078D2CB16AEA0075EEA0 /* TRPProvider in Frameworks */,
 				6BA802622CB05769009050F1 /* SDWebImageMapKit in Frameworks */,
-				6BA8026A2CB066AE009050F1 /* TRPRestKit.framework in Frameworks */,
+				6B1C07842CB16A960075EEA0 /* TRPDataLayer in Frameworks */,
 				6B18F9A4274FCF920004494C /* MapboxDirections in Frameworks */,
 				6BF357CF28E76EFC00CED3C9 /* FSCalendar in Frameworks */,
+				6B1C07872CB16AB30075EEA0 /* TRPUIKit in Frameworks */,
 				6B18F9A1274FAFF70004494C /* Parchment in Frameworks */,
-				6BA802662CB066AC009050F1 /* TRPFoundationKit.framework in Frameworks */,
 				6BA802602CB05769009050F1 /* SDWebImage in Frameworks */,
+				6B1C07812CB16A770075EEA0 /* TRPFoundationKit in Frameworks */,
 				6BA801492CAED112009050F1 /* Mapbox.framework in Frameworks */,
-				6BA802632CB066AA009050F1 /* TRPDataLayer.framework in Frameworks */,
 				6BA8014A2CAED112009050F1 /* MapboxMobileEvents.framework in Frameworks */,
+				6B1C078A2CB16ACB0075EEA0 /* TRPRestKit in Frameworks */,
 				6BA801F52CB03F50009050F1 /* Alamofire in Frameworks */,
-				6BA8026C2CB066AF009050F1 /* TRPUIKit.framework in Frameworks */,
-				6BA802682CB066AD009050F1 /* TRPProvider.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -853,11 +832,6 @@
 			files = (
 				B2E5A0FD237EDB2600AC6AC7 /* TRPCoreKit.framework in Frameworks */,
 				6BA8014B2CAED112009050F1 /* Mapbox.framework in Frameworks */,
-				6BA801E02CB0361B009050F1 /* TRPDataLayer.framework in Frameworks */,
-				6BA801E12CB0361B009050F1 /* TRPFoundationKit.framework in Frameworks */,
-				6BA801E22CB0361B009050F1 /* TRPUIKit.framework in Frameworks */,
-				6BA801E32CB0361B009050F1 /* TRPProvider.framework in Frameworks */,
-				6BA801E42CB0361B009050F1 /* TRPRestKit.framework in Frameworks */,
 				6BA8014C2CAED112009050F1 /* MapboxMobileEvents.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -1480,11 +1454,6 @@
 			children = (
 				6BA801472CAED112009050F1 /* Mapbox.framework */,
 				6BA801482CAED112009050F1 /* MapboxMobileEvents.framework */,
-				6BA801DB2CB0361B009050F1 /* TRPDataLayer.framework */,
-				6BA801DC2CB0361B009050F1 /* TRPFoundationKit.framework */,
-				6BA801DD2CB0361B009050F1 /* TRPProvider.framework */,
-				6BA801DE2CB0361B009050F1 /* TRPRestKit.framework */,
-				6BA801DF2CB0361B009050F1 /* TRPUIKit.framework */,
 				B25A7B8B20F4F22000803CF8 /* TRPCoreKit */,
 				B2E5A0F9237EDB2600AC6AC7 /* TRPCoreKitTests */,
 				B25A7B8A20F4F22000803CF8 /* Products */,
@@ -2189,6 +2158,11 @@
 				6BA801F42CB03F50009050F1 /* Alamofire */,
 				6BA8025F2CB05769009050F1 /* SDWebImage */,
 				6BA802612CB05769009050F1 /* SDWebImageMapKit */,
+				6B1C07802CB16A770075EEA0 /* TRPFoundationKit */,
+				6B1C07832CB16A960075EEA0 /* TRPDataLayer */,
+				6B1C07862CB16AB30075EEA0 /* TRPUIKit */,
+				6B1C07892CB16ACB0075EEA0 /* TRPRestKit */,
+				6B1C078C2CB16AEA0075EEA0 /* TRPProvider */,
 			);
 			productName = TRPCoreKit;
 			productReference = B25A7B8920F4F22000803CF8 /* TRPCoreKit.framework */;
@@ -2253,6 +2227,11 @@
 				6BF357CD28E76EFC00CED3C9 /* XCRemoteSwiftPackageReference "FSCalendar" */,
 				6BA801F32CB03F07009050F1 /* XCRemoteSwiftPackageReference "Alamofire" */,
 				6BA8025E2CB05769009050F1 /* XCRemoteSwiftPackageReference "SDWebImage" */,
+				6B1C077F2CB16A770075EEA0 /* XCRemoteSwiftPackageReference "TRPFoundationKit" */,
+				6B1C07822CB16A960075EEA0 /* XCRemoteSwiftPackageReference "TRPDataLayer-SPM" */,
+				6B1C07852CB16AB30075EEA0 /* XCRemoteSwiftPackageReference "TRPUIKit-SPM" */,
+				6B1C07882CB16ACB0075EEA0 /* XCRemoteSwiftPackageReference "TRPRestKit-SPM" */,
+				6B1C078B2CB16AEA0075EEA0 /* XCRemoteSwiftPackageReference "TRPProvider-SPM" */,
 			);
 			productRefGroup = B25A7B8A20F4F22000803CF8 /* Products */;
 			projectDirPath = "";
@@ -2298,7 +2277,6 @@
 				B2E45B89265560E300A7347C /* TripMode.storyboard in Resources */,
 				6B15A5CA28F8EEDE003FDC5A /* CreateTripPersonalizeTrip.storyboard in Resources */,
 				6B50493B2C7C8D2200C510F1 /* Experience.storyboard in Resources */,
-				B271983B2296C518000DA957 /* Localizable.strings in Resources */,
 				6BF585B4268A475F004C6DD5 /* PoiDetail.storyboard in Resources */,
 				6BB05E2128D367DD00C34DAD /* CreateTrip.storyboard in Resources */,
 			);
@@ -3042,6 +3020,46 @@
 				minimumVersion = 2.0.0;
 			};
 		};
+		6B1C077F2CB16A770075EEA0 /* XCRemoteSwiftPackageReference "TRPFoundationKit" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/Tripian-inc/TRPFoundationKit.git";
+			requirement = {
+				branch = feature/spm;
+				kind = branch;
+			};
+		};
+		6B1C07822CB16A960075EEA0 /* XCRemoteSwiftPackageReference "TRPDataLayer-SPM" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/Tripian-inc/TRPDataLayer-SPM.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.0.0;
+			};
+		};
+		6B1C07852CB16AB30075EEA0 /* XCRemoteSwiftPackageReference "TRPUIKit-SPM" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/Tripian-inc/TRPUIKit-SPM.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.0.0;
+			};
+		};
+		6B1C07882CB16ACB0075EEA0 /* XCRemoteSwiftPackageReference "TRPRestKit-SPM" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/Tripian-inc/TRPRestKit-SPM.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.0.0;
+			};
+		};
+		6B1C078B2CB16AEA0075EEA0 /* XCRemoteSwiftPackageReference "TRPProvider-SPM" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/Tripian-inc/TRPProvider-SPM.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.0.0;
+			};
+		};
 		6BA801F32CB03F07009050F1 /* XCRemoteSwiftPackageReference "Alamofire" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/Alamofire/Alamofire.git";
@@ -3078,6 +3096,31 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 6B18F9A2274FB2080004494C /* XCRemoteSwiftPackageReference "mapbox-directions-swift" */;
 			productName = MapboxDirections;
+		};
+		6B1C07802CB16A770075EEA0 /* TRPFoundationKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 6B1C077F2CB16A770075EEA0 /* XCRemoteSwiftPackageReference "TRPFoundationKit" */;
+			productName = TRPFoundationKit;
+		};
+		6B1C07832CB16A960075EEA0 /* TRPDataLayer */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 6B1C07822CB16A960075EEA0 /* XCRemoteSwiftPackageReference "TRPDataLayer-SPM" */;
+			productName = TRPDataLayer;
+		};
+		6B1C07862CB16AB30075EEA0 /* TRPUIKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 6B1C07852CB16AB30075EEA0 /* XCRemoteSwiftPackageReference "TRPUIKit-SPM" */;
+			productName = TRPUIKit;
+		};
+		6B1C07892CB16ACB0075EEA0 /* TRPRestKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 6B1C07882CB16ACB0075EEA0 /* XCRemoteSwiftPackageReference "TRPRestKit-SPM" */;
+			productName = TRPRestKit;
+		};
+		6B1C078C2CB16AEA0075EEA0 /* TRPProvider */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 6B1C078B2CB16AEA0075EEA0 /* XCRemoteSwiftPackageReference "TRPProvider-SPM" */;
+			productName = TRPProvider;
 		};
 		6BA801F42CB03F50009050F1 /* Alamofire */ = {
 			isa = XCSwiftPackageProductDependency;
