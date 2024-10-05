@@ -31,10 +31,8 @@ public class TRPSDKCoordinater {
     private var alertMessage: (title: String?, message: String)? {
         didSet {
             guard let message = alertMessage else {return}
-            if let myTripVC = myTrip {
-                DispatchQueue.main.async {
-                    myTripVC.alertMessage = message
-                }
+            if let myTripVC = myTrip as? MyTripVC {
+                myTripVC.alertMessage = message
             }
         }
     }
@@ -65,7 +63,9 @@ public class TRPSDKCoordinater {
         return TRPCompanionUseCases()
     }()
     
-    private var myTrip: MyTripVC?
+    private lazy var myTrip: MyTripVC = {
+        return makeMyTrip()
+    }()
     
 //    private lazy var bookingUseCases: TRPMakeBookingUseCases = {
 //        return TRPMakeBookingUseCases()
@@ -95,27 +95,25 @@ public class TRPSDKCoordinater {
     }
     
     private func startFirstVC() {
-        makeMyTrip()
-        if let vc = myTrip {
-            //navigationController.pushViewController(vc, animated: true)
-            DispatchQueue.main.async {
-                self.navigationController.pushViewController(vc, animated: true)
-                self.setupSomeGeneralAppearances()
-            }
+        
+        let vc = myTrip
+        //navigationController.pushViewController(vc, animated: true)
+        DispatchQueue.main.async {
+            self.navigationController.pushViewController(vc, animated: true)
+            self.setupSomeGeneralAppearances()
         }
     }
     
-     public func startForNexus(bookingDetailUrl: String, meetingPoint: String) {
+    public func startForNexus(bookingDetailUrl: String, meetingPoint: String) {
         checkAllApiKey()
         userProfile()
-        if let vc = myTrip {
-            vc.bookingDetailUrl = bookingDetailUrl
-            vc.meetingPoint = meetingPoint
-            //navigationController.pushViewController(vc, animated: true)
-            DispatchQueue.main.async {
-                self.navigationController.pushViewController(vc, animated: true)
-                self.setupSomeGeneralAppearances()
-            }
+        let vc = myTrip
+        vc.bookingDetailUrl = bookingDetailUrl
+        vc.meetingPoint = meetingPoint
+        //navigationController.pushViewController(vc, animated: true)
+        DispatchQueue.main.async {
+            self.navigationController.pushViewController(vc, animated: true)
+            self.setupSomeGeneralAppearances()
         }
         //navigationController.pushViewController(makePaymetnViewController(), animated: true)
         //navigationController.pushViewController(makeBilling(), animated: true)
@@ -268,22 +266,20 @@ public class TRPSDKCoordinater {
 //MARK: - MYTRIP
 extension TRPSDKCoordinater {
     
-     private func makeMyTrip() {
-        DispatchQueue.main.async {
-            let viewModel = MyTripViewModel()
-            viewModel.fetchCityUseCase = self.cityUseCases
-            let viewController = MyTripVC(viewModel: viewModel)
-            viewController.delegate = self
-            viewController.canBack = self.canBackFromMyTrip
-            let upcomingTrip = self.makeUpcomingTrip()
-            let pastTrip = self.makePastTrip()
-            viewController.addViewControllerInPagination(upcomingTrip)
-            viewController.addViewControllerInPagination(pastTrip)
-            viewModel.delegate = viewController
-            upcomingTrip.delegate = viewController
-            pastTrip.delegate = viewController
-            self.myTrip = viewController
-        }
+    private func makeMyTrip() -> MyTripVC {
+        let viewModel = MyTripViewModel()
+        viewModel.fetchCityUseCase = cityUseCases
+        let viewController = MyTripVC(viewModel: viewModel)
+        viewController.delegate = self
+        viewController.canBack = canBackFromMyTrip
+        let upcomingTrip = makeUpcomingTrip()
+        let pastTrip = makePastTrip()
+        viewController.addViewControllerInPagination(upcomingTrip)
+        viewController.addViewControllerInPagination(pastTrip)
+        viewModel.delegate = viewController
+        upcomingTrip.delegate = viewController
+        pastTrip.delegate = viewController
+        return viewController
     }
     
      private func makeUpcomingTrip() -> MyTripTableViewVC {
@@ -499,9 +495,7 @@ extension TRPSDKCoordinater {
         let missingApiKey = TRPApiKeyController.checkMissingApiKeys(keys)
         if missingApiKey.count > 0 {
             let missingValus = missingApiKey.toString(", ")
-            DispatchQueue.main.async {
-                Log.d("Could not find '\(missingValus)' key in Info.plist")
-            }
+            Log.d("Could not find '\(missingValus)' key in Info.plist")
             fatalError()
         }
     }

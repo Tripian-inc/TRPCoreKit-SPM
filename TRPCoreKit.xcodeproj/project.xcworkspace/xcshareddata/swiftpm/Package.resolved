@@ -1,5 +1,5 @@
 {
-  "originHash" : "d93da3a7ecd9d253f1f465d7232a781357a87156e245dcd84aff55071b9413a6",
+  "originHash" : "c8105889ca5e9e569fe22c1628851555bd32d1276dd09ac3ae4ebc726729cb99",
   "pins" : [
     {
       "identity" : "alamofire",
@@ -62,51 +62,6 @@
       "state" : {
         "revision" : "e394bf350e38cb100b6bc4172834770ede1b7232",
         "version" : "1.0.3"
-      }
-    },
-    {
-      "identity" : "trpdatalayer-spm",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/Tripian-inc/TRPDataLayer-SPM.git",
-      "state" : {
-        "revision" : "2c93677672d4e69380a037abc837064a246e31b0",
-        "version" : "1.0.0"
-      }
-    },
-    {
-      "identity" : "trpfoundationkit",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/Tripian-inc/TRPFoundationKit.git",
-      "state" : {
-        "branch" : "feature/spm",
-        "revision" : "8280ed7725c3de69bb871a55ce103716a97ccd05"
-      }
-    },
-    {
-      "identity" : "trpprovider-spm",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/Tripian-inc/TRPProvider-SPM.git",
-      "state" : {
-        "revision" : "61670e848b0f35c263218fa59904b66c1afdc0a3",
-        "version" : "1.0.0"
-      }
-    },
-    {
-      "identity" : "trprestkit-spm",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/Tripian-inc/TRPRestKit-SPM.git",
-      "state" : {
-        "revision" : "e9b132b469f760b775eb3005db32fc51732a9f9d",
-        "version" : "1.0.0"
-      }
-    },
-    {
-      "identity" : "trpuikit-spm",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/Tripian-inc/TRPUIKit-SPM.git",
-      "state" : {
-        "revision" : "cf3ca3a864cc484157de928cbab77915d504be80",
-        "version" : "1.0.0"
       }
     },
     {
