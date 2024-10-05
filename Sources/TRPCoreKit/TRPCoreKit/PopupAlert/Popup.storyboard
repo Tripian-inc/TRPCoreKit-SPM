@@ -1,0 +1,181 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="32700.99.1234" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES">
+    <device id="retina6_1" orientation="portrait" appearance="light"/>
+    <dependencies>
+        <deployment identifier="iOS"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="22685"/>
+        <capability name="Named colors" minToolsVersion="9.0"/>
+        <capability name="Safe area layout guides" minToolsVersion="9.0"/>
+        <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
+    </dependencies>
+    <customFonts key="customFonts">
+        <array key="Nunito-Regular.ttf">
+            <string>Nunito-Regular</string>
+        </array>
+    </customFonts>
+    <scenes>
+        <!--Popup Alert-->
+        <scene sceneID="s0d-6b-0kx">
+            <objects>
+                <viewController storyboardIdentifier="PopupAlert" id="Y6W-OH-hqX" customClass="PopupAlert" customModule="TRPCoreKit" customModuleProvider="target" sceneMemberID="viewController">
+                    <view key="view" contentMode="scaleToFill" id="5EZ-qb-Rvc">
+                        <rect key="frame" x="0.0" y="0.0" width="414" height="896"/>
+                        <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                        <subviews>
+                            <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="4NZ-vk-VTj">
+                                <rect key="frame" x="0.0" y="0.0" width="414" height="896"/>
+                                <subviews>
+                                    <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="TFh-dG-LZ8">
+                                        <rect key="frame" x="20" y="316.5" width="374" height="263.5"/>
+                                        <subviews>
+                                            <stackView opaque="NO" contentMode="scaleToFill" axis="vertical" alignment="center" spacing="24" translatesAutoresizingMaskIntoConstraints="NO" id="dKt-Ke-Ohd">
+                                                <rect key="frame" x="20" y="40" width="334" height="135.5"/>
+                                                <subviews>
+                                                    <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Title" textAlignment="center" lineBreakMode="tailTruncation" numberOfLines="0" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="A4i-Ur-ulB">
+                                                        <rect key="frame" x="153" y="0.0" width="28.5" height="17.5"/>
+                                                        <fontDescription key="fontDescription" name="Nunito-Regular" family="Nunito" pointSize="15"/>
+                                                        <color key="textColor" name="text_medium"/>
+                                                        <nil key="highlightedColor"/>
+                                                    </label>
+                                                    <scrollView clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="ZM1-TC-9wN">
+                                                        <rect key="frame" x="0.0" y="41.5" width="334" height="52.5"/>
+                                                        <subviews>
+                                                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="The lot number you entered did not match any test. Please make sure you entered the right number." textAlignment="center" lineBreakMode="tailTruncation" numberOfLines="0" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="tvS-CW-IUd">
+                                                                <rect key="frame" x="20" y="0.0" width="300.5" height="52.5"/>
+                                                                <fontDescription key="fontDescription" name="Nunito-Regular" family="Nunito" pointSize="15"/>
+                                                                <color key="textColor" name="text_medium"/>
+                                                                <nil key="highlightedColor"/>
+                                                            </label>
+                                                        </subviews>
+                                                        <constraints>
+                                                            <constraint firstItem="tvS-CW-IUd" firstAttribute="width" secondItem="ZM1-TC-9wN" secondAttribute="width" multiplier="0.9" id="LVj-Yc-zcz"/>
+                                                            <constraint firstItem="tvS-CW-IUd" firstAttribute="trailing" secondItem="ZM1-TC-9wN" secondAttribute="trailing" constant="20" id="Lmf-zi-YAp"/>
+                                                            <constraint firstAttribute="bottom" secondItem="tvS-CW-IUd" secondAttribute="bottom" id="Wcq-d5-app"/>
+                                                            <constraint firstItem="tvS-CW-IUd" firstAttribute="leading" secondItem="ZM1-TC-9wN" secondAttribute="leading" constant="20" id="eMn-Mr-HzA"/>
+                                                            <constraint firstItem="tvS-CW-IUd" firstAttribute="top" secondItem="ZM1-TC-9wN" secondAttribute="top" id="h7Z-F6-mtC"/>
+                                                            <constraint firstItem="tvS-CW-IUd" firstAttribute="height" secondItem="ZM1-TC-9wN" secondAttribute="height" priority="250" id="yDp-0C-rqD"/>
+                                                        </constraints>
+                                                    </scrollView>
+                                                    <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Title" textAlignment="center" lineBreakMode="tailTruncation" numberOfLines="0" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="cB6-dN-vmA">
+                                                        <rect key="frame" x="153" y="118" width="28.5" height="17.5"/>
+                                                        <fontDescription key="fontDescription" name="Nunito-Regular" family="Nunito" pointSize="15"/>
+                                                        <color key="textColor" name="text_medium"/>
+                                                        <nil key="highlightedColor"/>
+                                                    </label>
+                                                </subviews>
+                                            </stackView>
+                                            <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="NeR-NO-msU" customClass="TRPBtnPopup" customModule="TRPCoreKit" customModuleProvider="target">
+                                                <rect key="frame" x="20" y="199.5" width="334" height="40"/>
+                                                <constraints>
+                                                    <constraint firstAttribute="height" constant="40" id="6z6-9t-9AA"/>
+                                                </constraints>
+                                                <state key="normal" title="Button"/>
+                                                <buttonConfiguration key="configuration" style="plain" title="OK">
+                                                    <fontDescription key="titleFontDescription" name="Nunito-SemiBold" family="Nunito" pointSize="17"/>
+                                                    <color key="baseForegroundColor" name="alert_button_ok"/>
+                                                </buttonConfiguration>
+                                                <connections>
+                                                    <action selector="buttonAction:" destination="Y6W-OH-hqX" eventType="touchUpInside" id="OMs-5K-ChG"/>
+                                                </connections>
+                                            </button>
+                                            <stackView hidden="YES" opaque="NO" contentMode="scaleToFill" distribution="fillEqually" spacing="20" translatesAutoresizingMaskIntoConstraints="NO" id="zbf-oZ-rMg">
+                                                <rect key="frame" x="20" y="199.5" width="334" height="40"/>
+                                                <subviews>
+                                                    <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="pZ9-Xf-N17" customClass="TRPBtnPopupCancel" customModule="TRPCoreKit" customModuleProvider="target">
+                                                        <rect key="frame" x="0.0" y="0.0" width="157" height="40"/>
+                                                        <constraints>
+                                                            <constraint firstAttribute="height" constant="40" id="Lte-Jv-CWk"/>
+                                                        </constraints>
+                                                        <inset key="imageEdgeInsets" minX="0.0" minY="0.0" maxX="2.2250738585072014e-308" maxY="0.0"/>
+                                                        <state key="normal" title="Cancel"/>
+                                                        <connections>
+                                                            <action selector="cancelAction:" destination="Y6W-OH-hqX" eventType="touchUpInside" id="jDz-g7-Gf1"/>
+                                                        </connections>
+                                                    </button>
+                                                    <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="Gql-s5-wQ7" customClass="TRPBtnPopup" customModule="TRPCoreKit" customModuleProvider="target">
+                                                        <rect key="frame" x="177" y="0.0" width="157" height="40"/>
+                                                        <constraints>
+                                                            <constraint firstAttribute="height" constant="40" id="LOX-IW-4MH"/>
+                                                        </constraints>
+                                                        <inset key="imageEdgeInsets" minX="0.0" minY="0.0" maxX="2.2250738585072014e-308" maxY="0.0"/>
+                                                        <state key="normal" title="Send"/>
+                                                        <connections>
+                                                            <action selector="okAction:" destination="Y6W-OH-hqX" eventType="touchUpInside" id="qic-NX-2HY"/>
+                                                        </connections>
+                                                    </button>
+                                                </subviews>
+                                                <constraints>
+                                                    <constraint firstAttribute="height" constant="40" id="Pib-g1-Hwg"/>
+                                                </constraints>
+                                            </stackView>
+                                        </subviews>
+                                        <color key="backgroundColor" name="white"/>
+                                        <constraints>
+                                            <constraint firstAttribute="trailing" secondItem="dKt-Ke-Ohd" secondAttribute="trailing" constant="20" id="0WA-M0-Hgs"/>
+                                            <constraint firstItem="dKt-Ke-Ohd" firstAttribute="leading" secondItem="TFh-dG-LZ8" secondAttribute="leading" constant="20" id="57p-3J-mGY"/>
+                                            <constraint firstItem="dKt-Ke-Ohd" firstAttribute="top" secondItem="TFh-dG-LZ8" secondAttribute="top" constant="40" id="EVg-Kc-dgL"/>
+                                            <constraint firstItem="zbf-oZ-rMg" firstAttribute="leading" secondItem="TFh-dG-LZ8" secondAttribute="leading" constant="20" id="HZp-kP-BH1"/>
+                                            <constraint firstAttribute="bottom" secondItem="zbf-oZ-rMg" secondAttribute="bottom" constant="24" id="LTV-Gy-coH"/>
+                                            <constraint firstItem="zbf-oZ-rMg" firstAttribute="top" secondItem="dKt-Ke-Ohd" secondAttribute="bottom" constant="24" id="REn-9Q-BGc"/>
+                                            <constraint firstItem="NeR-NO-msU" firstAttribute="leading" secondItem="TFh-dG-LZ8" secondAttribute="leading" constant="20" id="gUR-wj-Y67"/>
+                                            <constraint firstAttribute="trailing" secondItem="NeR-NO-msU" secondAttribute="trailing" constant="20" id="gtr-Kw-1cK"/>
+                                            <constraint firstItem="NeR-NO-msU" firstAttribute="top" secondItem="dKt-Ke-Ohd" secondAttribute="bottom" constant="24" id="ipn-Q3-CeF"/>
+                                            <constraint firstAttribute="bottom" secondItem="NeR-NO-msU" secondAttribute="bottom" constant="24" id="mxQ-u7-hFk"/>
+                                            <constraint firstAttribute="trailing" secondItem="zbf-oZ-rMg" secondAttribute="trailing" constant="20" id="r2f-fV-ZMp"/>
+                                        </constraints>
+                                        <userDefinedRuntimeAttributes>
+                                            <userDefinedRuntimeAttribute type="number" keyPath="cornerRadius">
+                                                <real key="value" value="45"/>
+                                            </userDefinedRuntimeAttribute>
+                                        </userDefinedRuntimeAttributes>
+                                    </view>
+                                </subviews>
+                                <color key="backgroundColor" red="0.0" green="0.0" blue="0.0" alpha="0.84999999999999998" colorSpace="custom" customColorSpace="sRGB"/>
+                                <constraints>
+                                    <constraint firstItem="TFh-dG-LZ8" firstAttribute="centerX" secondItem="4NZ-vk-VTj" secondAttribute="centerX" id="AsP-hW-kKG"/>
+                                    <constraint firstItem="TFh-dG-LZ8" firstAttribute="leading" secondItem="4NZ-vk-VTj" secondAttribute="leading" constant="20" id="RDG-pi-8g2"/>
+                                    <constraint firstItem="TFh-dG-LZ8" firstAttribute="top" relation="greaterThanOrEqual" secondItem="4NZ-vk-VTj" secondAttribute="top" constant="50" id="YrM-Oy-qfo"/>
+                                    <constraint firstAttribute="trailing" secondItem="TFh-dG-LZ8" secondAttribute="trailing" constant="20" id="gf8-wP-tSU"/>
+                                    <constraint firstAttribute="bottom" relation="greaterThanOrEqual" secondItem="TFh-dG-LZ8" secondAttribute="bottom" constant="50" id="oiX-8I-eeP"/>
+                                    <constraint firstItem="TFh-dG-LZ8" firstAttribute="centerY" secondItem="4NZ-vk-VTj" secondAttribute="centerY" id="pDv-JR-pCV"/>
+                                </constraints>
+                            </view>
+                        </subviews>
+                        <viewLayoutGuide key="safeArea" id="vDu-zF-Fre"/>
+                        <color key="backgroundColor" white="0.0" alpha="0.0" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                        <constraints>
+                            <constraint firstItem="4NZ-vk-VTj" firstAttribute="trailing" secondItem="vDu-zF-Fre" secondAttribute="trailing" id="0Jr-or-3Bt"/>
+                            <constraint firstItem="4NZ-vk-VTj" firstAttribute="leading" secondItem="vDu-zF-Fre" secondAttribute="leading" id="4lX-7Q-fKk"/>
+                            <constraint firstItem="4NZ-vk-VTj" firstAttribute="top" secondItem="5EZ-qb-Rvc" secondAttribute="top" id="ihs-Tn-3jH"/>
+                            <constraint firstAttribute="bottom" secondItem="4NZ-vk-VTj" secondAttribute="bottom" id="xDD-5r-1x5"/>
+                        </constraints>
+                    </view>
+                    <connections>
+                        <outlet property="bgView" destination="4NZ-vk-VTj" id="950-55-Rft"/>
+                        <outlet property="btnCancel" destination="pZ9-Xf-N17" id="DOo-d1-hDl"/>
+                        <outlet property="btnConfirm" destination="Gql-s5-wQ7" id="PYz-Mz-keK"/>
+                        <outlet property="button" destination="NeR-NO-msU" id="mbp-SZ-2kg"/>
+                        <outlet property="contentLbl" destination="tvS-CW-IUd" id="gH1-VW-1eS"/>
+                        <outlet property="contentView" destination="TFh-dG-LZ8" id="gZA-nY-AvF"/>
+                        <outlet property="stackConfirm" destination="zbf-oZ-rMg" id="xth-5D-JXe"/>
+                        <outlet property="subContentLbl" destination="cB6-dN-vmA" id="M9k-ye-fJ0"/>
+                        <outlet property="titleLbl" destination="A4i-Ur-ulB" id="c6x-cS-uf0"/>
+                    </connections>
+                </viewController>
+                <placeholder placeholderIdentifier="IBFirstResponder" id="Ief-a0-LHa" userLabel="First Responder" customClass="UIResponder" sceneMemberID="firstResponder"/>
+            </objects>
+            <point key="canvasLocation" x="-17.39130434782609" y="95.758928571428569"/>
+        </scene>
+    </scenes>
+    <resources>
+        <namedColor name="alert_button_ok">
+            <color red="0.019607843137254902" green="0.2627450980392157" blue="0.1803921568627451" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+        </namedColor>
+        <namedColor name="text_medium">
+            <color red="0.51764705882352946" green="0.51764705882352946" blue="0.51764705882352946" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+        </namedColor>
+        <namedColor name="white">
+            <color red="1" green="1" blue="1" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+        </namedColor>
+    </resources>
+</document>

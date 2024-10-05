@@ -1,0 +1,11 @@
+framework module TRPRestKit {
+  umbrella header "TRPRestKit.h"
+  export *
+
+  module * { export * }
+}
+
+module TRPRestKit.Swift {
+  header "TRPRestKit-Swift.h"
+  requires objc
+}

@@ -1,0 +1,11 @@
+framework module TRPFoundationKit {
+  umbrella header "TRPFoundationKit.h"
+  export *
+
+  module * { export * }
+}
+
+module TRPFoundationKit.Swift {
+  header "TRPFoundationKit-Swift.h"
+  requires objc
+}

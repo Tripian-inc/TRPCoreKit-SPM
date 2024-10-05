@@ -1,0 +1,9 @@
+git "https://github.com/Tripian-inc/TRPDataLayer.git" "master"
+git "https://github.com/Tripian-inc/TRPRestKit" "api_v3"
+git "https://github.com/Tripian-inc/TRPUIKit" "master"
+git "https://github.com/Tripian-inc/TRPProvider" "master"
+git "https://github.com/Tripian-inc/TRPFoundationKit" "master"
+github "mapbox/mapbox-navigation-ios" ~> 1.2
+
+# binary "https://api.mapbox.com/downloads/v2/carthage/mobile-maps/mapbox-ios-sdk-dynamic.json" ~> 6.3.0
+# github "mapbox/mapbox-events-ios" ~> 0.10.4
