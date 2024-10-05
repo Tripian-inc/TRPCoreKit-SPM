@@ -37,8 +37,8 @@ enum Storyboard: String {
 extension UIStoryboard {
     
     static func load(from storyBoard: Storyboard, identifier: String)  -> UIViewController {
-        let bundle = Bundle(identifier: "com.tripian.TRPCoreKit")!
-        let board = UIStoryboard(name: storyBoard.rawValue, bundle: bundle)
+//        let bundle = Bundle(identifier: "com.tripian.TRPCoreKit")!
+        let board = UIStoryboard(name: storyBoard.rawValue, bundle: Bundle.module)
         return board.instantiateViewController(withIdentifier: identifier)
     }
     
