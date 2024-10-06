@@ -22,7 +22,7 @@
                                 <rect key="frame" x="20" y="67" width="350" height="743"/>
                                 <color key="backgroundColor" systemColor="systemBackgroundColor"/>
                                 <prototypes>
-                                    <tableViewCell clipsSubviews="YES" contentMode="scaleToFill" insetsLayoutMarginsFromSafeArea="NO" selectionStyle="blue" hidesAccessoryWhenEditing="NO" indentationLevel="1" indentationWidth="0.0" reuseIdentifier="CreateTripPersonalizeTripCell" id="SAE-Lf-iY8" customClass="CreateTripPersonalizeTripCell" customModule="TRPCoreKit" customModuleProvider="target">
+                                    <tableViewCell clipsSubviews="YES" contentMode="scaleToFill" insetsLayoutMarginsFromSafeArea="NO" selectionStyle="blue" hidesAccessoryWhenEditing="NO" indentationLevel="1" indentationWidth="0.0" reuseIdentifier="CreateTripPersonalizeTripCell" id="SAE-Lf-iY8" customClass="SPMCreateTripPersonalizeTripCell">
                                         <rect key="frame" x="0.0" y="50" width="350" height="57.333332061767578"/>
                                         <autoresizingMask key="autoresizingMask"/>
                                         <tableViewCellContentView key="contentView" opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="center" insetsLayoutMarginsFromSafeArea="NO" tableViewCell="SAE-Lf-iY8" id="e4X-pu-oUq">
@@ -68,7 +68,7 @@
                                             <outlet property="titleLabel" destination="bz2-XN-SMa" id="tVQ-NC-fSH"/>
                                         </connections>
                                     </tableViewCell>
-                                    <tableViewCell clipsSubviews="YES" contentMode="scaleToFill" insetsLayoutMarginsFromSafeArea="NO" selectionStyle="blue" hidesAccessoryWhenEditing="NO" indentationLevel="1" indentationWidth="0.0" reuseIdentifier="CreateTripTextFieldHeaderCell" id="lWH-fa-zwt" customClass="CreateTripTextFieldHeaderCell" customModule="TRPCoreKit" customModuleProvider="target">
+                                    <tableViewCell clipsSubviews="YES" contentMode="scaleToFill" insetsLayoutMarginsFromSafeArea="NO" selectionStyle="blue" hidesAccessoryWhenEditing="NO" indentationLevel="1" indentationWidth="0.0" reuseIdentifier="CreateTripTextFieldHeaderCell" id="lWH-fa-zwt" customClass="SPMCreateTripTextFieldHeaderCell">
                                         <rect key="frame" x="0.0" y="107.33333206176758" width="350" height="51.333332061767578"/>
                                         <autoresizingMask key="autoresizingMask"/>
                                         <tableViewCellContentView key="contentView" opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="center" insetsLayoutMarginsFromSafeArea="NO" tableViewCell="lWH-fa-zwt" id="rcH-er-tyw">

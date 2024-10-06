@@ -8,6 +8,7 @@
 
 import UIKit
 
+@objc(SPMCompanionQuestionAnswersCell)
 class CompanionQuestionAnswersCell: UITableViewCell {
 
     @IBOutlet weak var tableView: AutoResizeTableView!
@@ -58,6 +59,8 @@ extension CompanionQuestionAnswersCell: UITableViewDelegate, UITableViewDataSour
         configure()
     }
 }
+
+@objc(SPMAutoResizeTableView)
 class AutoResizeTableView: UITableView {
     override var intrinsicContentSize: CGSize {
         self.layoutIfNeeded()

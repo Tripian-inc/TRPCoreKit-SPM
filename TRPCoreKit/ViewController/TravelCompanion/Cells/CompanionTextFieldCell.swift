@@ -14,6 +14,7 @@ public protocol CompanionTextFieldCellProtocol: AnyObject{
     func saveChanges()
 }
 
+@objc(SPMCompanionTextFieldCell)
 public class CompanionTextFieldCell: UITableViewCell {
     
     weak var cellDelegate: CompanionTextFieldCellProtocol?

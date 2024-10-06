@@ -124,7 +124,7 @@
         <!--Companion DetailVC-->
         <scene sceneID="mTl-kb-QN6">
             <objects>
-                <viewController storyboardIdentifier="CompanionDetailVC" id="aHH-A6-YkC" customClass="CompanionDetailVC" customModule="TRPCoreKit" customModuleProvider="target" sceneMemberID="viewController">
+                <viewController storyboardIdentifier="CompanionDetailVC" id="aHH-A6-YkC" customClass="SPMCompanionDetailVC" sceneMemberID="viewController">
                     <view key="view" contentMode="scaleToFill" id="BJb-JA-DgS">
                         <rect key="frame" x="0.0" y="0.0" width="414" height="896"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
@@ -158,7 +158,7 @@
                                         <rect key="frame" x="24" y="82.5" width="366" height="649.5"/>
                                         <color key="backgroundColor" systemColor="systemBackgroundColor"/>
                                         <prototypes>
-                                            <tableViewCell clipsSubviews="YES" contentMode="scaleToFill" insetsLayoutMarginsFromSafeArea="NO" selectionStyle="blue" hidesAccessoryWhenEditing="NO" indentationLevel="1" indentationWidth="0.0" reuseIdentifier="CompanionTextFieldCell" id="uf9-tQ-yxy" customClass="CompanionTextFieldCell" customModule="TRPCoreKit" customModuleProvider="target">
+                                            <tableViewCell clipsSubviews="YES" contentMode="scaleToFill" insetsLayoutMarginsFromSafeArea="NO" selectionStyle="blue" hidesAccessoryWhenEditing="NO" indentationLevel="1" indentationWidth="0.0" reuseIdentifier="CompanionTextFieldCell" id="uf9-tQ-yxy" customClass="SPMCompanionTextFieldCell">
                                                 <rect key="frame" x="0.0" y="50" width="366" height="71.5"/>
                                                 <autoresizingMask key="autoresizingMask"/>
                                                 <tableViewCellContentView key="contentView" opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="center" insetsLayoutMarginsFromSafeArea="NO" tableViewCell="uf9-tQ-yxy" id="6O9-N1-6Cp">
@@ -188,18 +188,18 @@
                                                     <outlet property="textField" destination="taI-Zw-Phd" id="3XE-Ju-2YU"/>
                                                 </connections>
                                             </tableViewCell>
-                                            <tableViewCell clipsSubviews="YES" contentMode="scaleToFill" insetsLayoutMarginsFromSafeArea="NO" selectionStyle="blue" hidesAccessoryWhenEditing="NO" indentationLevel="1" indentationWidth="0.0" reuseIdentifier="CompanionQuestionAnswersCell" id="ghB-ak-iFS" customClass="CompanionQuestionAnswersCell" customModule="TRPCoreKit" customModuleProvider="target">
+                                            <tableViewCell clipsSubviews="YES" contentMode="scaleToFill" insetsLayoutMarginsFromSafeArea="NO" selectionStyle="blue" hidesAccessoryWhenEditing="NO" indentationLevel="1" indentationWidth="0.0" reuseIdentifier="CompanionQuestionAnswersCell" id="ghB-ak-iFS" customClass="SPMCompanionQuestionAnswersCell">
                                                 <rect key="frame" x="0.0" y="121.5" width="366" height="51.5"/>
                                                 <autoresizingMask key="autoresizingMask"/>
                                                 <tableViewCellContentView key="contentView" opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="center" insetsLayoutMarginsFromSafeArea="NO" tableViewCell="ghB-ak-iFS" id="rGr-UE-ZBc">
                                                     <rect key="frame" x="0.0" y="0.0" width="366" height="51.5"/>
                                                     <autoresizingMask key="autoresizingMask"/>
                                                     <subviews>
-                                                        <tableView clipsSubviews="YES" contentMode="scaleToFill" alwaysBounceVertical="YES" dataMode="prototypes" style="plain" separatorStyle="default" rowHeight="-1" estimatedRowHeight="-1" sectionHeaderHeight="-1" estimatedSectionHeaderHeight="-1" sectionFooterHeight="-1" estimatedSectionFooterHeight="-1" translatesAutoresizingMaskIntoConstraints="NO" id="Rmt-9d-LGm" customClass="AutoResizeTableView" customModule="TRPCoreKit" customModuleProvider="target">
+                                                        <tableView clipsSubviews="YES" contentMode="scaleToFill" alwaysBounceVertical="YES" dataMode="prototypes" style="plain" separatorStyle="default" rowHeight="-1" estimatedRowHeight="-1" sectionHeaderHeight="-1" estimatedSectionHeaderHeight="-1" sectionFooterHeight="-1" estimatedSectionFooterHeight="-1" translatesAutoresizingMaskIntoConstraints="NO" id="Rmt-9d-LGm" customClass="SPMAutoResizeTableView">
                                                             <rect key="frame" x="0.0" y="0.0" width="366" height="51.5"/>
                                                             <color key="backgroundColor" systemColor="systemBackgroundColor"/>
                                                             <prototypes>
-                                                                <tableViewCell clipsSubviews="YES" contentMode="scaleToFill" insetsLayoutMarginsFromSafeArea="NO" selectionStyle="blue" hidesAccessoryWhenEditing="NO" indentationLevel="1" indentationWidth="0.0" reuseIdentifier="CheckboxCell" id="XJl-qh-rKI" customClass="CheckboxCell" customModule="TRPCoreKit" customModuleProvider="target">
+                                                                <tableViewCell clipsSubviews="YES" contentMode="scaleToFill" insetsLayoutMarginsFromSafeArea="NO" selectionStyle="blue" hidesAccessoryWhenEditing="NO" indentationLevel="1" indentationWidth="0.0" reuseIdentifier="CheckboxCell" id="XJl-qh-rKI" customClass="SPMCheckboxCell">
                                                                     <rect key="frame" x="0.0" y="50" width="366" height="51.5"/>
                                                                     <autoresizingMask key="autoresizingMask"/>
                                                                     <tableViewCellContentView key="contentView" opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="center" insetsLayoutMarginsFromSafeArea="NO" tableViewCell="XJl-qh-rKI" id="9qC-Rv-qUA">
@@ -247,7 +247,7 @@
                                                     <outlet property="tableView" destination="Rmt-9d-LGm" id="aUi-JR-fl1"/>
                                                 </connections>
                                             </tableViewCell>
-                                            <tableViewCell clipsSubviews="YES" contentMode="scaleToFill" insetsLayoutMarginsFromSafeArea="NO" selectionStyle="blue" hidesAccessoryWhenEditing="NO" indentationLevel="1" indentationWidth="0.0" reuseIdentifier="CreateTripTextFieldHeaderCell" id="slg-sF-lA5" customClass="CreateTripTextFieldHeaderCell" customModule="TRPCoreKit" customModuleProvider="target">
+                                            <tableViewCell clipsSubviews="YES" contentMode="scaleToFill" insetsLayoutMarginsFromSafeArea="NO" selectionStyle="blue" hidesAccessoryWhenEditing="NO" indentationLevel="1" indentationWidth="0.0" reuseIdentifier="CreateTripTextFieldHeaderCell" id="slg-sF-lA5" customClass="SPMCreateTripTextFieldHeaderCell">
                                                 <rect key="frame" x="0.0" y="173" width="366" height="52"/>
                                                 <autoresizingMask key="autoresizingMask"/>
                                                 <tableViewCellContentView key="contentView" opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="center" insetsLayoutMarginsFromSafeArea="NO" tableViewCell="slg-sF-lA5" id="rGJ-DJ-VCz">

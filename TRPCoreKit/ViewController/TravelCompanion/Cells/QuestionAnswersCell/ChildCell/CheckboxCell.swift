@@ -9,6 +9,7 @@
 import Foundation
 import UIKit
 
+@objc(SPMCheckboxCell)
 class CheckboxCell: UITableViewCell {
     @IBOutlet weak var checkboxImg: UIImageView!
     @IBOutlet weak var label: UILabel!

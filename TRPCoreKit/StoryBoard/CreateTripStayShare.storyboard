@@ -303,7 +303,7 @@
         <!--Create Trip Select CompanionVC-->
         <scene sceneID="ArC-lV-I1O">
             <objects>
-                <viewController storyboardIdentifier="CreateTripSelectCompanionVC" id="IzR-n9-wqj" customClass="CreateTripSelectCompanionVC" customModule="TRPCoreKit" customModuleProvider="target" sceneMemberID="viewController">
+                <viewController storyboardIdentifier="CreateTripSelectCompanionVC" id="IzR-n9-wqj" customClass="TRPCreateTripSelectCompanionVC" sceneMemberID="viewController">
                     <view key="view" contentMode="scaleToFill" id="8lb-jw-aqy">
                         <rect key="frame" x="0.0" y="0.0" width="390" height="844"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>

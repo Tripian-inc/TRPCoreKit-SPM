@@ -20,7 +20,7 @@ public enum CompanionDetailType{
     case addCompanion, updateCompanion
 }
 
-
+@objc(SPMCompanionDetailVC)
 public class CompanionDetailVC: TRPBaseUIViewController {
     
     @IBOutlet weak var containerView: UIView!
