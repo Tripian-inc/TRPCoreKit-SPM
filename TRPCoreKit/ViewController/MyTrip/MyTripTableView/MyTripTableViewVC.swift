@@ -58,7 +58,7 @@ public class MyTripTableViewVC: TRPBaseUIViewController {
         myTripRefreshControl!.attributedTitle = NSAttributedString(string: TRPLanguagesController.shared.getLanguageValue(for: "pull_to_refresh"))
         myTripRefreshControl!.addTarget(self, action: #selector(refreshData), for: UIControl.Event.valueChanged)
         setupTableView()
-//        setTableViewEmptyText()
+        setTableViewEmptyText()
         tb.addSubview(myTripRefreshControl!);
     }
     

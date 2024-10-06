@@ -10,6 +10,7 @@ import UIKit
 public protocol EvrTableViewDelegate: AnyObject {
     func evrTableViewLabelClicked()
 }
+@objc(SPMEvrTableView)
 public class EvrTableView: UITableView {
     
     public weak var emptyDelegate: EvrTableViewDelegate?

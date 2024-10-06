@@ -35,8 +35,8 @@ let package = Package(
                 "Alamofire",
                 "Mapbox",
             ],
-            path: "TRPCoreKit",
-            swiftSettings: [.swiftLanguageMode(.v5)]),
+            path: "TRPCoreKit"
+        ),
         .binaryTarget(
             name: "Mapbox",
             path: "./Mapbox.xcframework"
