@@ -26,7 +26,7 @@ public class MyTripTableViewVC: TRPBaseUIViewController {
     
     public var viewModel: MyTripTableViewViewModel!
     
-    @IBOutlet weak var tb: EvrTableView!
+    @IBOutlet var tb: EvrTableView!
     private var heightUpdated: Bool = false
     private var isDataLoaded = false {
         didSet {
