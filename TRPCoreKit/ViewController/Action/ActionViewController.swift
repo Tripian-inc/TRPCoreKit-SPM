@@ -22,6 +22,7 @@ struct ActionModel {
     }
 }
 
+@objc(SPMActionViewController)
 class ActionViewController: UIViewController {
 
     @IBOutlet weak var containerView: UIView!

@@ -8,6 +8,7 @@
 
 import Foundation
 import UIKit
+@objc(SPMTRPBlackButton)
 class TRPBlackButton: UIButton {
     
     override init(frame: CGRect) {

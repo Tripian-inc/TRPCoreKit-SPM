@@ -9,6 +9,7 @@
 import Foundation
 import UIKit
 
+@objc(SPMDynamicHeightCollectionView)
 class DynamicHeightCollectionView: UICollectionView {
 //    override var intrinsicContentSize: CGSize {
 //        self.layoutIfNeeded()

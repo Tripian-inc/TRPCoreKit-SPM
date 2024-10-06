@@ -38,7 +38,7 @@
                                         <action selector="favoriteAction:" destination="-1" eventType="touchUpInside" id="9Pl-iS-pXr"/>
                                     </connections>
                                 </button>
-                                <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="laV-54-6Vl" customClass="TabbarButton" customModule="TRPCoreKit" customModuleProvider="target">
+                                <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="laV-54-6Vl" customClass="SPMTabbarButton">
                                     <rect key="frame" x="103.5" y="0.0" width="103.5" height="59"/>
                                     <state key="normal" title="Planner" image="tab_itinerary_new">
                                         <color key="titleColor" white="0.0" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
@@ -47,7 +47,7 @@
                                         <action selector="itineraryPressed:" destination="-1" eventType="touchUpInside" id="xaa-0A-76O"/>
                                     </connections>
                                 </button>
-                                <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" lineBreakMode="tailTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="rVU-1J-9Ts" customClass="TabbarButton" customModule="TRPCoreKit" customModuleProvider="target">
+                                <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" lineBreakMode="tailTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="rVU-1J-9Ts" customClass="SPMTabbarButton">
                                     <rect key="frame" x="207" y="0.0" width="103.5" height="59"/>
                                     <inset key="titleEdgeInsets" minX="-30" minY="40" maxX="0.0" maxY="0.0"/>
                                     <inset key="imageEdgeInsets" minX="30" minY="0.0" maxX="0.0" maxY="0.0"/>
@@ -58,7 +58,7 @@
                                         <action selector="localExperiencesPressed:" destination="-1" eventType="touchUpInside" id="5jE-Vf-bKv"/>
                                     </connections>
                                 </button>
-                                <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="yFc-nM-NFo" customClass="TabbarButton" customModule="TRPCoreKit" customModuleProvider="target">
+                                <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="yFc-nM-NFo" customClass="SPMTabbarButton">
                                     <rect key="frame" x="310.5" y="0.0" width="103.5" height="59"/>
                                     <state key="normal" title="Places" image="tab_explore_places">
                                         <color key="titleColor" white="0.0" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>

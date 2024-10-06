@@ -8,6 +8,7 @@
 
 import Foundation
 import UIKit
+@objc(SPMSelectedItemTagCell)
 class SelectedItemTagCell: UICollectionViewCell {
     @IBOutlet weak var bgView: UIView!
     @IBOutlet weak var label: UILabel!

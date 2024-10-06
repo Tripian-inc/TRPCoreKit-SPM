@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="21507" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES">
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="23094" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES">
     <device id="retina6_1" orientation="portrait" appearance="light"/>
     <dependencies>
         <deployment identifier="iOS"/>
-        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="21505"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="23084"/>
         <capability name="Named colors" minToolsVersion="9.0"/>
         <capability name="Safe area layout guides" minToolsVersion="9.0"/>
         <capability name="System colors in document resources" minToolsVersion="11.0"/>
@@ -18,7 +18,7 @@
                         <rect key="frame" x="0.0" y="0.0" width="414" height="896"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <subviews>
-                            <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="4C8-ul-T9q" customClass="TRPBlackButton" customModule="TRPCoreKit" customModuleProvider="target">
+                            <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="4C8-ul-T9q" customClass="SPMTRPBlackButton">
                                 <rect key="frame" x="24" y="790" width="366" height="56"/>
                                 <constraints>
                                     <constraint firstAttribute="height" constant="56" id="XFj-SL-jQ4"/>
@@ -132,7 +132,7 @@
                             <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="8GW-F5-3WI">
                                 <rect key="frame" x="0.0" y="48" width="414" height="848"/>
                                 <subviews>
-                                    <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="bO4-uo-aq7" customClass="TRPBlackButton" customModule="TRPCoreKit" customModuleProvider="target">
+                                    <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="bO4-uo-aq7" customClass="SPMTRPBlackButton">
                                         <rect key="frame" x="24" y="742" width="366" height="56"/>
                                         <constraints>
                                             <constraint firstAttribute="height" constant="56" id="BX2-PC-hLR"/>
@@ -165,7 +165,7 @@
                                                     <rect key="frame" x="0.0" y="0.0" width="366" height="71.5"/>
                                                     <autoresizingMask key="autoresizingMask"/>
                                                     <subviews>
-                                                        <textField opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="left" contentVerticalAlignment="center" borderStyle="roundedRect" textAlignment="natural" minimumFontSize="17" translatesAutoresizingMaskIntoConstraints="NO" id="taI-Zw-Phd" customClass="TRPTextFieldNew" customModule="TRPCoreKit" customModuleProvider="target">
+                                                        <textField opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="left" contentVerticalAlignment="center" borderStyle="roundedRect" textAlignment="natural" minimumFontSize="17" translatesAutoresizingMaskIntoConstraints="NO" id="taI-Zw-Phd" customClass="SPMTRPTextFieldNew">
                                                             <rect key="frame" x="0.0" y="5" width="366" height="56.5"/>
                                                             <constraints>
                                                                 <constraint firstAttribute="height" constant="56" id="aup-ZK-gea"/>
@@ -189,21 +189,21 @@
                                                 </connections>
                                             </tableViewCell>
                                             <tableViewCell clipsSubviews="YES" contentMode="scaleToFill" insetsLayoutMarginsFromSafeArea="NO" selectionStyle="blue" hidesAccessoryWhenEditing="NO" indentationLevel="1" indentationWidth="0.0" reuseIdentifier="CompanionQuestionAnswersCell" id="ghB-ak-iFS" customClass="CompanionQuestionAnswersCell" customModule="TRPCoreKit" customModuleProvider="target">
-                                                <rect key="frame" x="0.0" y="121.5" width="366" height="43.5"/>
+                                                <rect key="frame" x="0.0" y="121.5" width="366" height="51.5"/>
                                                 <autoresizingMask key="autoresizingMask"/>
                                                 <tableViewCellContentView key="contentView" opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="center" insetsLayoutMarginsFromSafeArea="NO" tableViewCell="ghB-ak-iFS" id="rGr-UE-ZBc">
-                                                    <rect key="frame" x="0.0" y="0.0" width="366" height="43.5"/>
+                                                    <rect key="frame" x="0.0" y="0.0" width="366" height="51.5"/>
                                                     <autoresizingMask key="autoresizingMask"/>
                                                     <subviews>
                                                         <tableView clipsSubviews="YES" contentMode="scaleToFill" alwaysBounceVertical="YES" dataMode="prototypes" style="plain" separatorStyle="default" rowHeight="-1" estimatedRowHeight="-1" sectionHeaderHeight="-1" estimatedSectionHeaderHeight="-1" sectionFooterHeight="-1" estimatedSectionFooterHeight="-1" translatesAutoresizingMaskIntoConstraints="NO" id="Rmt-9d-LGm" customClass="AutoResizeTableView" customModule="TRPCoreKit" customModuleProvider="target">
-                                                            <rect key="frame" x="0.0" y="0.0" width="366" height="43.5"/>
+                                                            <rect key="frame" x="0.0" y="0.0" width="366" height="51.5"/>
                                                             <color key="backgroundColor" systemColor="systemBackgroundColor"/>
                                                             <prototypes>
                                                                 <tableViewCell clipsSubviews="YES" contentMode="scaleToFill" insetsLayoutMarginsFromSafeArea="NO" selectionStyle="blue" hidesAccessoryWhenEditing="NO" indentationLevel="1" indentationWidth="0.0" reuseIdentifier="CheckboxCell" id="XJl-qh-rKI" customClass="CheckboxCell" customModule="TRPCoreKit" customModuleProvider="target">
-                                                                    <rect key="frame" x="0.0" y="50" width="366" height="43.5"/>
+                                                                    <rect key="frame" x="0.0" y="50" width="366" height="51.5"/>
                                                                     <autoresizingMask key="autoresizingMask"/>
                                                                     <tableViewCellContentView key="contentView" opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="center" insetsLayoutMarginsFromSafeArea="NO" tableViewCell="XJl-qh-rKI" id="9qC-Rv-qUA">
-                                                                        <rect key="frame" x="0.0" y="0.0" width="366" height="43.5"/>
+                                                                        <rect key="frame" x="0.0" y="0.0" width="366" height="51.5"/>
                                                                         <autoresizingMask key="autoresizingMask"/>
                                                                         <subviews>
                                                                             <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="icon_empty_check_new" translatesAutoresizingMaskIntoConstraints="NO" id="7Br-sz-qDQ">
@@ -213,7 +213,7 @@
                                                                                     <constraint firstAttribute="width" constant="25" id="tQv-fs-xX7"/>
                                                                                 </constraints>
                                                                             </imageView>
-                                                                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" ambiguous="YES" text="Label" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="4gN-zf-kLI">
+                                                                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Label" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="4gN-zf-kLI">
                                                                                 <rect key="frame" x="42" y="7" width="324" height="21"/>
                                                                                 <fontDescription key="fontDescription" type="system" pointSize="17"/>
                                                                                 <nil key="textColor"/>
@@ -248,14 +248,14 @@
                                                 </connections>
                                             </tableViewCell>
                                             <tableViewCell clipsSubviews="YES" contentMode="scaleToFill" insetsLayoutMarginsFromSafeArea="NO" selectionStyle="blue" hidesAccessoryWhenEditing="NO" indentationLevel="1" indentationWidth="0.0" reuseIdentifier="CreateTripTextFieldHeaderCell" id="slg-sF-lA5" customClass="CreateTripTextFieldHeaderCell" customModule="TRPCoreKit" customModuleProvider="target">
-                                                <rect key="frame" x="0.0" y="165" width="366" height="48.5"/>
+                                                <rect key="frame" x="0.0" y="173" width="366" height="52"/>
                                                 <autoresizingMask key="autoresizingMask"/>
                                                 <tableViewCellContentView key="contentView" opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="center" insetsLayoutMarginsFromSafeArea="NO" tableViewCell="slg-sF-lA5" id="rGJ-DJ-VCz">
-                                                    <rect key="frame" x="0.0" y="0.0" width="366" height="48.5"/>
+                                                    <rect key="frame" x="0.0" y="0.0" width="366" height="52"/>
                                                     <autoresizingMask key="autoresizingMask"/>
                                                     <subviews>
                                                         <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Label" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="zWb-Na-ZqX">
-                                                            <rect key="frame" x="0.0" y="11" width="346" height="21.5"/>
+                                                            <rect key="frame" x="0.0" y="13" width="346" height="21"/>
                                                             <fontDescription key="fontDescription" type="system" pointSize="17"/>
                                                             <nil key="textColor"/>
                                                             <nil key="highlightedColor"/>
@@ -323,7 +323,7 @@
         </scene>
     </scenes>
     <resources>
-        <image name="btn_check_default" width="34" height="34"/>
+        <image name="btn_check_default" width="25" height="25"/>
         <image name="icon_empty_check_new" width="25" height="25"/>
         <image name="icon_profile_big" width="34" height="34"/>
         <image name="one_pixel_line" width="327" height="1"/>
@@ -334,7 +334,7 @@
             <color white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
         </systemColor>
         <systemColor name="systemGray5Color">
-            <color red="0.89803921568627454" green="0.89803921568627454" blue="0.91764705882352937" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+            <color red="0.8980392157" green="0.8980392157" blue="0.91764705879999997" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
         </systemColor>
     </resources>
 </document>
