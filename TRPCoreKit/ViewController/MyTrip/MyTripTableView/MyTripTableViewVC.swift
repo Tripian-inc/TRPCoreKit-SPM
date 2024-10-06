@@ -168,7 +168,7 @@ extension MyTripTableViewVC: UITableViewDelegate, UITableViewDataSource, EvrTabl
     
     fileprivate func setupTableView() {
         tb.tableFooterView = UIView()
-        tb.emptyDelegate = self
+//        tb.emptyDelegate = self
         tb.accessibilityIdentifier = viewModel.getType().rawValue
         tb.separatorStyle = .none
     }
