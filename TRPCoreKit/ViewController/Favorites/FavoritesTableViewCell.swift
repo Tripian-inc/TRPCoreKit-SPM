@@ -9,7 +9,7 @@
 import Foundation
 import UIKit
 
-
+@objc(SPMFavoritesTableViewCell)
 class FavoritesTableViewCell: UITableViewCell {
     
     public var index:Int?

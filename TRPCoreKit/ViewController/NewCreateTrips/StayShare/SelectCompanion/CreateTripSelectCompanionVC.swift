@@ -14,6 +14,7 @@ protocol CreateTripSelectCompanionVCDelegate: AnyObject {
     func createTripSelectCompanionCreateNew()
 }
 
+@objc(TRPCreateTripSelectCompanionVC)
 class CreateTripSelectCompanionVC: TRPBaseUIViewController {
 
     @IBOutlet weak var tableView: EvrTableView!

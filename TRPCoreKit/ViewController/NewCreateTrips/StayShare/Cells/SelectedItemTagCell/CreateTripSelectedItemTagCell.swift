@@ -9,6 +9,7 @@
 import Foundation
 import UIKit
 
+@objc(SPMCreateTripSelectedItemTagCell)
 class CreateTripSelectedItemTagCell: UITableViewCell {
     @IBOutlet weak var collectionView: DynamicHeightCollectionView!
     

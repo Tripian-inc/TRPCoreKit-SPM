@@ -9,6 +9,7 @@
 import Foundation
 import UIKit
 
+@objc(SPMCreateTripTextFieldCell)
 class CreateTripTextFieldCell: UITableViewCell {
     @IBOutlet weak var textField: TRPTextFieldNew!
     
@@ -23,6 +24,7 @@ class CreateTripTextFieldCell: UITableViewCell {
 }
 
 
+@objc(SPMCreateTripTextFieldHeaderCell)
 class CreateTripTextFieldHeaderCell: UITableViewCell {
     @IBOutlet weak var titleLabel: UILabel!
     

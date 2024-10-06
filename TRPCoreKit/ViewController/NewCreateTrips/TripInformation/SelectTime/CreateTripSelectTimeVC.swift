@@ -12,6 +12,7 @@ protocol CreateTripSelectTimeVCDelegate: AnyObject {
     func createTripSelectTimeVCArrivalSelected(hour: String)
     func createTripSelectTimeVCDepartureSelected(hour: String)
 }
+@objc(SPMCreateTripSelectTimeVC)
 class CreateTripSelectTimeVC: TRPBaseUIViewController {
 
     @IBOutlet weak var titleLabel: UILabel!

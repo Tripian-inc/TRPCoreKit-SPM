@@ -9,6 +9,7 @@
 import Foundation
 import UIKit
 
+@objc(SPMCreateTripSelectTimeCell)
 class CreateTripSelectTimeCell: UITableViewCell {
     @IBOutlet weak var label: UILabel!
     

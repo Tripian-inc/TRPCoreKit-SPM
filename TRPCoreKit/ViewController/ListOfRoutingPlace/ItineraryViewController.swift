@@ -14,6 +14,7 @@ protocol ItineraryViewControllerDelegate:AnyObject {
     func itineraryViewControllerPoiDetail(_ viewController: UIViewController, poi: TRPPoi, parentStep: TRPStep?)
 }
 
+@objc(SPMItineraryViewController)
 class ItineraryViewController: TRPBaseUIViewController {
     @IBOutlet weak var tb: EvrTableView!
     var viewModel: ListOfRoutingPoisViewModel!

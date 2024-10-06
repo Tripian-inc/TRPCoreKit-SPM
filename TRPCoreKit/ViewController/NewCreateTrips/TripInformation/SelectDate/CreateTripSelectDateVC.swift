@@ -12,6 +12,7 @@ protocol CreateTripSelectDateVCDelegate: AnyObject {
     func createTripSelectDateVCArrivalSelected(date: Date)
     func createTripSelectDateVCDepartureSelected(date: Date)
 }
+@objc(SPMCreateTripSelectDateVC)
 class CreateTripSelectDateVC: TRPBaseUIViewController {
 
     @IBOutlet weak var calendarView: FSCalendar!

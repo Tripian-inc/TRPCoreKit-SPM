@@ -16,7 +16,7 @@ public protocol StayAddressVCDelegate:AnyObject {
     func stayAddressSelectedPlace(stayAddress: TRPAccommodation)
 }
 
-
+@objc(TRPStayAddressVC)
 class StayAddressVC: TRPBaseUIViewController {
     
     @IBOutlet weak var searchView: UIView!

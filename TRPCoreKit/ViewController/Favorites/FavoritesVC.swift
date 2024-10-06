@@ -15,6 +15,7 @@ public protocol FavoritesVCDelegate:AnyObject {
     func favoriteVCOpenPlaceDetail(viewController:UIViewController, poi: TRPPoi)
 }
 
+@objc(TRPFavoritesVC)
 public class FavoritesVC: TRPBaseUIViewController {
     
     @IBOutlet weak var tb: EvrTableView!

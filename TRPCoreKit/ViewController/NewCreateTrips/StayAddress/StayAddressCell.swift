@@ -8,6 +8,7 @@
 
 import UIKit
 
+@objc(SPMStayAddressCell)
 class StayAddressCell: UITableViewCell {
     
     @IBOutlet weak var mainTitle: UILabel!

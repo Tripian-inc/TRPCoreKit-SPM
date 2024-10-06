@@ -7,6 +7,7 @@
 //
 
 import UIKit
+@objc(SPMTRPTopCurlView)
 class TopCurlView: UIView {
     
     var backGroundView = UIView()

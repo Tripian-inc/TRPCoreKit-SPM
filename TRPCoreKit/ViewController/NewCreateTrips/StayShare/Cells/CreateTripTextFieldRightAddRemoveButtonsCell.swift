@@ -13,6 +13,7 @@ protocol CreateTripTextFieldRightAddRemoveButtonsDelegate: AnyObject {
     func countChanged(count: Int)
 }
 
+@objc(SPMCreateTripTextFieldRightAddRemoveButtonsCell)
 class CreateTripTextFieldRightAddRemoveButtonsCell: CreateTripTextFieldCell {
     @IBOutlet weak var lblRightText: UILabel!
     @IBOutlet weak var btnMinus: UIButton!

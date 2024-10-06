@@ -15,6 +15,7 @@ public protocol CreateTripTripInformationVCDelegate: AnyObject {
     
 }
 
+@objc(SPMCreateTripTripInformationVC)
 class CreateTripTripInformationVC: TRPBaseUIViewController {
     @IBOutlet weak var tableView: UITableView!
     weak var delegate: CreateTripTripInformationVCDelegate?

@@ -8,6 +8,7 @@
 
 import UIKit
 
+@objc(SPMNewItineraryTableViewCell)
 class NewItineraryTableViewCell: UITableViewCell {
     
     @PriceIconWrapper

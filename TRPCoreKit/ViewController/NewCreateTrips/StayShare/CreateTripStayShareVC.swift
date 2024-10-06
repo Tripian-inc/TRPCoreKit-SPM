@@ -16,6 +16,7 @@ public protocol CreateTripStayShareVCDelegate: AnyObject {
     func createTripStayShareVCCompanionRemoved(_ companion: TRPCompanion)
 }
 
+@objc(SPMCreateTripStayShareVC)
 class CreateTripStayShareVC: TRPBaseUIViewController {
 
     @IBOutlet weak var tableView: UITableView!
