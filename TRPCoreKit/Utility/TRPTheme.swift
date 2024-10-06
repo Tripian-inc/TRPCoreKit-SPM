@@ -184,49 +184,49 @@ class TRPFont1: TRPFontStyle {
 
 class TRPColor1: TRPColorStyle {
     
-    var extraShadow: UIColor = UIColor(named: "extra_shadow", in: Bundle(identifier: "com.tripian.TRPCoreKit")!, compatibleWith: nil)!
+    var extraShadow: UIColor = UIColor(named: "extra_shadow", in: Bundle.module, compatibleWith: nil)!
     
-    var tabbarColor: UIColor = UIColor(named: "tabbar_color", in: Bundle(identifier: "com.tripian.TRPCoreKit")!, compatibleWith: nil)!
+    var tabbarColor: UIColor = UIColor(named: "tabbar_color", in: Bundle.module, compatibleWith: nil)!
     
-    var goldAccent: UIColor = UIColor(named: "gold_accent", in: Bundle(identifier: "com.tripian.TRPCoreKit")!, compatibleWith: nil)!
+    var goldAccent: UIColor = UIColor(named: "gold_accent", in: Bundle.module, compatibleWith: nil)!
     
-    var violet: UIColor = UIColor(named: "violent", in: Bundle(identifier: "com.tripian.TRPCoreKit")!, compatibleWith: nil)!
+    var violet: UIColor = UIColor(named: "violent", in: Bundle.module, compatibleWith: nil)!
     
-    var deepPink: UIColor = UIColor(named: "deep_pink", in: Bundle(identifier: "com.tripian.TRPCoreKit")!, compatibleWith: nil)!
+    var deepPink: UIColor = UIColor(named: "deep_pink", in: Bundle.module, compatibleWith: nil)!
     
-    var shadeGold: UIColor = UIColor(named: "shade_gold", in: Bundle(identifier: "com.tripian.TRPCoreKit")!, compatibleWith: nil)!
+    var shadeGold: UIColor = UIColor(named: "shade_gold", in: Bundle.module, compatibleWith: nil)!
     
-    var shadeViolent: UIColor = UIColor(named: "shade_violent", in: Bundle(identifier: "com.tripian.TRPCoreKit")!, compatibleWith: nil)!
+    var shadeViolent: UIColor = UIColor(named: "shade_violent", in: Bundle.module, compatibleWith: nil)!
     
-    var shadePink: UIColor = UIColor(named: "shade_pink", in: Bundle(identifier: "com.tripian.TRPCoreKit")!, compatibleWith: nil)!
+    var shadePink: UIColor = UIColor(named: "shade_pink", in: Bundle.module, compatibleWith: nil)!
     
-    var textHead: UIColor = UIColor(named: "text_header", in: Bundle(identifier: "com.tripian.TRPCoreKit")!, compatibleWith: nil)!
+    var textHead: UIColor = UIColor(named: "text_header", in: Bundle.module, compatibleWith: nil)!
     
-    var textBody: UIColor = UIColor(named: "text_body", in: Bundle(identifier: "com.tripian.TRPCoreKit")!, compatibleWith: nil)!
+    var textBody: UIColor = UIColor(named: "text_body", in: Bundle.module, compatibleWith: nil)!
 
-    var extraMain: UIColor = UIColor(named: "extra_main", in: Bundle(identifier: "com.tripian.TRPCoreKit")!, compatibleWith: nil)!
+    var extraMain: UIColor = UIColor(named: "extra_main", in: Bundle.module, compatibleWith: nil)!
     
-    var shadowMain: UIColor = UIColor(named: "extra_shadow", in: Bundle(identifier: "com.tripian.TRPCoreKit")!, compatibleWith: nil)!
+    var shadowMain: UIColor = UIColor(named: "extra_shadow", in: Bundle.module, compatibleWith: nil)!
     
-    var extraSub: UIColor = UIColor(named: "extra_sub", in: Bundle(identifier: "com.tripian.TRPCoreKit")!, compatibleWith: nil)!
+    var extraSub: UIColor = UIColor(named: "extra_sub", in: Bundle.module, compatibleWith: nil)!
     
     var extraBG: UIColor = UIColor.white
     
     //TODO
-    var subMain: UIColor = UIColor(named: "text_header", in: Bundle(identifier: "com.tripian.TRPCoreKit")!, compatibleWith: nil)!
+    var subMain: UIColor = UIColor(named: "text_header", in: Bundle.module, compatibleWith: nil)!
     
-    var bg1: UIColor = UIColor(named: "bg1", in: Bundle(identifier: "com.tripian.TRPCoreKit")!, compatibleWith: nil)!
+    var bg1: UIColor = UIColor(named: "bg1", in: Bundle.module, compatibleWith: nil)!
     
     //TODO
-    var bg2: UIColor = UIColor(named: "text_header", in: Bundle(identifier: "com.tripian.TRPCoreKit")!, compatibleWith: nil)!
-    var blue: UIColor = UIColor(named: "blue", in: Bundle(identifier: "com.tripian.TRPCoreKit")!, compatibleWith: nil)!
+    var bg2: UIColor = UIColor(named: "text_header", in: Bundle.module, compatibleWith: nil)!
+    var blue: UIColor = UIColor(named: "blue", in: Bundle.module, compatibleWith: nil)!
     
-    var tripianPrimary: UIColor = UIColor(named: "tripian_primary", in: Bundle(identifier: "com.tripian.TRPCoreKit")!, compatibleWith: nil)!
+    var tripianPrimary: UIColor = UIColor(named: "tripian_primary", in: Bundle.module, compatibleWith: nil)!
     
-    var tripianLightGrey: UIColor = UIColor(named: "tripian_light_grey", in: Bundle(identifier: "com.tripian.TRPCoreKit")!, compatibleWith: nil)!
+    var tripianLightGrey: UIColor = UIColor(named: "tripian_light_grey", in: Bundle.module, compatibleWith: nil)!
     
-    var tripianBlack: UIColor = .black // UIColor(named: "tripian_light_grey", in: Bundle(identifier: "com.tripian.TRPCoreKit")!, compatibleWith: nil)!
+    var tripianBlack: UIColor = .black // UIColor(named: "tripian_light_grey", in: Bundle.module, compatibleWith: nil)!
     
-    var tripianTextPrimary: UIColor = UIColor(named: "tripian_text_primary", in: Bundle(identifier: "com.tripian.TRPCoreKit")!, compatibleWith: nil)!
+    var tripianTextPrimary: UIColor = UIColor(named: "tripian_text_primary", in: Bundle.module, compatibleWith: nil)!
     
 }

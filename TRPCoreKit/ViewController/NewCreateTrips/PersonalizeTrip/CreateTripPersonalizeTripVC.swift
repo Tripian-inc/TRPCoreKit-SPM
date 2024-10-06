@@ -8,6 +8,7 @@
 
 import UIKit
 
+@objc(SPMCreateTripPersonalizeTripVC)
 class CreateTripPersonalizeTripVC: TRPBaseUIViewController {
     
     @IBOutlet weak var tableView: UITableView!

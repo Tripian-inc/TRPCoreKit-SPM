@@ -14,6 +14,8 @@ public protocol CreateTripContainerVCDelegate: AnyObject {
     func canContinue(currentStep: CreateTripSteps) -> Bool
     func createOrEditTrip()
 }
+
+@objc(SPMCreateTripContainerVC)
 class CreateTripContainerVC: TRPBaseUIViewController {
 
     @IBOutlet weak var backBtn: UIButton!
