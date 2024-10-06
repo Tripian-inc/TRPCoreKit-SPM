@@ -8,7 +8,7 @@
 
 import UIKit
 
-
+@objc(SPMMyTripTableViewCell)
 class MyTripTableViewCell: UITableViewCell {
     @IBOutlet weak var editTripBtn: UIButton!
     @IBOutlet weak var deleteTripBtn: UIButton!
