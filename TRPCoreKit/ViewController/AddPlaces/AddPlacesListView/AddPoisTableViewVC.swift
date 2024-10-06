@@ -20,6 +20,7 @@ public protocol AddPoiTableViewVCContainerDelegate:AnyObject {
     func searchCleared()
 }
 
+@objc(SPMAddPoiTableViewVC)
 class AddPoiTableViewVC: TRPBaseUIViewController {
     
     public var viewModel: AddPoisTableViewViewModel!

@@ -19,6 +19,7 @@ class JuniperExperiencesTVCell: UITableViewCell {
     override func awakeFromNib() {
         imgTOur.layer.masksToBounds = true
         imgTOur.layer.cornerRadius = 12
+        imgTOur.image = nil
         
         lblTitle.font = trpTheme.font.title2
         lblTitle.textColor = trpTheme.color.subMain

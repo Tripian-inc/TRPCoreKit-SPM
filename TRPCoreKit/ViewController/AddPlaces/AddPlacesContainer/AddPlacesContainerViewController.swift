@@ -15,7 +15,7 @@ import UIKit
 //    func addPlaceContainerViewControllerOpenSearchView(_ navigationController: UINavigationController, viewController: UIViewController, selectedType: AddPlaceTypes?)
 //}
 
-
+@objc(SPMAddPlacesContainerViewController)
 public class AddPlacesContainerViewController: TRPBaseUIViewController {
     
     @IBOutlet weak var searchBar: UISearchBar!

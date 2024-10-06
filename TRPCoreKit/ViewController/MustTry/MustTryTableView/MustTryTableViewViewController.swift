@@ -16,7 +16,7 @@ public protocol MustTryTableViewViewControllerDelegate:AnyObject {
     func mustTryTableViewVCOpenTasteDetail(_ navigationController: UINavigationController?, viewController: UIViewController, taste: TRPTaste)
 }
 
-
+@objc(SPMMustTryTableViewViewController)
 public class MustTryTableViewViewController: TRPBaseUIViewController {
     
     @IBOutlet weak var tableView: EvrTableView!

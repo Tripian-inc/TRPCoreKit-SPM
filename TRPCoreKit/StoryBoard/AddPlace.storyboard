@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="19455" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES">
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="23094" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES">
     <device id="retina6_1" orientation="portrait" appearance="light"/>
     <dependencies>
         <deployment identifier="iOS"/>
-        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="19454"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="23084"/>
         <capability name="Safe area layout guides" minToolsVersion="9.0"/>
         <capability name="System colors in document resources" minToolsVersion="11.0"/>
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
@@ -12,17 +12,17 @@
         <!--Add Poi Table ViewVC-->
         <scene sceneID="e5x-Ao-e06">
             <objects>
-                <viewController storyboardIdentifier="AddPoiTableViewVC" id="QAH-xI-6xO" customClass="AddPoiTableViewVC" customModule="TRPCoreKit" customModuleProvider="target" sceneMemberID="viewController">
+                <viewController storyboardIdentifier="AddPoiTableViewVC" id="QAH-xI-6xO" customClass="SPMAddPoiTableViewVC" sceneMemberID="viewController">
                     <view key="view" contentMode="scaleToFill" id="zcg-2e-W35">
                         <rect key="frame" x="0.0" y="0.0" width="414" height="896"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <subviews>
-                            <tableView clipsSubviews="YES" contentMode="scaleToFill" alwaysBounceVertical="YES" dataMode="prototypes" style="plain" separatorStyle="default" rowHeight="-1" estimatedRowHeight="-1" sectionHeaderHeight="28" sectionFooterHeight="28" translatesAutoresizingMaskIntoConstraints="NO" id="MKb-PN-iM0" customClass="EvrTableView" customModule="TRPCoreKit" customModuleProvider="target">
-                                <rect key="frame" x="0.0" y="44" width="414" height="818"/>
+                            <tableView clipsSubviews="YES" contentMode="scaleToFill" alwaysBounceVertical="YES" dataMode="prototypes" style="plain" separatorStyle="default" rowHeight="-1" estimatedRowHeight="-1" sectionHeaderHeight="28" sectionFooterHeight="28" translatesAutoresizingMaskIntoConstraints="NO" id="MKb-PN-iM0" customClass="SPMEvrTableView">
+                                <rect key="frame" x="0.0" y="48" width="414" height="814"/>
                                 <color key="backgroundColor" systemColor="systemBackgroundColor"/>
                                 <prototypes>
-                                    <tableViewCell clipsSubviews="YES" contentMode="scaleToFill" insetsLayoutMarginsFromSafeArea="NO" selectionStyle="blue" hidesAccessoryWhenEditing="NO" indentationLevel="1" indentationWidth="0.0" reuseIdentifier="AddPlaceCell2" rowHeight="129" id="5vn-rP-Dtd" customClass="AddPlaceCell2" customModule="TRPCoreKit" customModuleProvider="target">
-                                        <rect key="frame" x="0.0" y="44.5" width="414" height="129"/>
+                                    <tableViewCell clipsSubviews="YES" contentMode="scaleToFill" insetsLayoutMarginsFromSafeArea="NO" selectionStyle="blue" hidesAccessoryWhenEditing="NO" indentationLevel="1" indentationWidth="0.0" reuseIdentifier="AddPlaceCell2" rowHeight="129" id="5vn-rP-Dtd" customClass="SPMAddPlaceCell2">
+                                        <rect key="frame" x="0.0" y="50" width="414" height="129"/>
                                         <autoresizingMask key="autoresizingMask"/>
                                         <tableViewCellContentView key="contentView" opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="center" insetsLayoutMarginsFromSafeArea="NO" tableViewCell="5vn-rP-Dtd" id="2FP-SQ-HAS">
                                             <rect key="frame" x="0.0" y="0.0" width="414" height="129"/>
@@ -120,17 +120,17 @@
         <!--Must Try Table View View Controller-->
         <scene sceneID="EkG-7n-0UE">
             <objects>
-                <viewController storyboardIdentifier="MustTryTableViewViewController" id="HV7-pJ-1zh" customClass="MustTryTableViewViewController" customModule="TRPCoreKit" customModuleProvider="target" sceneMemberID="viewController">
+                <viewController storyboardIdentifier="MustTryTableViewViewController" id="HV7-pJ-1zh" customClass="SPMMustTryTableViewViewController" sceneMemberID="viewController">
                     <view key="view" contentMode="scaleToFill" id="keu-aC-TQF">
                         <rect key="frame" x="0.0" y="0.0" width="414" height="896"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <subviews>
-                            <tableView clipsSubviews="YES" contentMode="scaleToFill" alwaysBounceVertical="YES" dataMode="prototypes" style="plain" separatorStyle="default" rowHeight="-1" estimatedRowHeight="-1" sectionHeaderHeight="28" sectionFooterHeight="28" translatesAutoresizingMaskIntoConstraints="NO" id="d3e-VH-whk" customClass="EvrTableView" customModule="TRPCoreKit" customModuleProvider="target">
+                            <tableView clipsSubviews="YES" contentMode="scaleToFill" alwaysBounceVertical="YES" dataMode="prototypes" style="plain" separatorStyle="default" rowHeight="-1" estimatedRowHeight="-1" sectionHeaderHeight="28" sectionFooterHeight="28" translatesAutoresizingMaskIntoConstraints="NO" id="d3e-VH-whk" customClass="SPMEvrTableView">
                                 <rect key="frame" x="0.0" y="0.0" width="414" height="862"/>
                                 <color key="backgroundColor" systemColor="systemBackgroundColor"/>
                                 <prototypes>
-                                    <tableViewCell clipsSubviews="YES" contentMode="scaleToFill" insetsLayoutMarginsFromSafeArea="NO" selectionStyle="blue" hidesAccessoryWhenEditing="NO" indentationLevel="1" indentationWidth="0.0" reuseIdentifier="FavoritesTableViewCell" rowHeight="90" id="Rit-Dk-5Rp" customClass="FavoritesTableViewCell" customModule="TRPCoreKit" customModuleProvider="target">
-                                        <rect key="frame" x="0.0" y="44.5" width="414" height="90"/>
+                                    <tableViewCell clipsSubviews="YES" contentMode="scaleToFill" insetsLayoutMarginsFromSafeArea="NO" selectionStyle="blue" hidesAccessoryWhenEditing="NO" indentationLevel="1" indentationWidth="0.0" reuseIdentifier="FavoritesTableViewCell" rowHeight="90" id="Rit-Dk-5Rp" customClass="SPMFavoritesTableViewCell">
+                                        <rect key="frame" x="0.0" y="50" width="414" height="90"/>
                                         <autoresizingMask key="autoresizingMask"/>
                                         <tableViewCellContentView key="contentView" opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="center" insetsLayoutMarginsFromSafeArea="NO" tableViewCell="Rit-Dk-5Rp" id="KRH-WV-uW5">
                                             <rect key="frame" x="0.0" y="0.0" width="414" height="90"/>
@@ -205,17 +205,17 @@
         <!--Add Places Container View Controller-->
         <scene sceneID="bic-K9-4DP">
             <objects>
-                <viewController storyboardIdentifier="AddPlacesContainerViewController" id="cgt-jA-oXy" customClass="AddPlacesContainerViewController" customModule="TRPCoreKit" customModuleProvider="target" sceneMemberID="viewController">
+                <viewController storyboardIdentifier="AddPlacesContainerViewController" id="cgt-jA-oXy" customClass="SPMAddPlacesContainerViewController" sceneMemberID="viewController">
                     <view key="view" contentMode="scaleToFill" id="5lf-6d-A2c">
                         <rect key="frame" x="0.0" y="0.0" width="414" height="896"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <subviews>
                             <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="iGp-cX-lhe">
-                                <rect key="frame" x="0.0" y="94" width="414" height="768"/>
+                                <rect key="frame" x="0.0" y="98" width="414" height="764"/>
                                 <color key="backgroundColor" systemColor="systemBackgroundColor"/>
                             </view>
                             <searchBar contentMode="redraw" placeholder="Search" translatesAutoresizingMaskIntoConstraints="NO" id="Qp3-pb-hE6">
-                                <rect key="frame" x="16" y="44" width="382" height="60"/>
+                                <rect key="frame" x="16" y="48" width="382" height="60"/>
                                 <constraints>
                                     <constraint firstAttribute="height" constant="60" id="XBc-fX-8Pq"/>
                                 </constraints>
@@ -245,7 +245,7 @@
         </scene>
     </scenes>
     <resources>
-        <image name="icon_next" width="24" height="24"/>
+        <image name="icon_next" width="12" height="21"/>
         <image name="one_pixel_line" width="327" height="1"/>
         <image name="tripian_check_icon" width="24" height="24"/>
         <systemColor name="systemBackgroundColor">

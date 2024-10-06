@@ -9,6 +9,8 @@
 import Foundation
 import SDWebImage
 import UIKit
+
+@objc(SPMAddPlaceCell2)
 class AddPlaceCell2: UITableViewCell {
     
     @IBOutlet weak var placeName: UILabel!
