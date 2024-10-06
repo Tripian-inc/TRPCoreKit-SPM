@@ -9,6 +9,7 @@
 import Foundation
 import UIKit
 
+@objc(SPMCreateTripSelectItemCell)
 class CreateTripSelectItemCell: UITableViewCell {
     @IBOutlet weak var label: UILabel!
     

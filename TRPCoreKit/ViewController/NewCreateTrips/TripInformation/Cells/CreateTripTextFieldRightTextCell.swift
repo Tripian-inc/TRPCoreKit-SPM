@@ -9,6 +9,7 @@
 import Foundation
 import UIKit
 
+@objc(SPMCreateTripTextFieldRightTextCell)
 class CreateTripTextFieldRightTextCell: CreateTripTextFieldCell {
     @IBOutlet weak var lblRightText: UILabel!
     @IBOutlet weak var lblPlaceHolder: UILabel!

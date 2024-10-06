@@ -9,6 +9,7 @@
 import Foundation
 import UIKit
 
+@objc(SPMCreateTripDescriptionSelectionCell)
 class CreateTripDescriptionSelectionCell: UITableViewCell {
     @IBOutlet weak var bgView: UIView!
     @IBOutlet weak var titleLbl: UILabel!

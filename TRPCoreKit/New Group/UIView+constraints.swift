@@ -15,7 +15,7 @@ extension UIView {
  
     func loadNib(nibName: String) -> UIView? {
         let bundle = Bundle(for: type(of: self))
-        let nib = UINib(nibName: nibName, bundle: bundle)
+        let nib = UINib(nibName: nibName, bundle: Bundle.module)
         return nib.instantiate(withOwner: self, options: nil).first as? UIView
     }
     func roundCorners(corners: UIRectCorner, radius: CGFloat) {

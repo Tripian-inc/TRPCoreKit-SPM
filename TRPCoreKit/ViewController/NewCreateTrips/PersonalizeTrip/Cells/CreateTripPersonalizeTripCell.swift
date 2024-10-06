@@ -9,6 +9,7 @@
 import Foundation
 import UIKit
 
+@objc(SPMCreateTripPersonalizeTripCell)
 class CreateTripPersonalizeTripCell: UITableViewCell {
     @IBOutlet weak var checkImage: UIImageView!
     @IBOutlet weak var titleLabel: UILabel!

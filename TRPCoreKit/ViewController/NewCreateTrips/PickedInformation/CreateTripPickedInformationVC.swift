@@ -11,6 +11,7 @@ import UIKit
 protocol CreateTripPickedInformationVCDelegate: AnyObject {
     func createTripPickedInformationVCDelegateOpenSelectAnswer(_ viewController: UIViewController, question: SelectableQuestionModelNew)
 }
+@objc(SPMCreateTripPickedInformationVC)
 class CreateTripPickedInformationVC: TRPBaseUIViewController {
     @IBOutlet weak var tableView: UITableView!
     

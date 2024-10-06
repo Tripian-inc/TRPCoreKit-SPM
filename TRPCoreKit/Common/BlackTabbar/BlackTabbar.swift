@@ -35,7 +35,7 @@ class BlackTabbar: UIView {
     
     private func commonInit() {
         let bundle = Bundle(for: type(of: self))
-        let nib = UINib(nibName: "BlackTabbar", bundle: bundle)
+        let nib = UINib(nibName: "BlackTabbar", bundle: Bundle.module)
         guard let _view = nib.instantiate(withOwner: self, options: nil).first as? UIView else {return}
         _view.frame = self.bounds
         addSubview(_view)

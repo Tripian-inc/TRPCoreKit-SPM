@@ -12,7 +12,7 @@ public class FoundationKitInfo: NSObject {
     public override init() {}
     
     public func version()  -> String? {
-        return Bundle(for: type(of: self)).infoDictionary?["CFBundleShortVersionString"] as? String
+        return Bundle.module.infoDictionary?["CFBundleShortVersionString"] as? String
     }
     
 }

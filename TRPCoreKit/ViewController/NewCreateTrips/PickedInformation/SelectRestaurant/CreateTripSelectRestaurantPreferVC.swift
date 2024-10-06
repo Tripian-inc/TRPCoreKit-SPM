@@ -12,6 +12,7 @@ protocol CreateTripSelectRestaurantPreferVCDelegate: AnyObject {
     func createTripSelectRestaurantPreferVCSetSelectedAnswer(_ answer: SelectableAnswer, question: SelectableQuestionModelNew)
 }
 
+@objc(SPMCreateTripSelectRestaurantPreferVC)
 class CreateTripSelectRestaurantPreferVC: TRPBaseUIViewController {
     
     @IBOutlet weak var titleLabel: UILabel!

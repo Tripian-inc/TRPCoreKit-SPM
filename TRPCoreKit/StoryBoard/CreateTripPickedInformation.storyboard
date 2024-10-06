@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="32700.99.1234" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES">
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="23094" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES">
     <device id="retina6_0" orientation="portrait" appearance="light"/>
     <dependencies>
         <deployment identifier="iOS"/>
-        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="22685"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="23084"/>
         <capability name="Named colors" minToolsVersion="9.0"/>
         <capability name="Safe area layout guides" minToolsVersion="9.0"/>
         <capability name="System colors in document resources" minToolsVersion="11.0"/>
@@ -13,7 +13,7 @@
         <!--Create Trip Picked InformationVC-->
         <scene sceneID="s0d-6b-0kx">
             <objects>
-                <viewController storyboardIdentifier="CreateTripPickedInformationVC" id="Y6W-OH-hqX" customClass="CreateTripPickedInformationVC" customModule="TRPCoreKit" customModuleProvider="target" sceneMemberID="viewController">
+                <viewController storyboardIdentifier="CreateTripPickedInformationVC" id="Y6W-OH-hqX" customClass="SPMCreateTripPickedInformationVC" sceneMemberID="viewController">
                     <view key="view" contentMode="scaleToFill" id="5EZ-qb-Rvc">
                         <rect key="frame" x="0.0" y="0.0" width="390" height="844"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
@@ -22,7 +22,7 @@
                                 <rect key="frame" x="20" y="47" width="350" height="763"/>
                                 <color key="backgroundColor" systemColor="systemBackgroundColor"/>
                                 <prototypes>
-                                    <tableViewCell clipsSubviews="YES" contentMode="scaleToFill" insetsLayoutMarginsFromSafeArea="NO" selectionStyle="blue" hidesAccessoryWhenEditing="NO" indentationLevel="1" indentationWidth="0.0" reuseIdentifier="CreateTripTextFieldRightTextCell" id="5Sh-OH-Xdf" customClass="CreateTripTextFieldRightTextCell" customModule="TRPCoreKit" customModuleProvider="target">
+                                    <tableViewCell clipsSubviews="YES" contentMode="scaleToFill" insetsLayoutMarginsFromSafeArea="NO" selectionStyle="blue" hidesAccessoryWhenEditing="NO" indentationLevel="1" indentationWidth="0.0" reuseIdentifier="CreateTripTextFieldRightTextCell" id="5Sh-OH-Xdf" customClass="SPMCreateTripTextFieldRightTextCell">
                                         <rect key="frame" x="0.0" y="50" width="350" height="70.333335876464844"/>
                                         <autoresizingMask key="autoresizingMask"/>
                                         <tableViewCellContentView key="contentView" opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="center" insetsLayoutMarginsFromSafeArea="NO" tableViewCell="5Sh-OH-Xdf" id="kNt-fY-mHR">
@@ -83,7 +83,7 @@
                                             <outlet property="textField" destination="WrM-gk-tfq" id="peS-QS-lbp"/>
                                         </connections>
                                     </tableViewCell>
-                                    <tableViewCell clipsSubviews="YES" contentMode="scaleToFill" insetsLayoutMarginsFromSafeArea="NO" selectionStyle="blue" hidesAccessoryWhenEditing="NO" indentationLevel="1" indentationWidth="0.0" reuseIdentifier="CreateTripPersonalizeTripCell" id="vgs-Pg-UoS" customClass="CreateTripPersonalizeTripCell" customModule="TRPCoreKit" customModuleProvider="target">
+                                    <tableViewCell clipsSubviews="YES" contentMode="scaleToFill" insetsLayoutMarginsFromSafeArea="NO" selectionStyle="blue" hidesAccessoryWhenEditing="NO" indentationLevel="1" indentationWidth="0.0" reuseIdentifier="CreateTripPersonalizeTripCell" id="vgs-Pg-UoS" customClass="SPMCreateTripPersonalizeTripCell">
                                         <rect key="frame" x="0.0" y="120.33333587646484" width="350" height="57.666667938232422"/>
                                         <autoresizingMask key="autoresizingMask"/>
                                         <tableViewCellContentView key="contentView" opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="center" insetsLayoutMarginsFromSafeArea="NO" tableViewCell="vgs-Pg-UoS" id="8C5-9x-cV7">
@@ -129,7 +129,7 @@
                                             <outlet property="titleLabel" destination="Ral-Y8-dcE" id="nHI-Kf-wUH"/>
                                         </connections>
                                     </tableViewCell>
-                                    <tableViewCell clipsSubviews="YES" contentMode="scaleToFill" insetsLayoutMarginsFromSafeArea="NO" selectionStyle="blue" hidesAccessoryWhenEditing="NO" indentationLevel="1" indentationWidth="0.0" reuseIdentifier="CreateTripDescriptionSelectionCell" id="PT3-1z-q8z" customClass="CreateTripDescriptionSelectionCell" customModule="TRPCoreKit" customModuleProvider="target">
+                                    <tableViewCell clipsSubviews="YES" contentMode="scaleToFill" insetsLayoutMarginsFromSafeArea="NO" selectionStyle="blue" hidesAccessoryWhenEditing="NO" indentationLevel="1" indentationWidth="0.0" reuseIdentifier="CreateTripDescriptionSelectionCell" id="PT3-1z-q8z" customClass="SPMCreateTripDescriptionSelectionCell">
                                         <rect key="frame" x="0.0" y="178.00000381469727" width="350" height="100"/>
                                         <autoresizingMask key="autoresizingMask"/>
                                         <tableViewCellContentView key="contentView" opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="center" insetsLayoutMarginsFromSafeArea="NO" tableViewCell="PT3-1z-q8z" id="GtT-Jy-D41">
@@ -190,7 +190,7 @@
                                             <outlet property="titleLbl" destination="rLQ-3x-5dY" id="zOS-ZZ-LGS"/>
                                         </connections>
                                     </tableViewCell>
-                                    <tableViewCell clipsSubviews="YES" contentMode="scaleToFill" insetsLayoutMarginsFromSafeArea="NO" selectionStyle="blue" hidesAccessoryWhenEditing="NO" indentationLevel="1" indentationWidth="0.0" reuseIdentifier="CreateTripTextFieldHeaderCell" id="2XX-kA-6Mj" customClass="CreateTripTextFieldHeaderCell" customModule="TRPCoreKit" customModuleProvider="target">
+                                    <tableViewCell clipsSubviews="YES" contentMode="scaleToFill" insetsLayoutMarginsFromSafeArea="NO" selectionStyle="blue" hidesAccessoryWhenEditing="NO" indentationLevel="1" indentationWidth="0.0" reuseIdentifier="CreateTripTextFieldHeaderCell" id="2XX-kA-6Mj" customClass="SPMCreateTripTextFieldHeaderCell">
                                         <rect key="frame" x="0.0" y="278.00000381469727" width="350" height="51.666667938232422"/>
                                         <autoresizingMask key="autoresizingMask"/>
                                         <tableViewCellContentView key="contentView" opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="center" insetsLayoutMarginsFromSafeArea="NO" tableViewCell="2XX-kA-6Mj" id="Twc-4D-VQ5">
@@ -242,7 +242,7 @@
         <!--Create Trip Select Restaurant PreferVC-->
         <scene sceneID="QMb-VY-cbB">
             <objects>
-                <viewController storyboardIdentifier="CreateTripSelectRestaurantPreferVC" id="G8M-4z-gWT" customClass="CreateTripSelectRestaurantPreferVC" customModule="TRPCoreKit" customModuleProvider="target" sceneMemberID="viewController">
+                <viewController storyboardIdentifier="CreateTripSelectRestaurantPreferVC" id="G8M-4z-gWT" customClass="SPMCreateTripSelectRestaurantPreferVC" sceneMemberID="viewController">
                     <view key="view" contentMode="scaleToFill" id="W9B-gY-Le9">
                         <rect key="frame" x="0.0" y="0.0" width="390" height="844"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
@@ -251,7 +251,7 @@
                                 <rect key="frame" x="20" y="107.33333333333331" width="350" height="716.66666666666674"/>
                                 <color key="backgroundColor" systemColor="systemBackgroundColor"/>
                                 <prototypes>
-                                    <tableViewCell clipsSubviews="YES" contentMode="scaleToFill" insetsLayoutMarginsFromSafeArea="NO" selectionStyle="blue" hidesAccessoryWhenEditing="NO" indentationLevel="1" indentationWidth="0.0" reuseIdentifier="CreateTripSelectItemCell" id="ALn-0U-bTI" customClass="CreateTripSelectItemCell" customModule="TRPCoreKit" customModuleProvider="target">
+                                    <tableViewCell clipsSubviews="YES" contentMode="scaleToFill" insetsLayoutMarginsFromSafeArea="NO" selectionStyle="blue" hidesAccessoryWhenEditing="NO" indentationLevel="1" indentationWidth="0.0" reuseIdentifier="CreateTripSelectItemCell" id="ALn-0U-bTI" customClass="SPMCreateTripSelectItemCell">
                                         <rect key="frame" x="0.0" y="50" width="350" height="40.333332061767578"/>
                                         <autoresizingMask key="autoresizingMask"/>
                                         <tableViewCellContentView key="contentView" opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="center" insetsLayoutMarginsFromSafeArea="NO" tableViewCell="ALn-0U-bTI" id="hvX-7K-pCg">
