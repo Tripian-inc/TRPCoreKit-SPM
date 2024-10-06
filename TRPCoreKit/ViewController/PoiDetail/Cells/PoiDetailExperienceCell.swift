@@ -130,7 +130,7 @@ extension PoiDetailExperienceCell: UICollectionViewDelegate, UICollectionViewDat
         let model = products[indexPath.row]
         cell.titleLabel.text = model.title
         
-        if let first = model.image,  let url = URL(string: first) {
+        if let first = model.image,  let url = URL(string: first.replacingOccurrences(of: "http://", with: "https://")) {
             cell.imageView.sd_setImage(with: url, completed: nil)
         }
         cell.bestSeller.isHidden = true

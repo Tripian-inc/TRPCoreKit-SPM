@@ -8,7 +8,7 @@
 
 import UIKit
 
-
+@objc(SPMJuniperExperiencesTVCell)
 class JuniperExperiencesTVCell: UITableViewCell {
     @IBOutlet weak var imgTOur: UIImageView!
     @IBOutlet weak var lblTitle: UILabel!

@@ -66,7 +66,7 @@ class ActionViewController: UIViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        containerView.transform = CGAffineTransform(translationX: 0, y: containerView.frame.height + 100)
+//        containerView.transform = CGAffineTransform(translationX: 0, y: containerView.frame.height + 100)
 //        view.backgroundColor = UIColor.black.withAlphaComponent(0.5)
 //        let gesture = UITapGestureRecognizer(target: self, action: #selector(bgPressed))
 //        view.addGestureRecognizer(gesture)
@@ -76,9 +76,9 @@ class ActionViewController: UIViewController {
     
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
-        UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseOut) { [weak self] in
-            self?.containerView.transform = .identity
-        }
+//        UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseOut) { [weak self] in
+//            self?.containerView.transform = .identity
+//        }
     }
     
     @objc func bgPressed() {
@@ -169,13 +169,13 @@ class ActionViewController: UIViewController {
     
     
     public func dismissView(completion: ((_ status: Bool) -> Void)?) {
-        UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseIn) {
-            self.containerView.transform = CGAffineTransform(translationX: 0, y: self.containerView.frame.height)
-        } completion: { _ in
+//        UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseIn) {
+//            self.containerView.transform = CGAffineTransform(translationX: 0, y: self.containerView.frame.height)
+//        } completion: { _ in
             self.dismiss(animated: false) {
                 completion?(true)
             }
-        }
+//        }
     }
     
 }
