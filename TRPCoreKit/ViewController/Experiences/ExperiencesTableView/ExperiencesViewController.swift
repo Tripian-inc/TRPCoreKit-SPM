@@ -14,7 +14,7 @@ public protocol ExperiencesViewControllerDelegate: AnyObject {
     func experiencesVCOpenTour(_ navigationController: UINavigationController?, viewController: UIViewController, tourId: Int)
 }
 
-
+@objc(SPMExperiencesViewController)
 public class ExperiencesViewController: TRPBaseUIViewController {
     
     @IBOutlet weak var tableView: EvrTableView!

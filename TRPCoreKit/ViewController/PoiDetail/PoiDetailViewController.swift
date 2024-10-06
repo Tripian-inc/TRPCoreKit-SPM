@@ -21,6 +21,7 @@ protocol PoiDetailViewControllerDelegate: AnyObject {
     func poiDetailCloseParentViewController(_ viewController: UIViewController, parentViewController: UIViewController?)
 }
 
+@objc(SPMPoiDetailViewController)
 class PoiDetailViewController: TRPBaseUIViewController {
     @IBOutlet weak var tableView: UITableView!
     

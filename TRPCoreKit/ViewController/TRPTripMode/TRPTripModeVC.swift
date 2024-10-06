@@ -35,6 +35,7 @@ public protocol TRPTripModeVCDelegate: AnyObject {
 //Bu durumda search buttonunu gostermemek icin MapStatus eklendi.
 enum MapStatus{ case mapIsReady, mapWillShow, mapDidShow}
 
+@objc(SPMTRPTripModeVC)
 public class TRPTripModeVC: TRPBaseUIViewController {
     
     @IBOutlet weak var blackTabbar: BlackTabbar!
