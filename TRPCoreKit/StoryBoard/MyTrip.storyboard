@@ -12,7 +12,7 @@
         <!--My Trip Table ViewVC-->
         <scene sceneID="thd-Kf-nU8">
             <objects>
-                <viewController storyboardIdentifier="MyTripTableViewVC" id="abX-pl-paQ" customClass="MyTripTableViewVC" customModule="TRPCoreKit" customModuleProvider="target" sceneMemberID="viewController">
+                <viewController storyboardIdentifier="MyTripTableViewVC" id="abX-pl-paQ" customClass="SPMMyTripTableViewVC" sceneMemberID="viewController">
                     <view key="view" contentMode="scaleToFill" id="2fj-Bs-zIW">
                         <rect key="frame" x="0.0" y="0.0" width="414" height="896"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>

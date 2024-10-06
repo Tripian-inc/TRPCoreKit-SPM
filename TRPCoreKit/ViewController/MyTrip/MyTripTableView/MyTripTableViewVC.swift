@@ -21,7 +21,7 @@ public protocol MyTripTableViewVCDelegate: AnyObject {
 public enum MyTripType: String{
     case pastTrip, upcomingTrip
 }
-
+@objc(SPMMyTripTableViewVC)
 public class MyTripTableViewVC: TRPBaseUIViewController {
     
     public var viewModel: MyTripTableViewViewModel!
