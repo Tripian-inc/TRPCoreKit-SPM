@@ -8,6 +8,7 @@
 
 import UIKit
 
+@objc(SPMBlackTabbar)
 class BlackTabbar: UIView {
 
     var action: ((_ type: BlackTabbarItemType) -> Void)?
@@ -111,7 +112,7 @@ class BlackTabbar: UIView {
     
 }
 
-
+@objc(SPMTabbarButton)
 class TabbarButton: UIButton {
     
     override init(frame: CGRect) {

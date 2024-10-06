@@ -16,7 +16,7 @@ class TRPImageController {
             return image
         }
         if let image = inFramework {
-            return UIImage(named: image, in: Bundle.init(for: type(of: self)), compatibleWith: nil)
+            return UIImage(named: image, in: Bundle.module, compatibleWith: nil)
         }
         return nil
     }
