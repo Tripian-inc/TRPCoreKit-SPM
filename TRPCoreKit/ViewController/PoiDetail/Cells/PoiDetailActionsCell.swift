@@ -9,6 +9,8 @@
 import Foundation
 
 import UIKit
+
+@objc(SPMPoiDetailActionsCell)
 final class PoiDetailActionsCell: UITableViewCell {
     @IBOutlet weak var addRemoveButton: UIButton!
     @IBOutlet weak var replaceButton: UIButton!

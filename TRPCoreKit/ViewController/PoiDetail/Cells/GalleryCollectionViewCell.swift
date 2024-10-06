@@ -9,6 +9,7 @@
 
 import UIKit
 
+@objc(SPMGalleryCollectionViewCell)
 class GalleryCollectionViewCell: UICollectionViewCell {
     
     @IBOutlet weak var imageView: UIImageView!

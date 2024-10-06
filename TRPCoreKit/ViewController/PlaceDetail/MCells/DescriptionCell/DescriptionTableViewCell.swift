@@ -8,10 +8,7 @@
 
 import UIKit
 
-
-
-
-
+@objc(SPMExpandableTableViewCell)
 final class ExpandableTableViewCell: UITableViewCell {
     
     lazy var iconImageView: UIImageView = {

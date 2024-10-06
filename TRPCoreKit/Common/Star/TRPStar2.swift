@@ -8,6 +8,7 @@
 
 import UIKit
 
+@objc(SPMTRPStar2)
 class TRPStar2: UIView {
     
     private let nibName = "TRPStar2"

@@ -22,7 +22,7 @@
                                 <rect key="frame" x="0.0" y="0.0" width="414" height="862"/>
                                 <color key="backgroundColor" systemColor="systemBackgroundColor"/>
                                 <prototypes>
-                                    <tableViewCell clipsSubviews="YES" contentMode="scaleToFill" insetsLayoutMarginsFromSafeArea="NO" selectionStyle="none" hidesAccessoryWhenEditing="NO" indentationLevel="1" indentationWidth="0.0" reuseIdentifier="PoiDetailImageAndTitle" rowHeight="398.5" id="2jO-VQ-MJb" customClass="PoiDetailImageAndTitle" customModule="TRPCoreKit" customModuleProvider="target">
+                                    <tableViewCell clipsSubviews="YES" contentMode="scaleToFill" insetsLayoutMarginsFromSafeArea="NO" selectionStyle="none" hidesAccessoryWhenEditing="NO" indentationLevel="1" indentationWidth="0.0" reuseIdentifier="PoiDetailImageAndTitle" rowHeight="398.5" id="2jO-VQ-MJb" customClass="SPMPoiDetailImageAndTitle">
                                         <rect key="frame" x="0.0" y="50" width="414" height="398.5"/>
                                         <autoresizingMask key="autoresizingMask"/>
                                         <tableViewCellContentView key="contentView" opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="center" insetsLayoutMarginsFromSafeArea="NO" tableViewCell="2jO-VQ-MJb" id="O0t-8q-hyq">
@@ -42,7 +42,7 @@
                                                         <inset key="sectionInset" minX="0.0" minY="0.0" maxX="0.0" maxY="0.0"/>
                                                     </collectionViewFlowLayout>
                                                     <cells>
-                                                        <collectionViewCell opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="center" reuseIdentifier="GalleryCollectionViewCell" id="ccc-x9-OLG" customClass="GalleryCollectionViewCell" customModule="TRPCoreKit" customModuleProvider="target">
+                                                        <collectionViewCell opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="center" reuseIdentifier="GalleryCollectionViewCell" id="ccc-x9-OLG" customClass="SPMGalleryCollectionViewCell">
                                                             <rect key="frame" x="0.0" y="0.0" width="414" height="234"/>
                                                             <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                                                             <collectionViewCellContentView key="contentView" opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="center" insetsLayoutMarginsFromSafeArea="NO" id="J8M-Aa-bD1">
@@ -76,7 +76,7 @@
                                                     </constraints>
                                                     <color key="pageIndicatorTintColor" red="0.43279808759999999" green="0.54419428110000001" blue="0.96870702509999995" alpha="1" colorSpace="custom" customColorSpace="displayP3"/>
                                                 </pageControl>
-                                                <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="Ien-yy-eH3" customClass="EdgeView" customModule="TRPCoreKit" customModuleProvider="target">
+                                                <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="Ien-yy-eH3" customClass="SPMEdgeView">
                                                     <rect key="frame" x="0.0" y="233" width="414" height="1"/>
                                                     <color key="backgroundColor" systemColor="systemBackgroundColor"/>
                                                     <constraints>
@@ -104,7 +104,7 @@
                                                             <nil key="textColor"/>
                                                             <nil key="highlightedColor"/>
                                                         </label>
-                                                        <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="VWd-a5-1Ff" customClass="TRPStar2" customModule="TRPCoreKit" customModuleProvider="target">
+                                                        <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="VWd-a5-1Ff" customClass="SPMTRPStar2">
                                                             <rect key="frame" x="111.5" y="0.0" width="94" height="28"/>
                                                             <color key="backgroundColor" systemColor="systemBackgroundColor"/>
                                                             <constraints>
@@ -195,7 +195,7 @@
                                             <outlet property="titleLabel" destination="96O-6e-Ac7" id="7CU-cf-Tbb"/>
                                         </connections>
                                     </tableViewCell>
-                                    <tableViewCell clipsSubviews="YES" contentMode="scaleToFill" insetsLayoutMarginsFromSafeArea="NO" selectionStyle="none" hidesAccessoryWhenEditing="NO" indentationLevel="1" indentationWidth="0.0" reuseIdentifier="PoiDetailActionsCell" rowHeight="132" id="UYV-1r-BqB" customClass="PoiDetailActionsCell" customModule="TRPCoreKit" customModuleProvider="target">
+                                    <tableViewCell clipsSubviews="YES" contentMode="scaleToFill" insetsLayoutMarginsFromSafeArea="NO" selectionStyle="none" hidesAccessoryWhenEditing="NO" indentationLevel="1" indentationWidth="0.0" reuseIdentifier="PoiDetailActionsCell" rowHeight="132" id="UYV-1r-BqB" customClass="SPMPoiDetailActionsCell">
                                         <rect key="frame" x="0.0" y="448.5" width="414" height="132"/>
                                         <autoresizingMask key="autoresizingMask"/>
                                         <tableViewCellContentView key="contentView" opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="center" insetsLayoutMarginsFromSafeArea="NO" tableViewCell="UYV-1r-BqB" id="viV-aO-44C">
@@ -284,7 +284,7 @@
                                             <outlet property="shareButton" destination="x5u-HO-qJb" id="vKB-ue-R3X"/>
                                         </connections>
                                     </tableViewCell>
-                                    <tableViewCell clipsSubviews="YES" contentMode="scaleToFill" insetsLayoutMarginsFromSafeArea="NO" selectionStyle="none" hidesAccessoryWhenEditing="NO" indentationLevel="1" indentationWidth="0.0" reuseIdentifier="ExpandableTableViewCell" rowHeight="52" id="gkk-Vh-TDR" customClass="ExpandableTableViewCell" customModule="TRPCoreKit" customModuleProvider="target">
+                                    <tableViewCell clipsSubviews="YES" contentMode="scaleToFill" insetsLayoutMarginsFromSafeArea="NO" selectionStyle="none" hidesAccessoryWhenEditing="NO" indentationLevel="1" indentationWidth="0.0" reuseIdentifier="ExpandableTableViewCell" rowHeight="52" id="gkk-Vh-TDR" customClass="SPMExpandableTableViewCell">
                                         <rect key="frame" x="0.0" y="580.5" width="414" height="52"/>
                                         <autoresizingMask key="autoresizingMask"/>
                                         <tableViewCellContentView key="contentView" opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="center" insetsLayoutMarginsFromSafeArea="NO" tableViewCell="gkk-Vh-TDR" id="ekC-Nu-Znb">
@@ -354,7 +354,7 @@
                                             <outlet property="label" destination="RCe-x8-2lH" id="az0-09-OuN"/>
                                         </connections>
                                     </tableViewCell>
-                                    <tableViewCell clipsSubviews="YES" contentMode="scaleToFill" restorationIdentifier="PoiDetailOfferCell" insetsLayoutMarginsFromSafeArea="NO" selectionStyle="none" hidesAccessoryWhenEditing="NO" indentationLevel="1" indentationWidth="0.0" reuseIdentifier="PoiDetailOfferCell" id="VXa-W8-5Ei" customClass="PoiDetailOfferCell" customModule="TRPCoreKit" customModuleProvider="target">
+                                    <tableViewCell clipsSubviews="YES" contentMode="scaleToFill" restorationIdentifier="PoiDetailOfferCell" insetsLayoutMarginsFromSafeArea="NO" selectionStyle="none" hidesAccessoryWhenEditing="NO" indentationLevel="1" indentationWidth="0.0" reuseIdentifier="PoiDetailOfferCell" id="VXa-W8-5Ei" customClass="SPMPoiDetailOfferCell">
                                         <rect key="frame" x="0.0" y="691.5" width="414" height="138"/>
                                         <autoresizingMask key="autoresizingMask"/>
                                         <tableViewCellContentView key="contentView" opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="center" insetsLayoutMarginsFromSafeArea="NO" tableViewCell="VXa-W8-5Ei" id="Muw-DI-6VR">

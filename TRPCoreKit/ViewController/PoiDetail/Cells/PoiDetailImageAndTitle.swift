@@ -9,6 +9,7 @@
 import Foundation
 import UIKit
 
+@objc(SPMPoiDetailImageAndTitle)
 final public class PoiDetailImageAndTitle: UITableViewCell {
     
     private var cellImages: [PagingImage] = []

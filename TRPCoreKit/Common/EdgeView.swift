@@ -8,6 +8,7 @@
 
 import UIKit
 
+@objc(SPMEdgeView)
 class EdgeView: UIView {
 
     private var shapeLayer: CALayer?

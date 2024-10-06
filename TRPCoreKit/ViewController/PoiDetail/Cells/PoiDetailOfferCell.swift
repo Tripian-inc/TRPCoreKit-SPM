@@ -9,8 +9,7 @@
 import Foundation
 import UIKit
 
-
-
+@objc(SPMPoiDetailOfferCell)
 class PoiDetailOfferCell: UITableViewCell {
     
     @IBOutlet weak var containerView: UIView!

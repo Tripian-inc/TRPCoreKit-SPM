@@ -15,7 +15,7 @@ public protocol SelectCityVCDelegate: AnyObject {
     func selectedCity(cityId: Int, city: TRPCity)
 }
 
-
+@objc(SPMSelectCityVC)
 public class SelectCityVC: TRPBaseUIViewController {
     //MARK: - Properties
     var viewModel: SelectCityViewModel!
