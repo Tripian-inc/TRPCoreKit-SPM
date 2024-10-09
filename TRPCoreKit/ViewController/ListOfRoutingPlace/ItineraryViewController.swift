@@ -114,6 +114,13 @@ extension ItineraryViewController: UITableViewDataSource, UITableViewDelegate {
                 strongSelf.openUberDeepLink(uberModel)
             }
         }
+        cell.buyTicketHandler = { [weak self] in
+            guard let strongSelf = self,
+                  let tourUrl = cellModel.bookingProduct?.url,
+                  let url = URL(string: tourUrl) else {return}
+            
+            UIApplication.shared.open(url)
+        }
         return cell
     }
     

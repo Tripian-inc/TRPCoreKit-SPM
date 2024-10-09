@@ -33,12 +33,14 @@ class NewItineraryTableViewCell: UITableViewCell {
     @IBOutlet weak var replaceBtn: UIButton!
     @IBOutlet weak var thumbsDownSelected: UIButton!
     @IBOutlet weak var thumbsUpSelected: UIButton!
+    @IBOutlet weak var buyTicketBtn: UIButton!
     
     
     var action: ((_ action: ReactionActionType) -> Void)?
     
     typealias ButtonClicked = () -> Void
     public var uberHandler: ButtonClicked?
+    public var buyTicketHandler: ButtonClicked?
     
     override func awakeFromNib() {
         super.awakeFromNib()
@@ -79,6 +81,8 @@ class NewItineraryTableViewCell: UITableViewCell {
         
         uberBtn.setTitle(TRPLanguagesController.shared.getLanguageValue(for: "trips.myTrips.itinerary.direction"), for: .normal)
         
+        buyTicketBtn.setTitle(TRPLanguagesController.shared.getLanguageValue(for: "trips.myTrips.itinerary.step.poi.tourTicket.ticket.title"), for: .normal)
+        
         removeBtn.setTitle(TRPLanguagesController.shared.getLanguageValue(for: "trips.myTrips.itinerary.step.thumbs.remove"), for: .normal)
         replaceBtn.setTitle(TRPLanguagesController.shared.getLanguageValue(for: "trips.myTrips.itinerary.step.thumbs.replace.title"), for: .normal)
         
@@ -109,6 +113,8 @@ class NewItineraryTableViewCell: UITableViewCell {
         orderLbl.text = "\(model.order)"
         
         uberBtn.isHidden = !model.userCar
+        
+        buyTicketBtn.isHidden = model.bookingProduct == nil
         
         [thumbsDownBtn,thumbsUpBtn,thumbsSpacerView, removeBtn, replaceBtn, thumbsDownSelected, thumbsUpSelected].forEach{ $0?.isHidden = true }
         
@@ -212,5 +218,8 @@ class NewItineraryTableViewCell: UITableViewCell {
     }
     @IBAction func uberPressed(_ sender: Any) {
         uberHandler?()
+    }
+    @IBAction func buyTicketPressed(_ sender: Any) {
+        buyTicketHandler?()
     }
 }

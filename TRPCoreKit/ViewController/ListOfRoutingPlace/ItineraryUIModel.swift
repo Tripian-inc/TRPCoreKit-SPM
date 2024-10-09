@@ -26,6 +26,7 @@ class ItineraryUIModel {
     var category: String = ""
     var isHotel = false
     var canReplace = true
+    var bookingProduct: TRPBookingProduct? = nil
     
     init(poi: TRPPoi, order: Int) {
         self.order = order
@@ -36,12 +37,19 @@ class ItineraryUIModel {
         self.star = Int((poi.rating ?? 0.0).rounded())
         self.category = poi.categories.first?.name ?? ""
         self.isHotel = poi.placeType == .hotel ? true : false
+        self.bookingProduct = getBooking(poi: poi, providerId: 7) // JUNIPER
     }
     
     init(poiId: String, poiName: String, order: Int) {
         self.poiId = poiId
         self.poiName = poiName
         self.order = order
+    }
+    
+    private func getBooking(poi: TRPPoi, providerId id: Int) -> TRPBookingProduct? {
+        guard let bookings = poi.bookings else {return nil}
+        let data = bookings.filter{$0.providerId == id}
+        return data.first?.products?.first
     }
     
 }

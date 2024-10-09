@@ -80,17 +80,33 @@
                                                     <nil key="textColor"/>
                                                     <nil key="highlightedColor"/>
                                                 </label>
-                                                <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="C97-RE-v0V">
-                                                    <rect key="frame" x="103.5" y="110" width="120" height="26"/>
-                                                    <constraints>
-                                                        <constraint firstAttribute="width" constant="120" id="PN3-xW-tpa"/>
-                                                        <constraint firstAttribute="height" constant="26" id="THa-I5-R1Q"/>
-                                                    </constraints>
-                                                    <state key="normal" title="Book a Ride"/>
-                                                    <connections>
-                                                        <action selector="uberPressed:" destination="nxz-ad-zcs" eventType="touchUpInside" id="ChV-B7-qiI"/>
-                                                    </connections>
-                                                </button>
+                                                <stackView opaque="NO" contentMode="scaleToFill" spacing="12" translatesAutoresizingMaskIntoConstraints="NO" id="E2x-bH-uiZ">
+                                                    <rect key="frame" x="103.5" y="110" width="252" height="26"/>
+                                                    <subviews>
+                                                        <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="C97-RE-v0V">
+                                                            <rect key="frame" x="0.0" y="0.0" width="120" height="26"/>
+                                                            <constraints>
+                                                                <constraint firstAttribute="width" constant="120" id="PN3-xW-tpa"/>
+                                                                <constraint firstAttribute="height" constant="26" id="THa-I5-R1Q"/>
+                                                            </constraints>
+                                                            <state key="normal" title="Book a Ride"/>
+                                                            <connections>
+                                                                <action selector="uberPressed:" destination="nxz-ad-zcs" eventType="touchUpInside" id="ChV-B7-qiI"/>
+                                                            </connections>
+                                                        </button>
+                                                        <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="Dqr-kJ-Kmw">
+                                                            <rect key="frame" x="132" y="0.0" width="120" height="26"/>
+                                                            <constraints>
+                                                                <constraint firstAttribute="width" constant="120" id="DNR-uF-mvT"/>
+                                                                <constraint firstAttribute="height" constant="26" id="el8-OI-vIt"/>
+                                                            </constraints>
+                                                            <connections>
+                                                                <action selector="buyTicketPressed:" destination="nxz-ad-zcs" eventType="touchUpInside" id="Yr6-6G-tjo"/>
+                                                                <action selector="uberPressed:" destination="nxz-ad-zcs" eventType="touchUpInside" id="uUe-iM-1Pc"/>
+                                                            </connections>
+                                                        </button>
+                                                    </subviews>
+                                                </stackView>
                                                 <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="one_pixel_line" translatesAutoresizingMaskIntoConstraints="NO" id="pRv-iz-Wng">
                                                     <rect key="frame" x="16" y="143" width="382" height="4"/>
                                                     <constraints>
@@ -234,6 +250,7 @@
                                                 <constraint firstAttribute="trailing" secondItem="pRv-iz-Wng" secondAttribute="trailing" constant="16" id="9YR-bC-Qz2"/>
                                                 <constraint firstItem="pRv-iz-Wng" firstAttribute="leading" secondItem="OtJ-qf-09c" secondAttribute="leading" constant="16" id="9pW-y7-eeF"/>
                                                 <constraint firstItem="UXw-Wl-DN1" firstAttribute="leading" secondItem="OtJ-qf-09c" secondAttribute="leading" constant="25" id="DNJ-CK-Bsa"/>
+                                                <constraint firstItem="E2x-bH-uiZ" firstAttribute="centerY" secondItem="VfE-8T-Aft" secondAttribute="centerY" id="GvW-IV-pep"/>
                                                 <constraint firstItem="tTg-qw-quQ" firstAttribute="centerX" secondItem="tBB-uB-EGG" secondAttribute="centerX" id="IJ9-i3-bTf"/>
                                                 <constraint firstItem="DUG-ot-rRS" firstAttribute="leading" secondItem="tBB-uB-EGG" secondAttribute="trailing" constant="16" id="Jp6-Et-StY"/>
                                                 <constraint firstItem="UXw-Wl-DN1" firstAttribute="top" secondItem="OtJ-qf-09c" secondAttribute="top" constant="25" id="KM1-1E-HDZ"/>
@@ -241,15 +258,14 @@
                                                 <constraint firstItem="tTg-qw-quQ" firstAttribute="top" secondItem="tBB-uB-EGG" secondAttribute="bottom" constant="4" id="LyN-rO-cfo"/>
                                                 <constraint firstItem="tBB-uB-EGG" firstAttribute="top" secondItem="OtJ-qf-09c" secondAttribute="top" constant="24" id="O67-bZ-Iun"/>
                                                 <constraint firstAttribute="trailing" secondItem="Xx5-0d-ygt" secondAttribute="trailing" constant="16" id="Oh4-vH-3kQ"/>
+                                                <constraint firstItem="E2x-bH-uiZ" firstAttribute="leading" secondItem="VfE-8T-Aft" secondAttribute="trailing" constant="12" id="QX5-DH-hg8"/>
                                                 <constraint firstItem="pRv-iz-Wng" firstAttribute="top" secondItem="VfE-8T-Aft" secondAttribute="bottom" constant="12" id="R2W-ND-M29"/>
                                                 <constraint firstItem="sPJ-ea-gwb" firstAttribute="centerY" secondItem="VfE-8T-Aft" secondAttribute="centerY" id="Ukj-aj-DRy"/>
                                                 <constraint firstItem="tTg-qw-quQ" firstAttribute="top" secondItem="tBB-uB-EGG" secondAttribute="bottom" constant="4" id="XnW-D3-aix"/>
                                                 <constraint firstItem="VfE-8T-Aft" firstAttribute="leading" secondItem="sPJ-ea-gwb" secondAttribute="trailing" constant="6" id="aaO-rp-YGO"/>
                                                 <constraint firstItem="Xx5-0d-ygt" firstAttribute="top" secondItem="OtJ-qf-09c" secondAttribute="top" constant="16" id="ci1-8e-0hB"/>
                                                 <constraint firstItem="sPJ-ea-gwb" firstAttribute="leading" secondItem="tBB-uB-EGG" secondAttribute="leading" constant="4" id="mqK-sM-9Tt"/>
-                                                <constraint firstItem="C97-RE-v0V" firstAttribute="leading" secondItem="VfE-8T-Aft" secondAttribute="trailing" constant="12" id="mrA-Vm-Phq"/>
                                                 <constraint firstItem="VfE-8T-Aft" firstAttribute="top" secondItem="DUG-ot-rRS" secondAttribute="bottom" constant="12" id="rSx-I1-U1h"/>
-                                                <constraint firstItem="C97-RE-v0V" firstAttribute="centerY" secondItem="VfE-8T-Aft" secondAttribute="centerY" id="teb-6f-LmU"/>
                                                 <constraint firstItem="VfE-8T-Aft" firstAttribute="top" secondItem="tTg-qw-quQ" secondAttribute="bottom" constant="1.5" id="xjY-oc-B2I"/>
                                                 <constraint firstItem="Xx5-0d-ygt" firstAttribute="leading" secondItem="tBB-uB-EGG" secondAttribute="trailing" constant="16" id="y3h-9j-Yun"/>
                                                 <constraint firstAttribute="trailing" secondItem="DUG-ot-rRS" secondAttribute="trailing" constant="16" id="z31-Oa-kYM"/>
@@ -258,6 +274,7 @@
                                         </tableViewCellContentView>
                                         <connections>
                                             <outlet property="ReviewCount" destination="VUd-TT-3aA" id="y5R-3m-etd"/>
+                                            <outlet property="buyTicketBtn" destination="Dqr-kJ-Kmw" id="4S2-bB-voX"/>
                                             <outlet property="categoryLbl" destination="DhA-cj-qh3" id="eKS-jF-byv"/>
                                             <outlet property="distanceLbl" destination="VfE-8T-Aft" id="iQ3-iT-t6W"/>
                                             <outlet property="orderContainer" destination="UXw-Wl-DN1" id="UXa-uK-XzQ"/>
