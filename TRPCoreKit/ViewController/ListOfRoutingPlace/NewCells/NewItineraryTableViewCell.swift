@@ -73,11 +73,14 @@ class NewItineraryTableViewCell: UITableViewCell {
         priceLbl.font = trpTheme.font.body3
         priceLbl.textColor = trpTheme.color.tripianTextPrimary
         
-        uberBtn.titleLabel?.font = trpTheme.font.body3
-        uberBtn.titleLabel?.textColor = .white
-        uberBtn.backgroundColor = trpTheme.color.blue
-        uberBtn.layer.cornerRadius = 12
-        uberBtn.layer.masksToBounds = true
+        [uberBtn, buyTicketBtn].forEach {
+            $0.titleLabel?.font = trpTheme.font.body3
+            $0.titleLabel?.textColor = .white
+            $0.backgroundColor = trpTheme.color.blue
+            $0.layer.cornerRadius = 12
+            $0.layer.masksToBounds = true
+        }
+        buyTicketBtn.backgroundColor = trpTheme.color.tripianPrimary
         
         uberBtn.setTitle(TRPLanguagesController.shared.getLanguageValue(for: "trips.myTrips.itinerary.direction"), for: .normal)
         
