@@ -10,6 +10,7 @@ import UIKit
 protocol PopupAlertDelegate: AnyObject {
     func closedPopup()
 }
+@objc(SPMPopupAlert)
 class PopupAlert: UIViewController {
     @IBOutlet weak var contentLbl: UILabel!
     
@@ -120,6 +121,7 @@ class PopupAlert: UIViewController {
     }
 }
 
+@objc(SPMTRPBtn)
 class TRPBtn: UIButton {
     
     override init(frame: CGRect) {
@@ -164,6 +166,7 @@ class TRPBtn: UIButton {
     }
 }
 
+@objc(SPMTRPBtnPopup)
 class TRPBtnPopup: TRPBtn {
     
     fileprivate override func setupUI() {
@@ -178,6 +181,7 @@ class TRPBtnPopup: TRPBtn {
     }
 }
 
+@objc(SPMTRPBtnPopupCancel)
 class TRPBtnPopupCancel: TRPBtnPopup {
     
     fileprivate override func setupUI() {
