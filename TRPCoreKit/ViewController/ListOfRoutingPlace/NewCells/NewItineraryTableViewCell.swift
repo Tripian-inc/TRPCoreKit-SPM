@@ -115,7 +115,8 @@ class NewItineraryTableViewCell: UITableViewCell {
         orderLbl.isHidden = false
         orderLbl.text = "\(model.order)"
         
-        uberBtn.isHidden = !model.userCar
+//        uberBtn.isHidden = !model.userCar
+        uberBtn.isHidden = true
         
         buyTicketBtn.isHidden = model.bookingProduct == nil
         

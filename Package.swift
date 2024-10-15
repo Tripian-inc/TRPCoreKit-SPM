@@ -21,7 +21,7 @@ let package = Package(
         .package(url: "https://github.com/mapbox/mapbox-directions-swift.git", from: "2.0.0"),
         .package(url: "https://github.com/rechsteiner/Parchment", from: "3.1.0"),
         .package(url: "https://github.com/SDWebImage/SDWebImage.git", from: "5.19.7"),
-        .package(url: "https://github.com/mapbox/mapbox-events-ios.git", from: "2.0.0"),
+//        .package(url: "https://github.com/mapbox/mapbox-events-ios.git", from: "2.0.0"),
     ],
     targets: [
         // Targets are the basic building blocks of a package, defining a module or a test suite.
@@ -30,18 +30,23 @@ let package = Package(
             name: "TRPCoreKit",
             dependencies: [
                 .product(name: "MapboxDirections", package: "mapbox-directions-swift"),
-                .product(name: "MapboxMobileEvents", package: "mapbox-events-ios"),
+//                .product(name: "MapboxMobileEvents", package: "mapbox-events-ios"),
                 "Parchment",
                 "SDWebImage",
                 "FSCalendar",
                 "Alamofire",
                 "Mapbox",
+                "MapboxMobileEvents",
             ],
             path: "TRPCoreKit"
         ),
         .binaryTarget(
             name: "Mapbox",
             path: "./Mapbox.xcframework"
+        ),
+        .binaryTarget(
+            name: "MapboxMobileEvents",
+            path: "./MapboxMobileEvents.xcframework"
         ),
         .testTarget(
             name: "TRPCoreKitTests",

@@ -154,7 +154,7 @@ extension ExperiencesViewModel {
         if splittedCode.count > 1 {
             let encodeCode = "\(splittedCode[1])¥TKT¥\(splittedCode[0])¥\(destinationId)¥\(model.code)"
             
-            let url = "https://www.nexustours.com/en/services/\(cityName)/\(encodeCode)"
+            let url = "https://www.nexustours.com/en/services/\(cityName)/\(encodeCode)&utm_source=nexusapp&utm_medium=tripian"
             return URL(string: url)
             
         }

@@ -1,5 +1,5 @@
 {
-  "originHash" : "5c336b874e8c34b20c1161631481f05a7b16f887cbec38d10b89cbd97f44daf8",
+  "originHash" : "0fc39b4e247d440e0f4f8f0139e68f16a16d098a8c67aec455d48f8776941de5",
   "pins" : [
     {
       "identity" : "alamofire",
@@ -26,15 +26,6 @@
       "state" : {
         "revision" : "6512320ee7f0091a4c55abe2bc6414f078da88c8",
         "version" : "2.14.0"
-      }
-    },
-    {
-      "identity" : "mapbox-events-ios",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/mapbox/mapbox-events-ios.git",
-      "state" : {
-        "revision" : "990bab73cf50242a05f29b6a9cfeb30592150c13",
-        "version" : "2.0.0"
       }
     },
     {
