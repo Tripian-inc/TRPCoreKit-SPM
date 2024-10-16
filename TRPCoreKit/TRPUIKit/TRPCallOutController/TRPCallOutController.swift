@@ -284,9 +284,9 @@ class TRPCallOutCell: UIView {
         if price > 0 {
             let largeAttributes = [NSAttributedString.Key.font: UIFont.systemFont(ofSize: 12),.foregroundColor: UIColor.darkGray]
             let smallAttributes = [NSAttributedString.Key.font: UIFont.systemFont(ofSize: 8),.foregroundColor: UIColor.lightGray]
-            let largeAttributeIndex = type.lengthOfBytes(using: String.Encoding.utf8) + 3
+            let largeAttributeIndex = type.count + 3
             let smallAttributeIndex = largeAttributeIndex + price
-            let textLength = text.lengthOfBytes(using: String.Encoding.utf8)
+            let textLength = sentence.length
             sentence.setAttributes(largeAttributes, range: NSRange(location: largeAttributeIndex, length: price))
             sentence.setAttributes(smallAttributes, range: NSRange(location: smallAttributeIndex, length: textLength - smallAttributeIndex))
         }
