@@ -277,16 +277,17 @@ class TRPCallOutCell: UIView {
     private func explaineStringCreater(type: String, price: Int) -> NSMutableAttributedString {
         var text = "\(type)"
         if price > 0 {
-            text += " - \(String(repeating: "$" , count: 4))"
+            text += " - \(self.priceString(price: price))"
+//            text += " - \(String(repeating: "$" , count: 4))"
         }
         let normalAttributes  = [NSAttributedString.Key.font: UIFont.boldSystemFont(ofSize: 12),.foregroundColor: UIColor.lightGray]
         let sentence = NSMutableAttributedString(string: text, attributes: normalAttributes)
-        if price > 0 {
-            let largeAttributes = [NSAttributedString.Key.font: UIFont.systemFont(ofSize: 12),.foregroundColor: UIColor.darkGray]
-            let smallAttributes = [NSAttributedString.Key.font: UIFont.systemFont(ofSize: 8),.foregroundColor: UIColor.lightGray]
-            sentence.setAttributes(largeAttributes, range: NSRange(location: type.lengthOfBytes(using: String.Encoding.utf8) + 3, length: price))
-            sentence.setAttributes(smallAttributes, range: NSRange(location: type.lengthOfBytes(using: String.Encoding.utf8) + 3 + price, length: 4 - price))
-        }
+//        if price > 0 {
+//            let largeAttributes = [NSAttributedString.Key.font: UIFont.systemFont(ofSize: 12),.foregroundColor: UIColor.darkGray]
+//            let smallAttributes = [NSAttributedString.Key.font: UIFont.systemFont(ofSize: 8),.foregroundColor: UIColor.lightGray]
+//            sentence.setAttributes(largeAttributes, range: NSRange(location: type.lengthOfBytes(using: String.Encoding.utf8) + 3, length: price))
+//            sentence.setAttributes(smallAttributes, range: NSRange(location: type.lengthOfBytes(using: String.Encoding.utf8) + 3 + price, length: 4 - price))
+//        }
         return sentence
     }
     

@@ -100,15 +100,24 @@ extension OpenHourCellController {
     }
     
     private func getOpeningHoursButtonTitle(_ openingHoursStr: String) -> String{
-        for dayTitle in self.dayTitles {
-            days[dayTitle] = []
-        }
-        let parts = openingHoursStr.components(separatedBy: "|")
-        for part in parts {
-            let keyVals = part.components(separatedBy: ": ")
-            let dayKeys = keyVals[0].components(separatedBy: ",")
-            for dayKey in dayKeys{
-                days[dayKey.trimmingCharacters(in: .whitespacesAndNewlines)] = [keyVals[1].trimmingCharacters(in: .whitespacesAndNewlines)]
+        if !openingHoursStr.contains("|") && !openingHoursStr.contains(":") {
+            for dayTitle in self.dayTitles {
+                days[dayTitle] = [openingHoursStr]
+            }
+        } else {
+            for dayTitle in self.dayTitles {
+                days[dayTitle] = []
+            }
+            let parts = openingHoursStr.components(separatedBy: "|")
+            for part in parts {
+                let keyVals = part.components(separatedBy: ": ")
+                let dayKeys = keyVals[0].components(separatedBy: ",")
+                for dayKey in dayKeys{
+                    if keyVals.count < 2 {
+                        days[dayKey.trimmingCharacters(in: .whitespacesAndNewlines)] = [keyVals[1].trimmingCharacters(in: .whitespacesAndNewlines)]
+                    }
+                    days[dayKey.trimmingCharacters(in: .whitespacesAndNewlines)] = [keyVals[1].trimmingCharacters(in: .whitespacesAndNewlines)]
+                }
             }
         }
         
