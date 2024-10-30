@@ -37,6 +37,7 @@ public protocol TRPTripModeViewModelDelegate: ViewModelDelegate {
     
     func setDestinationIdAndEngName(_ id: Int, cityEngName: String)
     
+    func viewModelNexusToursFetched(_ tours: [JuniperProduct])
 }
 
 public struct StepInfoForListOfRouting {
@@ -84,6 +85,7 @@ public class TRPTripModeViewModel {
     private(set) var city: TRPCity
     private(set) var trip: TRPTrip?
     private(set) var alternatives: [TRPPoi] = []
+    private(set) var nexusTours: [JuniperProduct] = []
     private(set) var dailyPlan: TRPPlan?{
         didSet {
             guard let plan = dailyPlan else {return}
@@ -94,6 +96,7 @@ public class TRPTripModeViewModel {
             self.delegate?.viewModelCurrentDayChanged(plan, order: getDayOrderInTrip(planId: plan.id))
         }
     }
+    private var allText: String = "All"
     
     
     //  USE CASE
@@ -580,5 +583,64 @@ extension TRPTripModeViewModel {
                 self?.delegate?.viewModel(error: error)
             }
         }
+    }
+}
+
+extension TRPTripModeViewModel {
+    
+    public func fetchJuniperTours() {
+        if !nexusTours.isEmpty {
+            self.delegate?.viewModelNexusToursFetched(nexusTours)
+            return
+        }
+        delegate?.viewModel(showPreloader: true)
+        
+        var startDate: String = Date().toString(format: "yyyy-MM-dd")
+        var endDate: String = Date().toString(format: "yyyy-MM-dd")
+        if let startTime = trip?.getArrivalDate()?.toDate, let endTime = trip?.getDepartureDate()?.toDate  {
+            startDate = startTime.toString(format: "yyyy-MM-dd", dateStyle: nil, timeStyle: nil)
+            endDate = endTime.toString(format: "yyyy-MM-dd", dateStyle: nil, timeStyle: nil)
+        }
+        TripianCommonApi.shared.getProducts(destinationId, startDate: startDate, endDate: endDate) { [weak self] result in
+            self?.delegate?.viewModel(showPreloader: false)
+            switch result {
+            case .success(let tours):
+                self?.nexusTours = tours
+                self?.delegate?.viewModelNexusToursFetched(tours)
+//                self?.seperateWithCategory(tours: tours)
+            case .failure(let error):
+                self?.delegate?.viewModel(error: error)
+            }
+        }
+    }
+    
+    public func getJuniperTours(from category: String) -> [JuniperProduct] {
+        if category.isEmpty || category == allText {
+            return nexusTours
+        }
+        let tours = nexusTours.filter{$0.tripianCategories?.contains(category) ?? false}
+        return tours
+    }
+    
+    public func getJuniperTour(from code: String) -> JuniperProduct? {
+        guard let tour = nexusTours.first(where: { $0.code == code }) else {return nil}
+        return tour
+    }
+    
+    public func getJuniperTourUrl(from code: String) -> URL? {
+        guard let tour = nexusTours.first(where: { $0.code == code }) else {return nil}
+        return URL(string: tour.getProductUrl(city: cityEngName))
+    }
+    
+    public func getJuniperTourCategories() -> [String] {
+        var uniqueArray = [String]()
+        nexusTours.compactMap(\.tripianCategories).forEach { uniqueArray = Array(Set($0 + uniqueArray)) }
+        uniqueArray = uniqueArray.sorted()
+        uniqueArray.insert(allText, at: 0)
+        return uniqueArray
+    }
+    
+    func combine<T>(_ arrays: Array<T>?...) -> Set<T> {
+        return arrays.compactMap{$0}.compactMap{Set($0)}.reduce(Set<T>()){$0.union($1)}
     }
 }

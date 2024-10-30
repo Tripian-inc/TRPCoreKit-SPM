@@ -604,7 +604,7 @@ extension TRPTripModeCoordinater: PoiDetailViewControllerDelegate {
 extension TRPTripModeCoordinater {
     
     private func openExperienceCoordinater(nav: UINavigationController, tourId: Int? = nil) {
-        guard let cityName = selectedCity?.name else {return}
+//        guard let cityName = selectedCity?.name else {return}
         experiencesCoordinater = TRPExperiencesCoordinater(navigationController: nav, cityName: cityEngName, destinationId: destinationId, tourId: tourId)
         experiencesCoordinater?.tripModeUseCases = tripModeUseCases
         experiencesCoordinater?.reservationUseCases = reservationUseCases

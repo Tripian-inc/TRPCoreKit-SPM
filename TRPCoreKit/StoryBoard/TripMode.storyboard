@@ -98,6 +98,19 @@
                                     <action selector="alternativesPressed:" destination="SrL-Ac-TAI" eventType="touchUpInside" id="zqy-lD-GSn"/>
                                 </connections>
                             </button>
+                            <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="nMG-rk-wtn">
+                                <rect key="frame" x="20" y="536" width="40" height="40"/>
+                                <color key="backgroundColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                                <constraints>
+                                    <constraint firstAttribute="height" constant="40" id="DTv-3b-0ya"/>
+                                    <constraint firstAttribute="width" constant="40" id="bKL-Su-gZy"/>
+                                </constraints>
+                                <inset key="imageEdgeInsets" minX="5" minY="5" maxX="5" maxY="5"/>
+                                <state key="normal" image="icon_nexus"/>
+                                <connections>
+                                    <action selector="nexusToursPressed:" destination="SrL-Ac-TAI" eventType="touchUpInside" id="bka-b8-d1t"/>
+                                </connections>
+                            </button>
                             <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="mp3-g5-qFZ" customClass="SPMBlackTabbar">
                                 <rect key="frame" x="0.0" y="656" width="414" height="80"/>
                                 <color key="backgroundColor" systemColor="systemBackgroundColor"/>
@@ -117,7 +130,9 @@
                             <constraint firstItem="x8M-6m-9bg" firstAttribute="top" secondItem="Z9C-QQ-2TU" secondAttribute="top" id="5c7-f6-Ycx"/>
                             <constraint firstItem="mp3-g5-qFZ" firstAttribute="trailing" secondItem="Z9C-QQ-2TU" secondAttribute="trailing" id="5qt-99-mFn"/>
                             <constraint firstItem="mp3-g5-qFZ" firstAttribute="leading" secondItem="Z9C-QQ-2TU" secondAttribute="leading" id="7OK-Iu-XUU"/>
+                            <constraint firstItem="nMG-rk-wtn" firstAttribute="leading" secondItem="ipj-eE-Vlq" secondAttribute="leading" id="7pd-0P-O9y"/>
                             <constraint firstItem="GKa-d8-ELO" firstAttribute="leading" secondItem="Z9C-QQ-2TU" secondAttribute="leading" constant="20" id="EBx-hS-Si2"/>
+                            <constraint firstItem="ipj-eE-Vlq" firstAttribute="top" secondItem="nMG-rk-wtn" secondAttribute="bottom" constant="20" id="EKR-wH-MPh"/>
                             <constraint firstAttribute="trailing" secondItem="Msc-41-rLC" secondAttribute="trailing" id="Fw3-yp-SFE"/>
                             <constraint firstItem="x8M-6m-9bg" firstAttribute="trailing" secondItem="Z9C-QQ-2TU" secondAttribute="trailing" id="Gmt-2Y-zz0"/>
                             <constraint firstItem="mp3-g5-qFZ" firstAttribute="top" secondItem="MiB-gA-9Yj" secondAttribute="bottom" constant="20" id="Gp7-gQ-wjI"/>
@@ -143,6 +158,7 @@
                         <outlet property="bottomSpace" destination="Msc-41-rLC" id="CAx-pL-xjs"/>
                         <outlet property="googleExportBtn" destination="UEB-Rn-2aY" id="UUW-29-QAf"/>
                         <outlet property="mapContainer" destination="x8M-6m-9bg" id="TGP-Dl-vZx"/>
+                        <outlet property="nexusToursBtn" destination="nMG-rk-wtn" id="6I0-cG-t0a"/>
                         <outlet property="searchOfferBtn" destination="GKa-d8-ELO" id="0XQ-wB-oUf"/>
                         <outlet property="showCityCenterBtn" destination="ne6-TP-0Ta" id="qMX-Am-sGc"/>
                         <outlet property="userLocationBtn" destination="dPq-im-PPS" id="7de-Xx-pVV"/>
@@ -159,6 +175,7 @@
         <image name="btn_search_offer" width="122.87999725341797" height="122.87999725341797"/>
         <image name="btn_show_city_center" width="24" height="24"/>
         <image name="btn_user_location" width="188.11099243164062" height="188.11099243164062"/>
+        <image name="icon_nexus" width="42" height="42"/>
         <systemColor name="systemBackgroundColor">
             <color white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
         </systemColor>

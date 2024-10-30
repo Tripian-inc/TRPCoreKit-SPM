@@ -232,6 +232,7 @@ public class TRPAppearanceSettings {
         public static var dessert =     ImageAndTag("black_dessert","Dessert")
         public static var homebase =     ImageAndTag("black_homebase","Homebase")
         public static var clustersImage = ImageAndTag("black_circle","clusterImage")
+        public static var nexusTour = ImageAndTag("icon_nexus","NexusTour")
         
         //Offer
         public static var iceCreamWithOffer =    ImageAndTag("ice_cream_with_offer","IceCreamWithOffer")
@@ -278,7 +279,7 @@ public class TRPAppearanceSettings {
             if type == .offer {
                 return [iceCreamWithOffer, burgerWithOffer, bakeryWithOffer, attractionWithOffer, shopWithOffer, flagWithOffer, bbqWithOffer, pizzaWithOffer, restaurantWithOffer, synagogueWithOffer, mosqueWithOffer, churchWithOffer, barWithOffer, wineBarWithOffer, pubWithOffer, artGalleryWithOffer, museumWithOffer, cafeWithOffer, dessertWithOffer, homebaseWithOffer]
             }
-            return [iceCream, burger, bakery, attraction, shop, flag, bbq, pizza, restaurant, synagogue, mosque, church, bar, wineBar, pub, artGallery, museum, cafe, dessert, homebase, clustersImage, iceCreamWithOffer, burgerWithOffer, bakeryWithOffer, attractionWithOffer, shopWithOffer, flagWithOffer, bbqWithOffer, pizzaWithOffer, restaurantWithOffer, synagogueWithOffer, mosqueWithOffer, churchWithOffer, barWithOffer, wineBarWithOffer, pubWithOffer, artGalleryWithOffer, museumWithOffer, cafeWithOffer, dessertWithOffer, homebaseWithOffer]
+            return [iceCream, burger, bakery, attraction, shop, flag, bbq, pizza, restaurant, synagogue, mosque, church, bar, wineBar, pub, artGallery, museum, cafe, dessert, homebase, clustersImage, iceCreamWithOffer, burgerWithOffer, bakeryWithOffer, attractionWithOffer, shopWithOffer, flagWithOffer, bbqWithOffer, pizzaWithOffer, restaurantWithOffer, synagogueWithOffer, mosqueWithOffer, churchWithOffer, barWithOffer, wineBarWithOffer, pubWithOffer, artGalleryWithOffer, museumWithOffer, cafeWithOffer, dessertWithOffer, homebaseWithOffer, nexusTour]
         }
     }
     

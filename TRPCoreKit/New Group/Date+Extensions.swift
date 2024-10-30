@@ -13,10 +13,10 @@ extension Date {
     ///
     /// - Parameter format: Date formatı
     /// - Returns: Date to String
-    func toString(format: String? = nil, dateStyle: DateFormatter.Style? = nil, timeStyle: DateFormatter.Style? = nil) -> String {
+    func toString(format: String? = nil, dateStyle: DateFormatter.Style? = nil, timeStyle: DateFormatter.Style? = nil, locale: String = "en_US_POSIX") -> String {
         let formatter = DateFormatter()
         formatter.timeZone = TimeZone(identifier: "UTC")
-        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.locale = Locale(identifier: locale)
         if let f = format {
             formatter.dateFormat = f
         }

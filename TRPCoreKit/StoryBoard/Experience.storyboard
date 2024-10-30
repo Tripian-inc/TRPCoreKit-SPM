@@ -18,7 +18,7 @@
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <subviews>
                             <tableView clipsSubviews="YES" contentMode="scaleToFill" alwaysBounceVertical="YES" dataMode="prototypes" style="plain" separatorStyle="default" rowHeight="300" estimatedRowHeight="-1" sectionHeaderHeight="-1" estimatedSectionHeaderHeight="-1" sectionFooterHeight="-1" estimatedSectionFooterHeight="-1" translatesAutoresizingMaskIntoConstraints="NO" id="taM-cE-d7h" customClass="SPMEvrTableView">
-                                <rect key="frame" x="0.0" y="59" width="393" height="759"/>
+                                <rect key="frame" x="0.0" y="119" width="393" height="699"/>
                                 <color key="backgroundColor" systemColor="systemBackgroundColor"/>
                                 <prototypes>
                                     <tableViewCell clipsSubviews="YES" contentMode="scaleToFill" insetsLayoutMarginsFromSafeArea="NO" selectionStyle="blue" hidesAccessoryWhenEditing="NO" indentationLevel="1" indentationWidth="0.0" reuseIdentifier="JuniperExperiencesTVCell" id="npM-xP-xaw" customClass="SPMJuniperExperiencesTVCell">
@@ -86,17 +86,28 @@
                                     </tableViewCell>
                                 </prototypes>
                             </tableView>
+                            <searchBar contentMode="redraw" translatesAutoresizingMaskIntoConstraints="NO" id="rjM-x9-VFC">
+                                <rect key="frame" x="24" y="59" width="345" height="60"/>
+                                <constraints>
+                                    <constraint firstAttribute="height" constant="60" id="GbT-lH-2PQ"/>
+                                </constraints>
+                                <textInputTraits key="textInputTraits"/>
+                            </searchBar>
                         </subviews>
                         <viewLayoutGuide key="safeArea" id="vDu-zF-Fre"/>
                         <color key="backgroundColor" systemColor="systemBackgroundColor"/>
                         <constraints>
+                            <constraint firstItem="rjM-x9-VFC" firstAttribute="leading" secondItem="5EZ-qb-Rvc" secondAttribute="leading" constant="24" id="7hd-bf-Le1"/>
                             <constraint firstItem="vDu-zF-Fre" firstAttribute="bottom" secondItem="taM-cE-d7h" secondAttribute="bottom" id="AOD-i8-IBG"/>
                             <constraint firstItem="vDu-zF-Fre" firstAttribute="trailing" secondItem="taM-cE-d7h" secondAttribute="trailing" id="Kwj-UT-y47"/>
                             <constraint firstItem="taM-cE-d7h" firstAttribute="leading" secondItem="vDu-zF-Fre" secondAttribute="leading" id="O9Y-8D-1jr"/>
-                            <constraint firstItem="taM-cE-d7h" firstAttribute="top" secondItem="vDu-zF-Fre" secondAttribute="top" id="l9f-k6-u1v"/>
+                            <constraint firstItem="taM-cE-d7h" firstAttribute="top" secondItem="rjM-x9-VFC" secondAttribute="bottom" id="Qaj-bU-zS6"/>
+                            <constraint firstItem="rjM-x9-VFC" firstAttribute="top" secondItem="vDu-zF-Fre" secondAttribute="top" id="T80-Yc-4Ax"/>
+                            <constraint firstItem="vDu-zF-Fre" firstAttribute="trailing" secondItem="rjM-x9-VFC" secondAttribute="trailing" constant="24" id="YP1-Kh-a86"/>
                         </constraints>
                     </view>
                     <connections>
+                        <outlet property="searchBar" destination="rjM-x9-VFC" id="MmO-88-YOM"/>
                         <outlet property="tableView" destination="taM-cE-d7h" id="Hd2-YD-oDn"/>
                     </connections>
                 </viewController>

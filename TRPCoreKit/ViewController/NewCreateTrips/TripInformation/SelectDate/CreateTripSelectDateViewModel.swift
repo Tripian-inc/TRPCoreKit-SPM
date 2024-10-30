@@ -13,8 +13,11 @@ class CreateTripSelectDateViewModel {
     public var isArrival: Bool = true
     
     func getTitle() -> String {
-        let flightType = isArrival ? "arrival" : "departure"
-        return "Select \(flightType) date"
+        if isArrival {
+            return TRPLanguagesController.shared.getLanguageValue(for: "trips.createNewTrip.destinationTips.arrivalDate.description")
+        } else {
+            return TRPLanguagesController.shared.getLanguageValue(for: "trips.createNewTrip.destinationTips.departureDate.description")
+        }
     }
     
     func getSelectedDate() -> Date {

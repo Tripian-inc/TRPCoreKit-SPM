@@ -17,6 +17,7 @@ public class TRPMapView: UIView {
         case alternativePois = "alternativePoisAnnotation"
         case searchThisAreaPois = "searchThisAreaPoisAnnotation"
         case runTimeRoutePoi = "runTimeRoutePoiAnnotation"
+        case nexusTours = "nexusToursAnnotation"
     }
     
     public enum DrawRouteStyle: String {
@@ -229,7 +230,11 @@ extension TRPMapView: MGLMapViewDelegate{
         if let annotation = f1?.first, let trpAnnotation = annotation as? TRPPointAnnotation, let id = trpAnnotation.poiId {
             delegate?.mapView(self, annotationPressed: id, type: .viewAnnotation)
         }else if let feature = features.first, let placeId = feature.attribute(forKey: "placeId") as? String {
-            delegate?.mapView(self, annotationPressed: placeId, type: .styleAnnotation)
+            if (feature.attribute(forKey: "image") as? String) == "NexusTour" {
+                delegate?.mapView(self, annotationPressed: placeId, type: .tourAnnotation)
+            } else {
+                delegate?.mapView(self, annotationPressed: placeId, type: .styleAnnotation)
+            }
         } else {
             
             delegate?.mapViewCloseAnnotation(self)
@@ -349,6 +354,34 @@ extension TRPMapView {
             style.removeSource(source)
         }
     }
+    public func addPointsForNexusTours(_ points: [JuniperProduct],
+                                        styleAnnotation:StyleAnnotatoin,
+                                        clickAble: Bool = true) {
+        var mglPoints = [MGLPointFeature]()
+        for point in points {
+            if let lat = point.serviceInfo?.latitude, let lon = point.serviceInfo?.longitude {
+                let pointFeature = MGLPointFeature()
+                pointFeature.coordinate = CLLocationCoordinate2D(latitude: lat, longitude: lon)
+                pointFeature.attributes = ["image":"NexusTour", "placeId": point.code, "title": point.serviceInfo?.name ?? "" ]
+                mglPoints.append(pointFeature)
+            }
+        }
+//        let points = points.map{trpPointToMGLPointsFeature($0)}
+        if clickAble {
+            clickableLayerTags.append(styleAnnotation.rawValue)
+        }
+        addItemsToMap(features: mglPoints, sourseIdentifier: styleAnnotation.rawValue)
+    }
+    
+    public func removePointsForNexusTours(styleAnnotation:StyleAnnotatoin) {
+        guard let style = mapView?.style else {return}
+        if let source = style.source(withIdentifier: styleAnnotation.rawValue) as? MGLShapeSource{
+            source.shape = MGLShapeCollectionFeature(shapes: [])
+            let symbols = MGLSymbolStyleLayer(identifier: styleAnnotation.rawValue, source: source)
+            style.removeLayer(symbols)
+            style.removeSource(source)
+        }
+    }
     
     private func trpPointToMGLPointsFeature(_ trpPoint: TRPPointAnnotationFeature) -> MGLPointFeature {
         let mgl = MGLPointFeature()
@@ -375,26 +408,26 @@ extension TRPMapView {
             style.addLayer(symbols)
             
             //Cluster Layer stili. Yeni  oluşacak annotation.
-            let clusterLayer = MGLSymbolStyleLayer(identifier: "\(sourceId)clustered", source: newSource)
-            clusterLayer.textColor = NSExpression(forConstantValue: UIColor.white)
-            clusterLayer.textFontSize = NSExpression(forConstantValue: NSNumber(value: 14))
-            clusterLayer.iconAllowsOverlap = NSExpression(forConstantValue: true)
-            
-            // Style image clusters
-            if let blueAnnotation = TRPImageController().getImage(inFramework: TRPAppearanceSettings.MapAnnotations.clustersImage.imageName, inApp: nil) {
-                style.setImage(blueAnnotation, forName: TRPAppearanceSettings.MapAnnotations.clustersImage.tag)
-            }
-            
-            //Zoom levelda görüntülenecek annotationlar
-            let stops = [
-                100: NSExpression(forConstantValue: TRPAppearanceSettings.MapAnnotations.clustersImage.tag)
-            ]
-            
-            //Default annotation
-            let defaultShape = NSExpression(forConstantValue: TRPAppearanceSettings.MapAnnotations.clustersImage.tag)
-            clusterLayer.iconImageName = NSExpression(format: "mgl_step:from:stops:(point_count, %@, %@)", defaultShape, stops)
-            clusterLayer.text = NSExpression(format: "CAST(point_count, 'NSString')")
-            style.addLayer(clusterLayer)
+//            let clusterLayer = MGLSymbolStyleLayer(identifier: "\(sourceId)clustered", source: newSource)
+//            clusterLayer.textColor = NSExpression(forConstantValue: UIColor.white)
+//            clusterLayer.textFontSize = NSExpression(forConstantValue: NSNumber(value: 14))
+//            clusterLayer.iconAllowsOverlap = NSExpression(forConstantValue: true)
+//            
+//            // Style image clusters
+//            if let blueAnnotation = TRPImageController().getImage(inFramework: TRPAppearanceSettings.MapAnnotations.clustersImage.imageName, inApp: nil) {
+//                style.setImage(blueAnnotation, forName: TRPAppearanceSettings.MapAnnotations.clustersImage.tag)
+//            }
+//            
+//            //Zoom levelda görüntülenecek annotationlar
+//            let stops = [
+//                100: NSExpression(forConstantValue: TRPAppearanceSettings.MapAnnotations.clustersImage.tag)
+//            ]
+//            
+//            //Default annotation
+//            let defaultShape = NSExpression(forConstantValue: TRPAppearanceSettings.MapAnnotations.clustersImage.tag)
+//            clusterLayer.iconImageName = NSExpression(format: "mgl_step:from:stops:(point_count, %@, %@)", defaultShape, stops)
+//            clusterLayer.text = NSExpression(format: "CAST(point_count, 'NSString')")
+//            style.addLayer(clusterLayer)
         }
     }
     

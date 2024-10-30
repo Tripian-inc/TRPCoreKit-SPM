@@ -60,6 +60,12 @@ public class TRPTripModeVC: TRPBaseUIViewController {
             alternativesBtn.setImage(TRPImageController().getImage(inFramework: imageName, inApp: nil)!, for: .normal)
         }
     }
+    private var nexusToursAdded = false {
+        didSet {
+            let imageName = nexusToursAdded ? "icon_nexus_orange" : "icon_nexus"
+            nexusToursBtn.setImage(TRPImageController().getImage(inFramework: imageName, inApp: nil)!, for: .normal)
+        }
+    }
     private var isUserLocationCentered = false {
         didSet {
             let imageName = isUserLocationCentered ? "btn_user_location_pressed" : "btn_user_location"
@@ -85,6 +91,7 @@ public class TRPTripModeVC: TRPBaseUIViewController {
     }
     
     @IBOutlet weak var alternativesBtn: UIButton!
+    @IBOutlet weak var nexusToursBtn: UIButton!
     @IBOutlet weak var userLocationBtn: UIButton!
     @IBOutlet weak var searchOfferBtn: UIButton!
     @IBOutlet weak var googleExportBtn: UIButton!
@@ -314,6 +321,9 @@ public class TRPTripModeVC: TRPBaseUIViewController {
     @IBAction func alternativesPressed(_ sender: Any) {
         showAlternativePressed()
     }
+    @IBAction func nexusToursPressed(_ sender: Any) {
+        showHideNexusTours()
+    }
     @IBAction func showCityCenterPressed(_ sender: Any) {
         showCityCenterPressed()
         isUserLocationCentered = false
@@ -341,6 +351,7 @@ extension TRPTripModeVC {
         googleExportBtn.addShadow(withRadius: 10)
         userLocationBtn.addShadow(withRadius: 10)
         alternativesBtn.addShadow(withRadius: 10)
+        nexusToursBtn.addShadow(withRadius: 10)
         showCityCenterBtn.addShadow(withRadius: 10)
     }
 }
@@ -375,7 +386,7 @@ extension TRPTripModeVC {
         var readableDay = ""
         if let mainDate = dateStr.toDate(format: "yyyy-MM-dd"){
             dayChanged = (mainDate,true)
-            readableDay = mainDate.toString(format: "MMM d")
+            readableDay = mainDate.toString(format: "MMM d", locale: TRPClient.shared.language)
         }
         let dayS = TRPLanguagesController.shared.getLanguageValue(for: "trips.myTrips.itinerary.day")
         let navTitle = CustomNavTitle()
@@ -571,6 +582,11 @@ extension TRPTripModeVC: TRPMapViewDelegate {
     public func mapViewDidFinishLoading(_ mapView: TRPMapView) {}
     
     public func mapView(_ mapView: TRPMapView, annotationPressed annotationId: String, type: TRPAnnotationType) {
+        if type == .tourAnnotation {
+            guard let tour = viewModel.getJuniperTour(from: annotationId) else { return  }
+            openCallOutForNexus(tour)
+            return
+        }
         viewModel.getPoiInfo(annotationId) { [weak self] poi in
             guard let poi = poi else {
                 Log.w("Annotaion clicked on \(annotationId) but data didn't find")
@@ -612,11 +628,61 @@ extension TRPTripModeVC: TRPMapViewDelegate {
                                                            price: poiPrice,
                                                            rightButton: rightButton)
         changeYpositionOfCallOut()
+        
+        callOutController?.cellPressed = { [weak self] id, inRoute in
+            guard let strongSelf = self else {return}
+            strongSelf.callOutController?.hidden()
+            if id == TRPPoi.ACCOMMODATION_ID {return}
+            strongSelf.viewModel.getPoiInfo(id) { poi in
+                if poi == nil {return}
+                if poi!.placeType == TRPPoi.PlaceType.poi {
+                    strongSelf.delegate?.trpTripModeViewControllerPoiDetail(strongSelf, poi: poi!, parentStep: nil)
+                }
+            }
+        }
         callOutController?.show(model: callOutCell)
         callOutController?.getCellImageView()?.image = nil
         
         guard let image = TRPImageResizer.generate(withUrl: poi.image.url, standart: .small) else {return}
         guard let url = URL(string: image) else {return}
+        
+        SDWebImageManager.shared.loadImage(with: url, options: SDWebImageOptions.lowPriority, context: nil, progress: nil) { [weak self] (downloadedImage, _, error, _, _, _) in
+            guard let strongSelf = self else {return}
+            if error != nil {
+                Log.e(error!.localizedDescription)
+                return
+            }
+            guard let image = downloadedImage else{
+                Log.e("Image can not loaded")
+                return
+            }
+            strongSelf.callOutController?.getCellImageView()?.image = image
+        }
+    }
+    
+    private func openCallOutForNexus(_ tour: JuniperProduct) {
+        let category = tour.getCategories()
+        
+        let callOutCell: CallOutCellMode = CallOutCellMode(id: tour.code,
+                                                           name: tour.serviceInfo?.name ?? "",
+                                                           poiCategory: category,
+                                                           startCount: 0,
+                                                           reviewCount: 0,
+                                                           price: 0,
+                                                           rightButton: AddRemoveNavButtonStatus.none)
+        changeYpositionOfCallOut()
+        
+        callOutController?.cellPressed = { [weak self] id, inRoute in
+            guard let strongSelf = self else {return}
+            strongSelf.callOutController?.hidden()
+            if let productUrl = strongSelf.viewModel?.getJuniperTourUrl(from: id) {
+                UIApplication.shared.open(productUrl)
+            }
+        }
+        callOutController?.show(model: callOutCell)
+        callOutController?.getCellImageView()?.image = nil
+        
+        guard let url = URL(string: tour.getImage()) else {return}
         
         SDWebImageManager.shared.loadImage(with: url, options: SDWebImageOptions.lowPriority, context: nil, progress: nil) { [weak self] (downloadedImage, _, error, _, _, _) in
             guard let strongSelf = self else {return}
@@ -666,6 +732,11 @@ extension TRPTripModeVC {
 }
 
 extension TRPTripModeVC: TRPTripModeViewModelDelegate {
+    public func viewModelNexusToursFetched(_ tours: [JuniperProduct]) {
+        selectTypeOfNexusTourSearch()
+//        showNexusTours(tours: tours)
+    }
+    
     public func setDestinationIdAndEngName(_ id: Int, cityEngName: String) {
         self.delegate?.trpTripModeViewControllerSetDestinationIdAndName(destinationId: id, cityEngName: cityEngName)
     }
@@ -1052,26 +1123,6 @@ extension TRPTripModeVC {
 
 extension TRPTripModeVC {
     
-//    func addAlternativeButton() {
-//
-//        let circleR: CGFloat = 40
-//        guard let selectedImg = TRPImageController().getImage(inFramework: "alternative_poi_icon", inApp: TRPAppearanceSettings.TripModeMapView.userLocationSelectedImage) else {return}
-//
-//        showAlternativeBtn = TRPCirleButton(frame: CGRect.zero,
-//                                           normalImage:selectedImg,
-//                                           selectedImage: selectedImg,
-//                                           isAutoSelection:false)
-//        showAlternativeBtn!.translatesAutoresizingMaskIntoConstraints = false
-//        showAlternativeBtn!.normalBg = UIColor.clear
-//        showAlternativeBtn!.addTarget(self, action: #selector(showAlternativePressed), for: UIControl.Event.touchUpInside)
-//        view.addSubview(showAlternativeBtn!)
-//        showAlternativeBtn!.widthAnchor.constraint(equalToConstant: circleR).isActive = true
-//        showAlternativeBtn!.heightAnchor.constraint(equalToConstant: circleR).isActive = true
-//        showAlternativeBtn!.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20).isActive = true
-//        showAlternativeBtn!.bottomAnchor.constraint(equalTo: userLocationBtn.bottomAnchor, constant: -8).isActive = true
-//
-//    }
-    
     @objc func showAlternativePressed() {
         guard let map = map else {return}
         if alternativeIsAdded == false {
@@ -1083,6 +1134,57 @@ extension TRPTripModeVC {
         }
     }
     
+}
+
+
+//MARK: - Nexus Tours
+extension TRPTripModeVC {
+    
+    
+    func showHideNexusTours() {
+        guard let map = map else {return}
+        if nexusToursAdded == false {
+            viewModel.fetchJuniperTours()
+        }else {
+            map.addPointsForNexusTours([], styleAnnotation: TRPMapView.StyleAnnotatoin.nexusTours, clickAble: true)
+            nexusToursAdded.toggle()
+        }
+    }
+    
+    func showNexusTours(tours: [JuniperProduct]) {
+        if tours.isEmpty {
+            showMessage(TRPLanguagesController.shared.getLanguageValue(for: "trips.myTrips.localExperiences.toursEmpty"), type: .error)
+            return
+        }
+        guard let map = map else {return}
+        map.addPointsForNexusTours(tours, styleAnnotation: TRPMapView.StyleAnnotatoin.nexusTours, clickAble: true)
+        nexusToursAdded.toggle()
+    }
+    
+    private func selectTypeOfNexusTourSearch() {
+        let alertController = UIAlertController(title: nil, message: nil, preferredStyle: UIAlertController.Style.actionSheet)
+        
+        let actionButtonHandler = { (category: String) in
+            { [weak self](action: UIAlertAction!) -> Void in
+                guard let strongSelf = self else {
+                    return
+                }
+                let tours = strongSelf.viewModel.getJuniperTours(from: category)
+                strongSelf.showNexusTours(tours: tours)
+            }
+        }
+        
+        for category in viewModel.getJuniperTourCategories() {
+            let button = UIAlertAction(title: category, style: UIAlertAction.Style.default, handler: actionButtonHandler(category))
+            alertController.addAction(button)
+        }
+        let cancelButton = UIAlertAction(title: TRPLanguagesController.shared.getCancelBtnText(), style: UIAlertAction.Style.cancel) { [weak self] (action) in
+            self?.searchAreaBtn?.isHidden = true
+        }
+        cancelButton.setValue(TRPAppearanceSettings.Common.cancelButtonColor, forKey: "titleTextColor")
+        alertController.addAction(cancelButton)
+        present(alertController, animated: true, completion: nil)
+    }
 }
 
 struct SearchAreaTypes {

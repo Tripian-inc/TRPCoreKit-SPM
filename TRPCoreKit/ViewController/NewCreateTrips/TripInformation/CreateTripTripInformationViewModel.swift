@@ -154,11 +154,11 @@ extension CreateTripTripInformationViewModel {
     }
     
     func getSelectedArrivalDate() -> String {
-        return selectedArrivalDate.toString(format: "dd MMM yyyy")
+        return selectedArrivalDate.toString(format: "dd MMM yyyy", locale: TRPClient.shared.language)
     }
     
     func getSelectedDepartureDate() -> String {
-        return selectedDepartureDate.toString(format: "dd MMM yyyy")
+        return selectedDepartureDate.toString(format: "dd MMM yyyy", locale: TRPClient.shared.language)
     }
     
     func setSelectedArrivalDate(_ date: Date) {

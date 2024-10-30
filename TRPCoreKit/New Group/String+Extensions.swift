@@ -176,3 +176,16 @@ extension String {
     
     
 }
+
+extension String {
+    func isContainsWithoutCase(to string: String) -> Bool {
+        return self
+            .folding(options: .diacriticInsensitive, locale: .current)
+            .lowercased()
+            .contains(
+                string
+                    .folding(options: .diacriticInsensitive, locale: .current)
+                    .lowercased()
+            )
+    }
+}

@@ -45,6 +45,8 @@ class CreateTripStayShareViewModel {
     init(tripProfile: TRPTripProfile, oldTripProfile: TRPTripProfile? = nil) {
         self.tripProfile = tripProfile
         self.oldTripProfile = oldTripProfile
+        adultCount = tripProfile.numberOfAdults
+        childCount = tripProfile.numberOfChildren
         implementTripProfile(oldTripProfile)
         createData()
     }

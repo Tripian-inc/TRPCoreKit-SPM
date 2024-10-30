@@ -17,7 +17,7 @@ public class TRPFetchProductsUseCase: FetchProductsUseCase {
                                    endDate: String,
                                    destinationId: Int,
                                    completion: @escaping (Result<[JuniperProduct]?, any Error>) -> Void) {
-        TripianCommonApi().getProducts(destinationId,
+        TripianCommonApi.shared.getProducts(destinationId,
                                        startDate: startDate,
                                        endDate: endDate) { result in
             switch result {
