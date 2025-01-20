@@ -15,6 +15,7 @@ struct ExperiencesCellModel {
     var title: String
     var image: String
     var price: String
+    var categories: [String]
 //    var datas: [GYGTour] //Generic yapılabiir
 }
 
@@ -30,6 +31,9 @@ final class ExperiencesViewModel: TableViewViewModelProtocol {
     
     weak var delegate: ExperiencesViewModelDelegate?
     
+    private var allText: String = "All"
+    
+    var filteredCellViewModels: [ExperiencesCellModel] = []
     var cellViewModels: [ExperiencesCellModel] = [] {
         didSet {
             delegate?.viewModel(dataLoaded: true)
@@ -39,19 +43,13 @@ final class ExperiencesViewModel: TableViewViewModelProtocol {
     var destinationId: Int
     
     var numberOfCells: Int {
-        return cellViewModels.count
+        return filteredCellViewModels.count
     }
     
     private var requestCount = 0
     
     //-----USE CASES
     public var tripModeUseCase: ObserveTripModeUseCase?
-    
-    
-    //Settings
-    public var uniqueToursWithCategory = true
-    public var showLimitByCategory = 20
-    private let addStarDayToEnd = 7
     
     
     public init(cityName: String, destinationId: Int) {
@@ -62,32 +60,17 @@ final class ExperiencesViewModel: TableViewViewModelProtocol {
     public func start() {
         let tourDates = calculateDatesJuniper()
         //fetchTours(startDate: tourDates.startDate, endDate: tourDates.endDate)
+        allText = TRPLanguagesController.shared.getLanguageValue(for: "all")
         fetchJuniperTours(startDate: tourDates.startDate, endDate: tourDates.endDate, destinationId: destinationId)
     }
     
     func getCellViewModel(at indexPath: IndexPath) -> ExperiencesCellModel {
-        return cellViewModels[indexPath.row]
+        return filteredCellViewModels[indexPath.row]
     }
     
 }
 
 extension ExperiencesViewModel {
-    
-    private func calculateDates() -> (startDate: String?, endDate: String?) {
-        
-        if let startTime = tripModeUseCase?.trip.value?.getArrivalDate()?.toDate {
-            guard let start = startTime.setHour(0, minutes: 0), let added7day = start.addDay(addStarDayToEnd), let end = added7day.setHour(23, minutes: 59) else {
-                print("[Error] Date can not conveted")
-                return (nil,nil)
-            }
-            let startDate = start.toString(format: "yyyy-MM-dd'T'HH:mm:ss", dateStyle: nil, timeStyle: nil)
-            let endDate = end.toString(format: "yyyy-MM-dd'T'HH:mm:ss", dateStyle: nil, timeStyle: nil)
-            print("Start Date \(startDate)")
-            print("End Date \(endDate)")
-            return (startDate: startDate, endDate: endDate)
-        }
-        return (nil,nil)
-    }
     
     private func calculateDatesJuniper() -> (startDate: String, endDate: String) {
         
@@ -102,23 +85,9 @@ extension ExperiencesViewModel {
     }
     
     
-    private func fetchTours(startDate: String? = nil, endDate: String? = nil, duration: Int = 1440) {
-        delegate?.viewModel(showPreloader: true)
-        GetYourGuideApi().tours(cityName: cityName, fromDate: startDate, toDate: endDate, limit: 90) { [weak self] result in
-            self?.delegate?.viewModel(showPreloader: false)
-            switch result {
-            case .success(let tours):
-                self?.seperateWithCategory(tours: tours)
-            case .failure(let error):
-                self?.delegate?.viewModel(error: error)
-            }
-        }
-    }
-    
-    
     private func fetchJuniperTours(startDate: String, endDate: String, destinationId: Int) {
         delegate?.viewModel(showPreloader: true)
-        TripianCommonApi().getProducts(destinationId, startDate: startDate, endDate: endDate) { [weak self] result in
+        TripianCommonApi.shared.getProducts(destinationId, startDate: startDate, endDate: endDate) { [weak self] result in
             self?.delegate?.viewModel(showPreloader: false)
             switch result {
             case .success(let tours):
@@ -141,9 +110,11 @@ extension ExperiencesViewModel {
             let cellModel = ExperiencesCellModel(code: tour.code, 
                                                  title: tour.serviceInfo?.name ?? "",
                                                  image: tour.getImage(),
-                                                 price: tour.getCheapestPrice())
+                                                 price: tour.getCheapestPrice(),
+                                                 categories: tour.tripianCategories ?? [])
             tmpTours.append(cellModel)
         }
+        filteredCellViewModels = tmpTours
         cellViewModels = tmpTours
     }
     
@@ -154,65 +125,42 @@ extension ExperiencesViewModel {
         if splittedCode.count > 1 {
             let encodeCode = "\(splittedCode[1])¥TKT¥\(splittedCode[0])¥\(destinationId)¥\(model.code)"
             
-            let url = "https://www.nexustours.com/en/services/\(cityName)/\(encodeCode)&utm_source=nexusapp&utm_medium=tripian"
+            let url = "https://www.nexustours.com/en/services/\(cityName)/\(encodeCode)/?&utm_source=nexusapp&utm_medium=tripian"
             return URL(string: url)
             
         }
         return nil
     }
     
-    private func seperateWithCategory(tours: [GYGTour]) {
-//        let sorted = sortTours(tours)
-//        var mainTour = filterTours(sorted)
-//        for category in GYGCatalogCategory.allCases {
-//            let categoriestTour = mainTour.filter { (tour) -> Bool in
-//                return tour.categories.contains(where: {$0.categoryID == category.id()})
-//            }
-//            
-//            let limitedTours = limitTours(categoriestTour)
-//            if uniqueToursWithCategory {
-//                createCellModel(tours: limitedTours, category: category)
-//                limitedTours.forEach { tour in
-//                    mainTour.removeAll(where: {$0.tourID == tour.tourID})
-//                }
-//            }else {
-//                createCellModel(tours: limitedTours, category: category)
-//            }
-//        }
-//        delegate?.experiencesViewModelShowEmptyWarning()
-    }
+}
+
+extension ExperiencesViewModel {
     
-    private func createCellModel(tours: [GYGTour], category: GYGCatalogCategory) {
-//        guard tours.count > 0 else {return}
-//        let cellModel = ExperiencesCellModel(title: category.rawValue, datas: tours)
-//        cellViewModels.append(cellModel)
-    }
-    
-    private func sortTours(_ data: [GYGTour]) -> [GYGTour]{
-        let sortedTours = data.sorted { (lhs, rhs) -> Bool in
-            return lhs.numberOfRatings ?? 0 > rhs.numberOfRatings ?? 0
+    public func filterContentForSearchText(_ searchText: String) {
+        filteredCellViewModels = []
+        if searchText.isEmpty {
+            filteredCellViewModels = cellViewModels
+        } else {
+            filteredCellViewModels = cellViewModels.filter {$0.title.isContainsWithoutCase(to: searchText)}
         }
-        return sortedTours
+        self.delegate?.viewModel(dataLoaded: true)
     }
     
-    private func limitTours(_ data: [GYGTour]) -> [GYGTour] {
-        guard data.count > showLimitByCategory else {
-            return data
+    public func filterContentForCategory(_ category: String) {
+        filteredCellViewModels = []
+        if category.isEmpty || category == allText {
+            filteredCellViewModels = cellViewModels
+        } else {
+            filteredCellViewModels = cellViewModels.filter {$0.categories.contains(category)}
         }
-        return Array(data[0..<showLimitByCategory])
+        self.delegate?.viewModel(dataLoaded: true)
     }
     
-    private func filterTours(_ data: [GYGTour]) -> [GYGTour] {
-        data.filter { tour -> Bool in
-            guard let durations = tour.durations, durations.count < 10 else {return true}
-            var show = true
-            durations.forEach { duration in
-                if let unit = duration.unit, let time = duration.duration, unit == "day", time > 1 {
-                    show = false
-                }
-            }
-            return show
-        }
+    public func getTourCategories() -> [String] {
+        var uniqueArray = [String]()
+        cellViewModels.compactMap(\.categories).forEach { uniqueArray = Array(Set($0 + uniqueArray)) }
+        uniqueArray = uniqueArray.sorted()
+        uniqueArray.insert(allText, at: 0)
+        return uniqueArray
     }
-    
 }

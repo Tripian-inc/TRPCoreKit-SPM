@@ -28,6 +28,10 @@ public class TRPSDKCoordinater {
     
     private var canBackFromMyTrip = true
     
+    private var nexusMeetingPoint: String? = nil
+    private var nexusNumberOfAdults: Int? = nil
+    private var nexusNumberOfChildren: Int? = nil
+    
     private var alertMessage: (title: String?, message: String)? {
         didSet {
             guard let message = alertMessage else {return}
@@ -104,12 +108,14 @@ public class TRPSDKCoordinater {
         }
     }
     
-    public func startForNexus(bookingDetailUrl: String, meetingPoint: String) {
+    public func startForNexus(bookingDetailUrl: String, meetingPoint: String, numberOfAdults: Int?, numberOfChildren: Int?) {
         checkAllApiKey()
         userProfile()
+        self.nexusMeetingPoint = meetingPoint
+        self.nexusNumberOfAdults = numberOfAdults
+        self.nexusNumberOfChildren = numberOfChildren
         let vc = myTrip
         vc.bookingDetailUrl = bookingDetailUrl
-        vc.meetingPoint = meetingPoint
         //navigationController.pushViewController(vc, animated: true)
         DispatchQueue.main.async {
             self.navigationController.pushViewController(vc, animated: true)
@@ -379,14 +385,16 @@ extension TRPSDKCoordinater:  MyTripVCDelegate {
         setupCreteTripCoordinater()
     }
     
-    public func createNewTripPressed(_ myTrip: MyTripVC, startDate: String?, endDate: String?, city: TRPCity?, meetingPoint: String?, destinationId: Int?) {
+    public func createNewTripPressed(_ myTrip: MyTripVC, startDate: String?, endDate: String?, city: TRPCity?, destinationId: Int?) {
         setupCreteTripCoordinater()
         guard let tripCreateCoordinater = tripCreateCoordinater else {
             return
         }
         tripCreateCoordinater.nexusTripStartDate = startDate
         tripCreateCoordinater.nexusTripEndDate = endDate
-        tripCreateCoordinater.nexusTripMeetingPoint = meetingPoint
+        tripCreateCoordinater.nexusTripMeetingPoint = self.nexusMeetingPoint
+        tripCreateCoordinater.nexusNumberOfAdults = self.nexusNumberOfAdults
+        tripCreateCoordinater.nexusNumberOfChildren = self.nexusNumberOfChildren
         tripCreateCoordinater.nexusDestinationId = destinationId
         tripCreateCoordinater.start(city: city)
     }

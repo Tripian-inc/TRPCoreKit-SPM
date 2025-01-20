@@ -14,7 +14,7 @@ import Parchment
 
 
 public protocol MyTripVCDelegate: AnyObject {
-    func createNewTripPressed(_ myTrip: MyTripVC, startDate: String?, endDate: String?, city: TRPCity?, meetingPoint: String?, destinationId: Int?)
+    func createNewTripPressed(_ myTrip: MyTripVC, startDate: String?, endDate: String?, city: TRPCity?, destinationId: Int?)
     func myTripOpenTrip(hash: String, city: TRPCity, arrival:String, departure:String)
     func myTripEditTrip(tripHash: String, profile: TRPTripProfile, city: TRPCity)
     func myTripVCDidAppear()
@@ -35,7 +35,6 @@ public class MyTripVC: TRPBaseUIViewController {
     private let pagingViewController = PagingViewController()
     public var canBack: Bool = true
     public var bookingDetailUrl: String = ""
-    public var meetingPoint: String = ""
     
     public init(viewModel: MyTripViewModel) {
         self.viewModel = viewModel
@@ -190,7 +189,7 @@ extension MyTripVC {
     }
     
     @objc func createNewTripPressed() {
-        delegate?.createNewTripPressed(self, startDate: nil, endDate: nil, city: nil, meetingPoint: nil, destinationId: nil)
+        delegate?.createNewTripPressed(self, startDate: nil, endDate: nil, city: nil, destinationId: nil)
     }
     
     @objc func customNavigationButtonClicked(sender: UIBarButtonItem) {
@@ -302,6 +301,6 @@ extension MyTripVC:  MyTripTableViewVCDelegate {
 
 extension MyTripVC:  MyTripViewModelDelegate {
     public func callCreateTripWithDestination(startDate: String, endDate: String, city: TRPCity, destinationId: Int) {
-        self.delegate?.createNewTripPressed(self, startDate: startDate, endDate: endDate, city: city, meetingPoint: meetingPoint, destinationId: destinationId)
+        self.delegate?.createNewTripPressed(self, startDate: startDate, endDate: endDate, city: city, destinationId: destinationId)
     }
 }

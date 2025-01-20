@@ -50,11 +50,11 @@ public class TRPTripProfile: Codable {
     }
     
     public func getDateRange() -> String {
-        var dates = ""
-        if let arrivalDate = arrivalDate?.toDate?.toString(format:"MMM dd.yyyy"), let departureDate = departureDate?.toDate?.toString(format:"MMM dd.yyyy") {
+        if let arrivalDate = arrivalDate?.toDate?.toString(format:"MMM dd.yyyy", locale: TRPClient.shared.language),
+           let departureDate = departureDate?.toDate?.toString(format:"MMM dd.yyyy", locale: TRPClient.shared.language) {
             return "\(arrivalDate) - \(departureDate)"
         }
-        return dates
+        return ""
     }
  
 }

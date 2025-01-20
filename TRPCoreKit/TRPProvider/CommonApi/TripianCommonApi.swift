@@ -14,9 +14,15 @@ public class TripianCommonApi {
     
     var network: Networking?
     
+    static var shared: TripianCommonApi {
+        return TripianCommonApi()
+    }
+    
     var apiUrl = "commonapi.tripian.com"
     
     private var networkController: NetworkController?
+    
+    public var nexusTourProducts: [JuniperProduct] = []
     
     public init(network: Networking = Networking()) {
         self.network = network
@@ -80,13 +86,17 @@ extension TripianCommonApi {
                             startDate: String,
                             endDate: String,
                             completion: @escaping (Result<[JuniperProduct], Error>) -> Void) {
-        
+        if !nexusTourProducts.isEmpty {
+            completion(.success(nexusTourProducts))
+            return
+        }
         let path = "/juniper_products"
         
         var params = [URLQueryItem]()
         params.append(URLQueryItem(name: "start_date", value: "\(startDate)"))
         params.append(URLQueryItem(name: "end_date", value: "\(endDate)"))
         params.append(URLQueryItem(name: "zone_id", value: "\(destinationId)"))
+        params.append(URLQueryItem(name: "lang", value: TRPClient.shared.language))
         
         networkController?
             .urlComponentPath(path)
@@ -94,6 +104,7 @@ extension TripianCommonApi {
             .responseDecodable(type: TripianCommonGenericDataParser<[JuniperProduct]>.self) { (result) in
                 switch result {
                 case .success(let model):
+                    self.nexusTourProducts = model.data ?? []
                     completion(.success(model.data ?? []))
                 case .failure(let error):
                     completion(.failure(error))

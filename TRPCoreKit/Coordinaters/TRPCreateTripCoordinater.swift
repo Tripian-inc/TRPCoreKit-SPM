@@ -57,6 +57,8 @@ final public class TRPCreateTripCoordinater {
     public var nexusTripEndDate: String? = nil
     public var nexusTripMeetingPoint: String? = nil
     public var nexusDestinationId: Int? = nil
+    public var nexusNumberOfAdults: Int? = nil
+    public var nexusNumberOfChildren: Int? = nil
     
     private var isLoaderShowing = false
     
@@ -438,6 +440,8 @@ extension TRPCreateTripCoordinater: CreateTripStayShareVCDelegate {
         
         guard let wrappedProfile = activeProfile() else {return CreateTripStayShareVC()}
         
+        if let nexusNumberOfAdults { wrappedProfile.numberOfAdults = nexusNumberOfAdults }
+        if let nexusNumberOfChildren { wrappedProfile.numberOfChildren = nexusNumberOfChildren }
         let viewModel = CreateTripStayShareViewModel(tripProfile: wrappedProfile, oldTripProfile: oldTripProfile)
         let viewController = UIStoryboard.makeCreateTripStayShareViewController() as CreateTripStayShareVC
         viewController.viewModel = viewModel

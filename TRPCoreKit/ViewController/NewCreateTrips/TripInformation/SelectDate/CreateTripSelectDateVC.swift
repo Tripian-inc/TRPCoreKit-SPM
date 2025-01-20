@@ -38,6 +38,7 @@ class CreateTripSelectDateVC: TRPBaseUIViewController {
         calendarView.placeholderType = .none
         calendarView.today = nil
         calendarView.allowsMultipleSelection = isDateRangeSelectionActive()
+        calendarView.locale = Locale(identifier: TRPClient.shared.language)
     }
     
     private func isDateRangeSelectionActive() -> Bool {

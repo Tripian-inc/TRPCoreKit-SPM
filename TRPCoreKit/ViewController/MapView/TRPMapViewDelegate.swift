@@ -11,7 +11,7 @@ import Foundation
 public typealias LocationCoordinate = (lat:Double, lon: Double)
 
 public enum TRPAnnotationType {
-    case styleAnnotation, viewAnnotation
+    case styleAnnotation, viewAnnotation, tourAnnotation
 }
 
 public protocol TRPMapViewDelegate:AnyObject {

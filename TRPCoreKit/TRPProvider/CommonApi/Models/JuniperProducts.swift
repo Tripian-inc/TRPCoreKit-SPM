@@ -9,6 +9,7 @@
 import Foundation
 
 public class JuniperProduct: Codable {
+    public let classifications: [JuniperClassifications]?
     public let code: String
     public let destinationZone: String?
     public let end: String?
@@ -18,8 +19,10 @@ public class JuniperProduct: Codable {
     public let serviceOptions: [JuniperServiceOption?]?
     public let start: String?
     public let status: String?
+    public let tripianCategories: [String]?
     
     private enum CodingKeys: String, CodingKey {
+        case classifications = "Classifications"
         case code = "Code"
         case destinationZone = "DestinationZone"
         case end = "End"
@@ -29,6 +32,7 @@ public class JuniperProduct: Codable {
         case serviceOptions = "ServiceOptions"
         case start = "Start"
         case status = "Status"
+        case tripianCategories = "TripianCategories"
     }
     
     public func getImage() -> String {
@@ -65,12 +69,16 @@ public class JuniperProduct: Codable {
             if splittedCode.count > 1 {
                 let encodeCode = "\(splittedCode[1])¥TKT¥\(splittedCode[0])¥\(destinationZone)¥\(code)"
                 if let city = city {
-                    let url = "https://www.nexustours.com/en/services/\(city)/\(encodeCode)"
+                    let url = "https://www.nexustours.com/en/services/\(city)/\(encodeCode)/?&utm_source=nexusapp&utm_medium=tripian"
                     return url
                 }
             }
         }
         return ""
+    }
+    
+    public func getCategories() -> String {
+        return tripianCategories?.joined(separator: ", ") ?? ""
     }
 }
 
@@ -157,4 +165,12 @@ public struct JuniperPrice: Codable {
 public struct JuniperCityInfo: Codable {
     public let cityName: String?
     public let zoneId: Int?
+}
+
+public struct JuniperClassifications: Codable {
+    public let name: String?
+    
+    private enum CodingKeys: String, CodingKey {
+        case name = "Name"
+    }
 }
