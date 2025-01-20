@@ -206,7 +206,7 @@ public class TRPAppearanceSettings {
     
     public class MapAnnotations {
         public enum IconType {
-            case normal, route, offer
+            case normal, route, offer, tour
         }
         public typealias ImageAndTag = (imageName: String, tag:String)
         
@@ -232,7 +232,7 @@ public class TRPAppearanceSettings {
         public static var dessert =     ImageAndTag("black_dessert","Dessert")
         public static var homebase =     ImageAndTag("black_homebase","Homebase")
         public static var clustersImage = ImageAndTag("black_circle","clusterImage")
-        public static var nexusTour = ImageAndTag("icon_nexus","NexusTour")
+        public static var nexusTour = ImageAndTag("icon_nexus_map","NexusTour")
         
         //Offer
         public static var iceCreamWithOffer =    ImageAndTag("ice_cream_with_offer","IceCreamWithOffer")
@@ -256,6 +256,28 @@ public class TRPAppearanceSettings {
         public static var dessertWithOffer =     ImageAndTag("dessert_with_offer","DessertWithOffer")
         public static var homebaseWithOffer =    ImageAndTag("homebase_with_offer","HomebaseWithOffer")
         
+        //Tour
+        public static var iceCreamWithTour =    ImageAndTag("ice_cream_with_tour","IceCreamWithTour")
+        public static var burgerWithTour =      ImageAndTag("burger_with_tour","BurgerWithTour")
+        public static var bakeryWithTour =      ImageAndTag("bakery_with_tour","BakeryWithTour")
+        public static var attractionWithTour =  ImageAndTag("attractions_with_tour","AttractionWithTour")
+        public static var shopWithTour =        ImageAndTag("shop_with_tour","ShopWithTour")
+        public static var flagWithTour =        ImageAndTag("flag_with_tour","FlagWithTour")
+        public static var bbqWithTour =         ImageAndTag("","BbqWithTour")
+        public static var pizzaWithTour =       ImageAndTag("pizza_with_tour","PizzaWithTour")
+        public static var restaurantWithTour =  ImageAndTag("restaurant_with_tour","RestaurantWithTour")
+        public static var synagogueWithTour =   ImageAndTag("synagogue_with_tour","SynagogueWithTour")
+        public static var mosqueWithTour =      ImageAndTag("mosque_with_tour","MosqueWithTour")
+        public static var churchWithTour =      ImageAndTag("chruch_with_tour","ChurchWithTour")
+        public static var barWithTour =         ImageAndTag("bar_with_tour","BarWithTour")
+        public static var wineBarWithTour =     ImageAndTag("wine_bar_with_tour","WineBarWithTour")
+        public static var pubWithTour =         ImageAndTag("pub_with_tour","PubWithTour")
+        public static var artGalleryWithTour =  ImageAndTag("art_with_tour","ArtGalleryWithTour")
+        public static var museumWithTour =      ImageAndTag("museum_with_tour","MuseumWithTour")
+        public static var cafeWithTour =        ImageAndTag("coffee_with_tour","CafeWithTour")
+        public static var dessertWithTour =     ImageAndTag("dessert_with_tour","DessertWithTour")
+        public static var homebaseWithTour =    ImageAndTag("homebase_with_tour","HomebaseWithTour")
+        
         
         public static func getIcon(tag: String, type: IconType) -> String {
             var icons: [ImageAndTag]?
@@ -263,12 +285,14 @@ public class TRPAppearanceSettings {
                 icons = getAllIcon(IconType.normal)
             }else if type == .offer{
                 icons = getAllIcon(IconType.offer)
+            }else if type == .tour{
+                icons = getAllIcon(IconType.tour)
             }else {
                 icons = getAllIcon(IconType.route)
             }
             var imageName = flag.imageName
             icons!.forEach { (image,iconTag) in
-                if  iconTag == tag  {
+                if iconTag == tag  {
                     imageName = image
                 }
             }
@@ -279,7 +303,10 @@ public class TRPAppearanceSettings {
             if type == .offer {
                 return [iceCreamWithOffer, burgerWithOffer, bakeryWithOffer, attractionWithOffer, shopWithOffer, flagWithOffer, bbqWithOffer, pizzaWithOffer, restaurantWithOffer, synagogueWithOffer, mosqueWithOffer, churchWithOffer, barWithOffer, wineBarWithOffer, pubWithOffer, artGalleryWithOffer, museumWithOffer, cafeWithOffer, dessertWithOffer, homebaseWithOffer]
             }
-            return [iceCream, burger, bakery, attraction, shop, flag, bbq, pizza, restaurant, synagogue, mosque, church, bar, wineBar, pub, artGallery, museum, cafe, dessert, homebase, clustersImage, iceCreamWithOffer, burgerWithOffer, bakeryWithOffer, attractionWithOffer, shopWithOffer, flagWithOffer, bbqWithOffer, pizzaWithOffer, restaurantWithOffer, synagogueWithOffer, mosqueWithOffer, churchWithOffer, barWithOffer, wineBarWithOffer, pubWithOffer, artGalleryWithOffer, museumWithOffer, cafeWithOffer, dessertWithOffer, homebaseWithOffer, nexusTour]
+            if type == .tour {
+                return [iceCreamWithTour, burgerWithTour, bakeryWithTour, attractionWithTour, shopWithTour, flagWithTour, bbqWithTour, pizzaWithTour, restaurantWithTour, synagogueWithTour, mosqueWithTour, churchWithTour, barWithTour, wineBarWithTour, pubWithTour, artGalleryWithTour, museumWithTour, cafeWithTour, dessertWithTour, homebaseWithTour]
+            }
+            return [iceCream, burger, bakery, attraction, shop, flag, bbq, pizza, restaurant, synagogue, mosque, church, bar, wineBar, pub, artGallery, museum, cafe, dessert, homebase, clustersImage, iceCreamWithOffer, burgerWithOffer, bakeryWithOffer, attractionWithOffer, shopWithOffer, flagWithOffer, bbqWithOffer, pizzaWithOffer, restaurantWithOffer, synagogueWithOffer, mosqueWithOffer, churchWithOffer, barWithOffer, wineBarWithOffer, pubWithOffer, artGalleryWithOffer, museumWithOffer, cafeWithOffer, dessertWithOffer, homebaseWithOffer, iceCreamWithTour, burgerWithTour, bakeryWithTour, attractionWithTour, shopWithTour, flagWithTour, bbqWithTour, pizzaWithTour, restaurantWithTour, synagogueWithTour, mosqueWithTour, churchWithTour, barWithTour, wineBarWithTour, pubWithTour, artGalleryWithTour, museumWithTour, cafeWithTour, dessertWithTour, homebaseWithTour, nexusTour]
         }
     }
     

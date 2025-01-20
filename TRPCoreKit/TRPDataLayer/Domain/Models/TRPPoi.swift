@@ -68,3 +68,11 @@ extension TRPPoi: Hashable {
     }
     
 }
+
+extension TRPPoi {
+    public func isBookingAvailable(providerId: Int) -> Bool {
+        guard let bookings = bookings else {return false}
+        let data = bookings.filter{$0.providerId == providerId}
+        return data.first?.products?.isEmpty == false
+    }
+}

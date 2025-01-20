@@ -12,6 +12,7 @@ import UIKit
 class JuniperExperiencesTVCell: UITableViewCell {
     @IBOutlet weak var imgTOur: UIImageView!
     @IBOutlet weak var lblTitle: UILabel!
+    @IBOutlet weak var lblCategory: UILabel!
     @IBOutlet weak var lblFrom: UILabel!
     @IBOutlet weak var lblPrice: UILabel!
     @IBOutlet weak var lblPerson: UILabel!
@@ -23,6 +24,9 @@ class JuniperExperiencesTVCell: UITableViewCell {
         
         lblTitle.font = trpTheme.font.title2
         lblTitle.textColor = trpTheme.color.subMain
+        
+        lblCategory.font = trpTheme.font.caption
+        lblCategory.textColor = trpTheme.color.tripianPrimary
         
         lblFrom.font = trpTheme.font.caption
         lblFrom.textColor = trpTheme.color.subMain

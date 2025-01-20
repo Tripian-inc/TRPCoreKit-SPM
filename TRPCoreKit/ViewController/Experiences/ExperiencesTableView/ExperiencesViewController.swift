@@ -129,6 +129,7 @@ extension ExperiencesViewController: UITableViewDelegate, UITableViewDataSource 
         
         if let model = viewModel?.getCellViewModel(at: indexPath) {
             cell.lblTitle.text = model.title
+            cell.lblCategory.text = model.categories.joined(separator: ", ")
             if let url = URL(string: model.image){
                 cell.imgTOur.sd_setImage(with: url, placeholderImage: nil)
             }

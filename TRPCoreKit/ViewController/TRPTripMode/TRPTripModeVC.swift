@@ -62,7 +62,7 @@ public class TRPTripModeVC: TRPBaseUIViewController {
     }
     private var nexusToursAdded = false {
         didSet {
-            let imageName = nexusToursAdded ? "icon_nexus_orange" : "icon_nexus"
+            let imageName = nexusToursAdded ? "icon_nexus" : "icon_nexus"
             nexusToursBtn.setImage(TRPImageController().getImage(inFramework: imageName, inApp: nil)!, for: .normal)
         }
     }
@@ -799,8 +799,11 @@ extension TRPTripModeVC: TRPTripModeViewModelDelegate {
             let customAno = TRPPointAnnotation()
             var iconTag = element.icon
             //with offer icon
-            if !element.offers.isEmpty {
-                iconTag += "WithOffer"
+//            if !element.offers.isEmpty {
+//                iconTag += "WithOffer"
+//            }
+            if element.isBookingAvailable(providerId: 7) {
+                iconTag += "WithTour"
             }
             customAno.imageName = TRPAppearanceSettings.MapAnnotations.getIcon(tag: iconTag, type: .route)
             //Hotel adresi varsa tespit eder.
