@@ -15,6 +15,8 @@ public protocol AddStepUseCase {
     ///   - poiId: Place Id
     ///   - completion:
     func executeAddStep(poiId: String, completion: ((Result<TRPStep, Error>) -> Void)?)
+    
+    func executeAddCustomStep(name: String, address: String, description: String, photoUrl: String?, web: String?, latitude: Double?, longitude: Double?, completion: ((Result<TRPStep, Error>) -> Void)?)
 }
 
 public protocol DeleteStepUseCase {
@@ -27,6 +29,8 @@ public protocol DeleteStepUseCase {
 public protocol EditStepUseCase {
     
     func execureEditStep(id: Int, poiId: String, completion: ((Result<TRPStep, Error>) -> Void)?)
+    
+    func execureEditStepHour(id: Int, startTime: String, endTime: String, completion: ((Result<TRPStep, Error>) -> Void)?)
 }
 
 public protocol ReOrderStepUseCase {

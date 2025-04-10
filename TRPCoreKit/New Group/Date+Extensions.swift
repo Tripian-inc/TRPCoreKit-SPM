@@ -13,10 +13,19 @@ extension Date {
     ///
     /// - Parameter format: Date formatı
     /// - Returns: Date to String
-    func toString(format: String? = nil, dateStyle: DateFormatter.Style? = nil, timeStyle: DateFormatter.Style? = nil, locale: String = "en_US_POSIX") -> String {
+    func toString(format: String? = nil, timeZone: String? = "UTC", dateStyle: DateFormatter.Style? = nil, timeStyle: DateFormatter.Style? = nil) -> String {
         let formatter = DateFormatter()
-        formatter.timeZone = TimeZone(identifier: "UTC")
-        formatter.locale = Locale(identifier: locale)
+        if let timeZone {
+            formatter.timeZone = TimeZone(identifier: timeZone)
+        } else {
+            formatter.timeZone = TimeZone.current
+        }
+        let appLanguage = TRPClient.shared.language
+        if appLanguage == "en" {
+            formatter.locale = Locale(identifier: "en_US_POSIX")
+        } else {
+            formatter.locale = Locale(identifier: appLanguage)
+        }
         if let f = format {
             formatter.dateFormat = f
         }
@@ -30,26 +39,13 @@ extension Date {
     }
     
     func toStringWithoutTimeZone(format: String? = nil, dateStyle: DateFormatter.Style? = nil, timeStyle: DateFormatter.Style? = nil) -> String {
-        let formatter = DateFormatter()
-        if let f = format {
-            formatter.dateFormat = f
-        }
-        if let ts = timeStyle {
-            formatter.timeStyle = ts
-        }
-        if let ds = dateStyle   {
-            formatter.dateStyle = ds
-        }
-        return formatter.string(from: self)
+        return toString(format: format, timeZone: nil)
     }
 
     
     //Tarihin gununu dondurur. -> Mon, Tue, Wed..
     func dayOfWeek() -> String? {
-        let dateFormatter = DateFormatter()
-        dateFormatter.dateFormat = "EE"
-        dateFormatter.timeZone = TimeZone(identifier: "UTC")
-        return dateFormatter.string(from: self).capitalized
+        return toStringWithoutTimeZone(format: "EE").capitalized
         // or use capitalized(with: locale) if you want
     }
     
@@ -98,7 +94,7 @@ extension Date {
     }
     
     func getHour() -> String {
-        return toString(format: "HH:mm")
+        return toStringWithoutTimeZone(format: "HH:mm")
     }
     
     func setHour(for hour: String?) -> Date? {
@@ -130,6 +126,53 @@ extension Date {
         let numberOfDays = calendar.dateComponents([.day], from: fromDate, to: toDate)
         
         return numberOfDays.day! + 1
+    }
+    
+    static func getTimes(by interval: Int = 30) -> [String] {
+        var times: [String] = []
+        for hour in 0..<24 {
+            for minute in stride(from: 0, to: 60, by: interval)  {
+                times.append(getHourMinuteText(hour: hour, minute: minute))
+            }
+        }
+        return times
+    }
+    
+    static func getHourMinuteText(hour: Int, minute: Int) -> String {
+        var hourString = "\(hour)"
+        if hour < 10 {
+            hourString = "0\(hour)"
+        }
+        var minString = "\(minute)"
+        if minute < 10 {
+            minString = "0\(minute)"
+        }
+        return "\(hourString):\(minString)"
+    }
+    
+    static func getNearestAvailableDateAndTimeForCreateTrip() -> (Date, String) {
+        var date = Date().localDate()
+        var timeString = "09:00"
+        if date.isToday() {
+            let time = date.getHour()
+            var hour = "09"
+            if let hour = time.components(separatedBy: ":").first,
+               let minute = time.components(separatedBy: ":").last,
+               let hourInt = Int(hour),
+               let minuteInt = Int(minute),
+               hourInt < 16 {
+                if minuteInt <= 30 {
+                    timeString = getHourMinuteText(hour: hourInt, minute: minuteInt)
+                } else {
+                    timeString = getHourMinuteText(hour: hourInt + 1, minute: 0)
+                }
+            } else {
+                if let dateAfter = date.addDay(1) {
+                    date = dateAfter
+                }
+            }
+        }
+        return (date, timeString)
     }
 }
 

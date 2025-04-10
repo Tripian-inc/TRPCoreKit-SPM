@@ -9,7 +9,7 @@
 import Foundation
 
 public enum TRPImageSizeStandart {
-    case small, small2, placeDetail, myTrip
+    case small, small2, placeDetail, myTrip, listItem
     
     public var size: (width: Int, height: Int) {
         switch self {
@@ -17,6 +17,8 @@ public enum TRPImageSizeStandart {
             return (width: 64, height: 64)
         case .small2:
             return (width: 256, height: 256)
+        case .listItem:
+            return (width: 248, height: 192)
         case .placeDetail:
             return devices()
         case .myTrip:
@@ -60,6 +62,6 @@ public struct TRPImageResizer {
             let substring = path[range.lowerBound...]
             path = String(substring)
         }
-        return "https://d1drj6u6cu0e3j.cloudfront.net/\(width)x\(height)/smart\(path)"
+        return "https://d2v9cz8rnpdl6f.cloudfront.net/\(width)x\(height)\(path)"
     }
 }

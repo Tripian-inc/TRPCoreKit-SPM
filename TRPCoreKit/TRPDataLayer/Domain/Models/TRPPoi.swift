@@ -22,6 +22,7 @@ public struct TRPPoi: Codable {
     public let name: String
     public let image: TRPImage
     public var gallery: [TRPImage] = []
+    public var duration: Int?
     public var price: Int?
     public var rating: Float?
     public var ratingCount: Int?
@@ -36,7 +37,7 @@ public struct TRPPoi: Codable {
     public let coordinate: TRPLocation
 //    public let markerCoordinate: TRPLocation?
     public var bookings: [TRPBooking]?
-    public var categories = [TRPCategory]()
+    public var categories = [TRPPoiCategory]()
     public var tags = [String]()
     public var mustTries = [TRPTaste]()
     public var cuisines: String?
@@ -50,6 +51,7 @@ public struct TRPPoi: Codable {
     public var placeType = PlaceType.poi
     
     public var offers: [TRPOffer] = []
+    public var additionalData: TRPAdditionalData?
 }
 
 extension TRPPoi: Equatable {
@@ -75,4 +77,49 @@ extension TRPPoi {
         let data = bookings.filter{$0.providerId == providerId}
         return data.first?.products?.isEmpty == false
     }
+}
+
+extension TRPPoi {
+    public func isRatingAvailable() -> Bool {
+        return rating != nil && ratingCount ?? -1 > 0
+    }
+    
+    public func isCustomPoi() -> Bool {
+        return id.starts(with: "c_")
+    }
+    
+    public func getCustomPoiUrl(planDate: String) -> URL? {
+        var poiUrl = ""
+        if let bookingUrl = additionalData?.bookingUrl {
+            poiUrl = bookingUrl
+        }
+        if let description = description, description.starts(with: "http") {
+            poiUrl = description
+        }
+        
+        return NexusHelper.getCustomPoiUrl(url: poiUrl.replacingOccurrences(of: "/en/", with: "/\(TRPClient.shared.language)/"), startDate: planDate)
+//        return poiUrl.replacingOccurrences(of: "/en/", with: "/\(TRPClient.shared.language)/")
+    }
+}
+
+extension [TRPPoi] {
+    public func getPoisWith(types: [Int]) -> [TRPPoi] {
+        var pois = [TRPPoi]()
+        self.forEach { poi in
+            let isExist = poi.categories.contains { poiType -> Bool in
+                return types.contains { id -> Bool in
+                    return id == poiType.id
+                }
+            }
+            
+            if isExist {
+                pois.append(poi)
+            }
+        }
+        return pois.unique()
+    }
+}
+
+public struct TRPAdditionalData: Codable {
+    var bookingUrl: String?
 }

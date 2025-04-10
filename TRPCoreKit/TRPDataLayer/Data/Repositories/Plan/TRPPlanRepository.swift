@@ -23,6 +23,10 @@ final public class TRPPlanRepository: PlanRepository {
         remoteApi.updatePlanHours(planId: planId, start: start, end: end, completion: completion)
     }
     
+    public func editPlanStepOrder(planId: Int, stepOrders: [Int], completion: @escaping (PlanResultValue) -> Void) {
+        remoteApi.updatePlanStepOrder(planId: planId, stepOrders: stepOrders, completion: completion)
+    }
+    
     
     public func exportItinerary(planId: Int, tripHash:String, completion: @escaping (PlanExportResultValue) -> Void) {
         remoteApi.exportPlanMap(planId: planId, tripHash: tripHash, completion: completion)

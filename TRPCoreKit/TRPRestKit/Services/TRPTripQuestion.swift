@@ -44,9 +44,7 @@ internal class TRPQuestionService: TRPRestServices<TRPQuestionJsonModel> {
         if let cityId = cityId {
             dic["cityId"] = "\(cityId)"
             dic["category"] = "\(tripType.rawValue)"
-            if let lang = language {
-                dic["languageCode"] = "\(lang)"
-            }
+            dic["languageCode"] = "\(TRPClient.shared.language)"
             
             return dic
         }

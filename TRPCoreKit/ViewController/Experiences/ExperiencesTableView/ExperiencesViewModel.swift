@@ -42,6 +42,9 @@ final class ExperiencesViewModel: TableViewViewModelProtocol {
     var cityName: String
     var destinationId: Int
     
+    private var startDate: String?
+    private var endDate: String?
+    
     var numberOfCells: Int {
         return filteredCellViewModels.count
     }
@@ -52,9 +55,11 @@ final class ExperiencesViewModel: TableViewViewModelProtocol {
     public var tripModeUseCase: ObserveTripModeUseCase?
     
     
-    public init(cityName: String, destinationId: Int) {
+    public init(cityName: String, destinationId: Int, startDate: String? = nil, endDate: String? = nil) {
         self.cityName = cityName
         self.destinationId = destinationId
+        self.startDate = startDate
+        self.endDate = endDate
     }
     
     public func start() {
@@ -74,12 +79,16 @@ extension ExperiencesViewModel {
     
     private func calculateDatesJuniper() -> (startDate: String, endDate: String) {
         
+        if let startDate = self.startDate, let endDate = self.endDate {
+            return (startDate, endDate)
+        }
+        
         if let startTime = tripModeUseCase?.trip.value?.getArrivalDate()?.toDate, let endTime = tripModeUseCase?.trip.value?.getDepartureDate()?.toDate  {
             let startDate = startTime.toString(format: "yyyy-MM-dd", dateStyle: nil, timeStyle: nil)
             let endDate = endTime.toString(format: "yyyy-MM-dd", dateStyle: nil, timeStyle: nil)
             print("Start Date \(startDate)")
             print("End Date \(endDate)")
-            return (startDate: startDate, endDate: endDate)
+            return (startDate, endDate)
         }
         return (Date().toString(format: "yyyy-MM-dd"), Date().toString(format: "yyyy-MM-dd"))
     }
@@ -114,6 +123,7 @@ extension ExperiencesViewModel {
                                                  categories: tour.tripianCategories ?? [])
             tmpTours.append(cellModel)
         }
+        tmpTours.sort(by: {$0.categories.count > $1.categories.count})
         filteredCellViewModels = tmpTours
         cellViewModels = tmpTours
     }
@@ -124,10 +134,8 @@ extension ExperiencesViewModel {
         let splittedCode = model.code.split(separator: "¬")
         if splittedCode.count > 1 {
             let encodeCode = "\(splittedCode[1])¥TKT¥\(splittedCode[0])¥\(destinationId)¥\(model.code)"
-            
-            let url = "https://www.nexustours.com/en/services/\(cityName)/\(encodeCode)/?&utm_source=nexusapp&utm_medium=tripian"
-            return URL(string: url)
-            
+            let url = "https://www.nexustours.com/en/services/\(cityName)/\(encodeCode)/"
+            return NexusHelper.getCustomPoiUrl(url: url, startDate: self.startDate ?? "")            
         }
         return nil
     }

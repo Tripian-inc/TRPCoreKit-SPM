@@ -217,7 +217,7 @@ public class TRPAppearanceSettings {
         public static var attraction =  ImageAndTag("black_attractions","Attraction")
         public static var shop =        ImageAndTag("black_shop","Shop")
         public static var flag =        ImageAndTag("black_flag","Flag")
-        public static var bbq =         ImageAndTag("black_","Bbq")
+        public static var bbq =         ImageAndTag("black_burger","Bbq")
         public static var pizza =       ImageAndTag("black_pizza","Pizza")
         public static var restaurant =  ImageAndTag("black_restaurant","Restaurant")
         public static var synagogue =   ImageAndTag("black_synagogue","Synagogue")
@@ -233,6 +233,7 @@ public class TRPAppearanceSettings {
         public static var homebase =     ImageAndTag("black_homebase","Homebase")
         public static var clustersImage = ImageAndTag("black_circle","clusterImage")
         public static var nexusTour = ImageAndTag("icon_nexus_map","NexusTour")
+        public static var nexusTourStep = ImageAndTag("nexus_tour_with_border","NexusTourStep")
         
         //Offer
         public static var iceCreamWithOffer =    ImageAndTag("ice_cream_with_offer","IceCreamWithOffer")
@@ -241,7 +242,7 @@ public class TRPAppearanceSettings {
         public static var attractionWithOffer =  ImageAndTag("attractions_with_offer","AttractionWithOffer")
         public static var shopWithOffer =        ImageAndTag("shop_with_offer","ShopWithOffer")
         public static var flagWithOffer =        ImageAndTag("flag_with_offer","FlagWithOffer")
-        public static var bbqWithOffer =         ImageAndTag("","BbqWithOffer")
+        public static var bbqWithOffer =         ImageAndTag("burger_with_offer","BbqWithOffer")
         public static var pizzaWithOffer =       ImageAndTag("pizza_with_offer","PizzaWithOffer")
         public static var restaurantWithOffer =  ImageAndTag("restaurant_with_offer","RestaurantWithOffer")
         public static var synagogueWithOffer =   ImageAndTag("synagogue_with_offer","SynagogueWithOffer")
@@ -263,7 +264,7 @@ public class TRPAppearanceSettings {
         public static var attractionWithTour =  ImageAndTag("attractions_with_tour","AttractionWithTour")
         public static var shopWithTour =        ImageAndTag("shop_with_tour","ShopWithTour")
         public static var flagWithTour =        ImageAndTag("flag_with_tour","FlagWithTour")
-        public static var bbqWithTour =         ImageAndTag("","BbqWithTour")
+        public static var bbqWithTour =         ImageAndTag("burger_with_tour","BbqWithTour")
         public static var pizzaWithTour =       ImageAndTag("pizza_with_tour","PizzaWithTour")
         public static var restaurantWithTour =  ImageAndTag("restaurant_with_tour","RestaurantWithTour")
         public static var synagogueWithTour =   ImageAndTag("synagogue_with_tour","SynagogueWithTour")
@@ -304,9 +305,9 @@ public class TRPAppearanceSettings {
                 return [iceCreamWithOffer, burgerWithOffer, bakeryWithOffer, attractionWithOffer, shopWithOffer, flagWithOffer, bbqWithOffer, pizzaWithOffer, restaurantWithOffer, synagogueWithOffer, mosqueWithOffer, churchWithOffer, barWithOffer, wineBarWithOffer, pubWithOffer, artGalleryWithOffer, museumWithOffer, cafeWithOffer, dessertWithOffer, homebaseWithOffer]
             }
             if type == .tour {
-                return [iceCreamWithTour, burgerWithTour, bakeryWithTour, attractionWithTour, shopWithTour, flagWithTour, bbqWithTour, pizzaWithTour, restaurantWithTour, synagogueWithTour, mosqueWithTour, churchWithTour, barWithTour, wineBarWithTour, pubWithTour, artGalleryWithTour, museumWithTour, cafeWithTour, dessertWithTour, homebaseWithTour]
+                return [iceCreamWithTour, burgerWithTour, bakeryWithTour, attractionWithTour, shopWithTour, flagWithTour, bbqWithTour, pizzaWithTour, restaurantWithTour, synagogueWithTour, mosqueWithTour, churchWithTour, barWithTour, wineBarWithTour, pubWithTour, artGalleryWithTour, museumWithTour, cafeWithTour, dessertWithTour, homebaseWithTour, nexusTourStep]
             }
-            return [iceCream, burger, bakery, attraction, shop, flag, bbq, pizza, restaurant, synagogue, mosque, church, bar, wineBar, pub, artGallery, museum, cafe, dessert, homebase, clustersImage, iceCreamWithOffer, burgerWithOffer, bakeryWithOffer, attractionWithOffer, shopWithOffer, flagWithOffer, bbqWithOffer, pizzaWithOffer, restaurantWithOffer, synagogueWithOffer, mosqueWithOffer, churchWithOffer, barWithOffer, wineBarWithOffer, pubWithOffer, artGalleryWithOffer, museumWithOffer, cafeWithOffer, dessertWithOffer, homebaseWithOffer, iceCreamWithTour, burgerWithTour, bakeryWithTour, attractionWithTour, shopWithTour, flagWithTour, bbqWithTour, pizzaWithTour, restaurantWithTour, synagogueWithTour, mosqueWithTour, churchWithTour, barWithTour, wineBarWithTour, pubWithTour, artGalleryWithTour, museumWithTour, cafeWithTour, dessertWithTour, homebaseWithTour, nexusTour]
+            return [iceCream, burger, bakery, attraction, shop, flag, bbq, pizza, restaurant, synagogue, mosque, church, bar, wineBar, pub, artGallery, museum, cafe, dessert, homebase, clustersImage, iceCreamWithOffer, burgerWithOffer, bakeryWithOffer, attractionWithOffer, shopWithOffer, flagWithOffer, bbqWithOffer, pizzaWithOffer, restaurantWithOffer, synagogueWithOffer, mosqueWithOffer, churchWithOffer, barWithOffer, wineBarWithOffer, pubWithOffer, artGalleryWithOffer, museumWithOffer, cafeWithOffer, dessertWithOffer, homebaseWithOffer, iceCreamWithTour, burgerWithTour, bakeryWithTour, attractionWithTour, shopWithTour, flagWithTour, bbqWithTour, pizzaWithTour, restaurantWithTour, synagogueWithTour, mosqueWithTour, churchWithTour, barWithTour, wineBarWithTour, pubWithTour, artGalleryWithTour, museumWithTour, cafeWithTour, dessertWithTour, homebaseWithTour, nexusTour, nexusTourStep]
         }
     }
     
@@ -372,28 +373,28 @@ public class TRPAppearanceSettings {
     }
     
     
-    public class ShowRating {
-        public static var type: [TRPPoiCategory] = [.attractions,
-                                                    .restaurants,
-                                                    .nightLife,
-                                                    .coolFinds,
-                                                    .cafes,
-                                                    .bar,
-                                                    .religiousPlaces,
-                                                    .theater,
-                                                    .cinema,
-                                                    .stadium,
-                                                    .civicCenter,
-                                                    .museum,
-                                                    .bar,
-                                                    .artGallery,
-                                                    .shoppingCenter,
-                                                    .bakery,
-                                                    .brewery,
-                                                    .dessert,
-                                                    
-        ]
-    }
+//    public class ShowRating {
+//        public static var type: [TRPPoiCategory] = [.attractions,
+//                                                    .restaurants,
+//                                                    .nightLife,
+//                                                    .coolFinds,
+//                                                    .cafes,
+//                                                    .bar,
+//                                                    .religiousPlaces,
+//                                                    .theater,
+//                                                    .cinema,
+//                                                    .stadium,
+//                                                    .civicCenter,
+//                                                    .museum,
+//                                                    .bar,
+//                                                    .artGallery,
+//                                                    .shoppingCenter,
+//                                                    .bakery,
+//                                                    .brewery,
+//                                                    .dessert,
+//                                                    
+//        ]
+//    }
     
     
     public class ItineraryUserDistance{

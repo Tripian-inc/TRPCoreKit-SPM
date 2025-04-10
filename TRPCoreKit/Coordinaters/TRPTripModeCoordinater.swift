@@ -23,6 +23,7 @@ public class TRPTripModeCoordinater {
     
     private var destinationId: Int = 0
     private var cityEngName: String = ""
+    private var planDate: String = ""
     
     // USE CASES
     private(set) var tripRepository: TRPTripRepository
@@ -112,10 +113,10 @@ extension TRPTripModeCoordinater {
         viewModel.changeDayUseCase = self.tripModeUseCases
         viewModel.addStepUseCase = self.tripModeUseCases
         viewModel.removeStepUseCase = self.tripModeUseCases
-        viewModel.editPlanHourUseCase = self.tripModeUseCases
+        viewModel.editPlanUseCase = self.tripModeUseCases
         viewModel.fetchStepAlternative = self.tripModeUseCases
         viewModel.fetchPlanAlternative = self.tripModeUseCases
-        viewModel.reOrderStepUseCase = self.tripModeUseCases
+//        viewModel.reOrderStepUseCase = self.tripModeUseCases
         viewModel.searchThisAreaUseCase = self.poiUseCases
         viewModel.fetchPoiUseCase = self.poiUseCases
         viewModel.tripObserverUseCase = self.tripModeUseCases
@@ -147,6 +148,10 @@ extension TRPTripModeCoordinater {
 
 //MARK: - TRPTripMode Delegate
 extension TRPTripModeCoordinater: TRPTripModeVCDelegate {
+    public func trpTripModeViewControllerSetPlanDate(planDate: String) {
+        self.planDate = planDate
+    }
+    
     public func trpTripModeViewControllerSetDestinationIdAndName(destinationId: Int, cityEngName: String) {
         self.destinationId = destinationId
         self.cityEngName = cityEngName
@@ -175,10 +180,10 @@ extension TRPTripModeCoordinater: TRPTripModeVCDelegate {
         viewController.present(navigation, animated: true, completion: nil)
     }
     
-    public func trpTripModeViewControllerOpenExperience(_ viewController: UIViewController) {
+    public func trpTripModeViewControllerOpenExperience(_ viewController: UIViewController, startDate: String?, endDate: String?) {
         let navigation = UINavigationController()
         navigation.modalPresentationStyle = .fullScreen
-        openExperienceCoordinater(nav: navigation)
+        openExperienceCoordinater(nav: navigation, startDate: startDate, endDate: endDate)
         viewController.present(navigation, animated: true, completion: nil)
         setupNavigationBar(navigation.navigationBar)
     }
@@ -233,6 +238,17 @@ extension TRPTripModeCoordinater: TRPTripModeVCDelegate {
         viewController.present(navigation, animated: true, completion: nil)
     }
     
+    public func trpTripModeViewControllerOpenCateogrySelect(_ viewController: UIViewController) {
+        
+        let viewModel = PoiCategoryViewModel(selectedCategories: [])
+        let poiVC = UIStoryboard.makePoiCategoryViewController()
+        poiVC.viewModel = viewModel
+        poiVC.delegate = viewController as? any PoiCategoryVCDelegate
+        viewModel.poiCategoriesUseCase = poiUseCases
+        viewModel.delegate = poiVC
+        viewController.present(poiVC, animated: true, completion: nil)
+    }
+    
     
     /// To set NavigationBar style.
     /// - Parameter nav: Target Naivgatation controller
@@ -271,8 +287,17 @@ extension TRPTripModeCoordinater {
 }
 
 extension TRPTripModeCoordinater: ItineraryViewControllerDelegate {
+    func itineraryViewControllerChangeStepHour(_ viewController: ItineraryViewController, step: TRPStep?) {
+        let selectHourVC = UIStoryboard.makeItineraryChangeTimeViewController() as ItineraryChangeTimeVC
+        let viewModel = ItineraryChangeTimeViewModel()
+        viewModel.step = step
+        viewModel.start()
+        viewModel.delegate = viewController
+        selectHourVC.viewModel = viewModel
+        viewController.present(selectHourVC, animated: true)
+    }
     
-    func itineraryViewControllerPoiDetail(_ viewController: UIViewController, poi: TRPPoi, parentStep: TRPStep?) {
+    func itineraryViewControllerPoiDetail(_ viewController: ItineraryViewController, poi: TRPPoi, parentStep: TRPStep?) {
         let createdPlaceDetail = makePoiDetail(poi: poi, parentStep: parentStep, closeParent: viewController)
         viewController.present(createdPlaceDetail, animated: true, completion: nil)
     }
@@ -293,7 +318,8 @@ extension TRPTripModeCoordinater: ItineraryViewControllerDelegate {
         viewModel.observeUserReaction = reactionUseCases
         viewModel.removeStepUseCase = tripModeUseCases
         viewModel.tripModelObserverUseCase = tripModeUseCases
-        viewModel.reOrderStepUseCase = tripModeUseCases
+        viewModel.editPlanUseCase = tripModeUseCases
+        viewModel.editStepUseCase = tripModeUseCases
         viewModel.mapRouteUseCases = mapRouteUseCases
         viewModel.fetchStepAlternative = tripModeUseCases
         return viewController
@@ -301,7 +327,7 @@ extension TRPTripModeCoordinater: ItineraryViewControllerDelegate {
 }
 
 //MARK: - ADD PLACES
-extension TRPTripModeCoordinater: AddPoiTableViewVCDelegate {
+extension TRPTripModeCoordinater: AddPlacesContainerViewControllerDelegate, AddPoiTableViewVCDelegate {
     
     /// AddPlaceContainer ViewController'ı oluşturur
     /// - Returns: ViewController
@@ -310,18 +336,16 @@ extension TRPTripModeCoordinater: AddPoiTableViewVCDelegate {
         
         let viewController = UIStoryboard.makeAddPlacesContainer()
         viewController.viewModel = viewModel
-        //        viewController.delegate = self
-        let subCategory: [AddPlaceMenu] = [.attractions, .restaurants, .cafes, .nightLife]
+        viewModel.tripModelObserverUseCase = tripModeUseCases
+        viewModel.fetchCategoryPoiUseCase = poiUseCases
+        viewModel.fetchNearByPoiUseCase = poiUseCases
+        viewModel.searchPoiUseCase = poiUseCases
+        viewModel.nextUrlPoiUseCase = poiUseCases
+        viewModel.tripModelUseCase = tripModeUseCases
+        viewModel.fetchAlternativeUseCase = tripModeUseCases
         
-        for type in subCategory {
-            let newSubView = makeAddPlacesListView(type: type.addPlaceType())
-            viewController.addViewControllerInPagination(newSubView, type: type.addPlaceType())
-        }
-        
-        if let tastes = selectedCity?.tastes, tastes.count > 0 {
-            let mustTryTableView = makeMustTryTableView(tastes: selectedCity?.tastes ?? [] )
-            viewController.addViewControllerInPagination(mustTryTableView, title: TRPLanguagesController.shared.getLanguageValue(for: "trips.myTrips.itinerary.step.poi.mustTry.title"))
-        }
+        viewModel.delegate = viewController
+        viewController.delegate = self
         
         return viewController
     }
@@ -350,9 +374,27 @@ extension TRPTripModeCoordinater: AddPoiTableViewVCDelegate {
         return viewController
     }
     
+    
+    public func addPlaceOpenPlace(_ viewController: UIViewController, poi: TRPPoi) {
+        let createdPlaceDetail = makePoiDetail(poi: poi, closeParent: viewController)
+        viewController.present(createdPlaceDetail, animated: true, completion: nil)
+    }
+    
     public func addPlaceTableViewViewControllerOpenPlace(_ viewController: UIViewController, poi: TRPPoi) {
         let createdPlaceDetail = makePoiDetail(poi: poi, closeParent: viewController)
         viewController.present(createdPlaceDetail, animated: true, completion: nil)
+    }
+    
+    public func addPlaceSelectCategory(_ navigationController: UINavigationController, viewController: UIViewController, selectedCategories: [TRPPoiCategory]?) {
+        
+        let viewModel = PoiCategoryViewModel(selectedCategories: selectedCategories ?? [], forAddPlace: true)
+        let poiVC = UIStoryboard.makePoiCategoryViewController()
+        poiVC.viewModel = viewModel
+        poiVC.delegate = viewController as? PoiCategoryVCDelegate
+        viewModel.poiCategoriesUseCase = poiUseCases
+        viewModel.delegate = poiVC
+        viewController.present(poiVC, animated: true, completion: nil)
+        
     }
     
 }
@@ -525,12 +567,12 @@ extension TRPTripModeCoordinater: PlaceDetailVCProtocol {
 
 extension TRPTripModeCoordinater: PoiDetailViewControllerDelegate {
     
-     func poiDetailDrawNavigation(_ viewController: UIViewController, place: TRPPoi) {
+    func poiDetailDrawNavigation(_ viewController: UIViewController, place: TRPPoi) {
         guard let tripMode = tripModeViewController else {return}
         tripMode.drawRoute(poi: place)
     }
     
-     func poiDetailCloseParentViewController(_ viewController: UIViewController, parentViewController: UIViewController?) {
+    func poiDetailCloseParentViewController(_ viewController: UIViewController, parentViewController: UIViewController?) {
         parentViewController?.dismiss(animated: true, completion: nil)
         if addPlaceNavigation != nil {
             addPlaceNavigation?.dismiss(animated: true, completion: nil)
@@ -540,9 +582,9 @@ extension TRPTripModeCoordinater: PoiDetailViewControllerDelegate {
         }
     }
     
-     func poiDetailOpenMakeAReservation(_ viewController: UIViewController, booking: TRPBooking?, poi: TRPPoi) {
+    func poiDetailOpenMakeAReservation(_ viewController: UIViewController, booking: TRPBooking?, poi: TRPPoi) {
         
-//        openYelpCoordinater(businessId: "rC5mIHMNF5C1Jtpb2obSkA", poi: poi, parentViewController: viewController)
+        //        openYelpCoordinater(businessId: "rC5mIHMNF5C1Jtpb2obSkA", poi: poi, parentViewController: viewController)
         //TODO: TÜM RESTAURANTLARDA BOOKİNG GÖRÜNMESİ İÇİN KONTROL KAPATILDI
         if let businessId = booking?.products?.first?.id {
             openYelpCoordinater(businessId: businessId, poi: poi, parentViewController: viewController)
@@ -550,7 +592,7 @@ extension TRPTripModeCoordinater: PoiDetailViewControllerDelegate {
     }
     
     
-     func poiDetailVCOpenTourDetail(_ navigationController: UINavigationController?,
+    func poiDetailVCOpenTourDetail(_ navigationController: UINavigationController?,
                                    viewController: UIViewController,
                                    bookingProduct: TRPBookingProduct) {
         
@@ -563,11 +605,11 @@ extension TRPTripModeCoordinater: PoiDetailViewControllerDelegate {
         setupNavigationBar(navigation.navigationBar)
     }
     
-     fileprivate  func makePoiDetail(poi: TRPPoi,
+    fileprivate func makePoiDetail(poi: TRPPoi,
                                    parentStep: TRPStep? = nil,
                                    closeParent: UIViewController? = nil) -> UINavigationController {
         
-        let viewModel = PoiDetailViewModel(place: poi, parentStep: parentStep, destinationId: destinationId, cityEngName: cityEngName)
+        let viewModel = PoiDetailViewModel(place: poi, parentStep: parentStep, destinationId: destinationId, cityEngName: cityEngName, planDate: planDate)
         
         viewModel.addFavoriteUseCase = favoriteUseCases
         viewModel.deleteFavoriteUseCase = favoriteUseCases
@@ -586,7 +628,7 @@ extension TRPTripModeCoordinater: PoiDetailViewControllerDelegate {
         
         let viewController = UIStoryboard.makePoiDetailViewController()
         viewController.viewModel = viewModel
-//        let viewController = PoiDetailViewController(viewModel: viewModel)
+        //        let viewController = PoiDetailViewController(viewModel: viewModel)
         viewController.delegate = self
         viewController.closeParent = closeParent
         viewModel.delegate = viewController
@@ -603,9 +645,9 @@ extension TRPTripModeCoordinater: PoiDetailViewControllerDelegate {
 //MARK: - LOCAL EXPERIENCE
 extension TRPTripModeCoordinater {
     
-    private func openExperienceCoordinater(nav: UINavigationController, tourId: Int? = nil) {
+    private func openExperienceCoordinater(nav: UINavigationController, tourId: Int? = nil, startDate: String? = nil, endDate: String? = nil) {
 //        guard let cityName = selectedCity?.name else {return}
-        experiencesCoordinater = TRPExperiencesCoordinater(navigationController: nav, cityName: cityEngName, destinationId: destinationId, tourId: tourId)
+        experiencesCoordinater = TRPExperiencesCoordinater(navigationController: nav, cityName: cityEngName, destinationId: destinationId, tourId: tourId, startDate: startDate, endDate: endDate)
         experiencesCoordinater?.tripModeUseCases = tripModeUseCases
         experiencesCoordinater?.reservationUseCases = reservationUseCases
         experiencesCoordinater?.start()

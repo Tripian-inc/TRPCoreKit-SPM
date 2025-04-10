@@ -8,12 +8,13 @@
 
 import UIKit
 public enum Continent: String {
-    case northAmerica = "North America"
-    case southAmerica = "South America"
-    case africa = "Africa"
-    case asia = "Asia"
-    case australia = "Australia"
-    case europe = "Europe"
+    case northAmerica = "north-america"
+    case southAmerica = "south-america"
+    case africa = "africa"
+    case asia = "asia"
+    case australia = "australia"
+    case oceania = "oceania"
+    case europe = "europe"
     
     func getImage() -> UIImage? {
         var imageName: String = ""
@@ -26,7 +27,7 @@ public enum Continent: String {
             imageName = "africa"
         case .asia:
             imageName = "asia"
-        case .australia:
+        case .australia, .oceania:
             imageName = "australia"
         case .europe:
             imageName = "europe"
@@ -67,9 +68,9 @@ class SelectCitySectionView: UIView {
         label.textColor = trpTheme.color.tripianBlack
     }
     
-    func configureData(continentName: String) {
+    func configureData(continentName: String, continentSlug: String) {
         label.text = continentName
-        let continent = Continent(rawValue: continentName)
+        let continent = Continent(rawValue: continentSlug)
         imageView.image = continent?.getImage()
     }
 

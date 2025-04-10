@@ -13,7 +13,6 @@ public class TRPQuestionRemoteApi: QuestionRemoteApi {
     public init() {}
     
     public func fetchQuestions(type: QuestionCategory,
-                               language: String,
                                completion: @escaping (QuestionsResultsValue) -> Void) {
         
         var questionType: TRPQuestionCategory = .companion
@@ -24,8 +23,7 @@ public class TRPQuestionRemoteApi: QuestionRemoteApi {
             questionType = .trip
         }
         
-        TRPRestKit().questions(type: questionType,
-                               language: language) { (result, error, paging) in
+        TRPRestKit().questions(type: questionType) { (result, error, paging) in
             if let error = error {
                 completion(.failure(error))
                 return

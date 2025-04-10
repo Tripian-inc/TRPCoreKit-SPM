@@ -52,7 +52,9 @@ public class ListOfRoutingPoisViewModel {
     public var removeStepUseCase: DeleteStepUseCase?
     public var observeUserReaction: ObserveUserReactionUseCase?
     public var tripModelObserverUseCase: ObserveTripModeUseCase?
-    public var reOrderStepUseCase: ReOrderStepUseCase?
+//    public var reOrderStepUseCase: ReOrderStepUseCase?
+    public var editPlanUseCase: EditPlanUseCase?
+    public var editStepUseCase: EditStepUseCase?
     public var fetchStepAlternative: FetchStepAlternative?
      var mapRouteUseCases: MapRouteUseCases?
     
@@ -197,28 +199,27 @@ public class ListOfRoutingPoisViewModel {
         
     }
  
-    
-    //TODO: - PROVİDER A TAŞINACAK
-    public func createUberDeepLink(_ model: UberModel) -> URL? {
+    public func createUberDeepLink(_ model: UberModel, canOpenLink: Bool) -> URL? {
         guard let clientId = TRPApiKeyController.getKey(TRPApiKeys.trpUberClient) else {
             Log.d("Uber client id is empty")
             return nil
         }
-        //let pickupAddress: String = model.pickupAddress.encodeUrl() ?? ""
-        //let dropAddress: String = model.dropOffAddress.encodeUrl() ?? ""
-        let url =  "uber://?client_id=\(clientId)&action=setPickup&pickup[latitude]=\(model.pickupLocation.lat)&pickup[longitude]=\(model.pickupLocation.lon)&pickup[nickname]=\(model.pickupName.encodeUrl() ?? "Pickup")&dropoff[latitude]=\(model.dropoffLocation.lat)&dropoff[longitude]=\(model.dropoffLocation.lon)&dropoff[nickname]=\(model.dropOffName.encodeUrl() ?? "DropOff")&product_id=a1111c8c-c720-46c3-8534-2fcdd730040d"
+        var startLink: String = ""
+        if canOpenLink {
+            startLink = "uber://?"
+        } else {
+            startLink = "https://m.uber.com/?"
+        }
+        let url =  "\(startLink)client_id=\(clientId)&action=setPickup&pickup[latitude]=\(model.pickupLocation.lat)&pickup[longitude]=\(model.pickupLocation.lon)&pickup[nickname]=\(model.pickupName.encodeUrl() ?? "Pickup")&dropoff[latitude]=\(model.dropoffLocation.lat)&dropoff[longitude]=\(model.dropoffLocation.lon)&dropoff[nickname]=\(model.dropOffName.encodeUrl() ?? "DropOff")&product_id=a1111c8c-c720-46c3-8534-2fcdd730040d"
         
         return URL(string: url)
     }
     
-    //TODO: - PROVİDER A TAŞINACAK
-    public func createUberWeb(_ model: UberModel) -> URL? {
-        guard let clientId = TRPApiKeyController.getKey(TRPApiKeys.trpUberClient) else {
-            Log.d("Uber client id is empty")
-            return nil
+    func getCustomPoiUrl(poi: TRPPoi) -> URL? {
+        if let startDate = tripModelObserverUseCase?.dailyPlan.value?.date {
+            return poi.getCustomPoiUrl(planDate: startDate)
         }
-        let url = "https://m.uber.com/?client_id=\(clientId)&action=setPickup&pickup[latitude]=\(model.pickupLocation.lat)&pickup[longitude]=\(model.pickupLocation.lon)&pickup[nickname]=\(model.pickupName.encodeUrl() ?? "Pickup")&dropoff[latitude]=\(model.dropoffLocation.lat)&dropoff[longitude]=\(model.dropoffLocation.lon)&dropoff[nickname]=\(model.dropOffName.encodeUrl() ?? "DropOff")&product_id=a1111c8c-c720-46c3-8534-2fcdd730040d"
-        return URL(string: url)
+        return nil
     }
     
     deinit {
@@ -231,7 +232,7 @@ public class ListOfRoutingPoisViewModel {
 extension ListOfRoutingPoisViewModel {
     
     public func getReactions(step: TRPStep) -> TRPUserReactionType? {
-        if let reaction =  reactions.first(where: {$0.stepId == step.id && $0.poiId == step.poi.id}) {
+        if let reaction =  reactions.first(where: {$0.stepId == step.id}) {
             return reaction.reaction
         }
         return nil
@@ -276,7 +277,7 @@ extension ListOfRoutingPoisViewModel {
     
     public func sendUndo(step: TRPStep) {
         delegate?.viewModel(showPreloader: true)
-        if let reaction = reactions.first(where: {$0.poiId == step.poi.id && $0.stepId == step.id}) {
+        if let reaction = reactions.first(where: {$0.stepId == step.id}) {
             deleteReactionUseCase?.executeDeleteUserReaction(id: reaction.id, completion: { [weak self] result in
                 self?.delegate?.viewModel(showPreloader: false)
                 print("Undo Result \(result)")
@@ -284,9 +285,33 @@ extension ListOfRoutingPoisViewModel {
         }
     }
     
-    public func stepReOrder(stepId id: Int, newOrder: Int) {
+    public func stepReOrder(step: TRPStep, newOrder: Int) {
+        guard let editPlanUseCase else {return}
         delegate?.viewModel(showPreloader: true)
-        reOrderStepUseCase?.execureReOrderStep(id: id, order: newOrder, completion: {  [weak self] result in
+        steps.remove(element: step)
+        steps.insert(step, at: newOrder)
+        var stepIds = steps.map({$0.id})
+        if isHotelExist {
+            stepIds.remove(at: 0)
+        }
+        editPlanUseCase.executeEditPlanStepOrder(stepOrders: stepIds, completion: {  [weak self] result in
+            self?.delegate?.viewModel(showPreloader: false)
+            if case .failure(let error) = result {
+                self?.delegate?.viewModel(error: error)
+            }
+        })
+    }
+}
+
+//MARK: - Change Step Time
+extension ListOfRoutingPoisViewModel {
+    func changeStepTime(step: TRPStep?) {
+        guard let editStepUseCase,
+              let step,
+              let from = step.times?.from,
+              let to = step.times?.to else {return}
+        delegate?.viewModel(showPreloader: true)
+        editStepUseCase.execureEditStepHour(id: step.id, startTime: from, endTime: to, completion: { [weak self] result in
             self?.delegate?.viewModel(showPreloader: false)
             if case .failure(let error) = result {
                 self?.delegate?.viewModel(error: error)

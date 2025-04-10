@@ -73,16 +73,32 @@ class CreateTripTripInformationViewModel {
     
     public func setNexusTripInformation(startDate: String, endDate: String, city: TRPCity) {
         if let startDate = startDate.toDate(format: "yyyy-MM-dd") {
-            setSelectedArrivalDate(startDate)
+            if isDatePast(startDate) {
+                let (date, time) = Date.getNearestAvailableDateAndTimeForCreateTrip()
+                selectedArrivalDate = date
+                selectedArrivalHour = time
+            } else {
+                setSelectedArrivalDate(startDate)
+            }
         }
         if let endDate = endDate.toDate(format: "yyyy-MM-dd") {
-            setSelectedDepartureDate(endDate)
+            if isDatePast(endDate) {
+                let (date, time) = Date.getNearestAvailableDateAndTimeForCreateTrip()
+                selectedArrivalDate = date
+                selectedArrivalHour = time
+            } else {
+                setSelectedDepartureDate(endDate)
+            }
         }
         setSelectedCity(city: city)
     }
     
     public func getSelectedCity() -> TRPCity {
         return selectedCity!
+    }
+    
+    private func isDatePast(_ date: Date) -> Bool {
+        return Date() > date
     }
         
 }
@@ -154,11 +170,11 @@ extension CreateTripTripInformationViewModel {
     }
     
     func getSelectedArrivalDate() -> String {
-        return selectedArrivalDate.toString(format: "dd MMM yyyy", locale: TRPClient.shared.language)
+        return selectedArrivalDate.toString(format: "dd MMM yyyy")
     }
     
     func getSelectedDepartureDate() -> String {
-        return selectedDepartureDate.toString(format: "dd MMM yyyy", locale: TRPClient.shared.language)
+        return selectedDepartureDate.toString(format: "dd MMM yyyy")
     }
     
     func setSelectedArrivalDate(_ date: Date) {
@@ -185,11 +201,14 @@ extension CreateTripTripInformationViewModel {
     
     private func setupDepartureDateForArrival() {
         if selectedArrivalDate.isToday() {
-            selectedArrivalHour = Date().getHourForTimer()
+            let (date, time) = Date.getNearestAvailableDateAndTimeForCreateTrip()
+            selectedArrivalDate = date
+            selectedArrivalHour = time
+//            selectedDepartureDate = date
         } else {
             selectedArrivalHour = "09:00"
+            selectedDepartureDate = selectedArrivalDate
         }
-        selectedDepartureDate = selectedArrivalDate.addDay(1)!
         self.delegate?.viewModel(dataLoaded: true)
     }
     

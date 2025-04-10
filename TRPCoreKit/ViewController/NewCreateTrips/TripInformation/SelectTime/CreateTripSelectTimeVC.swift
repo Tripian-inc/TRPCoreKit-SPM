@@ -66,7 +66,7 @@ extension CreateTripSelectTimeVC: UITableViewDelegate, UITableViewDataSource {
     
     private func scrollToSelectedHour() {
         let indexPath = viewModel.getSelectedHourIndexPath()
-        tableView.scrollToRow(at: indexPath, at: .middle, animated: true)
+        tableView.scrollToRow(at: indexPath, at: .top, animated: true)
     }
 }
 

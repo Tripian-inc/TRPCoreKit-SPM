@@ -38,6 +38,7 @@ public protocol TRPTripModeViewModelDelegate: ViewModelDelegate {
     func setDestinationIdAndEngName(_ id: Int, cityEngName: String)
     
     func viewModelNexusToursFetched(_ tours: [JuniperProduct])
+    func viewModelNexusToursError(_ message: String)
 }
 
 public struct StepInfoForListOfRouting {
@@ -105,10 +106,10 @@ public class TRPTripModeViewModel {
     public var changeDayUseCase: ChangeDailyPlanUseCase?
     public var addStepUseCase: AddStepUseCase?
     public var removeStepUseCase: DeleteStepUseCase?
-    public var editPlanHourUseCase: EditPlanHoursUseCase?
+    public var editPlanUseCase: EditPlanUseCase?
     public var fetchStepAlternative: FetchStepAlternative?
     public var fetchPlanAlternative: FetchPlanAlternative?
-    public var reOrderStepUseCase: ReOrderStepUseCase?
+//    public var reOrderStepUseCase: ReOrderStepUseCase?
     public var searchThisAreaUseCase: FetchBoundsPoisUseCase?
     public var fetchPoiUseCase: FetchPoiUseCase?
     public var tripObserverUseCase: ObserveTripEventStatusUseCase?
@@ -287,15 +288,45 @@ public class TRPTripModeViewModel {
         })
     }
     
-    public func stepReOrder(stepId id: Int, newOrder: Int) {
+    public func addNexusPoiInRoute(productId: String) {
         delegate?.viewModel(showPreloader: true)
-        reOrderStepUseCase?.execureReOrderStep(id: id, order: newOrder, completion: {  [weak self] result in
+        guard let product = getJuniperTour(from: productId), let tourInfo = product.serviceInfo else {
+            return
+        }
+        
+        let productUrl = product.getProductUrl(city: cityEngName, startDate: getDailyPlanStartEndDate().startDate)
+        
+        addStepUseCase?.executeAddCustomStep(
+            name: tourInfo.name ?? "",
+            address: "custom poi for \(tourInfo.name ?? "")",
+            description: productUrl,
+            photoUrl: product.getImage(),
+            web: productUrl,
+            latitude: tourInfo.latitude,
+            longitude: tourInfo.longitude
+        ) { [weak self] result in
             self?.delegate?.viewModel(showPreloader: false)
         
             if case .failure(let error) = result {
                 self?.delegate?.viewModel(error: error)
             }
-        })
+        }
+    }
+    
+    public func stepReOrder(step: TRPStep, newOrder: Int) {
+        delegate?.viewModel(showPreloader: true)
+        dailyPlan?.steps.remove(element: step)
+        dailyPlan?.steps.insert(step, at: newOrder)
+        if let steps = dailyPlan?.steps {
+            updateDailyPlanStepOrder(stepOrder: steps.map({$0.id}))
+        }
+//        reOrderStepUseCase?.execureReOrderStep(id: id, order: newOrder, completion: {  [weak self] result in
+//            self?.delegate?.viewModel(showPreloader: false)
+//
+//            if case .failure(let error) = result {
+//                self?.delegate?.viewModel(error: error)
+//            }
+//        })
     }
     
     private func getStep(poiId: String) -> TRPStep? {
@@ -303,34 +334,31 @@ public class TRPTripModeViewModel {
         return plan.steps.first(where: {$0.poi.id == poiId})
     }
     
-
-    
-    // Bu fonsiyon şu anda kullanılmuyor. selim abiden algoritma geldiğinde kullanılacak.
-    fileprivate func arrayParserForRouting(_ ar: [TRPLocation],_ range: Int) -> [[TRPLocation]]{
-        var tempAr = [TRPLocation]()
-        var mainAr = [[TRPLocation]]()
-        for element in ar {
-            if tempAr.count != range {
-                tempAr.append(element)
-            }else {
-                mainAr.append(tempAr)
-                let oldAr = tempAr
-                tempAr = []
-                if let last = oldAr.last {
-                    tempAr.append(last)
-                }
-                tempAr.append(element)
-            }
+    func getCustomPoiUrl(poi: TRPPoi) -> URL? {
+        if let startDate = dailyPlan?.date {
+            return poi.getCustomPoiUrl(planDate: startDate)
         }
-        if tempAr.count > 1 {
-            mainAr.append(tempAr)
-        }
-        return mainAr
+        return nil
     }
     
     public func updateDailyPlanHour(start:String, end:String) {
         delegate?.viewModel(showPreloader: true)
-        editPlanHourUseCase?.executeEditPlanHours(startTime: start, endTime: end, completion: { [weak self] result in
+        editPlanUseCase?.executeEditPlanHours(startTime: start, endTime: end, completion: { [weak self] result in
+            
+            switch result {
+            case .success(let plan):
+                if plan.generatedStatus == 1 {
+                    self?.delegate?.viewModel(showPreloader: false)
+                }
+            case .failure(let error):
+                self?.delegate?.viewModel(error: error)
+            }
+        })
+    }
+    
+    public func updateDailyPlanStepOrder(stepOrder: [Int]) {
+        delegate?.viewModel(showPreloader: true)
+        editPlanUseCase?.executeEditPlanStepOrder(stepOrders: stepOrder, completion: { [weak self] result in
             
             switch result {
             case .success(let plan):
@@ -588,28 +616,37 @@ extension TRPTripModeViewModel {
 
 extension TRPTripModeViewModel {
     
+    public func getDailyPlanStartEndDate() -> (startDate: String, endDate: String) {
+        
+        let startDate: String = dailyPlan?.date ?? Date().toString(format: "yyyy-MM-dd")
+        let endDate: String = dailyPlan?.date ?? Date().toString(format: "yyyy-MM-dd")
+        return (startDate, endDate)
+    }
+    
+    public func clearJuniperTours() {
+        nexusTours.removeAll()
+    }
+    
     public func fetchJuniperTours() {
         if !nexusTours.isEmpty {
             self.delegate?.viewModelNexusToursFetched(nexusTours)
             return
         }
         delegate?.viewModel(showPreloader: true)
-        
-        var startDate: String = Date().toString(format: "yyyy-MM-dd")
-        var endDate: String = Date().toString(format: "yyyy-MM-dd")
-        if let startTime = trip?.getArrivalDate()?.toDate, let endTime = trip?.getDepartureDate()?.toDate  {
-            startDate = startTime.toString(format: "yyyy-MM-dd", dateStyle: nil, timeStyle: nil)
-            endDate = endTime.toString(format: "yyyy-MM-dd", dateStyle: nil, timeStyle: nil)
-        }
-        TripianCommonApi.shared.getProducts(destinationId, startDate: startDate, endDate: endDate) { [weak self] result in
+        //        if let startTime = dailyPlan?.date, let endTime = trip?.getDepartureDate()?.toDate  {
+        //            startDate = startTime.toString(format: "yyyy-MM-dd", dateStyle: nil, timeStyle: nil)
+        //            endDate = endTime.toString(format: "yyyy-MM-dd", dateStyle: nil, timeStyle: nil)
+        //        }
+        let planDate = getDailyPlanStartEndDate()
+        TripianCommonApi.shared.getProducts(destinationId, startDate: planDate.startDate, endDate: planDate.endDate) { [weak self] result in
             self?.delegate?.viewModel(showPreloader: false)
             switch result {
             case .success(let tours):
                 self?.nexusTours = tours
                 self?.delegate?.viewModelNexusToursFetched(tours)
-//                self?.seperateWithCategory(tours: tours)
+                //                self?.seperateWithCategory(tours: tours)
             case .failure(let error):
-                self?.delegate?.viewModel(error: error)
+                self?.delegate?.viewModelNexusToursError(error.localizedDescription)
             }
         }
     }
@@ -629,7 +666,7 @@ extension TRPTripModeViewModel {
     
     public func getJuniperTourUrl(from code: String) -> URL? {
         guard let tour = nexusTours.first(where: { $0.code == code }) else {return nil}
-        return URL(string: tour.getProductUrl(city: cityEngName))
+        return URL(string: tour.getProductUrl(city: cityEngName, startDate: getDailyPlanStartEndDate().startDate))
     }
     
     public func getJuniperTourCategories() -> [String] {

@@ -25,16 +25,18 @@ final class PoiMapper {
         
         let bookings: [TRPBooking]? = restModel.bookings != nil ? BookingMapper().map(restModel.bookings ?? []) : nil
         
-        let categoreies = CategoryMapper().map(restModel.category)
+        let categoreies = PoiCategoryMapper().map(restModel.category)
         
         let mustTaste = TasteMapper().map(restModel.mustTries)
         let offers = OfferMapper().map(restModel.offers)
+        let additionalData = AdditionalDataMapper().map(restModel.additionalData)
         
         return TRPPoi(id: restModel.id,
                       cityId: restModel.cityId,
                       name: restModel.name,
                       image: mainImage,
                       gallery: gallery,
+                      duration: restModel.duration,
                       price: restModel.price,
                       rating: restModel.rating,
                       ratingCount: restModel.ratingCount,
@@ -57,7 +59,8 @@ final class PoiMapper {
                       safety: restModel.safety,
                       status: restModel.status,
                       placeType: .poi,
-                      offers: offers)
+                      offers: offers,
+                      additionalData: additionalData)
     }
     
     

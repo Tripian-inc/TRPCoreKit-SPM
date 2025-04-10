@@ -27,12 +27,12 @@ public enum AddRemoveNavButtonStatus{
         }
     }
 }
-public struct CallOutCellMode {
+public struct CallOutCellModel {
     
     var id:String
     var name: String
     var poiCategory:String
-    var startCount: Float
+    var starCount: Float
     var reviewCount: Int
     var price: Int
     var rightButtonStatus: AddRemoveNavButtonStatus?
@@ -40,14 +40,14 @@ public struct CallOutCellMode {
     public init(id: String,
                 name: String,
                 poiCategory: String,
-                startCount: Float,
+                starCount: Float,
                 reviewCount: Int,
                 price: Int,
                 rightButton: AddRemoveNavButtonStatus? = nil) {
         self.id = id
         self.name = name
         self.poiCategory = poiCategory
-        self.startCount = startCount
+        self.starCount = starCount
         self.reviewCount = reviewCount
         self.price = price
         self.rightButtonStatus = rightButton
@@ -69,7 +69,7 @@ public class TRPCallOutController {
     public var cellPressed: ((_ id: String,  _ inRoute: Bool)-> Void)? = nil
     public var action: ((_ status:AddRemoveNavButtonStatus, _ id: String) -> Void)? = nil
     public var callOutStatus: ((_ status:CallOutStatus) -> Void)? = nil
-    private var model: CallOutCellMode?
+    private var model: CallOutCellModel?
     private var addBtnImage: UIImage?
     private var removeBtnImage: UIImage?
     private var navigationBtnImage: UIImage?
@@ -120,7 +120,7 @@ public class TRPCallOutController {
         }
     }
     
-    public func show(model: CallOutCellMode){
+    public func show(model: CallOutCellModel){
         self.model = model
         showAnimation()
         
@@ -180,6 +180,10 @@ public class TRPCallOutController {
 
 class TRPCallOutCell: UIView {
     
+    @PriceIconWrapper
+    private var priceDolarSign = 0
+    
+    
     private let imageView: UIImageView = {
         let img = UIImageView()
         img.backgroundColor = TRPColor.darkGrey
@@ -231,7 +235,7 @@ class TRPCallOutCell: UIView {
     
     public var rightButtonStatus = AddRemoveNavButtonStatus.add
     private let padding = UIEdgeInsets(top: 16, left: 16, bottom: 16, right: 16)
-    private var model: CallOutCellMode?
+    private var model: CallOutCellModel?
     public var cellPressed: ((_ id: String) -> Void)? = nil
     public var rightButtonAction: ((_ status:AddRemoveNavButtonStatus, _ id: String) -> Void)? = nil
     private var addBtnImage: UIImage?
@@ -249,18 +253,21 @@ class TRPCallOutCell: UIView {
     let stackView   = UIStackView()
     let star = TRPStar(frame: CGRect(x: 0, y: 0, width: 100, height: 12))
     
-    public func updateModel(_ model : CallOutCellMode){
+    public func updateModel(_ model : CallOutCellModel){
         self.model = model
         titleLabel.text = model.name
-        typeLabel.attributedText = explaineStringCreater(type: model.poiCategory, price: model.price)
+        typeLabel.text = model.poiCategory
+        priceDolarSign = model.price
+        priceLabel.isHidden = model.price < 1
+        priceLabel.attributedText = $priceDolarSign.generateDolarSign(largeFontSize: 12, smallFontSize: 12)
         
-        if Int(model.startCount) < 1 {
+        if Int(model.starCount) < 1 {
             star.isHidden = true
             stackView.removeArrangedSubview(star)
         }else {
             star.isHidden = false
             stackView.addArrangedSubview(star)
-            star.setRating(Int(model.startCount))
+            star.setRating(Int(model.starCount))
         }
         
         if let right = model.rightButtonStatus {
@@ -272,34 +279,6 @@ class TRPCallOutCell: UIView {
             addRemoveNavigationButton.isHidden = true
             addRemoveNavigationButton.isUserInteractionEnabled = false
         }
-    }
-    
-    private func explaineStringCreater(type: String, price: Int) -> NSMutableAttributedString {
-        var text = "\(type)"
-        if price > 0 {
-            text += " - \(String(repeating: "$" , count: 4))"
-        }
-        let normalAttributes  = [NSAttributedString.Key.font: UIFont.boldSystemFont(ofSize: 12),.foregroundColor: UIColor.lightGray]
-        let sentence = NSMutableAttributedString(string: text, attributes: normalAttributes)
-        if price > 0 {
-            let largeAttributes = [NSAttributedString.Key.font: UIFont.systemFont(ofSize: 12),.foregroundColor: UIColor.darkGray]
-            let smallAttributes = [NSAttributedString.Key.font: UIFont.systemFont(ofSize: 8),.foregroundColor: UIColor.lightGray]
-            let largeAttributeIndex = type.count + 3
-            let smallAttributeIndex = largeAttributeIndex + price
-            let textLength = sentence.length
-            sentence.setAttributes(largeAttributes, range: NSRange(location: largeAttributeIndex, length: price))
-            sentence.setAttributes(smallAttributes, range: NSRange(location: smallAttributeIndex, length: textLength - smallAttributeIndex))
-        }
-        return sentence
-    }
-    
-    private func priceString(price: Int) -> NSMutableAttributedString {
-        let boldPrice = String(repeating: "$" , count: 4)
-        let largeAttributes = [NSAttributedString.Key.font: UIFont.systemFont(ofSize: 12),.foregroundColor: UIColor.darkGray]
-        let smallAttributes = [NSAttributedString.Key.font: UIFont.boldSystemFont(ofSize: 8),.foregroundColor: UIColor.lightGray]
-        let attributedSentence = NSMutableAttributedString(string: boldPrice, attributes: smallAttributes)
-        attributedSentence.setAttributes(largeAttributes, range: NSRange(location: 0, length: price))
-        return attributedSentence
     }
     
     private func commonInit() {
@@ -322,13 +301,20 @@ class TRPCallOutCell: UIView {
         stackView.alignment = UIStackView.Alignment.leading
         stackView.spacing   = 6.0
         addSubview(stackView)
+        let priceStackView = UIStackView()
+        priceStackView.axis  = NSLayoutConstraint.Axis.horizontal
+        priceStackView.distribution  = UIStackView.Distribution.fillEqually
+        priceStackView.alignment = UIStackView.Alignment.leading
+        priceStackView.spacing   = 6.0
         stackView.translatesAutoresizingMaskIntoConstraints = false
         stackView.leadingAnchor.constraint(equalTo: imageView.trailingAnchor, constant: 16).isActive = true
         stackView.trailingAnchor.constraint(equalTo: self.trailingAnchor, constant: -16).isActive = true
         stackView.topAnchor.constraint(equalTo: topAnchor, constant: padding.top).isActive = true
         stackView.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -padding.top).isActive = true
         stackView.addArrangedSubview(titleLabel)
-        stackView.addArrangedSubview(typeLabel)
+        priceStackView.addArrangedSubview(typeLabel)
+        priceStackView.addArrangedSubview(priceLabel)
+        stackView.addArrangedSubview(priceStackView)
         stackView.addArrangedSubview(star)
         star.show()
         

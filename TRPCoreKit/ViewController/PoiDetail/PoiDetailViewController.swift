@@ -255,7 +255,10 @@ extension PoiDetailViewController {
             cell.updateData(cellModel)
             
             cell.selectedTourAction = { [weak self] tourId in
-                guard let strongSelf = self, let tour = cellModel.first(where: {$0.id == tourId}), let tourUrl = tour.url, let url = URL(string: tourUrl + "&utm_source=nexusapp&utm_medium=tripian") else {return}
+                guard let strongSelf = self,
+                      let tour = cellModel.first(where: {$0.id == tourId}),
+                      let tourUrl = tour.url,
+                      let url = NexusHelper.getCustomPoiUrl(url: tourUrl, startDate: strongSelf.viewModel.planDate) else {return}
                 
                 UIApplication.shared.open(url)
 //                strongSelf.delegate?.poiDetailVCOpenTourDetail(strongSelf.navigationController,

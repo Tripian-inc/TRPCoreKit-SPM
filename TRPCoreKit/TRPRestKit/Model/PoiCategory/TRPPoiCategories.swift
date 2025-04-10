@@ -12,7 +12,7 @@ import Foundation
 internal class TRPPoiCategoryJsonModel: TRPParentJsonModel {
     
     /// Categories data
-    public var data: [TRPCategoryInfoModel]?
+    public var data: TRPCategoriesInfoModel?
     
     private enum CodingKeys: String, CodingKey {
         case data
@@ -20,10 +20,8 @@ internal class TRPPoiCategoryJsonModel: TRPParentJsonModel {
     
     required public init(from decoder: Decoder) throws {
         let values = try decoder.container(keyedBy: CodingKeys.self)
-        if let datas = try? values.decodeIfPresent([TRPCategoryInfoModel].self, forKey: .data) {
-            self.data = datas
-        } else if let data = try? values.decodeIfPresent(TRPCategoryInfoModel.self, forKey: .data), let newAr = [data] as? [TRPCategoryInfoModel] {
-            self.data = newAr
+        if let data = try? values.decodeIfPresent(TRPCategoriesInfoModel.self, forKey: .data) {
+            self.data = data
         }
         
         try super.init(from: decoder)

@@ -18,9 +18,11 @@ public protocol ChangeDailyPlanUseCase {
     func executeChangeDailyPlan(id: Int, completion: ((Result<TRPPlan, Error>) -> Void)?)
 }
 
-public protocol EditPlanHoursUseCase {
+public protocol EditPlanUseCase {
     
     func executeEditPlanHours(startTime: String, endTime: String, completion: ((Result<TRPPlan, Error>) -> Void)?)
+    
+    func executeEditPlanStepOrder(stepOrders: [Int], completion: ((Result<TRPPlan, Error>) -> Void)?)
     
 }
 

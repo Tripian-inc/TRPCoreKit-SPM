@@ -10,7 +10,6 @@ import Foundation
 public protocol QuestionRemoteApi {
     
     func fetchQuestions(type: QuestionCategory,
-                        language: String,
                         completion: @escaping (QuestionsResultsValue) -> Void)
     
 }

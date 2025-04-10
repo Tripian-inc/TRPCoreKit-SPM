@@ -81,3 +81,7 @@ public protocol FetchPoiNextUrlUseCase {
                          completion: ((Result<[TRPPoi], Error>, TRPPagination?)-> Void)?
                         )
 }
+
+public protocol FetchPoiCategoriesUseCase {
+    func executeFetchPoiCategories(completion: ((Result<[TRPPoiCategoyGroup], Error>)-> Void)?)
+}

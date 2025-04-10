@@ -198,17 +198,10 @@ extension PoiSearchVC {
             cell.distanceLabel.text = ""
         }
         
-        let raitingIsShow = TRPAppearanceSettings.ShowRating.type.contains { (category) -> Bool in
-            guard let categories = model.categories.first else {return false}
-            if category.getId() == categories.id {
-                return true
-            }
-            return false
-        }
-        if raitingIsShow {
+        if model.isRatingAvailable() {
             cell.setRatingAndStar(rating: model.ratingCount ?? 0, starCount: (model.rating ?? 0).rounded())
         }
-        cell.showGlobalRating = raitingIsShow
+        cell.showGlobalRating = model.isRatingAvailable()
         if indexPath.row == viewModel.numberOfCells - 1 {
             viewModel.loadNextPage()
         }

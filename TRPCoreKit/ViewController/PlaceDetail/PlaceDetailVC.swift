@@ -123,17 +123,17 @@ public class PlaceDetailVC: TRPBaseUIViewController {
                                           explainText: explainText )))
         
         
-        let isAttraction = viewModel.place.categories.contains { (type) -> Bool in
-            for typeId in AddPlaceMenu.attractions.addPlaceType().subTypes {
-                if type.id == typeId {
-                    return true
-                }
-            }
-            return false
-        }
+//        let isAttraction = viewModel.place.categories.contains { (type) -> Bool in
+//            for typeId in AddPlaceMenu.attractions.addPlaceType().subTypes {
+//                if type.id == typeId {
+//                    return true
+//                }
+//            }
+//            return false
+//        }
         
         
-        if let price = viewModel.place.price, price != 0 , !isAttraction{
+        if let price = viewModel.place.price, price != 0 {
             data.append(.customTagsCell(CustomTagsCellModel(title: "", price: price, status: .money)))
         }
         

@@ -108,14 +108,14 @@ final public class TRPTripModeUseCases: ObserveTripEventStatusUseCase {
     /// - Returns: Accommondation eklenmiş plan
     private func addHomeBaseIfExist(_ dailyPlan: TRPPlan) -> TRPPlan {
         
-        guard let trip = trip.value, let accommodation = trip.tripProfile.accommodation else { return dailyPlan}
+        guard let trip = trip.value, let accommodation = trip.tripProfile.accommodation, dailyPlan.steps.first?.isHotelPoi() == false else { return dailyPlan}
         
         let hotel = PoiMapper().accommodation(accommodation, cityId: trip.city.id)
         let hotelStep = TRPStep(id: 1, poi: hotel, alternatives: [])
         
         var tempPlan = dailyPlan
         tempPlan.steps.insert(hotelStep, at: 0)
-        tempPlan.steps.append(hotelStep)
+//        tempPlan.steps.append(hotelStep)
         
         return tempPlan
     }
@@ -252,7 +252,7 @@ extension TRPTripModeUseCases: ChangeDailyPlanUseCase{
     
 }
 
-extension TRPTripModeUseCases: EditPlanHoursUseCase {
+extension TRPTripModeUseCases: EditPlanUseCase {
     
     public func executeEditPlanHours(startTime: String, endTime: String, completion: ((Result<TRPPlan, Error>) -> Void)?) {
         
@@ -265,6 +265,43 @@ extension TRPTripModeUseCases: EditPlanHoursUseCase {
         
         let onComplete = completion ?? { result in }
         planRepository.editPlanHours(planId: dailyPlan.id, start: startTime, end: endTime) { [weak self] result in
+            
+            self?.sendShowLoader(false, type: .changeTime)
+            
+            switch result {
+            case .success(let plan):
+                // TODO: - PLAN BOŞ GELDİĞİ İÇİN plan loop mekanizması ile tekrar çekilecek.
+                self?.sendSuccellyUpdated(.changeTime)
+                
+                if plan.generatedStatus == 0 {
+                    self?.generaterController.dailyPlanController(plan) { [weak self] generated, newPlan in
+                        completion?(.success(newPlan))
+                        self?.updateDailyPlanInRepository(newPlan)
+                    }
+                }else {
+                    completion?(.success(plan))
+                    self?.updateDailyPlanInRepository(plan)
+                }
+                
+            case .failure(let error):
+                self?.sendErrorLoader(error, type: .changeTime)
+                onComplete(.failure(error))
+            }
+        }
+        
+    }
+    
+    public func executeEditPlanStepOrder(stepOrders: [Int], completion: ((Result<TRPPlan, Error>) -> Void)?) {
+        
+        guard let dailyPlan = dailyPlan.value else {
+            print("[Error] Plan is nil")
+            return
+        }
+        
+        sendShowLoader(true, type: .changeTime)
+        
+        let onComplete = completion ?? { result in }
+        planRepository.editPlanStepOrder(planId: dailyPlan.id, stepOrders: stepOrders) { [weak self] result in
             
             self?.sendShowLoader(false, type: .changeTime)
             
@@ -339,18 +376,37 @@ extension TRPTripModeUseCases: AddStepUseCase {
         let onComplete = completion ?? { result in }
         
         stepRepository.addStep(planId: planId, poiId: poiId) {[weak self] result in
-            
-            self?.sendShowLoader(false, type: .addStep)
-            
-            switch result {
-            case .success(let step):
-                self?.sendSuccellyUpdated(.addStep)
-                self?.executeFetchPlan(id: planId, completion: nil)
-                onComplete(.success(step))
-            case .failure(let error):
-                self?.sendErrorLoader(error, type: .addStep)
-                onComplete(.failure(error))
-            }
+            self?.resolveAddStepResponse(planId: planId, result: result, onComplete: onComplete)
+        }
+    }
+    
+    public func executeAddCustomStep(name: String, address: String, description: String, photoUrl: String?, web: String?, latitude: Double?, longitude: Double?, completion: ((Result<TRPStep, any Error>) -> Void)?) {
+        guard let planId = tripModelRepository.dailyPlan.value?.id else {
+            print("[Error] PlanId is nil")
+            return
+        }
+        
+        sendShowLoader(true, type: .addStep)
+        
+        let onComplete = completion ?? { result in }
+        
+        stepRepository.addCustomStep(planId: planId, name: name, address: address, description: description, photoUrl: photoUrl, web: web, latitude: latitude, longitude: longitude) {[weak self] result in
+            self?.resolveAddStepResponse(planId: planId, result: result, onComplete: onComplete)
+        }
+    }
+    
+    private func resolveAddStepResponse(planId: Int, result: StepResultValue, onComplete: ((Result<TRPStep, any Error>) -> Void)) {
+        
+        self.sendShowLoader(false, type: .addStep)
+        
+        switch result {
+        case .success(let step):
+            self.sendSuccellyUpdated(.addStep)
+            self.executeFetchPlan(id: planId, completion: nil)
+            onComplete(.success(step))
+        case .failure(let error):
+            self.sendErrorLoader(error, type: .addStep)
+            onComplete(.failure(error))
         }
     }
 }
@@ -385,9 +441,8 @@ extension TRPTripModeUseCases: DeleteStepUseCase {
             switch result {
             case .success(let result):
                 self?.sendSuccellyUpdated(.deleteStep)
-                //TODO: - DeleteTripInPlan home base bugından dolayı kapatıldı TERAR DÜZENLENECEK
-                //self?.deleteTripInPlan(stepId: id)
-                self?.refetchDailyPlan()
+                self?.deleteTripInPlan(stepId: id)
+//                self?.refetchDailyPlan()
                 onComplete(.success(result))
             case .failure(let error):
                 self?.sendErrorLoader(error, type: .deleteStep)
@@ -422,6 +477,42 @@ extension TRPTripModeUseCases: EditStepUseCase {
                 self?.sendErrorLoader(error, type: .editStep)
                 onComplete(.failure(error))
             }
+        }
+    }
+    
+    public func execureEditStepHour(id: Int,
+                                    startTime: String,
+                                    endTime: String,
+                                    completion: ((Result<TRPStep, Error>) -> Void)?) {
+        let onComplete = completion ?? { result in }
+        guard let planId = tripModelRepository.dailyPlan.value?.id else {
+            print("[Error] PlanId is nil")
+            return
+        }
+        sendShowLoader(true, type: .editStep)
+        stepRepository.editStep(id: id, startTime: startTime, endTime: endTime) { [weak self] result in
+            
+            self?.sendShowLoader(false, type: .editStep)
+            
+            switch result {
+            case .success(let step):
+                self?.sendSuccellyUpdated(.editStep)
+//                self?.updateStepInPlan(step: step)
+                self?.refetchDailyPlan()
+                onComplete(.success(step))
+            case .failure(let error):
+                self?.sendErrorLoader(error, type: .editStep)
+                onComplete(.failure(error))
+            }
+        }
+    }
+    
+    private func updateStepInPlan(step: TRPStep) {
+        if var plan = tripModelRepository.dailyPlan.value, let stepIdx = plan.steps.firstIndex(where: {$0.id == step.id}) {
+            plan.steps[stepIdx] = step
+            updatePlanInTrip(plan: plan)
+            checkAndUpdateDailyPlan(plan)
+            addPoisIn(plan: plan)
         }
     }
 }

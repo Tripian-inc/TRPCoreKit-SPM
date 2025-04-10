@@ -46,6 +46,10 @@ public class TRPLanguagesController {
         return getLanguageValueWithKey(key)
     }
     
+    public func getLanguageValue(for key: String, with strings: String...) -> String {
+        return String(format: getLanguageValueWithKey(key).replacingOccurrences(of: "%s", with: "%@"), arguments: strings)
+    }
+    
     public func getApplyBtnText() -> String {
         return getLanguageValue(for: "trips.myTrips.itinerary.step.addToItinerary.submit.apply")
     }
@@ -64,5 +68,13 @@ public class TRPLanguagesController {
     
     public func getContinueBtnText() -> String {
         return getLanguageValue(for: "trips.createNewTrip.form.continue")
+    }
+    
+    public func getSuccessText() -> String {
+        return getLanguageValue(for: "success")
+    }
+    
+    public func getSearchText() -> String {
+        return getLanguageValue(for: "search")
     }
 }

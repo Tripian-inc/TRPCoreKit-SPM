@@ -32,6 +32,10 @@ public class CityMapper {
             newModel.countryContinents = [continents]
         }
         
+        newModel.continent = restModel.country.continentModel.map({
+            TRPContinent(name: $0.name, slug: $0.slug)
+        })
+        
         if let tastes = restModel.tastes {
             newModel.tastes = TasteMapper().map(tastes)
         }

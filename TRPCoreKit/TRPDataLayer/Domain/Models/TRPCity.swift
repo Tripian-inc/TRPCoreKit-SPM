@@ -17,6 +17,7 @@ public struct TRPCity: Codable {
     public var image: String? = ""
     public var countryCode: String = ""
     public var countryName: String = ""
+    public var continent: TRPContinent?
     public var countryContinents = [String]()
     public var boundaryNorthEast: TRPLocation?
     public var boundarySouthWest: TRPLocation?
@@ -49,4 +50,9 @@ public struct TRPCityWeather: Codable {
     public var minTempF: Double?
     public var weatherIcon: String?
     public var weatherText: String?
+}
+
+public struct TRPContinent: Codable {
+    public var name: String?
+    public var slug: String?
 }

@@ -42,10 +42,10 @@ final class OverviewViewModel {
     }
     
     func getSinglerCategory(id: Int) -> String? {
-        guard let type = TRPPoiCategory.idToType(id) else {
-            return nil
-        }
-        return type.getSingler()
+        //        guard let type = TRPPoiCategory.idToType(id) else {
+                    return nil
+        //        }
+        //        return type.getSingler()
     }
     
     func getCellModel(indexPath:IndexPath) -> OverviewVCTableViewCellModel {

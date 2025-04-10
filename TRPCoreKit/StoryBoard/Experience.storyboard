@@ -17,19 +17,19 @@
                         <rect key="frame" x="0.0" y="0.0" width="393" height="852"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <subviews>
-                            <tableView clipsSubviews="YES" contentMode="scaleToFill" alwaysBounceVertical="YES" dataMode="prototypes" style="plain" separatorStyle="default" rowHeight="300" estimatedRowHeight="-1" sectionHeaderHeight="-1" estimatedSectionHeaderHeight="-1" sectionFooterHeight="-1" estimatedSectionFooterHeight="-1" translatesAutoresizingMaskIntoConstraints="NO" id="taM-cE-d7h" customClass="SPMEvrTableView">
+                            <tableView clipsSubviews="YES" contentMode="scaleToFill" alwaysBounceVertical="YES" dataMode="prototypes" style="plain" separatorStyle="default" rowHeight="110" estimatedRowHeight="-1" sectionHeaderHeight="-1" estimatedSectionHeaderHeight="-1" sectionFooterHeight="-1" estimatedSectionFooterHeight="-1" translatesAutoresizingMaskIntoConstraints="NO" id="taM-cE-d7h" customClass="SPMEvrTableView">
                                 <rect key="frame" x="0.0" y="119" width="393" height="699"/>
                                 <color key="backgroundColor" systemColor="systemBackgroundColor"/>
                                 <prototypes>
                                     <tableViewCell clipsSubviews="YES" contentMode="scaleToFill" insetsLayoutMarginsFromSafeArea="NO" selectionStyle="blue" hidesAccessoryWhenEditing="NO" indentationLevel="1" indentationWidth="0.0" reuseIdentifier="JuniperExperiencesTVCell" id="npM-xP-xaw" customClass="SPMJuniperExperiencesTVCell">
-                                        <rect key="frame" x="0.0" y="50" width="393" height="300"/>
+                                        <rect key="frame" x="0.0" y="50" width="393" height="110"/>
                                         <autoresizingMask key="autoresizingMask"/>
                                         <tableViewCellContentView key="contentView" opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="center" insetsLayoutMarginsFromSafeArea="NO" tableViewCell="npM-xP-xaw" id="0B6-Uh-JeD">
-                                            <rect key="frame" x="0.0" y="0.0" width="393" height="300"/>
+                                            <rect key="frame" x="0.0" y="0.0" width="393" height="110"/>
                                             <autoresizingMask key="autoresizingMask"/>
                                             <subviews>
                                                 <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" translatesAutoresizingMaskIntoConstraints="NO" id="SbR-lf-K33">
-                                                    <rect key="frame" x="12" y="12" width="104" height="276"/>
+                                                    <rect key="frame" x="12" y="12" width="104" height="86"/>
                                                     <constraints>
                                                         <constraint firstAttribute="height" constant="86" id="KSL-ce-eLT"/>
                                                         <constraint firstAttribute="width" constant="104" id="wdp-xw-RQ1"/>
@@ -78,11 +78,12 @@
                                                 <constraint firstItem="XIy-9c-RC4" firstAttribute="top" secondItem="85x-Vp-jVp" secondAttribute="bottom" constant="2" id="DfX-Wo-jCp"/>
                                                 <constraint firstItem="XIy-9c-RC4" firstAttribute="leading" secondItem="85x-Vp-jVp" secondAttribute="leading" id="Iag-0j-aom"/>
                                                 <constraint firstItem="qmv-It-AGa" firstAttribute="leading" secondItem="85x-Vp-jVp" secondAttribute="leading" id="NxB-71-g52"/>
-                                                <constraint firstAttribute="bottom" secondItem="SbR-lf-K33" secondAttribute="bottom" constant="12" id="ett-ZE-66p"/>
+                                                <constraint firstAttribute="bottom" relation="greaterThanOrEqual" secondItem="SbR-lf-K33" secondAttribute="bottom" constant="12" id="ett-ZE-66p"/>
                                                 <constraint firstItem="qmv-It-AGa" firstAttribute="top" secondItem="XIy-9c-RC4" secondAttribute="bottom" constant="3" id="hJg-gS-bIw"/>
                                                 <constraint firstItem="85x-Vp-jVp" firstAttribute="top" secondItem="SbR-lf-K33" secondAttribute="top" id="i3E-eJ-mSs"/>
                                                 <constraint firstItem="XIy-9c-RC4" firstAttribute="trailing" secondItem="85x-Vp-jVp" secondAttribute="trailing" id="jjz-SH-OUq"/>
                                                 <constraint firstAttribute="trailingMargin" secondItem="85x-Vp-jVp" secondAttribute="trailing" constant="12" id="uYb-eL-Rkt"/>
+                                                <constraint firstAttribute="bottomMargin" relation="greaterThanOrEqual" secondItem="qmv-It-AGa" secondAttribute="bottom" constant="12" id="x3f-U2-eS5"/>
                                             </constraints>
                                         </tableViewCellContentView>
                                         <connections>
@@ -92,6 +93,7 @@
                                             <outlet property="lblPerson" destination="YvS-Ti-b9j" id="e4z-1d-tZd"/>
                                             <outlet property="lblPrice" destination="gdI-fm-8hg" id="V8r-sc-MaF"/>
                                             <outlet property="lblTitle" destination="85x-Vp-jVp" id="a1N-zW-Mdw"/>
+                                            <outlet property="svPrice" destination="qmv-It-AGa" id="aQe-F9-klP"/>
                                         </connections>
                                     </tableViewCell>
                                 </prototypes>

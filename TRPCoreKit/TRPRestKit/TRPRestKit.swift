@@ -277,8 +277,8 @@ extension TRPRestKit {
     ///     - completion: A closer in the form of CompletionHandlerWithPagination will be called after request is completed.
     /// - Important: Completion Handler is an any object which needs to be converted to **[TRPCategoryInfoModel]** object.
     /// - See Also: [Api Doc](http://airmiles-api-1837638174.ca-central-1.elb.amazonaws.com/apidocs/#tripian-recommendation-engine-places-of-interest)
-    public func poiCategory(completion: @escaping CompletionHandlerWithPagination) {
-        self.completionHandlerWithPagination = completion
+    public func poiCategory(completion: @escaping CompletionHandler) {
+        self.completionHandler = completion
         poiCategoryServices(id: nil)
     }
     
@@ -472,10 +472,9 @@ extension TRPRestKit {
     /// - See Also: [Api Doc](http://airmiles-api-1837638174.ca-central-1.elb.amazonaws.com/apidocs/#tripian-recommendation-engine-trip-planner)
     public func questions(withCityId cityId: Int,
                           type: TRPQuestionCategory? = .trip,
-                          language: String? = nil,
                           completion: @escaping CompletionHandlerWithPagination) {
         self.completionHandlerWithPagination = completion
-        questionServices(cityId: cityId, type: type, language: language)
+        questionServices(cityId: cityId, type: type)
     }
     
     /// Returns question array with type, language and completion handler parameters which will be used during creating trips.
@@ -490,10 +489,9 @@ extension TRPRestKit {
     ///  - Important: Completion Handler is an any object which needs to be converted to **[TRPTripQuestionInfoModel]** object.
     /// - See Also: [Api Doc](http://airmiles-api-1837638174.ca-central-1.elb.amazonaws.com/apidocs/#tripian-recommendation-engine-trip-planner)
     public func questions(type: TRPQuestionCategory? = .profile,
-                          language: String? = nil,
                           completion: @escaping CompletionHandlerWithPagination) {
         self.completionHandlerWithPagination = completion
-        questionServices(type: type, language: language)
+        questionServices(type: type)
     }
     
     /// A services which will be used in question services, manages all task connecting to remote server.
@@ -503,8 +501,7 @@ extension TRPRestKit {
     ///   - questionId: id of question
     ///   - type: type of request. You can use Profile when opening add place in localy mode. You have to use Profile and Trip when creating a trip.
     private func questionServices(cityId: Int? = nil,
-                                  type: TRPQuestionCategory? = nil,
-                                  language: String? = nil) {
+                                  type: TRPQuestionCategory? = nil) {
         
         var questionService: TRPQuestionService?
         if let cityId = cityId {
@@ -514,7 +511,6 @@ extension TRPRestKit {
         }
         
         guard let services = questionService else {return}
-        services.language = language
         services.tripType = type ?? .trip
         services.completion = {   (result, error, pagination) in
             if let error = error {
@@ -1635,7 +1631,7 @@ extension TRPRestKit {
     }
 }
 
-// MARK: - Update Daily Plan Hour
+// MARK: - Update Daily Plan
 extension TRPRestKit {
     
     /// Update daily plan hour with given daily plan Id, start time, end time and completion parameters.
@@ -1649,13 +1645,24 @@ extension TRPRestKit {
     /// - See Also: [Api Doc](http://airmiles-api-1837638174.ca-central-1.elb.amazonaws.com/apidocs/#update-daily-plan)
     public func updateDailyPlanHour(dailyPlanId: Int, start: String, end: String, completion: @escaping CompletionHandler) {
         self.completionHandler = completion
-        updateDailyPlanHourService(dailyPlanId: dailyPlanId, start: start, end: end)
+        updateDailyPlanService(dailyPlanId: dailyPlanId, start: start, end: end)
+    }
+    
+    public func updateDailyPlanStepOrders(dailyPlanId: Int, stepOrders: [Int], completion: @escaping CompletionHandler) {
+        self.completionHandler = completion
+        updateDailyPlanService(dailyPlanId: dailyPlanId, stepOrders: stepOrders)
     }
     
     /// A services which will be used in daily plan hour services, manages all task connecting to remote server.
-    private func updateDailyPlanHourService(dailyPlanId: Int, start: String, end: String) {
-        let dailyplanService = TRPDailyPlanServices(id: dailyPlanId, startTime: start, endTime: end)
-        dailyplanService.completion = {   (result, error, pagination) in
+    private func updateDailyPlanService(dailyPlanId: Int, start: String? = nil, end: String? = nil, stepOrders: [Int]? = nil) {
+        var dailyPlanService = TRPDailyPlanServices(id: dailyPlanId)
+        if let start, let end {
+            dailyPlanService = TRPDailyPlanServices(id: dailyPlanId, startTime: start, endTime: end)
+        }
+        if let stepOrders {
+            dailyPlanService = TRPDailyPlanServices(id: dailyPlanId, stepOrders: stepOrders)
+        }
+        dailyPlanService.completion = {   (result, error, pagination) in
             if let error = error {
                 self.postError(error: error)
                 return
@@ -1666,7 +1673,7 @@ extension TRPRestKit {
                 self.postError(error: TRPErrors.emptyDataOrParserError as NSError)
             }
         }
-        dailyplanService.connection()
+        dailyPlanService.connection()
     }
     
 }
@@ -1709,6 +1716,11 @@ extension TRPRestKit {
         stepService(planId: planId, poiId: poiId, order: order)
     }
     
+    public func addCustomStep(planId: Int, name: String, address: String, description: String, photoUrl: String?, web: String?, latitude: Double?, longitude: Double?, completion: @escaping CompletionHandler) {
+        self.completionHandler = completion
+        customStepService(planId: planId, name: name, address: address, description: description, photoUrl: photoUrl, web: web, latitude: latitude, longitude: longitude)
+    }
+    
     public func editStep(stepId: Int,
                          poiId: String,
                          completion: @escaping CompletionHandler) {
@@ -1721,6 +1733,14 @@ extension TRPRestKit {
                          completion: @escaping CompletionHandler) {
         self.completionHandler = completion
         stepService(order: order, stepId: stepId)
+    }
+    
+    public func editStep(stepId: Int,
+                         startTime: String,
+                         endTime: String,
+                         completion: @escaping CompletionHandler) {
+        self.completionHandler = completion
+        stepService(stepId: stepId, startTime: startTime, endTime: endTime)
     }
     
     public func editStep(stepId: Int,
@@ -1737,11 +1757,11 @@ extension TRPRestKit {
         stepDeleteService(stepId: stepId)
     }
     
-    private func stepService(planId: Int? = nil, poiId: String? = nil, order:Int? = nil, stepId: Int? = nil) {
+    private func stepService(planId: Int? = nil, poiId: String? = nil, order:Int? = nil, stepId: Int? = nil, startTime: String? = nil, endTime: String? = nil) {
         var service: TRPStepServices?
         //Edit Step
         if let step = stepId {
-            service = TRPStepServices(stepId: step, poiId: poiId, order: order)
+            service = TRPStepServices(stepId: step, poiId: poiId, order: order, startTime: startTime, endTime: endTime)
         }else if let planId = planId, let poiId = poiId { //Add Step In Plan
             service = TRPStepServices(planId: planId, poiId: poiId, order: order)
         }
@@ -1753,6 +1773,14 @@ extension TRPRestKit {
             self.genericParseAndPost(TRPStepInfoModel.self, result, error, pagination)
         }
         stepService.connection()
+    }
+    
+    private func customStepService(planId: Int, name: String? = nil, address: String? = nil, description: String? = nil, photoUrl: String? = nil, web: String? = nil, latitude: Double? = nil, longitude: Double? = nil) {
+        let service = TRPCustomStepServices(planId: planId, name: name, address: address, description: description, photoUrl: photoUrl, web: web, latitude: latitude, longitude: longitude)
+        service.completion = { result, error, pagination in
+            self.genericParseAndPost(TRPStepInfoModel.self, result, error, pagination)
+        }
+        service.connection()
     }
     
     private func stepDeleteService(stepId: Int) {

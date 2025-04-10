@@ -264,13 +264,8 @@ extension ListOfRoutingPoisVC: UITableViewDelegate, UITableViewDataSource {
             priceDolarSign = price
             cell.priceRangeLabel.attributedText = addPrefixInDolar($priceDolarSign.generateDolarSign())
         }
-        
-        let raitingIsShow = TRPAppearanceSettings.ShowRating.type.contains { (category) -> Bool in
-            guard let categories = place.categories.first, category.getId() == categories.id  else {return false}
-            return true
-        }
-        cell.showGlobalRating = raitingIsShow
-        if raitingIsShow {
+        cell.showGlobalRating = place.isRatingAvailable()
+        if place.isRatingAvailable() {
             cell.setRating(starCount: Int((place.rating ?? 0).rounded()), review: place.ratingCount ?? 0)
         }
         
@@ -392,10 +387,8 @@ extension ListOfRoutingPoisVC: UITableViewDelegate, UITableViewDataSource {
     }
     
     func openUberDeepLink(_ model: UberModel) {
-        if let deepLink = viewModel.createUberDeepLink(model), UIApplication.shared.canOpenURL(deepLink) {
+        if let uberLink = URL(string: "uber://"), let deepLink = viewModel.createUberDeepLink(model, canOpenLink: UIApplication.shared.canOpenURL(uberLink)) {
             UIApplication.shared.open(deepLink)
-        }else if let webLink = viewModel.createUberWeb(model) {
-            UIApplication.shared.open(webLink)
         }
     }
     

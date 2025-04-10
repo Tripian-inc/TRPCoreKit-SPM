@@ -24,7 +24,7 @@ final public class TRPCreateTripCoordinater {
     }
     
     private let navigationController: UINavigationController
-    private(set) var createTripNavIndex = [UIViewController]()
+    private(set) var createTripNavIndex = [TRPBaseUIViewController]()
     public weak var delegate: TRPCreateTripCoordinaterDelegate?
     private var coordinaterType: CoordinaterType = .create
     private var userProfileAnswers: [Int] = []
@@ -184,7 +184,7 @@ final public class TRPCreateTripCoordinater {
     
     /// NavigationController' a yeni bir view ekler
     /// - Parameter viewController: Ekranda gösterilecek view
-    private func pushViewInNavigationController(_ viewController: UIViewController) {
+    private func pushViewInNavigationController(_ viewController: TRPBaseUIViewController) {
         navigationController.pushViewController(viewController, animated: true)
         createTripNavIndex.append(viewController)
     }
@@ -1039,34 +1039,7 @@ extension TRPCreateTripCoordinater: ObserverProtocol {
 
 
 //TODO: TRİPMODE A TAŞINACAK.
-extension TRPCreateTripCoordinater: ButterFlyContainerVCProtocol, PlaceDetailVCProtocol {
-    
-    func openButterflyVC(hash: String) {
-        let viewModel = ButterflyContainerVM(tripHash: hash)
-        viewModel.tripObserverUseCase = fetchTripAllDay
-        
-        
-        let vc = ButterFlyContainerVC(viewModel: viewModel)
-        vc.delegate = self
-        viewModel.delegate = vc
-        navigationController.pushViewController(vc, animated: true)
-    }
-    
-    public func butterflyContainerCompleted(hash: String) {
-        if let city = loadedCity {
-            self.delegate?.trpTripCreateCoordinaterOpenMyTrip(hash: hash, city: city)
-        }
-    }
-    
-    public func butterflyContainerOpenPlaceDetail(place: TRPPoi) {
-        /*let viewModel = PlaceDetailViewModel(place: place, mode: .Butterfly)
-         let viewController = PlaceDetailVC(viewModel: viewModel)
-         navigationController.present(viewController, animated: true, completion: nil) */
-    }
-    
-    public func butterflyContainerViewDidAppear(_ vc: UIViewController) {
-        clearAllCreateTripVC()
-    }
+extension TRPCreateTripCoordinater: PlaceDetailVCProtocol {
     
     private func clearAllCreateTripVC() {
         var startIndex: Int?

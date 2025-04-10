@@ -145,5 +145,22 @@ public class TRPPoiRemoteApi: PoiRemoteApi {
             }
         }
     }
+    
+    public func fetchPoiCategories(completion: @escaping (PoiCategoriesResultValue) -> Void) {
+        TRPRestKit().poiCategory() { (result, error) in
+            
+            if let error = error {
+                completion((.failure(error)))
+                return
+            }
+            
+            if let result = result as? TRPCategoriesInfoModel {
+                let converted = PoiCategoryMapper().map(result)
+                completion((.success(converted)))
+            } else {
+                completion((.failure(GeneralError.customMessage("Couldn't convert data"))))
+            }
+        }
+    }
 }
 
