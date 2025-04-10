@@ -12,12 +12,16 @@ public typealias PoiResultValue = (Result<TRPPoi, Error>)
 
 public typealias PoiResultsValue = (Result<[TRPPoi], Error>, TRPPagination?)
 
+public typealias PoiCategoriesResultValue = (Result<[TRPPoiCategoyGroup], Error>)
+
 
 public protocol PoiRepository {
     
     var pois: [TRPPoi] {get set}
     
     var poisWithParameters: [PoiParameters: [TRPPoi]] {get set}
+    
+    var poiCategories: [TRPPoiCategoyGroup] {get set}
     
     
     func fetchPoi(poiId: String,
@@ -40,6 +44,8 @@ public protocol PoiRepository {
     func addPois(contentsOf: [TRPPoi]) 
     
     func fetchLocalPoi(completion: @escaping (PoiResultsValue) -> Void)
+    
+    func fetchPoiCategories(completion: @escaping (PoiCategoriesResultValue) -> Void)
 }
 
 

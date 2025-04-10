@@ -118,10 +118,6 @@ public class MyTripTableViewViewModel: TableViewViewModelProtocol {
         }
     }
     
-    private var currentDate: String {
-        return Date().toString(format: "YYYY-MM-dd")
-    }
-    
     deinit {
         removeObservers()
         Log.deInitialize()

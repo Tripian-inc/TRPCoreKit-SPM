@@ -6,18 +6,18 @@
 //  Copyright © 2020 Tripian Inc. All rights reserved.
 //
 
-import Foundation
-
-final class CategoryMapper {
-    
-    func map(_ restModel: TRPCategoryInfoModel) -> TRPCategory {
-       
-        TRPCategory(id: restModel.id, name: restModel.name, description: restModel.description)
-    }
-    
-    
-    func map(_ restModels: [TRPCategoryInfoModel]) -> [TRPCategory] {
-       
-        restModels.map{map($0)}
-    }
-}
+//import Foundation
+//
+//final class CategoryMapper {
+//    
+//    func map(_ restModel: TRPCategoryInfoModel) -> TRPCategory {
+//       
+//        TRPCategory(id: restModel.id, name: restModel.name, description: restModel.description)
+//    }
+//    
+//    
+//    func map(_ restModels: [TRPCategoryInfoModel]) -> [TRPCategory] {
+//       
+//        restModels.map{map($0)}
+//    }
+//}

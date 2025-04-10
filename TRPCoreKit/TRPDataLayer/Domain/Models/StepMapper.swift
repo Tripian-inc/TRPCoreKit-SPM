@@ -14,14 +14,14 @@ final class StepMapper {
         
         guard let poi = PoiMapper().map(restModel.poi) else { return nil }
         
-        let hours = TRPHour(from: restModel.hours?.from, to: restModel.hours?.to)
+        let times = TRPHour(from: restModel.times?.from, to: restModel.times?.to)
         
         return TRPStep(id: restModel.id,
                        planId: planId,
                        poi: poi,
                        order: restModel.order,
                        score: restModel.score,
-                       hours: hours,
+                       times: times,
                        alternatives: restModel.alternatives)
     }
     

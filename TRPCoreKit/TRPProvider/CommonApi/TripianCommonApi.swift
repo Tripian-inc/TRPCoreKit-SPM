@@ -86,10 +86,10 @@ extension TripianCommonApi {
                             startDate: String,
                             endDate: String,
                             completion: @escaping (Result<[JuniperProduct], Error>) -> Void) {
-        if !nexusTourProducts.isEmpty {
-            completion(.success(nexusTourProducts))
-            return
-        }
+//        if !nexusTourProducts.isEmpty {
+//            completion(.success(nexusTourProducts))
+//            return
+//        }
         let path = "/juniper_products"
         
         var params = [URLQueryItem]()
@@ -104,7 +104,7 @@ extension TripianCommonApi {
             .responseDecodable(type: TripianCommonGenericDataParser<[JuniperProduct]>.self) { (result) in
                 switch result {
                 case .success(let model):
-                    self.nexusTourProducts = model.data ?? []
+//                    self.nexusTourProducts = model.data ?? []
                     completion(.success(model.data ?? []))
                 case .failure(let error):
                     completion(.failure(error))

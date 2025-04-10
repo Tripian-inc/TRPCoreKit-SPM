@@ -13,11 +13,26 @@ public protocol StepRemoteApi {
     func addStep(planId: Int, poiId: String,
                  completion: @escaping (StepResultValue) -> Void)
     
+    func addCustomStep(planId: Int,
+                       name: String,
+                       address: String,
+                       description: String,
+                       photoUrl: String?,
+                       web: String?,
+                       latitude: Double?,
+                       longitude: Double?,
+                       completion: @escaping (StepResultValue) -> Void)
+    
     func deleteStep(id: Int,
                     completion: @escaping (StepStatusValue) -> Void)
  
     func editStep(id: Int,
                   poiId: String,
+                  completion: @escaping (StepResultValue) -> Void)
+    
+    func editStep(id: Int,
+                  startTime: String,
+                  endTime: String,
                   completion: @escaping (StepResultValue) -> Void)
     
     func reOrderStep(id: Int,

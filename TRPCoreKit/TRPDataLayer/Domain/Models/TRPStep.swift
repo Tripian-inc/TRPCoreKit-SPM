@@ -28,7 +28,7 @@ public struct TRPStep: Codable {
     
     public var score: Float?
     
-    public var hours: TRPHour?
+    public var times: TRPHour?
     
     public var alternatives: [String]
     
@@ -40,4 +40,10 @@ extension TRPStep: Equatable {
         return lhs.id == rhs.id
     }
     
+}
+
+extension TRPStep {
+    public func isHotelPoi() -> Bool {
+        return poi.placeType == .hotel
+    }
 }

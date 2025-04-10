@@ -8,6 +8,30 @@
 
 import Foundation
 
+public struct TRPCategoriesInfoModel: Decodable {
+    public var groups: [TRPCategoryGroupModel]?
+    public var categories: [TRPCategoryInfoModel]?
+    
+    /// Tag matcher
+    private enum CodingKeys: String, CodingKey {
+        case groups
+        case categories
+    }
+    
+    /// Json to Object converter
+    ///
+    /// - Parameter decoder: Json Decoder Object
+    public init(from decoder: Decoder) throws {
+        let values = try decoder.container(keyedBy: CodingKeys.self)
+        if let groups = try? values.decodeIfPresent([TRPCategoryGroupModel].self, forKey: .groups) {
+            self.groups = groups
+        }
+        if let categories = try? values.decodeIfPresent([TRPCategoryInfoModel].self, forKey: .categories) {
+            self.categories = categories
+        }
+    }
+}
+
 /// This model provide you to use full information of poi category.
 public struct TRPCategoryInfoModel: Decodable {
     
@@ -18,16 +42,13 @@ public struct TRPCategoryInfoModel: Decodable {
     public var name: String
     
     /// A String value. Description of a poi category. Description can be used in search bar that is in AddPlace.
-    public var description: String?
-    
-    public var parent: TRPPoiCategoryParent?
+    public var isCustom: Bool?
     
     /// Tag matcher
     private enum CodingKeys: String, CodingKey {
         case id
         case name
-        case description
-        case parent
+        case isCustom
     }
     
     /// Json to Object converter
@@ -37,9 +58,31 @@ public struct TRPCategoryInfoModel: Decodable {
         let values = try decoder.container(keyedBy: CodingKeys.self)
         self.id = try values.decode(Int.self, forKey: .id)
         self.name = try values.decode(String.self, forKey: .name)
-        self.description = try values.decodeIfPresent(String.self, forKey: .description)
-        if let parent = try? values.decodeIfPresent(TRPPoiCategoryParent.self, forKey: .parent) {
-            self.parent = parent
+        self.isCustom = try values.decodeIfPresent(Bool.self, forKey: .isCustom)
+    }
+    
+}
+
+/// This model provide you to use full information of poi category.
+public struct TRPCategoryGroupModel: Decodable {
+    /// A String value. Name of a poi category.
+    public var name: String?
+    public var categories: [TRPCategoryInfoModel]?
+    
+    /// Tag matcher
+    private enum CodingKeys: String, CodingKey {
+        case name
+        case categories
+    }
+    
+    /// Json to Object converter
+    ///
+    /// - Parameter decoder: Json Decoder Object
+    public init(from decoder: Decoder) throws {
+        let values = try decoder.container(keyedBy: CodingKeys.self)
+        self.name = try values.decodeIfPresent(String.self, forKey: .name)
+        if let categories = try? values.decodeIfPresent([TRPCategoryInfoModel].self, forKey: .categories) {
+            self.categories = categories
         }
     }
     

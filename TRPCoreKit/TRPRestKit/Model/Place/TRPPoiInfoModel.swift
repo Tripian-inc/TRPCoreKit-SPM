@@ -21,6 +21,7 @@ public struct TRPPoiInfoModel: Decodable {
     public var image: TRPImageModel
     
     public var gallery: [TRPImageModel]
+    public var duration: Int?
     /// An Int value. Indicates level of price between 0 and 4.
     public var price: Int?
     /// A Float value. Indicates how many stars poi has.
@@ -56,6 +57,8 @@ public struct TRPPoiInfoModel: Decodable {
     public var status: Bool = true
     public var offers: [TRPOfferInfoModel] = []
     
+    public var additionalData: TRPAdditionalDataModel?
+    
     private enum CodingKeys: String, CodingKey {
         case id
         case cityId
@@ -63,6 +66,7 @@ public struct TRPPoiInfoModel: Decodable {
         case ratingCount
         case name
         case address
+        case duration
         case price
         case web
         case hours
@@ -85,6 +89,7 @@ public struct TRPPoiInfoModel: Decodable {
         case mustTries
         case safety
         case offers
+        case additionalData
     }
     
     /// Json to Object converter
@@ -98,6 +103,7 @@ public struct TRPPoiInfoModel: Decodable {
         
         self.image = try values.decode(TRPImageModel.self, forKey: .image)
         self.gallery = try values.decodeIfPresent([TRPImageModel].self, forKey: .gallery) ?? []
+        self.duration = try values.decodeIfPresent(Int.self, forKey: .duration)
         self.price = try values.decodeIfPresent(Int.self, forKey: .price)
         self.rating = try values.decodeIfPresent(Float.self, forKey: .rating)
         self.ratingCount = try values.decodeIfPresent(Int.self, forKey: .ratingCount)
@@ -137,10 +143,13 @@ public struct TRPPoiInfoModel: Decodable {
         self.safety = try values.decodeIfPresent([String].self, forKey: .safety) ?? []
     
         if let mustTries = try? values.decodeIfPresent([TRPTastesInfoModel].self, forKey: .mustTries){
-            self.mustTries = mustTries ?? []
+            self.mustTries = mustTries
         }
         if let offers = try? values.decodeIfPresent([TRPOfferInfoModel].self, forKey: .offers) {
-            self.offers = offers ?? []
+            self.offers = offers
+        }
+        if let additionalData = try? values.decodeIfPresent(TRPAdditionalDataModel.self, forKey: .additionalData) {
+            self.additionalData = additionalData
         }
     }
     

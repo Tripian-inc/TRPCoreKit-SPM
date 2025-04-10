@@ -27,3 +27,24 @@ class TRPBlackButton: UIButton {
         setTitleColor(UIColor.white, for: .normal)
     }
 }
+@objc(SPMTRPBlackButtonSecondary)
+class TRPBlackButtonSecondary: UIButton {
+    
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        setupUI()
+    }
+    
+    required init?(coder: NSCoder) {
+        super.init(coder: coder)
+        setupUI()
+    }
+    
+    private func setupUI() {
+        layer.borderWidth = 1
+        layer.borderColor = trpTheme.color.tripianPrimary.cgColor
+        backgroundColor = .clear
+        layer.cornerRadius = 15
+        setTitleColor(trpTheme.color.tripianPrimary, for: .normal)
+    }
+}

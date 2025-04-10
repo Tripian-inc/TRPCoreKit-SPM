@@ -106,6 +106,7 @@ final class PoiDetailViewModel: TableViewViewModelProtocol {
     
     public var destinationId: Int
     public var cityEngName: String
+    public var planDate: String
     
     // USE CASES
     public var addFavoriteUseCase: AddFavoriteUseCase?
@@ -128,13 +129,15 @@ final class PoiDetailViewModel: TableViewViewModelProtocol {
                 parentStep: TRPStep? = nil,
                 userLocationController: TRPUserLocationController = .shared,
                 destinationId: Int,
-                cityEngName: String
+                cityEngName: String,
+                planDate: String
     ) {
         self.userLocationController = userLocationController
         self.parentStep = parentStep
         self.place = place
         self.destinationId = destinationId
         self.cityEngName = cityEngName
+        self.planDate = planDate
     }
     
     public func start() {
@@ -466,15 +469,7 @@ extension PoiDetailViewModel {
 extension PoiDetailViewModel {
     
     private func showRating() -> Bool {
-        
-        let raitingIsShow = TRPAppearanceSettings.ShowRating.type.contains { (category) -> Bool in
-            guard let placeCategoty = place.categories.first else {return false}
-            if category.getId() == placeCategoty.id {
-                return true
-            }
-            return false
-        }
-        return raitingIsShow && place.ratingCount != 0
+        return place.isRatingAvailable()
     }
     
     private func starCount() -> Int {

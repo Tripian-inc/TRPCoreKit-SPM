@@ -17,16 +17,25 @@ extension String {
     ///   - format: Date in oluşturulduğu format
     /// - Returns: Date
     func toDate(format: String) -> Date? {
-        let dateFormatter = DateFormatter()
-        dateFormatter.dateFormat = format
-        dateFormatter.timeZone = TimeZone(identifier: "UTC")
-        return dateFormatter.date(from: self)
+        return toDate(format: format, timeZone: "UTC")
     }
     
     func toDateWithoutUTC(format: String) -> Date? {
+        return toDate(format: format)
+    }
+    
+    private func toDate(format: String, timeZone: String? = nil) -> Date? {
         let dateFormatter = DateFormatter()
         dateFormatter.dateFormat = format
-        
+        if let timeZone {
+            dateFormatter.timeZone = TimeZone(identifier: timeZone)
+        }
+        let appLanguage = TRPClient.shared.language
+        if appLanguage == "en" {
+            dateFormatter.locale = Locale(identifier: "en_US_POSIX")
+        } else {
+            dateFormatter.locale = Locale(identifier: appLanguage)
+        }
         return dateFormatter.date(from: self)
     }
 

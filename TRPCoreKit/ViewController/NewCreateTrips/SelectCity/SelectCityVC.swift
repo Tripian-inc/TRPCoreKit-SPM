@@ -57,7 +57,7 @@ extension SelectCityVC: UITableViewDelegate, UITableViewDataSource{
         tableView.tableFooterView = UIView()
         tableView.rowHeight = 50
         tableView.register(cellClass: UITableViewCell.self)
-        tableView.separatorStyle = .singleLine
+        tableView.separatorStyle = .none
     }
     
     //Section count
@@ -69,7 +69,8 @@ extension SelectCityVC: UITableViewDelegate, UITableViewDataSource{
         let vw = SelectCitySectionView()
 //        lbl.translatesAutoresizingMaskIntoConstraints = false
         let continentName = viewModel.getSectionTitle(index: section)
-        vw.configureData(continentName: continentName)
+        let continentSlug = viewModel.getSectionSlug(index: section)
+        vw.configureData(continentName: continentName, continentSlug: continentSlug)
         return vw
     }
 

@@ -44,6 +44,21 @@ public class TRPPlanRemoteApi: PlanRemoteApi {
         }
     }
     
+    public func updatePlanStepOrder(planId: Int, stepOrders: [Int], completion: @escaping (PlanResultValue) -> Void) {
+        
+        TRPRestKit().updateDailyPlanStepOrders(dailyPlanId: planId, stepOrders: stepOrders) { result, error in
+            if let error = error {
+                completion(.failure(error))
+                return
+            }
+            
+            if let result = result as? TRPPlansInfoModel {
+                let converted = PlanMapper().map(result)
+                completion(.success(converted))
+            }
+        }
+    }
+    
     public func exportPlanMap(planId: Int, tripHash: String, completion: @escaping (PlanExportResultValue) -> Void) {
         
         TRPRestKit().exportPlanMap(planId: planId, tripHash: tripHash) { result, error in

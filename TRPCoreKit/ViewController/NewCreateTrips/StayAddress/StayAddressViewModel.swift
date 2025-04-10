@@ -84,7 +84,7 @@ class StayAddressViewModel {
     }
     
     func searchMeetingPoint() {
-        if let meetingPoint = self.meetingPoint {
+        if let meetingPoint = self.meetingPoint?.trimmingCharacters(in: .whitespacesAndNewlines), !meetingPoint.isEmpty {
             searchAddress(text: meetingPoint)
         }
     }
@@ -99,7 +99,7 @@ class StayAddressViewModel {
     }
     
     public func searchAddress(text: String)  {
-        guard let apiKey = googleApiKey else {
+        guard let apiKey = googleApiKey, !text.isEmpty else {
             Log.e("TRPGooglePlaceApi can not found")
             return
         }

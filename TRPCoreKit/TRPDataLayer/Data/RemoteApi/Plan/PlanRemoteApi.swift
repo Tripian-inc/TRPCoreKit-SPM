@@ -18,6 +18,11 @@ public protocol PlanRemoteApi {
                        end: String,
                        completion: @escaping (PlanResultValue) -> Void)
     
+    
+    func updatePlanStepOrder(planId: Int,
+                             stepOrders: [Int],
+                             completion: @escaping (PlanResultValue) -> Void)
+    
     func exportPlanMap(planId: Int,
                        tripHash: String,
                        completion: @escaping (PlanExportResultValue) -> Void)

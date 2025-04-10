@@ -11,10 +11,27 @@ import Foundation
 
 public class TRPStepRemoteApi: StepRemoteApi {
     
+    
     public init() {}
     
     public func addStep(planId: Int, poiId: String, completion: @escaping (StepResultValue) -> Void) {
         TRPRestKit().addStep(planId: planId, poiId: poiId) { result, error in
+            if let error = error {
+                completion(.failure(error))
+                return
+            }
+            if let result = result as? TRPStepInfoModel {
+                if let converted = StepMapper().map(result, planId: planId) {
+                    completion(.success(converted))
+                }else {
+                    print("[Error] Step model couldn't convert")
+                }
+            }
+        }
+    }
+    
+    public func addCustomStep(planId: Int, name: String, address: String, description: String, photoUrl: String?, web: String?, latitude: Double?, longitude: Double?, completion: @escaping (StepResultValue) -> Void) {
+        TRPRestKit().addCustomStep(planId: planId, name: name, address: address, description: description, photoUrl: photoUrl, web: web, latitude: latitude, longitude: longitude) { result, error in
             if let error = error {
                 completion(.failure(error))
                 return
@@ -44,6 +61,22 @@ public class TRPStepRemoteApi: StepRemoteApi {
     
     public func editStep(id: Int, poiId: String,  completion: @escaping (StepResultValue) -> Void) {
         TRPRestKit().editStep(stepId: id, poiId: poiId) { result, error in
+            if let error = error {
+                completion(.failure(error))
+                return
+            }
+            if let result = result as? TRPStepInfoModel {
+                if let converted = StepMapper().map(result) {
+                    completion(.success(converted))
+                }else {
+                    print("[Error] Step model couldn't convert")
+                }
+            }
+        }
+    }
+    
+    public func editStep(id: Int, startTime: String, endTime: String, completion: @escaping (StepResultValue) -> Void) {
+        TRPRestKit().editStep(stepId: id, startTime: startTime, endTime: endTime) { result, error in
             if let error = error {
                 completion(.failure(error))
                 return

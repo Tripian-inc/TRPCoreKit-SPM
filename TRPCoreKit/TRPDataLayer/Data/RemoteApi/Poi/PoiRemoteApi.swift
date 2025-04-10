@@ -26,5 +26,7 @@ public protocol PoiRemoteApi {
     
     func fetchPoi(url: String,
              completion: @escaping (PoiResultsValue) -> Void)
+    
+    func fetchPoiCategories(completion: @escaping (PoiCategoriesResultValue) -> Void)
 }
 

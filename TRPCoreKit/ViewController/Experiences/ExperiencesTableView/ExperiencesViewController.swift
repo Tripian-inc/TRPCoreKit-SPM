@@ -133,6 +133,7 @@ extension ExperiencesViewController: UITableViewDelegate, UITableViewDataSource 
             if let url = URL(string: model.image){
                 cell.imgTOur.sd_setImage(with: url, placeholderImage: nil)
             }
+            cell.svPrice.isHidden = model.price.isEmpty
             cell.lblFrom.text = TRPLanguagesController.shared.getLanguageValue(for: "trips.myTrips.itinerary.step.addToItinerary.from")
             cell.lblPerson.text = TRPLanguagesController.shared.getLanguageValue(for: "trips.myTrips.localExperiences.tourDetails.experience.perPerson")
             cell.lblPrice.text = model.price

@@ -21,14 +21,16 @@ var globalNavBarShadow: UIImage?
 public protocol TRPTripModeVCDelegate: AnyObject {
     func trpTripModeViewControllerOpenPlaces(_ viewController: UIViewController)
     func trpTripModeViewControllerOpenFavorites(_ viewController: UIViewController)
-    func trpTripModeViewControllerOpenExperience(_ viewController: UIViewController)
+    func trpTripModeViewControllerOpenExperience(_ viewController: UIViewController, startDate: String?, endDate: String?)
     func trpTripModeViewControllerOpenBooking(_ viewController: UIViewController)
     func trpTripModeViewControllerOpenItinerary(_ viewController: UIViewController)
     func trpTripModeViewControllerPoiDetail(_ viewController: UIViewController, poi: TRPPoi, parentStep: TRPStep?)
     func trpTripModeViewControllerClearAndEditTrip(_ completionHandler: (_ competed: Bool) -> Void )
     func trpTripModeViewControllerIsMovingFrom()
     func trpTripModeViewControllerOpenMyOffers(_ viewController: UIViewController)
+    func trpTripModeViewControllerOpenCateogrySelect(_ viewController: UIViewController)
     func trpTripModeViewControllerSetDestinationIdAndName(destinationId: Int, cityEngName: String)
+    func trpTripModeViewControllerSetPlanDate(planDate: String)
 }
 
 //Kullanici baska sehirdeyse ve kendi lokasyonuna tikladiysa, mevcut rotasindan uzaklasiyor.
@@ -60,10 +62,15 @@ public class TRPTripModeVC: TRPBaseUIViewController {
             alternativesBtn.setImage(TRPImageController().getImage(inFramework: imageName, inApp: nil)!, for: .normal)
         }
     }
-    private var nexusToursAdded = false {
+    private var nexusToursAdded = false //{
+//        didSet {
+//            let imageName = nexusToursAdded ? "icon_nexus" : "icon_nexus"
+//            nexusToursBtn.setImage(TRPImageController().getImage(inFramework: imageName, inApp: nil)!, for: .normal)
+//        }
+//    }
+    private var isNexusToursFetching = false {
         didSet {
-            let imageName = nexusToursAdded ? "icon_nexus" : "icon_nexus"
-            nexusToursBtn.setImage(TRPImageController().getImage(inFramework: imageName, inApp: nil)!, for: .normal)
+            blackTabbar.isUserInteractionEnabled = !isNexusToursFetching
         }
     }
     private var isUserLocationCentered = false {
@@ -154,28 +161,36 @@ public class TRPTripModeVC: TRPBaseUIViewController {
     
     
     
-    override public func viewWillAppear(_ animated: Bool) {
-        super.viewWillAppear(animated)
-        tapGestureRecognizer = UITapGestureRecognizer(target:self, action: #selector(self.navigationBarTapped(_:)))
-        self.navigationController?.navigationBar.addGestureRecognizer(tapGestureRecognizer)
-        tapGestureRecognizer.cancelsTouchesInView = false
-        
-        mapStatus = .mapIsReady
-        self.navigationController?.navigationBar.topItem?.title = ""
-        //Note: data elinde olduğu için önceden yükleniyor
-    }
+//    override public func viewWillAppear(_ animated: Bool) {
+//        super.viewWillAppear(animated)
+//        tapGestureRecognizer = UITapGestureRecognizer(target:self, action: #selector(self.navigationBarTapped(_:)))
+//        self.navigationController?.navigationBar.addGestureRecognizer(tapGestureRecognizer)
+//        tapGestureRecognizer.cancelsTouchesInView = false
+//        
+//        mapStatus = .mapIsReady
+//        self.navigationController?.navigationBar.topItem?.title = ""
+//        //Note: data elinde olduğu için önceden yükleniyor
+//    }
     
     public override func viewDidAppear(_ animated: Bool) {
         if !didViewLoad {
             didViewLoad.toggle()
             delegate?.trpTripModeViewControllerClearAndEditTrip({ _ in})
+            setupTRPMap()
             viewModel.start()
+            
+            tapGestureRecognizer = UITapGestureRecognizer(target:self, action: #selector(self.navigationBarTapped(_:)))
+            self.navigationController?.navigationBar.addGestureRecognizer(tapGestureRecognizer)
+            tapGestureRecognizer.cancelsTouchesInView = false
+            
+            mapStatus = .mapIsReady
+            self.navigationController?.navigationBar.topItem?.title = ""
         }
     }
     
     public override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
-        self.navigationController?.navigationBar.removeGestureRecognizer(tapGestureRecognizer)
+//        self.navigationController?.navigationBar.removeGestureRecognizer(tapGestureRecognizer)
         if isMovingFromParent {
             self.delegate?.trpTripModeViewControllerIsMovingFrom()
         }
@@ -386,7 +401,7 @@ extension TRPTripModeVC {
         var readableDay = ""
         if let mainDate = dateStr.toDate(format: "yyyy-MM-dd"){
             dayChanged = (mainDate,true)
-            readableDay = mainDate.toString(format: "MMM d", locale: TRPClient.shared.language)
+            readableDay = mainDate.toString(format: "MMM d")
         }
         let dayS = TRPLanguagesController.shared.getLanguageValue(for: "trips.myTrips.itinerary.day")
         let navTitle = CustomNavTitle()
@@ -464,7 +479,8 @@ extension TRPTripModeVC {
                 strongSelf.delegate?.trpTripModeViewControllerOpenItinerary(strongSelf)
             case .experiences: ()
 //                stronSelf.showMessage("Juniper Tours will be implemented soon.", type: .info)
-                strongSelf.delegate?.trpTripModeViewControllerOpenExperience(strongSelf)
+                let planDate = strongSelf.viewModel.getDailyPlanStartEndDate()
+                strongSelf.delegate?.trpTripModeViewControllerOpenExperience(strongSelf, startDate: planDate.startDate, endDate: planDate.endDate)
 //            case .offer:
 //                NotificationCenter.default.post(name: Notification.Name("TripianOpenOfferVC"), object: self, userInfo: ["vc": stronSelf, "cityId": stronSelf.viewModel.city.id])
             case .favourite:
@@ -538,12 +554,16 @@ extension TRPTripModeVC: TRPMapViewDelegate {
         let lon = viewModel.startLocation.lon
         let startLocation = LocationCoordinate(lat:lat, lon:lon)
         
+        if map == nil {
+            map = TRPMapView(frame: CGRect(x: 0, y: 0, width: mapContainer.frame.width + 50, height: mapContainer.frame.height + 70), startLocation: startLocation,zoomLevel:12)
+            mapContainer.backgroundColor = UIColor.white
+            map!.delegate = self
+            map!.showUserLocation = false
+            mapContainer.addSubview(map!)
+        } else {
+            map?.frame = CGRect(x: 0, y: 0, width: mapContainer.frame.width + 50, height: mapContainer.frame.height + 70)
+        }
         //todo: bottomtabbar çıkarılmayacak. orada bi sorun var
-        mapContainer.backgroundColor = UIColor.white
-        map = TRPMapView(frame: CGRect(x: 0, y: 0, width:mapContainer.frame.width + 50, height: mapContainer.frame.height + 70), startLocation: startLocation,zoomLevel:12)
-        mapContainer.addSubview(map!)
-        map!.delegate = self
-        map!.showUserLocation = false
         print("[Info] MapContaioner2 \(mapContainer.frame.height)")
     }
     
@@ -601,16 +621,8 @@ extension TRPTripModeVC: TRPMapViewDelegate {
         if let name = poi.categories.first?.name {
             category = name
         }
-        let raitingIsShow = TRPAppearanceSettings.ShowRating.type.contains { (category) -> Bool in
-            if let id = poi.categories.first?.id {
-                if category.getId() == id {
-                    return true
-                }
-            }
-            return false
-        }
-        var raiting = raitingIsShow ? poi.rating : 0
-        raiting = raiting?.rounded()
+        var rating = poi.isRatingAvailable() ? poi.rating ?? 0 : 0
+        rating = rating.rounded()
         
         var rightButton: AddRemoveNavButtonStatus? = nil
         if poi.placeType == .poi {
@@ -620,24 +632,38 @@ extension TRPTripModeVC: TRPMapViewDelegate {
         let poiRating = poi.rating ?? 0
         let poiPrice = poi.price ?? 0
         
-        let callOutCell: CallOutCellMode = CallOutCellMode(id: poi.id,
-                                                           name: poi.name,
-                                                           poiCategory: category,
-                                                           startCount: Float(raiting ?? 0),
-                                                           reviewCount: Int(raitingIsShow ? poiRating : 0),
-                                                           price: poiPrice,
-                                                           rightButton: rightButton)
+        let callOutCell = CallOutCellModel(id: poi.id,
+                                           name: poi.name,
+                                           poiCategory: category,
+                                           starCount: Float(rating),
+                                           reviewCount: Int(poiRating),
+                                           price: poiPrice,
+                                           rightButton: rightButton)
         changeYpositionOfCallOut()
         
         callOutController?.cellPressed = { [weak self] id, inRoute in
             guard let strongSelf = self else {return}
             strongSelf.callOutController?.hidden()
             if id == TRPPoi.ACCOMMODATION_ID {return}
-            strongSelf.viewModel.getPoiInfo(id) { poi in
-                if poi == nil {return}
-                if poi!.placeType == TRPPoi.PlaceType.poi {
-                    strongSelf.delegate?.trpTripModeViewControllerPoiDetail(strongSelf, poi: poi!, parentStep: nil)
-                }
+            if poi.isCustomPoi() {
+                guard let url = strongSelf.viewModel.getCustomPoiUrl(poi: poi) else {return}
+                
+                UIApplication.shared.open(url)
+                return
+            }
+            if poi.placeType == TRPPoi.PlaceType.poi {
+                strongSelf.delegate?.trpTripModeViewControllerPoiDetail(strongSelf, poi: poi, parentStep: nil)
+            }
+        }
+        
+        callOutController?.action =  { [weak self] status, id in
+            guard let strongSelf = self else {return}
+            guard let strongCallOut = strongSelf.callOutController else {return}
+            strongCallOut.hidden()
+            if status == .remove {
+                strongSelf.viewModel.removePoiInRoute(poiId: id)
+            }else if status == .add {
+                strongSelf.viewModel.addPoiInRoute(poiId: id)
             }
         }
         callOutController?.show(model: callOutCell)
@@ -663,13 +689,13 @@ extension TRPTripModeVC: TRPMapViewDelegate {
     private func openCallOutForNexus(_ tour: JuniperProduct) {
         let category = tour.getCategories()
         
-        let callOutCell: CallOutCellMode = CallOutCellMode(id: tour.code,
-                                                           name: tour.serviceInfo?.name ?? "",
-                                                           poiCategory: category,
-                                                           startCount: 0,
-                                                           reviewCount: 0,
-                                                           price: 0,
-                                                           rightButton: AddRemoveNavButtonStatus.none)
+        let callOutCell: CallOutCellModel = CallOutCellModel(id: tour.code,
+                                                             name: tour.serviceInfo?.name ?? "",
+                                                             poiCategory: category,
+                                                             starCount: 0,
+                                                             reviewCount: 0,
+                                                             price: 0,
+                                                             rightButton: AddRemoveNavButtonStatus.add)
         changeYpositionOfCallOut()
         
         callOutController?.cellPressed = { [weak self] id, inRoute in
@@ -678,6 +704,13 @@ extension TRPTripModeVC: TRPMapViewDelegate {
             if let productUrl = strongSelf.viewModel?.getJuniperTourUrl(from: id) {
                 UIApplication.shared.open(productUrl)
             }
+        }
+        
+        callOutController?.action =  { [weak self] status, id in
+            guard let strongSelf = self else {return}
+            guard let strongCallOut = strongSelf.callOutController else {return}
+            strongCallOut.hidden()
+            strongSelf.viewModel.addNexusPoiInRoute(productId: id)
         }
         callOutController?.show(model: callOutCell)
         callOutController?.getCellImageView()?.image = nil
@@ -733,8 +766,13 @@ extension TRPTripModeVC {
 
 extension TRPTripModeVC: TRPTripModeViewModelDelegate {
     public func viewModelNexusToursFetched(_ tours: [JuniperProduct]) {
-        selectTypeOfNexusTourSearch()
-//        showNexusTours(tours: tours)
+//        selectTypeOfNexusTourSearch()
+        isNexusToursFetching = false
+        showNexusTours(tours: tours)
+    }
+    public func viewModelNexusToursError(_ message: String) {
+        isNexusToursFetching = false
+        EvrAlertView.showAlert(contentText: message, type: .error)
     }
     
     public func setDestinationIdAndEngName(_ id: Int, cityEngName: String) {
@@ -754,6 +792,7 @@ extension TRPTripModeVC: TRPTripModeViewModelDelegate {
     
     public func viewModelCurrentDayChanged(_ currentDay: TRPPlan, order: Int) {
         setDayTitle(day: order + 1, date: currentDay.date)
+        delegate?.trpTripModeViewControllerSetPlanDate(planDate: currentDay.date)
     }
     
     public func viewModelShowInfoMessage(_ message: String) {
@@ -785,6 +824,8 @@ extension TRPTripModeVC: TRPTripModeViewModelDelegate {
         map.removeRoute(style: TRPMapView.DrawRouteStyle.runtime)
         map.removePointsForAlternative(styleAnnotation: TRPMapView.StyleAnnotatoin.searchThisAreaPois)
         map.removePointsForAlternative(styleAnnotation: TRPMapView.StyleAnnotatoin.alternativePois)
+        viewModel.clearJuniperTours()
+        hideNexusTours()
     }
     
     
@@ -804,6 +845,9 @@ extension TRPTripModeVC: TRPTripModeViewModelDelegate {
 //            }
             if element.isBookingAvailable(providerId: 7) {
                 iconTag += "WithTour"
+            }
+            if element.isCustomPoi() {
+                iconTag = "NexusTourStep"
             }
             customAno.imageName = TRPAppearanceSettings.MapAnnotations.getIcon(tag: iconTag, type: .route)
             //Hotel adresi varsa tespit eder.
@@ -875,7 +919,7 @@ extension TRPTripModeVC: ListOfRoutingPoisVCDelegate {
     
     
     public func listOfRoutingStepReOrder(_ step: TRPStep, newOrder: Int) {
-        viewModel.stepReOrder(stepId: step.id, newOrder: newOrder)
+        viewModel.stepReOrder(step: step, newOrder: newOrder)
     }
     //TODO: REMOVE
     public func listOfRoutingShowStepAlternative(step: TRPStep) {
@@ -1071,36 +1115,7 @@ extension TRPTripModeVC {
     }
     
     private func selectTypeOfSearchProperty() {
-        let alertController = UIAlertController(title: nil, message: nil, preferredStyle: UIAlertController.Style.actionSheet)
-        
-        let restaurant = SearchAreaTypes(name: TRPPoiCategory.restaurants.getSingler(), ids: [TRPPoiCategory.restaurants.getId()])
-        let cafes = SearchAreaTypes(name: TRPPoiCategory.cafes.getSingler(), ids: [TRPPoiCategory.cafes.getId()])
-        
-        let attractionTypes = AddPlaceMenu.attractions.addPlaceType().subTypes
-        let attraction = SearchAreaTypes(name: TRPPoiCategory.attractions.getSingler(), ids:attractionTypes)
-        
-        let all = SearchAreaTypes(name: TRPLanguagesController.shared.getLanguageValue(for: "all"), ids: [])
-        let types = [restaurant, cafes, attraction, all]
-        
-        let actionButtonHandler = { (index:Int) in
-            { [weak self](action: UIAlertAction!) -> Void in
-                guard let strongSelf = self else {
-                    return
-                }
-                strongSelf.searchPoi(types: types[index].ids)
-            }
-        }
-        
-        for (index, type) in types.enumerated() {
-            let button = UIAlertAction(title: "\(type.name)", style: UIAlertAction.Style.default, handler: actionButtonHandler(index))
-            alertController.addAction(button)
-        }
-        let cancelButton = UIAlertAction(title: TRPLanguagesController.shared.getCancelBtnText(), style: UIAlertAction.Style.cancel) { [weak self] (action) in
-            self?.searchAreaBtn?.isHidden = true
-        }
-        cancelButton.setValue(TRPAppearanceSettings.Common.cancelButtonColor, forKey: "titleTextColor")
-        alertController.addAction(cancelButton)
-        present(alertController, animated: true, completion: nil)
+        delegate?.trpTripModeViewControllerOpenCateogrySelect(self)
     }
     
     fileprivate func searchPoi(types: [Int]? = nil) {
@@ -1139,18 +1154,32 @@ extension TRPTripModeVC {
     
 }
 
+extension TRPTripModeVC: PoiCategoryVCDelegate {
+    func poiCategoryAllCategories(_ categories: [TRPPoiCategory]) {
+        
+    }
+    
+    func poiCategorySelectedCategories(_ selectedCategories: [TRPPoiCategory]) {
+        searchPoi(types: selectedCategories.getIds())
+    }
+}
 
 //MARK: - Nexus Tours
 extension TRPTripModeVC {
     
+    func hideNexusTours() {
+        map?.removePointsForNexusTours(styleAnnotation: TRPMapView.StyleAnnotatoin.nexusTours)
+        nexusToursAdded = false
+//            map.addPointsForNexusTours([], styleAnnotation: TRPMapView.StyleAnnotatoin.nexusTours, clickAble: true)
+    }
     
     func showHideNexusTours() {
-        guard let map = map else {return}
-        if nexusToursAdded == false {
+        if !nexusToursAdded {
+            isNexusToursFetching = true
             viewModel.fetchJuniperTours()
+            nexusToursAdded = true
         }else {
-            map.addPointsForNexusTours([], styleAnnotation: TRPMapView.StyleAnnotatoin.nexusTours, clickAble: true)
-            nexusToursAdded.toggle()
+            hideNexusTours()
         }
     }
     
@@ -1161,7 +1190,6 @@ extension TRPTripModeVC {
         }
         guard let map = map else {return}
         map.addPointsForNexusTours(tours, styleAnnotation: TRPMapView.StyleAnnotatoin.nexusTours, clickAble: true)
-        nexusToursAdded.toggle()
     }
     
     private func selectTypeOfNexusTourSearch() {

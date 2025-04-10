@@ -80,14 +80,7 @@ public class PlaceDetailViewModel1 {
     
     var isRatingAvaliable : Bool {
         get {
-            let raitingIsShow = TRPAppearanceSettings.ShowRating.type.contains { (category) -> Bool in
-                guard let placeCategoty = place.categories.first else {return false}
-                if category.getId() == placeCategoty.id {
-                    return true
-                }
-                return false
-            }
-            if raitingIsShow && place.ratingCount != 0 {
+            if place.rating != nil && place.ratingCount != 0 {
                 return true
             }
             return false

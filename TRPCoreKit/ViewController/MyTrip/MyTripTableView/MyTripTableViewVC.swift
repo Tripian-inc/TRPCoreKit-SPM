@@ -28,11 +28,7 @@ public class MyTripTableViewVC: TRPBaseUIViewController {
     
     @IBOutlet var tb: EvrTableView!
     private var heightUpdated: Bool = false
-    private var isDataLoaded = false {
-        didSet {
-            self.setTableViewEmptyText()
-        }
-    }
+    private var isDataLoaded = false
     
     private var isViewShowNow = false {
         didSet {
@@ -58,7 +54,6 @@ public class MyTripTableViewVC: TRPBaseUIViewController {
         myTripRefreshControl!.attributedTitle = NSAttributedString(string: TRPLanguagesController.shared.getLanguageValue(for: "pull_to_refresh"))
         myTripRefreshControl!.addTarget(self, action: #selector(refreshData), for: UIControl.Event.valueChanged)
         setupTableView()
-        setTableViewEmptyText()
         tb.addSubview(myTripRefreshControl!);
     }
     
@@ -183,7 +178,11 @@ extension MyTripTableViewVC: UITableViewDelegate, UITableViewDataSource, EvrTabl
     }
     
     public func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return viewModel.numberOfCells
+        let cellCount = viewModel.numberOfCells
+        if cellCount < 1 {
+            setTableViewEmptyText()
+        }
+        return cellCount
     }
     
     public func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {

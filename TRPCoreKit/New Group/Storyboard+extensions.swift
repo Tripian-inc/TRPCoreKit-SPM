@@ -32,6 +32,7 @@ enum Storyboard: String {
     case createTripPersonalizeTrip = "CreateTripPersonalizeTrip"
     case experience = "Experience"
     case popup = "Popup"
+    case poiCategory = "PoiCategory"
 }
 
 extension UIStoryboard {
@@ -80,6 +81,17 @@ extension UIStoryboard {
     
     class func makeItineraryViewController() -> ItineraryViewController {
         return load(from: .itinerary, identifier: "ItineraryViewController") as! ItineraryViewController
+    }
+    
+    class func makeItineraryChangeTimeViewController() -> ItineraryChangeTimeVC {
+        let selectHourVC = load(from: .itinerary, identifier: "ItineraryChangeTimeVC") as! ItineraryChangeTimeVC
+        selectHourVC.modalPresentationStyle = .pageSheet
+        if #available(iOS 15.0, *) {
+            if let sheet = selectHourVC.sheetPresentationController {
+                sheet.detents = [.medium()]
+            }
+        }
+        return selectHourVC
     }
     
     class func makeSelectCityViewController() -> SelectCityVC {
@@ -143,6 +155,18 @@ extension UIStoryboard {
     class func makeChangePasswordViewController() -> ChangePasswordViewController {
         let vc = load(from: .userProfile, identifier: "ChangePasswordViewController") as! ChangePasswordViewController
         vc.modalPresentationStyle = .overCurrentContext
+        return vc
+        
+    }
+    
+    class func makePoiCategoryViewController() -> PoiCategoryVC {
+        let vc = load(from: .poiCategory, identifier: "PoiCategoryVC") as! PoiCategoryVC
+        vc.modalPresentationStyle = .pageSheet
+        if #available(iOS 15.0, *) {
+            if let sheet = vc.sheetPresentationController {
+                sheet.detents = [.large()]
+            }
+        }
         return vc
         
     }

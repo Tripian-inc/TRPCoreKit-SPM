@@ -23,6 +23,11 @@ public protocol PlanRepository {
                        completion: @escaping (PlanResultValue) -> Void)
     
     
+    func editPlanStepOrder(planId: Int,
+                           stepOrders: [Int],
+                           completion: @escaping (PlanResultValue) -> Void)
+    
+    
     func exportItinerary(planId: Int,
                          tripHash:String,
                          completion: @escaping (PlanExportResultValue) -> Void)

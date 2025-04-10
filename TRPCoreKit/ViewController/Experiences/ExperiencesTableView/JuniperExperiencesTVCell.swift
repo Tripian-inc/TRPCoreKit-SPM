@@ -16,6 +16,7 @@ class JuniperExperiencesTVCell: UITableViewCell {
     @IBOutlet weak var lblFrom: UILabel!
     @IBOutlet weak var lblPrice: UILabel!
     @IBOutlet weak var lblPerson: UILabel!
+    @IBOutlet weak var svPrice: UIStackView!
     
     override func awakeFromNib() {
         imgTOur.layer.masksToBounds = true
@@ -25,7 +26,7 @@ class JuniperExperiencesTVCell: UITableViewCell {
         lblTitle.font = trpTheme.font.title2
         lblTitle.textColor = trpTheme.color.subMain
         
-        lblCategory.font = trpTheme.font.caption
+        lblCategory.font = trpTheme.font.regular10
         lblCategory.textColor = trpTheme.color.tripianPrimary
         
         lblFrom.font = trpTheme.font.caption

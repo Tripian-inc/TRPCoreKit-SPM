@@ -193,3 +193,15 @@ class TRPBtnPopupCancel: TRPBtnPopup {
 //        tintColor = appTheme.color.white
     }
 }
+
+class TRPBtnSmall: TRPBtn {
+    
+    fileprivate override func setupUI() {
+        super.setupUI()
+        layer.cornerRadius = 15
+        setTitleColor(.white, for: .normal)
+        titleLabel?.font = trpTheme.font.semiBold12
+        titleEdgeInsets = UIEdgeInsets(top: 0, left: 12, bottom: 0, right: 12)
+//        tintColor = appTheme.color.white
+    }
+}

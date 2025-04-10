@@ -23,21 +23,31 @@ class ItineraryUIModel {
     var reaction: TRPUserReactionType? = nil
     var image: URL? = nil
     var star: Int = 0
+    var rating: Float = 0.0
     var category: String = ""
     var isHotel = false
     var canReplace = true
+    var startTime: String = ""
+    var endTime: String = ""
+    var isProduct: Bool = false
+    var bookingUrl: String? = nil
     var bookingProduct: TRPBookingProduct? = nil
     
-    init(poi: TRPPoi, order: Int) {
+    init(step: TRPStep, order: Int) {
         self.order = order
-        self.poiId = poi.id
-        self.poiName = poi.name
-        self.price = poi.price ?? 0
-        self.reviewCount = poi.ratingCount ?? 0
-        self.star = Int((poi.rating ?? 0.0).rounded())
-        self.category = poi.categories.first?.name ?? ""
-        self.isHotel = poi.placeType == .hotel ? true : false
-        self.bookingProduct = getBooking(poi: poi, providerId: 7) // JUNIPER
+        self.poiId = step.poi.id
+        self.poiName = step.poi.name
+        self.price = step.poi.price ?? 0
+        self.reviewCount = step.poi.ratingCount ?? 0
+        self.rating = step.poi.rating ?? 0.0
+        self.star = Int((step.poi.rating ?? 0.0).rounded())
+        self.category = step.poi.categories.first?.name ?? ""
+        self.isHotel = step.isHotelPoi()
+        self.startTime = step.times?.from ?? ""
+        self.endTime = step.times?.to ?? ""
+        self.isProduct = step.poi.isCustomPoi()
+        self.bookingProduct = getBooking(poi: step.poi, providerId: 7) // JUNIPER
+        self.bookingUrl = step.poi.additionalData?.bookingUrl
     }
     
     init(poiId: String, poiName: String, order: Int) {

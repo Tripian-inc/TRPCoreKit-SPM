@@ -18,13 +18,17 @@ final class TRPStepServices: TRPRestServices<TRPGenericParser<TRPStepInfoModel>>
     private var poiId: String?
     private var order: Int?
     private var planId: Int?
+    private var startTime: String?
+    private var endTime: String?
     private let serviceType: ServiceType
     
     //Edit Step
-    init(stepId: Int, poiId: String? = nil, order: Int? = nil) {
+    init(stepId: Int, poiId: String? = nil, order: Int? = nil, startTime: String? = nil, endTime: String? = nil) {
         self.stepId = stepId
         self.poiId = poiId
         self.order = order
+        self.startTime = startTime
+        self.endTime = endTime
         self.serviceType = .edit
     }
     
@@ -62,6 +66,12 @@ final class TRPStepServices: TRPRestServices<TRPGenericParser<TRPStepInfoModel>>
             }
             if let order = order {
                 params["order"] = order
+            }
+            if let startTime = startTime {
+                params["startTime"] = startTime
+            }
+            if let endTime = endTime {
+                params["endTime"] = endTime
             }
         }
         return params

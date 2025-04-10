@@ -22,6 +22,8 @@ final class TRPExperiencesCoordinater {
     private let cityName: String
     private let destinationId: Int
     private var tourId: Int?
+    private var startDate: String?
+    private var endDate: String?
     
     private(set) var currentViewState: ViewState = .experince {
         didSet {
@@ -45,11 +47,13 @@ final class TRPExperiencesCoordinater {
         return useCases
     }()
     
-    init(navigationController: UINavigationController, cityName: String, destinationId: Int, tourId: Int?) {
+    init(navigationController: UINavigationController, cityName: String, destinationId: Int, tourId: Int?, startDate: String?, endDate: String?) {
         self.navigationController = navigationController
         self.cityName = cityName
         self.destinationId = destinationId
         self.tourId = tourId
+        self.startDate = startDate
+        self.endDate = endDate
     }
     
     func start() {
@@ -91,7 +95,7 @@ final class TRPExperiencesCoordinater {
 extension TRPExperiencesCoordinater: ExperiencesViewControllerDelegate {
     
      private func makeExperience() -> UIViewController? {
-        let viewModel = ExperiencesViewModel(cityName: cityName, destinationId: destinationId)
+         let viewModel = ExperiencesViewModel(cityName: cityName, destinationId: destinationId, startDate: startDate, endDate: endDate)
         viewModel.tripModeUseCase = tripModeUseCases
         let viewController = UIStoryboard.makeExperienceViewController()// ExperiencesViewController(viewModel: viewModel)
         viewController.setViewModel(viewModel: viewModel)

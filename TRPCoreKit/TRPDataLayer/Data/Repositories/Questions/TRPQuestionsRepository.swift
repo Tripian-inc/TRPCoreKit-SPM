@@ -22,7 +22,7 @@ final public class TRPQuestionsRepository: QuestionsRepository {
     
     public func fetchQuestions(type: QuestionCategory, completion: @escaping (QuestionsResultsValue) -> Void) {
         
-        remoteApi.fetchQuestions(type: type, language: Locale.current.languageCode ?? "en") { (result) in
+        remoteApi.fetchQuestions(type: type) { (result) in
             switch(result){
             case .success(let questions):
                 completion(.success(questions))

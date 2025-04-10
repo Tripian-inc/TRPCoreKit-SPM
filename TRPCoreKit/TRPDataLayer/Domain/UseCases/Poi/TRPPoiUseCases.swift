@@ -368,3 +368,13 @@ extension TRPPoiUseCases: FetchPoiWithMustTries {
     
     
 }
+
+extension TRPPoiUseCases: FetchPoiCategoriesUseCase {
+    
+    public func executeFetchPoiCategories(completion: ((Result<[TRPPoiCategoyGroup], Error>) -> Void)?) {
+        let onComplete = completion ?? { result in }
+        poiRepository.fetchPoiCategories { result in
+            onComplete(result)
+        }
+    }
+}

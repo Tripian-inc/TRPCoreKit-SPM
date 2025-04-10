@@ -12,6 +12,7 @@ import Foundation
 
 public class CitycontinentModel {
     public var continentName: String = ""
+    public var continentSlug: String = ""
     public var cities: [SelectCityCellModel]  = []
 }
 
@@ -25,6 +26,7 @@ public class SelectCityViewModel {
     
     private var isFiltering: Bool = false
     private var filteredDatas = [CitycontinentModel]()
+    private var cities = [TRPCity]()
     private var datas = [CitycontinentModel]() {
         didSet {
             DispatchQueue.main.async {
@@ -53,8 +55,9 @@ public class SelectCityViewModel {
             self?.delegate?.viewModel(showPreloader: false)
             switch(result) {
             case .success(let cities):
-                let cityWithContinent = self?.createContinientArray(cities:cities)
+                let cityWithContinent = self?.createContinientArray(cities: cities)
                 self?.datas = cityWithContinent ?? []
+                self?.cities = cities
             case .failure(let error):
                 self?.delegate?.viewModel(error: error)
             }
@@ -89,6 +92,13 @@ public class SelectCityViewModel {
         return datas[index].continentName
     }
     
+    public func getSectionSlug(index: Int) -> String {
+        if isFiltering {
+            return filteredDatas[index].continentSlug
+        }
+        return datas[index].continentSlug
+    }
+    
     public func getCity(indexPath: IndexPath) -> SelectCityCellModel{
         if isFiltering {
             return filteredDatas[indexPath.section].cities[indexPath.row]
@@ -98,12 +108,12 @@ public class SelectCityViewModel {
     
     public func getCityName(indexPath: IndexPath) -> String {
         let city = getCity(indexPath: indexPath)
-        var cityName = city.name
-        let parentCity = city.city.parentLocations.first?.name
-        if !(parentCity?.isEmpty ?? true) {
-            cityName += " (in \(parentCity))"
-        }
-        return cityName
+//        var cityName = city.name
+//        let parentCity = city.city.parentLocations.first?.name
+//        if !(parentCity?.isEmpty ?? true) {
+//            cityName += " (in \(parentCity))"
+//        }
+        return city.name
     }
     
     public func getData() -> [CitycontinentModel]{
@@ -113,35 +123,32 @@ public class SelectCityViewModel {
     public func isOnlyOneCity() -> Bool {
         return datas.count == 1 && datas[0].cities.count == 1
     }
-    
-//    public func getFirstCity() -> SelectCityCellModel {
-//        return getCity(indexPath: IndexPath(row: 0, section: 0))
-//    }
 
     
     /// Sehir verileri ile kıta verilerini eşleştirir. Sehirleri kıtalara göre ayırır.
     /// - Parameter cities: TRPCity array
     /// - Returns: Continent ve city birleştirilmiş hali.
     private func createContinientArray(cities: [TRPCity]) -> [CitycontinentModel] {
-
-        var cityWithContinient = [CitycontinentModel]()
+        
+        var cityWithContinent = [CitycontinentModel]()
         let sortedCities = cities.sorted(by: {$0.name < $1.name})
         for city in sortedCities {
             
             let cellModel = SelectCityCellModel(cityId: city.id, name: city.name, city: city)
-            if let continientOfCity = city.countryContinents.first {
-                if let continient = cityWithContinient.first(where: {$0.continentName == continientOfCity}) {
-                    continient.cities.append(cellModel)
-                }else {
+            if let continentOfCity = city.continent {
+                if let continent = cityWithContinent.first(where: {$0.continentSlug == continentOfCity.slug}) {
+                    continent.cities.append(cellModel)
+                } else {
                     let section = CitycontinentModel()
-                    section.continentName = continientOfCity
+                    section.continentName = continentOfCity.name ?? ""
+                    section.continentSlug = continentOfCity.slug ?? ""
                     section.cities.append(cellModel)
-                    cityWithContinient.append(section)
+                    cityWithContinent.append(section)
                 }
             }
             
         }
-        return cityWithContinient
+        return cityWithContinent
     }
     
 }
@@ -156,20 +163,9 @@ extension SelectCityViewModel {
             self.delegate?.viewModel(dataLoaded: true)
             return
         }
-        for data in getData(){
-            var cities = [SelectCityCellModel]()
-            for city in data.cities{
-                if (city.name.folding(options: .diacriticInsensitive, locale: .current).lowercased().contains(searchText.folding(options: .diacriticInsensitive, locale: .current).lowercased())){
-                    cities.append(city)
-                }
-            }
-            if cities.count > 0 {
-                let cityContinentModel = CitycontinentModel()
-                cityContinentModel.cities = cities
-                cityContinentModel.continentName = data.continentName
-                filteredDatas.append(cityContinentModel)
-            }
-        }
+        let filteredCities = cities.filter {$0.name.lowercased().contains(searchText.lowercased())}
+        filteredDatas = createContinientArray(cities: filteredCities)
+//        filteredDatas = getData().filter { $0.cities.contains(where: { $0.name.lowercased().contains(searchText.lowercased()) }) }
         self.delegate?.viewModel(dataLoaded: true)
     }
 }

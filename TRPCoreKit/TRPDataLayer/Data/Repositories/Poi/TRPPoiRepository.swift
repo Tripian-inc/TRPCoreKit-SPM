@@ -15,6 +15,8 @@ final public class TRPPoiRepository: PoiRepository {
     
     public var pois: [TRPPoi] = []
     
+    public var poiCategories: [TRPPoiCategoyGroup] = []
+    
     public var poisWithParameters: [PoiParameters : [TRPPoi]] = [:]
     public var poisParametersNextLink: [PoiParameters : TRPPagination?] = [:]
     
@@ -190,6 +192,25 @@ final public class TRPPoiRepository: PoiRepository {
             }
         }
         pois.append(contentsOf: uniqeu)
+    }
+    
+    public func fetchPoiCategories(completion: @escaping (PoiCategoriesResultValue) -> Void) {
+        if !poiCategories.isEmpty {
+            completion((.success(poiCategories)))
+            return
+        }
+        remoteApi.fetchPoiCategories() { [weak self] result in
+            guard let strongSelf = self else {return}
+            
+            switch result {
+            case .success(let poiCategories):
+                strongSelf.poiCategories = poiCategories
+//                poiCategories.insert(TRPPoiCategoyGroup(name: TRPLanguagesController.shared.getLanguageValue(for: "all"), categories: []), at: -11)
+                completion((.success(poiCategories)))
+            case .failure(let error):
+                completion((.failure(error)))
+            }
+        }
     }
 }
 

@@ -11,7 +11,8 @@ import UIKit
 
 protocol ItineraryViewControllerDelegate:AnyObject {
     
-    func itineraryViewControllerPoiDetail(_ viewController: UIViewController, poi: TRPPoi, parentStep: TRPStep?)
+    func itineraryViewControllerPoiDetail(_ viewController: ItineraryViewController, poi: TRPPoi, parentStep: TRPStep?)
+    func itineraryViewControllerChangeStepHour(_ viewController: ItineraryViewController, step: TRPStep?)
 }
 
 @objc(SPMItineraryViewController)
@@ -68,7 +69,7 @@ extension ItineraryViewController: UITableViewDataSource, UITableViewDelegate {
         let distanceInfo = viewModel.getStepDistanceContent(index: indexPath)
         let model = viewModel.getStep(index: indexPath)
         
-        let cellModel = ItineraryUIModel(poi: model.poi, order: indexPath.row)
+        let cellModel = ItineraryUIModel(step: model, order: indexPath.row)
         cellModel.image = viewModel.getPlaceImage(indexPath: indexPath)
         cellModel.readableDistance = distanceInfo.readableDistance
         cellModel.readableTime = distanceInfo.readableTime
@@ -108,17 +109,26 @@ extension ItineraryViewController: UITableViewDataSource, UITableViewDelegate {
                 self?.viewModel.sendUndo(step: model)
             }
         }
-        cell.uberHandler = { [weak self] in
+        cell.bookARide = { [weak self] in
             guard let strongSelf = self else {return}
             if let uberModel = strongSelf.viewModel.createUberInfo(indexPath: indexPath){
                 strongSelf.openUberDeepLink(uberModel)
             }
         }
-        cell.buyTicketHandler = {
-            guard let tourUrl = cellModel.bookingProduct?.url,
-                  let url = URL(string: tourUrl) else {return}
-            
-            UIApplication.shared.open(url)
+        cell.buyTicket = { [weak self] in
+            guard let strongSelf = self else {return}
+            var url: String?
+            if cellModel.isProduct {
+                url = cellModel.bookingUrl
+            } else {
+                url = cellModel.bookingProduct?.url
+            }
+            strongSelf.openUrl(url: url)
+        }
+        
+        cell.changeTime = { [weak self] in
+            guard let strongSelf = self else {return}
+            strongSelf.delegate?.itineraryViewControllerChangeStepHour(strongSelf, step: model)
         }
         return cell
     }
@@ -144,19 +154,24 @@ extension ItineraryViewController: UITableViewDataSource, UITableViewDelegate {
     
     func tableView(_ tableView: UITableView, moveRowAt sourceIndexPath: IndexPath, to destinationIndexPath: IndexPath) {
         if  sourceIndexPath.row == destinationIndexPath.row { return }
-        let isHotelExist = viewModel.isHotelExist
+//        let isHotelExist = viewModel.isHotelExist
         let sourceModel = viewModel.getStep(index: sourceIndexPath)
         tableView.isEditing = false
         viewModel.cleanStepInfoData()
-        let newOrder = calculateOrder(destinationIndexPath: destinationIndexPath, isHotelExist: isHotelExist)
-        viewModel.stepReOrder(stepId: sourceModel.id, newOrder: newOrder)
+//        let newOrder = calculateOrder(destinationIndexPath: destinationIndexPath, isHotelExist: isHotelExist)
+        viewModel.stepReOrder(step: sourceModel, newOrder: destinationIndexPath.row)
     }
     
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         if tableView.isEditing == false {return}
         let info = viewModel.getStep(index: indexPath).poi
         if info.placeType == .poi {
-            //Todo: -
+            if info.isCustomPoi() {
+                if let url = viewModel.getCustomPoiUrl(poi: info) {
+                    UIApplication.shared.open(url)
+                }
+                return
+            }
             delegate?.itineraryViewControllerPoiDetail(self, poi: info, parentStep: nil)
         }
     }
@@ -169,11 +184,16 @@ extension ItineraryViewController: UITableViewDataSource, UITableViewDelegate {
         return true
     }
     
+    private func openUrl(url: String?) {
+        guard let tourUrl = url,
+              let url = URL(string: tourUrl) else {return}
+        
+        UIApplication.shared.open(url)
+    }
+    
     func openUberDeepLink(_ model: UberModel) {
-        if let deepLink = viewModel.createUberDeepLink(model), UIApplication.shared.canOpenURL(deepLink) {
+        if let uberLink = URL(string: "uber://"), let deepLink = viewModel.createUberDeepLink(model, canOpenLink: UIApplication.shared.canOpenURL(uberLink)) {
             UIApplication.shared.open(deepLink)
-        }else if let webLink = viewModel.createUberWeb(model) {
-            UIApplication.shared.open(webLink)
         }
     }
     
@@ -239,5 +259,11 @@ extension ItineraryViewController: ListOfRoutingPoisViewModelDelete{
     func clearEmptyMessage() {
         tb?.isHiddenEmptyText = true
         tb?.emptyText.text = ""
+    }
+}
+
+extension ItineraryViewController: ItineraryChangeTimeViewModelDelegate {
+    func itineraryChangeTimeForStep(_ step: TRPStep?) {
+        viewModel.changeStepTime(step: step)
     }
 }

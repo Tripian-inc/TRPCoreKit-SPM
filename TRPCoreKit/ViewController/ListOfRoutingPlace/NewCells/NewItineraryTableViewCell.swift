@@ -17,14 +17,14 @@ class NewItineraryTableViewCell: UITableViewCell {
     @IBOutlet weak var placeImage: UIImageView!
     @IBOutlet weak var orderLbl: UILabel!
     @IBOutlet weak var placeNameLbl: UILabel!
-    @IBOutlet weak var distanceLbl: UILabel!
-    @IBOutlet weak var uberBtn: UIButton!
+    @IBOutlet weak var uberBtn: TRPBtnSmall!
+    @IBOutlet weak var buyTicketBtn: TRPBtnSmall!
     @IBOutlet weak var orderContainer: UIView!
     @IBOutlet weak var categoryLbl: UILabel!
-    @IBOutlet weak var starView: UIView!
-    @IBOutlet weak var ReviewCount: UILabel!
+    @IBOutlet weak var ratingView: UIStackView!
+    @IBOutlet weak var ratingCountLbl: UILabel!
+    @IBOutlet weak var reviewCountLbl: UILabel!
     @IBOutlet weak var priceLbl: UILabel!
-    @IBOutlet weak var travelImage: UIImageView!
     
     @IBOutlet weak var thumbsDownBtn: UIButton!
     @IBOutlet weak var thumbsUpBtn: UIButton!
@@ -33,14 +33,18 @@ class NewItineraryTableViewCell: UITableViewCell {
     @IBOutlet weak var replaceBtn: UIButton!
     @IBOutlet weak var thumbsDownSelected: UIButton!
     @IBOutlet weak var thumbsUpSelected: UIButton!
-    @IBOutlet weak var buyTicketBtn: UIButton!
     
+    @IBOutlet weak var distanceView: UIStackView!
+    @IBOutlet weak var distanceImg: UIImageView!
+    @IBOutlet weak var distanceLbl: UILabel!
+    
+    @IBOutlet weak var timeLbl: UILabel!
+    @IBOutlet weak var timeView: UIView!
     
     var action: ((_ action: ReactionActionType) -> Void)?
-    
-    typealias ButtonClicked = () -> Void
-    public var uberHandler: ButtonClicked?
-    public var buyTicketHandler: ButtonClicked?
+    var bookARide: (() -> Void)?
+    var buyTicket: (() -> Void)?
+    var changeTime: (() -> Void)?
     
     override func awakeFromNib() {
         super.awakeFromNib()
@@ -58,7 +62,7 @@ class NewItineraryTableViewCell: UITableViewCell {
         orderLbl.textColor = UIColor.white
         
         placeImage.backgroundColor = trpTheme.color.extraMain
-        placeImage.layer.cornerRadius = 32
+        placeImage.layer.cornerRadius = 40
         placeImage.layer.masksToBounds = true
         
         distanceLbl.font = trpTheme.font.body3
@@ -67,41 +71,17 @@ class NewItineraryTableViewCell: UITableViewCell {
         categoryLbl.font = trpTheme.font.body3
         categoryLbl.textColor = trpTheme.color.tripianTextPrimary
         
-        ReviewCount.font = trpTheme.font.body3
-        ReviewCount.textColor = trpTheme.color.tripianTextPrimary
+        ratingCountLbl.font = trpTheme.font.semiBold12
+        ratingCountLbl.textColor = trpTheme.color.tripianTextPrimary
+        
+        reviewCountLbl.font = trpTheme.font.body3
+        reviewCountLbl.textColor = trpTheme.color.extraMain
         
         priceLbl.font = trpTheme.font.body3
         priceLbl.textColor = trpTheme.color.tripianTextPrimary
         
-        [uberBtn, buyTicketBtn].forEach {
-            $0.titleLabel?.font = trpTheme.font.body3
-            $0.titleLabel?.textColor = .white
-            $0.backgroundColor = trpTheme.color.blue
-            $0.layer.cornerRadius = 12
-            $0.layer.masksToBounds = true
-        }
-        buyTicketBtn.backgroundColor = trpTheme.color.tripianPrimary
-        
-        uberBtn.setTitle(TRPLanguagesController.shared.getLanguageValue(for: "trips.myTrips.itinerary.direction"), for: .normal)
-        
-        buyTicketBtn.setTitle(TRPLanguagesController.shared.getLanguageValue(for: "trips.myTrips.itinerary.step.poi.tourTicket.ticket.title"), for: .normal)
-        
-        removeBtn.setTitle(TRPLanguagesController.shared.getLanguageValue(for: "trips.myTrips.itinerary.step.thumbs.remove"), for: .normal)
-        replaceBtn.setTitle(TRPLanguagesController.shared.getLanguageValue(for: "trips.myTrips.itinerary.step.thumbs.replace.title"), for: .normal)
-        
-        removeBtn.layer.cornerRadius = 17
-        removeBtn.layer.borderWidth = 0.5
-        removeBtn.layer.borderColor = trpTheme.color.extraShadow.cgColor
-        removeBtn.backgroundColor = trpTheme.color.extraSub
-        removeBtn.setTitleColor(trpTheme.color.tripianTextPrimary, for: .normal)
-        removeBtn.titleLabel?.font = trpTheme.font.body3
-        
-        replaceBtn.layer.cornerRadius = 17
-        replaceBtn.layer.borderWidth = 0.5
-        replaceBtn.layer.borderColor = trpTheme.color.extraShadow.cgColor
-        replaceBtn.backgroundColor = trpTheme.color.extraSub
-        replaceBtn.setTitleColor(trpTheme.color.tripianTextPrimary, for: .normal)
-        replaceBtn.titleLabel?.font = trpTheme.font.body3
+        timeLbl.font = trpTheme.font.body3
+        timeLbl.textColor = trpTheme.color.tripianPrimary
         
         orderContainer.layer.cornerRadius = 10
     }
@@ -111,31 +91,55 @@ class NewItineraryTableViewCell: UITableViewCell {
     func config(_ model: ItineraryUIModel) {
         placeNameLbl.text = model.poiName
         
+        timeLbl.text = ""
+        var timeText: String = ""
+        if !model.startTime.isEmpty {
+            timeText = model.startTime
+        }
+        if !model.endTime.isEmpty {
+            if !timeText.isEmpty {
+                timeText = timeText + " - "
+            }
+            timeText = timeText + model.endTime
+        }
+        timeLbl.text = timeText
+        timeView.isHidden = timeText.isEmpty
+        
         orderContainer.isHidden = false
         orderLbl.isHidden = false
         orderLbl.text = "\(model.order)"
         
-//        uberBtn.isHidden = !model.userCar
+        uberBtn.setTitle(TRPLanguagesController.shared.getLanguageValue(for: "trips.myTrips.itinerary.direction"), for: .normal)
         uberBtn.isHidden = true
+        uberBtn.addTarget(self, action: #selector(bookArideAction), for: .touchUpInside)
         
         buyTicketBtn.isHidden = model.bookingProduct == nil
+        buyTicketBtn.setTitle(TRPLanguagesController.shared.getLanguageValue(for: "trips.myTrips.itinerary.step.poi.tourTicket.ticket.title"), for: .normal)
+        buyTicketBtn.addTarget(self, action: #selector(buyTicketAction), for: .touchUpInside)
+        
+        if model.isProduct {
+            buyTicketBtn.setTitle("nexustours", for: .normal)
+            buyTicketBtn.isHidden = false
+            
+        }
         
         [thumbsDownBtn,thumbsUpBtn,thumbsSpacerView, removeBtn, replaceBtn, thumbsDownSelected, thumbsUpSelected].forEach{ $0?.isHidden = true }
         
         if let distance = model.readableDistance, let time = model.readableTime  {
+            distanceView.isHidden = false
             let userCar = model.userCar
-            distanceLbl.text = "\(distance) \(TRPLanguagesController.shared.getLanguageValue(for: "km")) - \(time) \(TRPLanguagesController.shared.getLanguageValue(for: "min"))"
-            distanceLbl.adjustsFontSizeToFitWidth = true
-            travelImage.image = userCar ? TRPImageController().getImage(inFramework: "icon_car", inApp: "icon_car") : TRPImageController().getImage(inFramework: "icon_walking", inApp: "icon_walking")
-            travelImage.isHidden = false
-            //let distanceImage = userCar ? ItineraryDistanceType.car : ItineraryDistanceType.walking
-            //cell.setDistanceImage(type: distanceImage)
+            distanceLbl.text = TRPLanguagesController.shared.getLanguageValue(for: "duration_format", with: time, distance) //: TRPLanguagesController.shared.getLanguageValue(for: "walk_duration_format", with: time, distance)
+            let distanceImage = userCar ? "icon_car" : "icon_walking"
+            if let image = TRPImageController().getImage(inFramework: distanceImage, inApp: distanceImage) {
+                distanceImg.image = image
+            }
         } else {
+            distanceView.isHidden = true
             distanceLbl.text = ""
-            travelImage.isHidden = true
         }
         
         if model.isHotel {
+            placeImage.backgroundColor = trpTheme.color.tripianBlack
             placeImage.image = TRPImageController().getImage(inFramework: "black_homebase", inApp: "black_homebase")
         } else {
             placeImage.sd_setImage(with: model.image, completed: nil)
@@ -144,29 +148,18 @@ class NewItineraryTableViewCell: UITableViewCell {
         
         categoryLbl.text = model.category
         
-        if model.reviewCount != 0 {
-            ReviewCount.isHidden = false
-            ReviewCount.text = "(\(model.reviewCount))"
-        }else {
-            ReviewCount.isHidden = true
-        }
+        ratingView.isHidden = model.rating < 1
+        ratingCountLbl.text = String(model.rating)
+        reviewCountLbl.text = "(\(model.reviewCount))"
         
         if model.price > 0 {
             priceDolarSign = model.price
             priceLbl.isHidden = false
             priceLbl.attributedText = $priceDolarSign.generateDolarSign(largeFontSize: 12, smallFontSize: 12)
-            
         } else {
             priceLbl.isHidden = true
         }
-        
-        if model.star != 0 {
-            starView.isHidden = false
-            let newStarView = TRPStarView(frame: CGRect(x: 0, y: 8, width: 94, height: 12))
-            newStarView.star = model.star
-            starView.addSubview(newStarView)
-        }
-        
+             
         
         switch  model.reaction {
         case .thumbsUp:
@@ -176,7 +169,7 @@ class NewItineraryTableViewCell: UITableViewCell {
             thumbsDownSelected.isHidden = false
             removeBtn.isHidden = false
             replaceBtn.isHidden = !model.canReplace
-            thumbsSpacerView.isHidden = false
+            thumbsSpacerView.isHidden = true
         case .neutral:
             ()
         case .none:
@@ -190,12 +183,22 @@ class NewItineraryTableViewCell: UITableViewCell {
             thumbsDownBtn.isHidden = true
             thumbsUpBtn.isHidden = true
             thumbsSpacerView.isHidden = true
-            starView.isHidden = true
-            priceLbl.isHidden = true
-            ReviewCount.isHidden = true
+            ratingView.isHidden = true
             orderLbl.isHidden = true
             orderContainer.isHidden = true
         }
+    }
+    
+    @objc func bookArideAction() {
+        bookARide?()
+    }
+    
+    @objc func buyTicketAction() {
+        buyTicket?()
+    }
+    
+    @IBAction func changeTimeAction(_ sender: Any) {
+        changeTime?()
     }
     
     @IBAction func thumbsDownPressed(_ sender: UIButton) {
@@ -219,11 +222,5 @@ class NewItineraryTableViewCell: UITableViewCell {
     
     @IBAction func replacePressed(_ sender: Any) {
         action?(.replace)
-    }
-    @IBAction func uberPressed(_ sender: Any) {
-        uberHandler?()
-    }
-    @IBAction func buyTicketPressed(_ sender: Any) {
-        buyTicketHandler?()
     }
 }

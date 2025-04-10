@@ -6,13 +6,13 @@
 //  Copyright © 2020 Tripian Inc. All rights reserved.
 //
 
-import Foundation
-public struct TRPCategory: Codable {
-    
-    public var id: Int
-    
-    public var name: String
-    
-    public var description: String?
-    
-}
+//import Foundation
+//public struct TRPCategory: Codable {
+//    
+//    public var id: Int
+//    
+//    public var name: String
+//    
+//    public var description: String?
+//    
+//}

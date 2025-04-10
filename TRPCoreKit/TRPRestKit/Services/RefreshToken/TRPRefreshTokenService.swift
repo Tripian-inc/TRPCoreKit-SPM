@@ -30,6 +30,8 @@ internal class TRPRefreshTokenService: TRPRestServices<TRPGenericParser<TRPRefre
     override func bodyParameters() -> [String: Any]? {
         var params = [String: Any]()
         params["refreshToken"] = refreshToken
+    
+        params["timezone"] = TimeZone.current.identifier
         if let device = device, let deviceParameters = device.params() {
             params["device"] = deviceParameters
         }
