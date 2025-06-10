@@ -8,19 +8,31 @@
 
 import Foundation
 
-public protocol CreateTripContainerViewModelDelegate: AnyObject {
+public protocol CreateTripContainerViewModelDelegate: ViewModelDelegate {
     func stepChanged()
     func tripProcessCompleted()
+    func askEditTripConfirmation()
+    func tripGenerated(hash: String)
 }
 
 class CreateTripContainerViewModel {
     
     public weak var delegate: CreateTripContainerViewModelDelegate?
+    public var editTripUseCase: EditTripUseCase?
+    public var observeTripAllDay: ObserveTripCheckAllPlanUseCase?
+    public var fetchTripAllDay: FetchTripCheckAllPlanUseCase?
+    public var createTripUseCase: CreateTripUseCase?
+    public var fetchUserTripUseCase: FetchUserUpcomingTripUseCase?
     
     private var currentStep = CreateTripSteps.tripInformation
     private let steps: [CreateTripSteps] = [.tripInformation, .stayShare, .pickedInformation, .personalize]
     
     public var isEditing: Bool = false
+    public var nexusDestinationId: Int?
+    
+    private var tripProfile: TRPTripProfile?
+    
+    private var tryCount = 0
     
     public func getCurrentStep() -> CreateTripSteps {
         return currentStep
@@ -61,68 +73,109 @@ class CreateTripContainerViewModel {
     
     public func getButtonTitle() -> String {
         if isLastStep() {
-            return isEditing ? TRPLanguagesController.shared.getLanguageValue(for: "trips.editTrip.submit") : TRPLanguagesController.shared.getLanguageValue(for: "trips.createNewTrip.form.submit")
+            let editText = TRPLanguagesController.shared.getLanguageValue(for: "trips.editTrip.submit")
+            let createText = TRPLanguagesController.shared.getLanguageValue(for: "trips.createNewTrip.form.submit")
+            return isEditing ? editText : createText
         }
         return TRPLanguagesController.shared.getLanguageValue(for: "trips.createNewTrip.form.continue")
     }
 }
 
-
-public enum CreateTripSteps {
-    case tripInformation
-    case stayShare
-    case pickedInformation
-    case personalize
-    
-    func getPreviousStep() -> CreateTripSteps? {
-        switch self {
-        case .tripInformation:
-            return nil
-        case .stayShare:
-            return .tripInformation
-        case .pickedInformation:
-            return .stayShare
-        case .personalize:
-            return .pickedInformation
+extension CreateTripContainerViewModel {
+    func createOrEditTrip(profile: TRPTripProfile) {
+        tripProfile = profile
+        if !isEditing {
+            if nexusDestinationId == nil && profile.additionalData == nil {
+                getJuniperDestinationId(cityId: profile.cityId)
+                return
+            }
+            createTrip()
+        } else {
+            
+            guard let doNotGenerate = editTripUseCase?.doNotGenerate(newProfile: profile), doNotGenerate else {
+                delegate?.askEditTripConfirmation()
+                return
+            }
+            editTrip()
         }
     }
     
-    func getNextStep() -> CreateTripSteps? {
-        switch self {
-        case .tripInformation:
-            return .stayShare
-        case .stayShare:
-            return .pickedInformation
-        case .pickedInformation:
-            return .personalize
-        case .personalize:
-            return nil
+    func editTrip() {
+        
+        guard let tripProfile = tripProfile as? TRPEditTripProfile else { return }
+        delegate?.viewModel(showPreloader: true)
+        
+        editTripUseCase?.executeEditTrip(profile: tripProfile) { [weak self] result in
+            guard let strongSelf = self else { return }
+            strongSelf.tripGenerationResult(result: result)
         }
     }
     
-    func getTitle() -> String {
-        switch self {
-        case .tripInformation:
-            return TRPLanguagesController.shared.getLanguageValue(for: "trips.createNewTrip.stepHeaders.destination")
-        case .stayShare:
-            return TRPLanguagesController.shared.getLanguageValue(for: "trips.createNewTrip.stepHeaders.travelerInfo")
-        case .pickedInformation:
-            return TRPLanguagesController.shared.getLanguageValue(for: "trips.createNewTrip.stepHeaders.itineraryProfile")
-        case .personalize:
-            return TRPLanguagesController.shared.getLanguageValue(for: "trips.createNewTrip.stepHeaders.personalInterests")
+    private func createTrip() {
+        guard let tripProfile else { return }
+        if tripProfile.additionalData.isNilOrEmpty() && nexusDestinationId != nil {
+            tripProfile.additionalData = "\(nexusDestinationId!)"
+        }
+        delegate?.viewModel(showPreloader: true)
+        createTripUseCase?.executeCreateTrip(profile: tripProfile) { [weak self] result in
+            guard let strongSelf = self else { return }
+            strongSelf.tripGenerationResult(result: result)
         }
     }
     
-    func getIndex() -> Int {
-        switch self {
-        case .tripInformation:
-            return 0
-        case .stayShare:
-            return 1
-        case .pickedInformation:
-            return 2
-        case .personalize:
-            return 3
+    private func tripGenerationResult(result: Result<TRPTrip, Error>) {
+        switch result {
+        case .success(let trip):
+            fetchUpcomingTrip()
+            checkTripIsGenerated(tripHash: trip.tripHash)
+        case .failure(let error):
+            print("[Error] \(error.localizedDescription)")
+            delegate?.viewModel(showPreloader: false)
+            delegate?.viewModel(error: error)
         }
+    }
+    
+    private func getJuniperDestinationId(cityId: Int) {
+        delegate?.viewModel(showPreloader: true)
+        TripianCommonApi().getDestinationIdFromCity(cityId) { [weak self] result in
+            guard let strongSelf = self else { return }
+            switch result {
+            case .success(let cityInfo):
+                guard let zoneId = cityInfo?.zoneId else {
+                    strongSelf.delegate?.viewModel(showPreloader: false)
+                    return
+                }
+                strongSelf.nexusDestinationId = zoneId
+                strongSelf.tripProfile?.additionalData = "\(zoneId)"
+                strongSelf.createTrip()
+            case .failure(let failure):
+                strongSelf.delegate?.viewModel(showPreloader: false)
+                strongSelf.delegate?.viewModel(error: failure)
+                print(failure)
+                return
+            }
+        }
+    }
+    
+    private func fetchUpcomingTrip() {
+        fetchUserTripUseCase?.executeUpcomingTrip(completion: nil)
+    }
+    
+    func checkTripIsGenerated(tripHash hash: String) {
+        
+        observeTripAllDay?.firstTripGenerated.addObserver(self, observer: { [weak self] status in
+            self?.tryCount += 1
+            if !status {
+                if self?.tryCount ?? 0 > 8 {
+                    self?.delegate?.viewModel(showPreloader: false)
+                    self?.delegate?.viewModel(error: GeneralError.customMessage(TRPLanguagesController.shared.getLanguageValue(for: "trips.myTrips.localExperiences.tourDetails.bookingStatus.rejected.description")))
+                }
+                return
+            }
+            self?.delegate?.viewModel(showPreloader: true)
+            self?.delegate?.tripGenerated(hash: hash)
+        })
+        
+        fetchTripAllDay?.executeFetchTripCheckAllPlanGenerate(tripHash: hash, completion: nil)
     }
 }

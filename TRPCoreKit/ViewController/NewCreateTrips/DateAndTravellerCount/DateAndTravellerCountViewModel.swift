@@ -44,9 +44,9 @@ class DateAndTravellerCountViewModel: TableViewViewModelProtocol {
     
     //** Data Holder
     //Arrival date in tutulduğu değer
-    private var selectedArrivalDate: Date = (Date().addDay(1)?.setHour(for: "09:00"))!
+    private var selectedArrivalDate: Date = (Date().localDate().addDay(1)?.setHour(for: "09:00"))!
     //Departure date in tutulduğu değer
-    private var selectedDepartureDate: Date = (Date().addDay(2)?.setHour(for: "21:00"))!
+    private var selectedDepartureDate: Date = (Date().localDate().addDay(2)?.setHour(for: "21:00"))!
     private var selectedArrivalHour = "09:00"
     private var selectedDepartureHour = "21:00"
     private var selectedTravelCompanions: [TRPCompanion]? {
@@ -60,7 +60,7 @@ class DateAndTravellerCountViewModel: TableViewViewModelProtocol {
     //*** UI
     //Arrival date in Uı için hazırladığı değer. Üzerinde işlem yapılmaz, UI sadece okur.
     public var arrivalDate: DatePickerModel {
-        return (minimumDate: Date(),
+        return (minimumDate: Date().localDate(),
                 maximumDate: nil,
                 selectedDate: selectedArrivalDate.setHour(for: selectedArrivalHour)!)
     }

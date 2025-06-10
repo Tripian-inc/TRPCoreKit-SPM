@@ -53,7 +53,7 @@ public struct TRPDeviceModel: Decodable, Encodable {
     public init(device: UIDevice = .current,
                 bundleId: String? = nil,
                 firebaseToken: String? = nil) {
-        self.deviceId = UIDevice.current.identifierForVendor?.uuidString ?? ""
+        self.deviceId = TRPDeviceModel.getUUID()
         self.deviceOs = UIDevice.current.systemName
         self.osVersion = UIDevice.current.systemVersion
         self.firebaseToken = firebaseToken
@@ -61,12 +61,7 @@ public struct TRPDeviceModel: Decodable, Encodable {
     }
     
     public init() {
-        var uuid = ""
-        if let uuidString = UIDevice.current.identifierForVendor?.uuidString {
-            uuid = uuidString
-        } else {
-            uuid = UUID().uuidString
-        }
+        var uuid = TRPDeviceModel.getUUID()
         self.deviceId = uuid
         self.deviceOs = UIDevice.current.systemName
         self.osVersion = UIDevice.current.systemVersion
@@ -105,9 +100,25 @@ extension TRPDeviceModel {
         var trpDevice = TRPDevice()
         trpDevice.firebaseToken = self.firebaseToken
         trpDevice.bundleId = self.bundleId
-        trpDevice.deviceId = self.deviceId
+        trpDevice.deviceId = TRPDeviceModel.getUUID()
         trpDevice.deviceOs = self.deviceOs
         trpDevice.osVersion = self.osVersion
         return trpDevice
+    }
+}
+
+extension TRPDeviceModel {
+    public static func getUUID() -> String {
+        if let uuid = UserDefaults.standard.string(forKey: "generated_uuid") {
+            return uuid
+        }
+        var uuid = ""
+        if let uuidString = UIDevice.current.identifierForVendor?.uuidString {
+            uuid = uuidString
+        } else {
+            uuid = UUID().uuidString
+        }
+        UserDefaults.standard.set(uuid, forKey: "generated_uuid")
+        return uuid
     }
 }

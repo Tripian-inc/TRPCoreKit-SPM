@@ -22,10 +22,12 @@ class NewItineraryTableViewCell: UITableViewCell {
     @IBOutlet weak var orderContainer: UIView!
     @IBOutlet weak var categoryLbl: UILabel!
     @IBOutlet weak var ratingView: UIStackView!
+    @IBOutlet weak var emptyRatingView: UIView!
     @IBOutlet weak var ratingCountLbl: UILabel!
     @IBOutlet weak var reviewCountLbl: UILabel!
     @IBOutlet weak var priceLbl: UILabel!
     
+    @IBOutlet weak var reactionStackView: UIStackView!
     @IBOutlet weak var thumbsDownBtn: UIButton!
     @IBOutlet weak var thumbsUpBtn: UIButton!
     @IBOutlet weak var thumbsSpacerView: UIView!
@@ -64,6 +66,8 @@ class NewItineraryTableViewCell: UITableViewCell {
         placeImage.backgroundColor = trpTheme.color.extraMain
         placeImage.layer.cornerRadius = 40
         placeImage.layer.masksToBounds = true
+        placeImage.image = nil
+        placeImage.sd_cancelCurrentImageLoad()
         
         distanceLbl.font = trpTheme.font.body3
         distanceLbl.textColor = trpTheme.color.tripianTextPrimary
@@ -91,40 +95,46 @@ class NewItineraryTableViewCell: UITableViewCell {
     func config(_ model: ItineraryUIModel) {
         placeNameLbl.text = model.poiName
         
-        timeLbl.text = ""
-        var timeText: String = ""
-        if !model.startTime.isEmpty {
-            timeText = model.startTime
-        }
-        if !model.endTime.isEmpty {
-            if !timeText.isEmpty {
-                timeText = timeText + " - "
-            }
-            timeText = timeText + model.endTime
-        }
-        timeLbl.text = timeText
-        timeView.isHidden = timeText.isEmpty
+        categoryLbl.isHidden = model.category.isEmpty
+        categoryLbl.text = model.category
         
+        setupImageView(model: model)
+        setupTimeView(model: model)
+        setupDistanceView(model: model)
+        setupActionButtons(model: model)
+        setupRatingView(model: model)
+        setupReactionView(model: model)
+        
+        if model.isHotel {
+            ratingView.isHidden = true
+            orderContainer.isHidden = true
+        }
+    }
+    
+    private func setupImageView(model: ItineraryUIModel) {
         orderContainer.isHidden = false
         orderLbl.isHidden = false
         orderLbl.text = "\(model.order)"
         
-        uberBtn.setTitle(TRPLanguagesController.shared.getLanguageValue(for: "trips.myTrips.itinerary.direction"), for: .normal)
-        uberBtn.isHidden = true
-        uberBtn.addTarget(self, action: #selector(bookArideAction), for: .touchUpInside)
+        placeImage.tag = model.order
         
-        buyTicketBtn.isHidden = model.bookingProduct == nil
-        buyTicketBtn.setTitle(TRPLanguagesController.shared.getLanguageValue(for: "trips.myTrips.itinerary.step.poi.tourTicket.ticket.title"), for: .normal)
-        buyTicketBtn.addTarget(self, action: #selector(buyTicketAction), for: .touchUpInside)
-        
-        if model.isProduct {
-            buyTicketBtn.setTitle("nexustours", for: .normal)
-            buyTicketBtn.isHidden = false
-            
+        if model.isHotel {
+            setImageForHomeBase()
+        } else {
+            placeImage.sd_setImage(with: model.image, completed: { [weak self] _,_,_,_ in
+                if self?.placeImage.tag == 0 {
+                    self?.setImageForHomeBase()
+                }
+            })
         }
-        
-        [thumbsDownBtn,thumbsUpBtn,thumbsSpacerView, removeBtn, replaceBtn, thumbsDownSelected, thumbsUpSelected].forEach{ $0?.isHidden = true }
-        
+    }
+    
+    private func setImageForHomeBase() {
+        placeImage.backgroundColor = trpTheme.color.tripianBlack
+        placeImage.image = TRPImageController().getImage(inFramework: "black_homebase", inApp: "black_homebase")
+    }
+    
+    private func setupDistanceView(model: ItineraryUIModel) {
         if let distance = model.readableDistance, let time = model.readableTime  {
             distanceView.isHidden = false
             let userCar = model.userCar
@@ -137,29 +147,39 @@ class NewItineraryTableViewCell: UITableViewCell {
             distanceView.isHidden = true
             distanceLbl.text = ""
         }
-        
-        if model.isHotel {
-            placeImage.backgroundColor = trpTheme.color.tripianBlack
-            placeImage.image = TRPImageController().getImage(inFramework: "black_homebase", inApp: "black_homebase")
-        } else {
-            placeImage.sd_setImage(with: model.image, completed: nil)
+    }
+    
+    private func setupTimeView(model: ItineraryUIModel) {
+        var timeText: String = ""
+        if !model.startTime.isEmpty {
+            timeText = model.startTime
         }
-        
-        
-        categoryLbl.text = model.category
+        if !model.endTime.isEmpty {
+            if !timeText.isEmpty {
+                timeText = timeText + " - "
+            }
+            timeText = timeText + model.endTime
+        }
+        timeLbl.text = timeText
+        timeView.isHidden = timeText.isEmpty
+    }
+    
+    private func setupRatingView(model: ItineraryUIModel) {
         
         ratingView.isHidden = model.rating < 1
+        emptyRatingView.isHidden = !ratingView.isHidden
         ratingCountLbl.text = String(model.rating)
         reviewCountLbl.text = "(\(model.reviewCount))"
         
+        priceLbl.isHidden = model.price <= 0
         if model.price > 0 {
             priceDolarSign = model.price
-            priceLbl.isHidden = false
             priceLbl.attributedText = $priceDolarSign.generateDolarSign(largeFontSize: 12, smallFontSize: 12)
-        } else {
-            priceLbl.isHidden = true
         }
-             
+    }
+    
+    private func setupReactionView(model: ItineraryUIModel) {
+        [thumbsDownBtn,thumbsUpBtn,thumbsSpacerView, removeBtn, replaceBtn, thumbsDownSelected, thumbsUpSelected].forEach{ $0?.isHidden = true }
         
         switch  model.reaction {
         case .thumbsUp:
@@ -177,15 +197,22 @@ class NewItineraryTableViewCell: UITableViewCell {
             thumbsUpBtn.isHidden = false
             thumbsSpacerView.isHidden = false
         }
+        reactionStackView.isHidden = model.isHotel
+    }
+    
+    private func setupActionButtons(model: ItineraryUIModel) {
+        uberBtn.setTitle(TRPLanguagesController.shared.getLanguageValue(for: "trips.myTrips.itinerary.direction"), for: .normal)
+        uberBtn.isHidden = true
+        uberBtn.addTarget(self, action: #selector(bookArideAction), for: .touchUpInside)
         
+        buyTicketBtn.isHidden = model.bookingProduct == nil
+        buyTicketBtn.setTitle(TRPLanguagesController.shared.getLanguageValue(for: "trips.myTrips.itinerary.step.poi.tourTicket.ticket.title"), for: .normal)
+        buyTicketBtn.addTarget(self, action: #selector(buyTicketAction), for: .touchUpInside)
         
-        if model.isHotel {
-            thumbsDownBtn.isHidden = true
-            thumbsUpBtn.isHidden = true
-            thumbsSpacerView.isHidden = true
-            ratingView.isHidden = true
-            orderLbl.isHidden = true
-            orderContainer.isHidden = true
+        if model.isProduct {
+            buyTicketBtn.setTitle("nexustours", for: .normal)
+            buyTicketBtn.isHidden = false
+            
         }
     }
     

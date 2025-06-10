@@ -59,6 +59,7 @@ class PlanGenerateController {
                 
             }else {
                 print("[Error] Plan couldn't generated")
+                completed(generate, dailyPlan)
             }
         }else if generate == 1{ //TRİP YARATILDI VE
             //Eğer dizinin eleman sayısı 0 ise plan tekrar bir kereliğe mahsus çekilr

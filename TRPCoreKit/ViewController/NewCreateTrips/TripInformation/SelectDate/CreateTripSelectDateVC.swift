@@ -9,8 +9,8 @@
 import UIKit
 import FSCalendar
 protocol CreateTripSelectDateVCDelegate: AnyObject {
-    func createTripSelectDateVCArrivalSelected(date: Date)
-    func createTripSelectDateVCDepartureSelected(date: Date)
+    func createTripSelectDateVCArrivalSelected(date: String)
+    func createTripSelectDateVCDepartureSelected(date: String)
 }
 @objc(SPMCreateTripSelectDateVC)
 class CreateTripSelectDateVC: TRPBaseUIViewController {
@@ -46,7 +46,9 @@ class CreateTripSelectDateVC: TRPBaseUIViewController {
     }
     
     private func selectDate() {
-        calendarView.select(viewModel.getSelectedDate())
+        if let selectedDate = viewModel.getSelectedDate() {
+            calendarView.select(selectedDate)
+        }
     }
 
 }
@@ -63,11 +65,11 @@ extension CreateTripSelectDateVC: FSCalendarDataSource, FSCalendarDelegate {
     
     func calendar(_ calendar: FSCalendar, didSelect date: Date, at monthPosition: FSCalendarMonthPosition) {
         guard isDateRangeSelectionActive() else {
-            let date = date.localDate()
+            let dateString = date.getDate()
             if viewModel.isArrival {
-                self.delegate?.createTripSelectDateVCArrivalSelected(date: date)
+                self.delegate?.createTripSelectDateVCArrivalSelected(date: dateString)
             } else {
-                self.delegate?.createTripSelectDateVCDepartureSelected(date: date)
+                self.delegate?.createTripSelectDateVCDepartureSelected(date: dateString)
             }
             self.dismiss(animated: true)
             return

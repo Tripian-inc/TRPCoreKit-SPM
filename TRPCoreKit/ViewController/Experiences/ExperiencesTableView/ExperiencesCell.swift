@@ -101,8 +101,8 @@ extension ExperiencesCell: UICollectionViewDelegate, UICollectionViewDataSource,
         }
         
         //TODO: $ gelen veriden çekilecek
-        if let price = model.price {
-            cell.priceLabel.text = "$\(price.values?.amount)"
+        if let price = model.price?.values?.amount {
+            cell.priceLabel.text = "$\(price)"
         }else {
             cell.priceLabel.text = ""
         }

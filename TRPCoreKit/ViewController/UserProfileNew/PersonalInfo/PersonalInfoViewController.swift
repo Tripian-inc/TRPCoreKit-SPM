@@ -88,7 +88,7 @@ extension PersonalInfoViewController {
         }
         datePicker.datePickerMode = .date
         datePicker.addTarget(self, action: #selector(datePickerValueChanded), for: .valueChanged)
-        datePicker.maximumDate = Date()
+        datePicker.maximumDate = Date().localDate()
         birthDayTF.inputView = datePicker
     }
     

@@ -12,7 +12,9 @@ import Parchment
 
 public protocol CreateTripContainerVCDelegate: AnyObject {
     func canContinue(currentStep: CreateTripSteps) -> Bool
-    func createOrEditTrip()
+    func getProfileForCreateOrEditTrip() -> TRPTripProfile?
+    func cancelledEditTrip()
+    func tripGenerated(hash: String)
 }
 
 @objc(SPMCreateTripContainerVC)
@@ -152,8 +154,22 @@ extension CreateTripContainerVC:  PagingViewControllerDelegate, PagingViewContro
 }
 
 extension CreateTripContainerVC: CreateTripContainerViewModelDelegate {
+    func tripGenerated(hash: String) {
+        delegate?.tripGenerated(hash: hash)
+    }
+    
+    func askEditTripConfirmation() {
+        showConfirmAlert(title: "",
+                         message: TRPLanguagesController.shared.getLanguageValue(for: "your_trip_is_going_to_be_updated"),
+                         confirmTitle: TRPLanguagesController.shared.getContinueBtnText(),
+                         btnConfirmAction: { self.viewModel.editTrip() },
+                         btnCancelAction: { self.delegate?.cancelledEditTrip() })
+    }
+    
     func tripProcessCompleted() {
-        delegate?.createOrEditTrip()
+        if let profile = delegate?.getProfileForCreateOrEditTrip() {
+            viewModel.createOrEditTrip(profile: profile)
+        }
     }
     
     func stepChanged() {

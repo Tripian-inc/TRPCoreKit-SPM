@@ -41,7 +41,7 @@ class ItineraryUIModel {
         self.reviewCount = step.poi.ratingCount ?? 0
         self.rating = step.poi.rating ?? 0.0
         self.star = Int((step.poi.rating ?? 0.0).rounded())
-        self.category = step.poi.categories.first?.name ?? ""
+        self.category = step.poi.getCategoryName()
         self.isHotel = step.isHotelPoi()
         self.startTime = step.times?.from ?? ""
         self.endTime = step.times?.to ?? ""

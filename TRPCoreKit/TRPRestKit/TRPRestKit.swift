@@ -1498,15 +1498,30 @@ extension TRPRestKit {
                                        centerForBoundary: center,
                                        radiusForBoundary: radius)
     }
+    public func googleAutoComplete(key: String,
+                                   text: String,
+                                   boundarySW: TRPLocation?,
+                                   boundaryNE: TRPLocation?,
+                                   completion: @escaping CompletionHandler) {
+        self.completionHandler = completion
+        googlePlaceAutoCompleteService(key: key,
+                                       text: text,
+                                       boundarySW: boundarySW,
+                                       boundaryNE: boundaryNE)
+    }
     
     /// A services which will be used in google place auto complete services, manages all task connecting to remote server.
     private func googlePlaceAutoCompleteService(key: String,
                                                 text: String,
                                                 centerForBoundary center: TRPLocation? = nil,
+                                                boundarySW: TRPLocation? = nil,
+                                                boundaryNE: TRPLocation? = nil,
                                                 radiusForBoundary radius: Double? = nil) {
         let autoCOmpleteService = TRPGoogleAutoComplete(key: key, text: text)
         autoCOmpleteService.centerLocationForBoundary = center
         autoCOmpleteService.radiusForBoundary = radius
+        autoCOmpleteService.boundarySW = boundarySW
+        autoCOmpleteService.boundaryNE = boundaryNE
         autoCOmpleteService.start { (data, error) in
             if let error = error {
                 self.postError(error: error)

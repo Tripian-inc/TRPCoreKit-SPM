@@ -29,7 +29,7 @@ public struct PoiParameters {
     
     var url: String?
     
-    var createdTime: Int = Int(Date().timeIntervalSince1970)
+    var createdTime: Int = Int(Date().localDate().timeIntervalSince1970)
 }
 
 extension PoiParameters: Hashable {

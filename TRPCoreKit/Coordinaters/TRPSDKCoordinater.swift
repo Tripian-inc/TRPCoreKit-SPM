@@ -434,7 +434,7 @@ extension TRPSDKCoordinater {
             let dep = departure,
             let arrivalDate = ar.toDateWithoutUTC(format: "yyyy-MM-dd"),
             let departureDate = dep.toDateWithoutUTC(format: "yyyy-MM-dd") {
-            let inDay = tripInDay(current: Date(), arrival: arrivalDate, departure: departureDate)
+            let inDay = tripInDay(current: Date().localDate(), arrival: arrivalDate, departure: departureDate)
             if inDay.inTime && inDay.order != nil{
                 startDayOrder = inDay.order ?? 0
             }
@@ -442,7 +442,7 @@ extension TRPSDKCoordinater {
         return startDayOrder
     }
     
-    private func tripInDay(current:Date, arrival:Date, departure:Date) ->(inTime:Bool, order:Int?) {
+    private func tripInDay(current: Date, arrival: Date, departure: Date) ->(inTime:Bool, order:Int?) {
         guard let difArrival = Calendar.current.dateComponents([.day], from: arrival, to: current).day,
             let difDeparture = Calendar.current.dateComponents([.day], from: current, to: departure).day else {return (false,nil)}
         if difArrival > -1 && difDeparture > -1 {

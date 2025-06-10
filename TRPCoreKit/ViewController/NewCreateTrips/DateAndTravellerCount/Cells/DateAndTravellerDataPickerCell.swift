@@ -18,9 +18,9 @@ class DateAndTravellerDataPickerCell: UITableViewCell, UITextFieldDelegate {
     
     private lazy var datePicker: UIDatePicker = {
         let picker = UIDatePicker()
-        if let timeZone = TimeZone(identifier: "UTC") {
-            picker.timeZone = timeZone
-        }
+//        if let timeZone = TimeZone(identifier: "UTC") {
+//            picker.timeZone = timeZone
+//        }
         picker.datePickerMode = UIDatePicker.Mode.date
         picker.backgroundColor = UIColor.white
         picker.addTarget(self, action: #selector(datePickerValeuChanged(sender:)), for: UIControl.Event.valueChanged)
