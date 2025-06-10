@@ -60,13 +60,13 @@ final public class TRPCreateTripCoordinater {
     public var nexusNumberOfAdults: Int? = nil
     public var nexusNumberOfChildren: Int? = nil
     
-    private var isLoaderShowing = false
-    
-    
-    private lazy var alertView: PopupAlert = {
-        let vc = UIStoryboard.getPopup()
-        return vc
-    }()
+//    private var isLoaderShowing = false
+//    
+//    
+//    private lazy var alertView: PopupAlert = {
+//        let vc = UIStoryboard.getPopup()
+//        return vc
+//    }()
     public var selectedCompanion: [TRPCompanion] = [] {
         didSet {
             stayShareVM?.addTravellerCompanions(selectedCompanion)
@@ -177,7 +177,8 @@ final public class TRPCreateTripCoordinater {
         case .tripQuestions:
             openTripQuestion()
         case .createOrEditTrip:
-            createAOrEdiTrip()
+            break
+//            createAOrEdiTrip()
         }
     }
     
@@ -299,6 +300,12 @@ extension TRPCreateTripCoordinater {
         let viewModel = CreateTripContainerViewModel()
         viewModel.delegate = viewController
         viewModel.isEditing = coordinaterType == .edit
+        viewModel.editTripUseCase = editTripUseCase
+        viewModel.observeTripAllDay = fetchTripAllDay
+        viewModel.fetchTripAllDay = fetchTripAllDay
+        viewModel.createTripUseCase = createTripUseCase
+        viewModel.fetchUserTripUseCase = fetchUserTripUseCase
+        viewModel.nexusDestinationId = nexusDestinationId
         viewController.viewModel = viewModel
         viewController.delegate = self
         let navigation = UINavigationController(rootViewController: viewController)
@@ -309,8 +316,22 @@ extension TRPCreateTripCoordinater {
 }
 
 extension TRPCreateTripCoordinater: CreateTripContainerVCDelegate {
-    public func createOrEditTrip() {
-        createAOrEdiTrip()
+    public func cancelledEditTrip() {
+        delegate?.trpTripCreateCoordinaterCleanCreateTrip()
+    }
+    
+    public func tripGenerated(hash: String) {
+        guard let city = loadedCity else {return}
+        navigationController.removeFromParent()
+        delegate?.trpTripCreateCoordinaterOpenMyTrip(hash: hash, city: city)
+    }
+    
+    public func getProfileForCreateOrEditTrip() -> TRPTripProfile? {
+        if coordinaterType == .create {
+            return tripProfile
+        } else {
+            return editTripProfile
+        }
     }
     
     public func canContinue(currentStep: CreateTripSteps) -> Bool {
@@ -410,11 +431,11 @@ extension TRPCreateTripCoordinater: CreateTripTripInformationVCDelegate {
 }
 
 extension TRPCreateTripCoordinater: CreateTripSelectDateVCDelegate {
-    func createTripSelectDateVCArrivalSelected(date: Date) {
+    func createTripSelectDateVCArrivalSelected(date: String) {
         tripInformationVM?.setSelectedArrivalDate(date)
     }
     
-    func createTripSelectDateVCDepartureSelected(date: Date) {
+    func createTripSelectDateVCDepartureSelected(date: String) {
         tripInformationVM?.setSelectedDepartureDate(date)
     }
     
@@ -822,9 +843,9 @@ extension TRPCreateTripCoordinater: CompanionDetailVCDelegate {
 extension TRPCreateTripCoordinater: StayAddressVCDelegate{
     
     fileprivate func getSelectAddressVC() -> StayAddressVC {
-        let viewModel = StayAddressViewModel(boundaryNW: loadedCity?.boundarySouthWest,
-                                             boundaryES: loadedCity?.boundaryNorthEast,
-                                             accommondation: stayAddress, 
+        let viewModel = StayAddressViewModel(boundarySW: loadedCity?.boundarySouthWest,
+                                             boundaryNE: loadedCity?.boundaryNorthEast,
+                                             accommondation: stayAddress,
                                              meetingPoint: nexusTripMeetingPoint)
         let viewController = UIStoryboard.makeSelectStayAddressViewController() as StayAddressVC
         viewController.viewModel = viewModel
@@ -836,9 +857,9 @@ extension TRPCreateTripCoordinater: StayAddressVCDelegate{
     private func openStayAddress(_ parentVC: UIViewController) {
         //[39.60829, 40.24261, 32.43424, 33.27918]
         
-        let viewModel = StayAddressViewModel(boundaryNW: loadedCity?.boundarySouthWest,
-                                             boundaryES: loadedCity?.boundaryNorthEast,
-                                             accommondation: stayAddress, 
+        let viewModel = StayAddressViewModel(boundarySW: loadedCity?.boundarySouthWest,
+                                             boundaryNE: loadedCity?.boundaryNorthEast,
+                                             accommondation: stayAddress,
                                              meetingPoint: nexusTripMeetingPoint)
         let viewController = UIStoryboard.makeSelectStayAddressViewController() as StayAddressVC
         viewController.viewModel = viewModel
@@ -862,142 +883,143 @@ extension TRPCreateTripCoordinater: StayAddressVCDelegate{
 //MARK: - Create Trip
 extension TRPCreateTripCoordinater {
     
-    private func createAOrEdiTrip() {
-        if coordinaterType == .create {
-            if let profile = tripProfile {
-                if profile.additionalData == nil {
-                    getJuniperDestinationId(cityId: profile.cityId)
-                    return
-                }
-                createTrip(profile: profile)
-            }
-        }else {
-            
-            guard let editProfile = editTripProfile else {return}
-            
-            let doNotGenerate = editTripUseCase?.doNotGenerate(newProfile: editProfile)
-            
-            if doNotGenerate == false {
-                self.alertView.configForConfirm(title: "",
-                                                message: TRPLanguagesController.shared.getLanguageValue(for: "your_trip_is_going_to_be_updated"),
-                                                btnTitle: TRPLanguagesController.shared.getContinueBtnText(),
-                                                btnConfirmAction: {
-                    self.editTrip(profile: editProfile)
-                },
-                                                btnCancelAction: {
-                    self.delegate?.trpTripCreateCoordinaterCleanCreateTrip()
-                })
-                
-                self.alertView.show()
-                //                if let lastView = createTripNavIndex.last {
-                //                    lastView.present(alert, animated: true, completion: nil)
-                //                }else {
-                //                    editTrip(profile: editProfile)
-                //                }
-            }else {
-                editTrip(profile: editProfile)
-            }
-        }
-    }
+//    private func createAOrEdiTrip() {
+//        if coordinaterType == .create {
+//            if let profile = tripProfile {
+//                if profile.additionalData == nil {
+//                    getJuniperDestinationId(cityId: profile.cityId)
+//                    return
+//                }
+//                createTrip(profile: profile)
+//            }
+//        }else {
+//            
+//            guard let editProfile = editTripProfile else {return}
+//            
+//            let doNotGenerate = editTripUseCase?.doNotGenerate(newProfile: editProfile)
+//            
+//            if doNotGenerate == false {
+//                self.alertView.configForConfirm(title: "",
+//                                                message: TRPLanguagesController.shared.getLanguageValue(for: "your_trip_is_going_to_be_updated"),
+//                                                btnTitle: TRPLanguagesController.shared.getContinueBtnText(),
+//                                                btnConfirmAction: {
+//                    self.editTrip(profile: editProfile)
+//                },
+//                                                btnCancelAction: {
+//                    self.delegate?.trpTripCreateCoordinaterCleanCreateTrip()
+//                })
+//                
+//                self.alertView.show()
+//                //                if let lastView = createTripNavIndex.last {
+//                //                    lastView.present(alert, animated: true, completion: nil)
+//                //                }else {
+//                //                    editTrip(profile: editProfile)
+//                //                }
+//            }else {
+//                editTrip(profile: editProfile)
+//            }
+//        }
+//    }
     
-    private func createTrip(profile: TRPTripProfile) {
-        showPreloaderWithCreateOrEditTrip(show: true)
-        createTripUseCase.executeCreateTrip(profile: profile) { [weak self] result in
-            guard let strongSelf = self else { return }
-            
-            switch result {
-            case .success(let trip):
-                strongSelf.fetchUpcomingTrip()
-                strongSelf.checkTripIsGenerated(tripHash: trip.tripHash)
-            case .failure(let error):
-                strongSelf.showPreloaderWithCreateOrEditTrip(show: false)
-                strongSelf.showErrorWithCreateOrEditTrip(error)
-            }
-        }
-    }
+//    private func createTrip(profile: TRPTripProfile) {
+//        showPreloaderWithCreateOrEditTrip(show: true)
+//        createTripUseCase.executeCreateTrip(profile: profile) { [weak self] result in
+//            guard let strongSelf = self else { return }
+//            
+//            switch result {
+//            case .success(let trip):
+//                strongSelf.fetchUpcomingTrip()
+//                strongSelf.checkTripIsGenerated(tripHash: trip.tripHash)
+//            case .failure(let error):
+//                strongSelf.showPreloaderWithCreateOrEditTrip(show: false)
+//                strongSelf.showErrorWithCreateOrEditTrip(error)
+//            }
+//        }
+//    }
     
-    private func getJuniperDestinationId(cityId: Int) {
-        showPreloaderWithCreateOrEditTrip(show: true)
-        TripianCommonApi().getDestinationIdFromCity(cityId) { [weak self] result in
-            guard let strongSelf = self else { return }
-            switch result {
-            case .success(let cityInfo):
-                guard let cityInfo else {return}
-                strongSelf.nexusDestinationId = cityInfo.zoneId
-                strongSelf.tripProfile?.additionalData = "\(String(describing: cityInfo.zoneId))"
-            case .failure(let failure):
-                print(failure)
-            }
-            strongSelf.createOrEditTrip()
-        }
-    }
+//    private func getJuniperDestinationId(cityId: Int) {
+//        showPreloaderWithCreateOrEditTrip(show: true)
+//        TripianCommonApi().getDestinationIdFromCity(cityId) { [weak self] result in
+//            guard let strongSelf = self else { return }
+//            switch result {
+//            case .success(let cityInfo):
+//                guard let cityInfo else {return}
+//                strongSelf.nexusDestinationId = cityInfo.zoneId
+//                strongSelf.tripProfile?.additionalData = "\(String(describing: cityInfo.zoneId))"
+//            case .failure(let failure):
+//                print(failure)
+//            }
+//            strongSelf.createOrEditTrip()
+//        }
+//    }
     
-    private func editTrip(profile: TRPEditTripProfile) {
-        
-        showPreloaderWithCreateOrEditTrip(show: true)
-        
-        editTripUseCase?.executeEditTrip(profile: profile) { [weak self] result in
-            self?.showPreloaderWithCreateOrEditTrip(show: false)
-            switch result {
-            case .success(let trip):
-                self?.fetchUpcomingTrip()
-                self?.delegate?.trpTripCreateCoordinaterOpenMyTrip(hash: trip.tripHash, city: trip.city)
-            case .failure(let error):
-                print("[Error] \(error.localizedDescription)")
-                self?.showErrorWithCreateOrEditTrip(error)
-            }
-        }
-        
-    }
+//    private func editTrip(profile: TRPEditTripProfile) {
+//        
+//        showPreloaderWithCreateOrEditTrip(show: true)
+//        
+//        editTripUseCase?.executeEditTrip(profile: profile) { [weak self] result in
+//            self?.showPreloaderWithCreateOrEditTrip(show: false)
+//            switch result {
+//            case .success(let trip):
+//                self?.fetchUpcomingTrip()
+//                self?.delegate?.trpTripCreateCoordinaterOpenMyTrip(hash: trip.tripHash, city: trip.city)
+//            case .failure(let error):
+//                print("[Error] \(error.localizedDescription)")
+//                self?.showErrorWithCreateOrEditTrip(error)
+//                self?.showPreloaderWithCreateOrEditTrip(show: false)
+//            }
+//        }
+//        
+//    }
     
-    private func showErrorWithCreateOrEditTrip(_ error: Error) {
-        EvrAlertView.showAlert(contentText: error.localizedDescription, type: .error, parentViewController: createTripContainerNavigation)
-    }
+//    private func showErrorWithCreateOrEditTrip(_ error: Error) {
+//        EvrAlertView.showAlert(contentText: error.localizedDescription, type: .error, parentViewController: createTripContainerNavigation)
+//    }
     
-    private func showPreloaderWithCreateOrEditTrip(show: Bool) {
-        
-        DispatchQueue.main.async {
-            if show {
-                if self.isLoaderShowing == false {
-                    self.isLoaderShowing = true
-                    self.laoderVC.modalPresentationStyle = .overCurrentContext
-                    self.createTripContainerNavigation?.present(self.laoderVC, animated: false, completion: nil)
-                    self.laoderVC.show()
-                }
-            }else {
-                self.isLoaderShowing = false
-                self.laoderVC.dismiss(animated: false, completion: nil)
-            }
-        }
-    }
+//    private func showPreloaderWithCreateOrEditTrip(show: Bool, delayTime: Bool = false) {
+//        
+//        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+//            if show {
+//                if self.isLoaderShowing == false {
+//                    self.isLoaderShowing = true
+//                    self.laoderVC.modalPresentationStyle = .overCurrentContext
+//                    self.createTripContainerNavigation?.present(self.laoderVC, animated: false, completion: nil)
+//                    self.laoderVC.show()
+//                }
+//            }else {
+//                self.isLoaderShowing = false
+//                self.laoderVC.dismiss(animated: false, completion: nil)
+//            }
+//        }
+//    }
     
-    private func fetchUpcomingTrip() {
-        fetchUserTripUseCase?.executeUpcomingTrip(completion: nil)
-    }
+//    private func fetchUpcomingTrip() {
+//        fetchUserTripUseCase?.executeUpcomingTrip(completion: nil)
+//    }
 }
 
 //MARK: - CHECK TRIP IS GENERETED
 extension TRPCreateTripCoordinater {
     
-    func checkTripIsGenerated(tripHash hash: String) {
-        
-        fetchTripAllDay?.firstTripGenerated.addObserver(self, observer: { [weak self] status in
-            if !status {return}
-            self?.showPreloaderWithCreateOrEditTrip(show: false)
-//            self?.openOverView(tripHash: hash)
-            
-            guard let city = self?.loadedCity else {return}
-            if self?.isLoaderShowing == true {
-                self?.isLoaderShowing = false
-                self?.laoderVC.dismiss(animated: false, completion: nil)
-            }
-            self?.navigationController.removeFromParent()
-            self?.delegate?.trpTripCreateCoordinaterOpenMyTrip(hash: hash, city: city)
-//            self?.navigationController.dismiss(animated: true)
-        })
-        
-        fetchTripAllDay?.executeFetchTripCheckAllPlanGenerate(tripHash: hash, completion: nil)
-    }
+//    func checkTripIsGenerated(tripHash hash: String) {
+//        
+//        fetchTripAllDay?.firstTripGenerated.addObserver(self, observer: { [weak self] status in
+//            if !status {return}
+//            self?.showPreloaderWithCreateOrEditTrip(show: false)
+////            self?.openOverView(tripHash: hash)
+//            
+//            guard let city = self?.loadedCity else {return}
+//            if self?.isLoaderShowing == true {
+//                self?.isLoaderShowing = false
+//                self?.laoderVC.dismiss(animated: false, completion: nil)
+//            }
+//            self?.navigationController.removeFromParent()
+//            self?.delegate?.trpTripCreateCoordinaterOpenMyTrip(hash: hash, city: city)
+////            self?.navigationController.dismiss(animated: true)
+//        })
+//        
+//        fetchTripAllDay?.executeFetchTripCheckAllPlanGenerate(tripHash: hash, completion: nil)
+//    }
 }
 
 extension TRPCreateTripCoordinater: OverviewContainerVCDelegate {

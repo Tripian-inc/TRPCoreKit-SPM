@@ -13,13 +13,17 @@ public class NexusHelper {
         guard var components = URLComponents(string: url.replacingOccurrences(of: "/en/", with: "/\(TRPClient.shared.language)/")) else {
             return nil
         }
-        var queryItems = components.queryItems ?? []
-        queryItems.append(contentsOf: [
+        let customQueryItems = [
             URLQueryItem(name: "startDate", value: startDate),
             URLQueryItem(name: "utm_source", value: "nexusapp"),
-            URLQueryItem(name: "utm_medium", value: "tripian"),
-            //                URLQueryItem(name: "endDate", value: endDate)
-        ])
+            URLQueryItem(name: "utm_medium", value: "tripian")
+        ]
+        var queryItems = components.queryItems ?? []
+        for customQueryItem in customQueryItems {
+            if !queryItems.contains(where: { $0.name == customQueryItem.name }) {
+                queryItems.append(customQueryItem)
+            }
+        }
         components.queryItems = queryItems
         return components.url
     }

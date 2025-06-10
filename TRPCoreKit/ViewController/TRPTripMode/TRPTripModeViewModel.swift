@@ -618,8 +618,8 @@ extension TRPTripModeViewModel {
     
     public func getDailyPlanStartEndDate() -> (startDate: String, endDate: String) {
         
-        let startDate: String = dailyPlan?.date ?? Date().toString(format: "yyyy-MM-dd")
-        let endDate: String = dailyPlan?.date ?? Date().toString(format: "yyyy-MM-dd")
+        let startDate: String = dailyPlan?.date ?? Date().localDate().toString(format: "yyyy-MM-dd")
+        let endDate: String = dailyPlan?.date ?? Date().localDate().toString(format: "yyyy-MM-dd")
         return (startDate, endDate)
     }
     

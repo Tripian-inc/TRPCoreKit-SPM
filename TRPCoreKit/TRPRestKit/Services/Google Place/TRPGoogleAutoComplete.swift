@@ -13,6 +13,8 @@ class TRPGoogleAutoComplete {
     private var key: String
     private var text: String
     public var centerLocationForBoundary: TRPLocation?
+    public var boundarySW: TRPLocation?
+    public var boundaryNE: TRPLocation?
     public var radiusForBoundary: Double?
 
     init(key: String, text: String) {
@@ -28,6 +30,9 @@ class TRPGoogleAutoComplete {
         
         if let location = centerLocationForBoundary, let radius = radiusForBoundary {
             link += "&location=\(location.lat),\(location.lon)&radius=\(radius)&strictbounds=true"
+        }
+        if let boundarySW = boundarySW, let boundaryNE = boundaryNE {
+            link += "&locationrestriction=rectangle:\(boundaryNE.lat),\(boundaryNE.lon)|\(boundarySW.lat),\(boundarySW.lon)"
         }
         let network = TRPNetwork(link: link)
         network.add(mode: .post)

@@ -20,14 +20,7 @@ public struct TRPTime: Codable {
     
     /// A Date value. Closer uses a `yyyy-MM-dd HH:mm`style to convert.
     public var toDate: Date? {
-        return "\(date) \(time)".toDateWithoutUTC(format: "yyyy-MM-dd HH:mm:ss")
-//        let formatter = DateFormatter()
-//        formatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
-//        if let timeZone = TimeZone(identifier: "UTC") {
-//            formatter.timeZone = timeZone
-//        }
-//        formatter.locale = Locale(identifier: "en_US_POSIX")
-//        return  formatter.date(from: "\(date) \(time)")
+        return "\(date) \(time)".toDate(format: "yyyy-MM-dd HH:mm:ss")
     }
     
     /// A String value. Readable value of date

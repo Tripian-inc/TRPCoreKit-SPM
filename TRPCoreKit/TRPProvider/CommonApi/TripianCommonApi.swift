@@ -56,6 +56,10 @@ extension TripianCommonApi {
             .responseDecodable(type: TripianCommonGenericDataParser<JuniperCityInfo>.self) { (result) in
                 switch result {
                 case .success(let model):
+                    if let errorMessage = model.message, !errorMessage.isEmpty {
+                        completion(.failure(GeneralError.customMessage(errorMessage)))
+                        return
+                    }
                     completion(.success(model.data))
                 case .failure(let error):
                     completion(.failure(error))

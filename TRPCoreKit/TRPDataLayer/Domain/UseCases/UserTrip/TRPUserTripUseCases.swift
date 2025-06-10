@@ -16,7 +16,7 @@ public final class TRPUserTripUseCases: ObserverController {
     }
     
     private var currentDate: String {
-        return Date().toString(format: "YYYY-MM-dd", timeZone: nil)
+        return Date().localDate().toStringWithoutTimeZone(format: "YYYY-MM-dd")
     }
     
     private func removeTripInPastTrip(tripHash: String) {
@@ -87,7 +87,7 @@ extension TRPUserTripUseCases: FetchUserUpcomingTripUseCase {
                     onComplete(.failure(error))
                 }
             }
-        }else {
+        } else {
             repository.fetchLocalTrip { [weak self] (result) in
                 switch(result) {
                 case .success(let trips):

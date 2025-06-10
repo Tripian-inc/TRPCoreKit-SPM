@@ -20,16 +20,20 @@ class CreateTripSelectDateViewModel {
         }
     }
     
-    func getSelectedDate() -> Date {
-        return dateModel?.selectedDate.localDate() ?? Date()
+    func getSelectedDate() -> Date? {
+        let selectedDate = dateModel?.selectedDate.toDateWithoutUTC() ?? Date().localDate()
+        guard !selectedDate.isDatePast(toDate: getMinimumSelectableDate()) else {
+            return nil
+        }
+        return selectedDate
     }
     
     func getMinimumSelectableDate() -> Date {
-        return dateModel?.minimumDate.localDate() ?? Date()
+        return dateModel?.minimumDate.toDateWithoutUTC() ?? Date().localDate()
     }
     
     func getMaximumSelectableDate() -> Date {
-        return dateModel?.maximumDate?.localDate() ?? Date().addDay(5000)!
+        return dateModel?.maximumDate?.toDateWithoutUTC() ?? Date().localDate().addDay(5000)!
     }
     
     func datesRange(from: Date, to: Date) -> [Date] {

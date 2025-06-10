@@ -93,12 +93,24 @@ extension TRPPoi {
         if let bookingUrl = additionalData?.bookingUrl {
             poiUrl = bookingUrl
         }
-        if let description = description, description.starts(with: "http") {
+        if poiUrl.isEmpty, let web = webUrl, web.starts(with: "http") {
+            poiUrl = web
+        }
+        if poiUrl.isEmpty, let description = description, description.starts(with: "http") {
             poiUrl = description
         }
         
         return NexusHelper.getCustomPoiUrl(url: poiUrl.replacingOccurrences(of: "/en/", with: "/\(TRPClient.shared.language)/"), startDate: planDate)
 //        return poiUrl.replacingOccurrences(of: "/en/", with: "/\(TRPClient.shared.language)/")
+    }
+    
+    public func getCategoryName() -> String {
+        guard let category = categories.first else { return "" }
+        if category.id == 40 {
+            return "NexusTours"
+        }
+        
+        return category.name ?? ""
     }
 }
 

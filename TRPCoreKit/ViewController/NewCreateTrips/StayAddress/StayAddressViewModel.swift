@@ -23,8 +23,8 @@ class StayAddressViewModel {
     var data:[TRPGooglePlace] = [] {
         didSet {delegate?.viewModel(dataLoaded: true) }
     }
-    private let boundaryNW: TRPLocation?
-    private let boundaryES: TRPLocation?
+    private let boundarySW: TRPLocation?
+    private let boundaryNE: TRPLocation?
     private var cityCenter: TRPLocation?
     private var radius: Double?
     private var accommondation: TRPAccommodation?
@@ -45,17 +45,30 @@ class StayAddressViewModel {
     }
     
     
-    init(boundaryNW: TRPLocation?, boundaryES: TRPLocation?, accommondation: TRPAccommodation? = nil, meetingPoint: String?) {
-        self.boundaryNW = boundaryNW
-        self.boundaryES = boundaryES
+    init(boundarySW: TRPLocation?, boundaryNE: TRPLocation?, accommondation: TRPAccommodation? = nil, meetingPoint: String?) {
+        self.boundarySW = boundarySW
+        self.boundaryNE = boundaryNE
         self.accommondation = accommondation
-        self.cityCenter = calculateCenter()
+//        self.cityCenter = calculateCenter()
         if let key = TRPApiKeyController.getKey(TRPApiKeys.trpGooglePlace) {
             googleApiKey = key
         }else {
             Log.e("TRPGooglePlaceApi key not found")
         }
         self.meetingPoint = meetingPoint
+        checkIfMeetingPointIsTerminal()
+    }
+    
+    private func checkIfMeetingPointIsTerminal() {
+        let terminalTexts = ["terminal", "airport", "aeropuerto"]
+        if let meetingPoint {
+            let isTerminal = terminalTexts.contains { text in
+                meetingPoint.lowercased().contains(text)
+            }
+            if isTerminal {
+                self.meetingPoint = nil
+            }
+        }
     }
     
     public func getMainTitle() -> String {
@@ -90,10 +103,10 @@ class StayAddressViewModel {
     }
     
     private func calculateCenter() -> TRPLocation? {
-        guard let boundaryNW = boundaryNW, let boundaryES = boundaryES else {return nil}
-        let centerLat = ( boundaryNW.lat + boundaryES.lat ) / 2
-        let centerLon = ( boundaryNW.lon + boundaryES.lon ) / 2
-        let distance = CLLocation(latitude: centerLat, longitude: centerLon).distance(from: CLLocation(latitude: boundaryNW.lat, longitude: boundaryNW.lon))
+        guard let boundarySW = boundarySW, let boundaryNE = boundaryNE else {return nil}
+        let centerLat = ( boundarySW.lat + boundaryNE.lat ) / 2
+        let centerLon = ( boundarySW.lon + boundaryNE.lon ) / 2
+        let distance = CLLocation(latitude: centerLat, longitude: centerLon).distance(from: CLLocation(latitude: boundaryNE.lat, longitude: boundaryNE.lon))
         radius = Double(distance)
         return TRPLocation(lat: centerLat, lon: centerLon)
     }
@@ -104,19 +117,23 @@ class StayAddressViewModel {
             return
         }
         self.delegate?.viewModel(showPreloader: true)
-        TRPRestKit().googleAutoComplete(key: apiKey,
-                                        text: text,
-                                        centerForBoundary: cityCenter,
-                                        radiusForBoundary: radius) {[weak self] (data, error) in
-            guard let strongSelf = self else {return}
-            strongSelf.delegate?.viewModel(showPreloader: false)
-            if let error = error {
-                strongSelf.delegate?.viewModel(error: error)
-                return
-            }
-            if let data = data as? [TRPGooglePlace] {
-                strongSelf.data = data
-                
+        if let boundarySW = boundarySW, let boundaryNE = boundaryNE {
+            TRPRestKit().googleAutoComplete(key: apiKey,
+                                            text: text,
+                                            boundarySW: boundarySW,
+                                            //                                        centerForBoundary: cityCenter,
+                                            //                                        radiusForBoundary: radius)
+                                            boundaryNE: boundaryNE) { [weak self] (data, error) in
+                guard let strongSelf = self else {return}
+                strongSelf.delegate?.viewModel(showPreloader: false)
+                if let error = error {
+                    strongSelf.delegate?.viewModel(error: error)
+                    return
+                }
+                if let data = data as? [TRPGooglePlace] {
+                    strongSelf.data = data
+                    
+                }
             }
         }
     }

@@ -51,7 +51,7 @@ public struct TRPDevice: Decodable, Encodable {
     public init(device: UIDevice = .current,
                 bundleId: String? = nil,
                 firebaseToken: String? = nil) {
-        self.deviceId = UIDevice.current.identifierForVendor?.uuidString ?? ""
+        self.deviceId = TRPDeviceModel.getUUID()
         self.deviceOs = UIDevice.current.systemName
         self.osVersion = UIDevice.current.systemVersion
         self.firebaseToken = firebaseToken

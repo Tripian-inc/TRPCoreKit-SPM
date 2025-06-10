@@ -134,7 +134,7 @@ extension ExperiencesViewModel {
         let splittedCode = model.code.split(separator: "¬")
         if splittedCode.count > 1 {
             let encodeCode = "\(splittedCode[1])¥TKT¥\(splittedCode[0])¥\(destinationId)¥\(model.code)"
-            let url = "https://www.nexustours.com/en/services/\(cityName)/\(encodeCode)/"
+            let url = "https://www.nexustours.com/en/services/\(destinationId)/\(encodeCode)/"
             return NexusHelper.getCustomPoiUrl(url: url, startDate: self.startDate ?? "")            
         }
         return nil

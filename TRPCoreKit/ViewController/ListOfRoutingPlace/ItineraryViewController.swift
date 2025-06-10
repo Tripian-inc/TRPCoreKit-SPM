@@ -42,7 +42,7 @@ extension ItineraryViewController: UITableViewDataSource, UITableViewDelegate {
     
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let model = viewModel.getStep(index: indexPath).poi
+//        let model = viewModel.getStep(index: indexPath).poi
 //        if model.placeType == .poi {
             return makePoiCell(tableView, cellForRowAt: indexPath)
 //        }else {
@@ -76,18 +76,15 @@ extension ItineraryViewController: UITableViewDataSource, UITableViewDelegate {
         cellModel.userCar = distanceInfo.userCar
         cellModel.canReplace = !model.alternatives.isEmpty
         
+        cellModel.reaction = .none
         if model.poi.placeType == .poi {
             if let reaction = viewModel.getReactions(step: model) {
                 if reaction == .thumbsUp {
                     cellModel.reaction = .thumbsUp
-                }else if reaction == .thumbsDown {
+                } else if reaction == .thumbsDown {
                     cellModel.reaction = .thumbsDown
                 }
-            }else {
-                cellModel.reaction = .none
             }
-        }else {
-            cellModel.reaction = .none
         }
         
         cell.config(cellModel)
@@ -132,24 +129,6 @@ extension ItineraryViewController: UITableViewDataSource, UITableViewDelegate {
         }
         return cell
     }
-    
-    
-//    func makeHotelCell(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-//        let cell = tableView.dequeueReusableCell(withReuseIdentifier: "NewItineraryTableViewCell", for: indexPath) as! NewItineraryTableViewCell
-//        let distanceInfo = viewModel.getStepDistanceContent(index: indexPath)
-//        let model = viewModel.getStep(index: indexPath)
-//        
-//        let cellModel = ItineraryUIModel(poi: model.poi, order: indexPath.row)
-//        cellModel.image = viewModel.getPlaceImage(indexPath: indexPath)
-//        cellModel.readableDistance = distanceInfo.readableDistance
-//        cellModel.readableTime = distanceInfo.readableTime
-//        cellModel.userCar = distanceInfo.userCar
-//        cellModel.reaction = .none
-//        cell.config(cellModel)
-//        
-//        
-//        return cell
-//    }
     
     
     func tableView(_ tableView: UITableView, moveRowAt sourceIndexPath: IndexPath, to destinationIndexPath: IndexPath) {

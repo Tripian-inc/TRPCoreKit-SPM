@@ -59,20 +59,32 @@ extension Date {
     }
     
     func addMin(component: Calendar.Component, value: Int) -> Date?{
-        let calendar = Calendar.current
+        let calendar = Calendar.currentWithUTC
         let next = calendar.date(byAdding: component, value: value, to: self)
         return next
     }
     
-    func addDay(_ day: Int) -> Date? {
+    func addDay(_ day: Int, withoutUTC: Bool = false) -> Date? {
         var dayComponent = DateComponents()
         dayComponent.day = day
+        
+        if withoutUTC {
+            return Calendar.current.date(byAdding: dayComponent, to: self)
+        }
         
         return Calendar.currentWithUTC.date(byAdding: dayComponent, to: self)
     }
     
+    func isDatePast(toDate: Date = Date().localDate()) -> Bool {
+        return toDate > self
+    }
+    
     func isToday() -> Bool {
         return Calendar.currentWithUTC.isDateInToday(self)
+    }
+    
+    func isTodayLocal() -> Bool {
+        return getDate(forLocal: false) == Date().localDate().getDate()
     }
     
     func addHour(_ hours: Int) -> Date? {
@@ -97,6 +109,13 @@ extension Date {
         return toStringWithoutTimeZone(format: "HH:mm")
     }
     
+    func getDate(forLocal: Bool = true) -> String {
+        if forLocal {
+            return toStringWithoutTimeZone(format: String.defaultDateFormat)
+        }
+        return toString(format: String.defaultDateFormat)
+    }
+    
     func setHour(for hour: String?) -> Date? {
         if let hour = hour, hour.contains(":") {
             let splitted = hour.components(separatedBy: ":")
@@ -112,6 +131,13 @@ extension Date {
         guard let localDate = Calendar.current.date(byAdding: .second, value: Int(timeZoneOffset), to: self) else {return Date()}
 
         return localDate
+    }
+    
+    func getDateWithZeroHour(forLocal: Bool = false) -> Date {
+        if forLocal {
+            return Calendar.current.startOfDay(for: self)
+        }
+        return Calendar.currentWithUTC.startOfDay(for: self)
     }
     
     func getHourForTimer() -> String {
@@ -150,29 +176,34 @@ extension Date {
         return "\(hourString):\(minString)"
     }
     
-    static func getNearestAvailableDateAndTimeForCreateTrip() -> (Date, String) {
+    static func getNearestAvailableDateAndTimeForCreateTrip(maxHour: Int = 16) -> (String, String) {
         var date = Date().localDate()
         var timeString = "09:00"
-        if date.isToday() {
-            let time = date.getHour()
-            var hour = "09"
+//        if date.isToday() {
+            let time = date.toString(format: "HH:mm")
             if let hour = time.components(separatedBy: ":").first,
                let minute = time.components(separatedBy: ":").last,
                let hourInt = Int(hour),
                let minuteInt = Int(minute),
-               hourInt < 16 {
-                if minuteInt <= 30 {
-                    timeString = getHourMinuteText(hour: hourInt, minute: minuteInt)
-                } else {
-                    timeString = getHourMinuteText(hour: hourInt + 1, minute: 0)
+               hourInt < maxHour {
+                if hourInt > 8 {
+                    if minuteInt <= 30 {
+                        timeString = getHourMinuteText(hour: hourInt + 1, minute: 0)
+                    } else {
+                        timeString = getHourMinuteText(hour: hourInt + 1, minute: 30)
+                    }
                 }
             } else {
-                if let dateAfter = date.addDay(1) {
+                if let dateAfter = date.addDay(1, withoutUTC: true) {
                     date = dateAfter
                 }
             }
-        }
-        return (date, timeString)
+//        }
+        return (date.getDate(forLocal: false), timeString)
+    }
+    
+    static func getNearestDate() -> String {
+        return getNearestAvailableDateAndTimeForCreateTrip(maxHour: 20).0
     }
 }
 

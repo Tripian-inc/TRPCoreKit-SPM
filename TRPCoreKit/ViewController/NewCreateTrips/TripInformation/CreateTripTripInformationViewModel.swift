@@ -25,9 +25,11 @@ class CreateTripTripInformationViewModel {
     private var maxTripDays: Int = 3
     
     //Arrival date in tutulduğu değer
-    private var selectedArrivalDate: Date = (Date().addDay(1)?.setHour(for: "00:00"))!
+//    private var selectedArrivalDate: Date = (Date().localDate().addDay(1))!
+    private var selectedArrivalDate: String = (Date().localDate().addDay(1))!.getDate()
+    private var selectedDepartureDate: String = (Date().localDate().addDay(1))!.getDate()
     //Departure date in tutulduğu değer
-    private var selectedDepartureDate: Date = (Date().addDay(1)?.setHour(for: "00:00"))!
+//    private var selectedDepartureDate: Date = (Date().localDate().addDay(1))!
     private var selectedArrivalHour = "09:00"
     private var selectedDepartureHour = "21:00"
     private var selectedCity: TRPCity?
@@ -72,22 +74,24 @@ class CreateTripTripInformationViewModel {
     }
     
     public func setNexusTripInformation(startDate: String, endDate: String, city: TRPCity) {
-        if let startDate = startDate.toDate(format: "yyyy-MM-dd") {
-            if isDatePast(startDate) {
+        selectedArrivalDate = startDate
+        if let startDateTime = startDate.toDateWithoutUTC()?.getDateWithZeroHour() {
+            if startDateTime.isDatePast() {
                 let (date, time) = Date.getNearestAvailableDateAndTimeForCreateTrip()
                 selectedArrivalDate = date
                 selectedArrivalHour = time
             } else {
-                setSelectedArrivalDate(startDate)
+                setSelectedArrivalDate(startDate, forNexusTrip: true)
             }
         }
-        if let endDate = endDate.toDate(format: "yyyy-MM-dd") {
-            if isDatePast(endDate) {
-                let (date, time) = Date.getNearestAvailableDateAndTimeForCreateTrip()
-                selectedArrivalDate = date
-                selectedArrivalHour = time
-            } else {
+        if let endDateTime = endDate.toDateWithoutUTC() {
+            if !endDateTime.isDatePast() {
                 setSelectedDepartureDate(endDate)
+//                let (date, time) = Date.getNearestAvailableDateAndTimeForCreateTrip()
+//                selectedDepartureDate = date
+//                selectedDepartureHour = time
+            } else {
+                setSelectedArrivalDate(startDate, forNexusTrip: true)
             }
         }
         setSelectedCity(city: city)
@@ -95,10 +99,6 @@ class CreateTripTripInformationViewModel {
     
     public func getSelectedCity() -> TRPCity {
         return selectedCity!
-    }
-    
-    private func isDatePast(_ date: Date) -> Bool {
-        return Date() > date
     }
         
 }
@@ -125,22 +125,22 @@ extension CreateTripTripInformationViewModel {
         
         guard let profile = tripProfile else {return}
         
-        if let arrival = profile.arrivalDate?.toDate {
+        if let arrivalDate = profile.arrivalDate?.date, let arrival = profile.arrivalDate?.toDate {
             let hour = arrival.toString(format: "HH:mm", dateStyle: nil, timeStyle: nil)
             if !hour.isEmpty{
                 selectedArrivalHour = hour
             }
                         
-            self.selectedArrivalDate = arrival
+            self.selectedArrivalDate = arrivalDate
         }
         
-        if let departure = profile.departureDate?.toDate {
-            let hour = departure.toString(format: "HH:mm", dateStyle: nil, timeStyle: nil)
+        if let departureDate = profile.departureDate?.date, let departure = profile.departureDate?.toDate {
+            let hour = departure.toStringWithoutTimeZone(format: "HH:mm", dateStyle: nil, timeStyle: nil)
             if  !hour.isEmpty{
                 selectedDepartureHour = hour
             }
             
-            self.selectedDepartureDate = departure
+            self.selectedDepartureDate = departureDate
         }
     }
 }
@@ -162,7 +162,7 @@ extension CreateTripTripInformationViewModel {
 //MARK: - Flight Dates
 extension CreateTripTripInformationViewModel {
     func getArrivalDateModel() -> CreateTripDateModel {
-        return CreateTripDateModel(minimumDate: Date(), selectedDate: selectedArrivalDate)
+        return CreateTripDateModel(minimumDate: getMinimumDateRange(), selectedDate: selectedArrivalDate)
     }
     
     func getDepartureDateModel() -> CreateTripDateModel {
@@ -170,19 +170,19 @@ extension CreateTripTripInformationViewModel {
     }
     
     func getSelectedArrivalDate() -> String {
-        return selectedArrivalDate.toString(format: "dd MMM yyyy")
+        return selectedArrivalDate.toDate()?.toString(format: "dd MMM yyyy") ?? selectedArrivalDate
     }
     
     func getSelectedDepartureDate() -> String {
-        return selectedDepartureDate.toString(format: "dd MMM yyyy")
+        return selectedDepartureDate.toDate()?.toString(format: "dd MMM yyyy") ?? selectedDepartureDate
     }
     
-    func setSelectedArrivalDate(_ date: Date) {
+    func setSelectedArrivalDate(_ date: String, forNexusTrip: Bool = false) {
         self.selectedArrivalDate = date
-        setupDepartureDateForArrival()
+        setupDepartureDateForArrival(forNexusTrip: forNexusTrip)
     }
     
-    func setSelectedDepartureDate(_ date: Date) {
+    func setSelectedDepartureDate(_ date: String) {
         self.selectedDepartureDate = date
         self.delegate?.viewModel(dataLoaded: true)
     }
@@ -195,13 +195,22 @@ extension CreateTripTripInformationViewModel {
         }
     }
     
-    private func getMaximumDateRange() -> Date {
-        return selectedArrivalDate.addDay(selectedCity?.maxTripDays ?? 13)!
+    private func getMaximumDateRange() -> String {
+        return selectedArrivalDate.toDate()?.addDay(selectedCity?.maxTripDays ?? 13)?.toString() ?? Date().localDate().toString(format: String.defaultDateFormat)
     }
     
-    private func setupDepartureDateForArrival() {
-        if selectedArrivalDate.isToday() {
-            let (date, time) = Date.getNearestAvailableDateAndTimeForCreateTrip()
+    private func getMinimumDateRange() -> String {
+//        var date = Date.getNearestDate()// Date().localDate().getDateWithZeroHour(forLocal: true)
+//        if date.isTodayLocal() {
+//            date = Date.getNearestDate()
+//        }
+        return Date.getNearestDate()
+    }
+    
+    private func setupDepartureDateForArrival(forNexusTrip: Bool = false) {
+        if selectedArrivalDate.toDateWithoutUTC()?.isTodayLocal() == true {
+            let maxHourForNearTime = forNexusTrip ? 16 : 21
+            let (date, time) = Date.getNearestAvailableDateAndTimeForCreateTrip(maxHour: maxHourForNearTime)
             selectedArrivalDate = date
             selectedArrivalHour = time
 //            selectedDepartureDate = date
@@ -213,7 +222,7 @@ extension CreateTripTripInformationViewModel {
     }
     
     private func isArrivalDateEqualsDeparture() -> Bool {
-        return selectedArrivalDate.toString(format: "dd.MM.yyyy") == selectedDepartureDate.toString(format: "dd.MM.yyyy")
+        return selectedArrivalDate == selectedDepartureDate
     }
 }
 
@@ -285,19 +294,19 @@ extension CreateTripTripInformationViewModel {
         
     private func setTripHours() {
     
-        guard let arrivalDateWithHour = selectedArrivalDate.setHour(for: selectedArrivalHour),
-            let departureDateWithHour = selectedDepartureDate.setHour(for: selectedDepartureHour) else {return}
+//        guard let arrivalDateWithHour = selectedArrivalDate.setHour(for: selectedArrivalHour),
+//            let departureDateWithHour = selectedDepartureDate.setHour(for: selectedDepartureHour) else {return}
         
-        tripProfile.arrivalDate = TRPTime(date: arrivalDateWithHour)
-        tripProfile.departureDate = TRPTime(date: departureDateWithHour)
+        tripProfile.arrivalDate = TRPTime(date: selectedArrivalDate, time: selectedArrivalHour + ":00")
+        tripProfile.departureDate = TRPTime(date: selectedDepartureDate, time: selectedDepartureHour + ":00")
     }
 }
 
 
 public struct CreateTripDateModel {
-    var minimumDate: Date
-    var maximumDate: Date?
-    var selectedDate: Date
+    var minimumDate: String
+    var maximumDate: String?
+    var selectedDate: String
 }
 
 struct CreateTripTripInformationSectionModel {

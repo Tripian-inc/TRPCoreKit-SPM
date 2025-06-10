@@ -617,10 +617,7 @@ extension TRPTripModeVC: TRPMapViewDelegate {
     }
     
     private func openCallOut(_ poi: TRPPoi) {
-        var category = ""
-        if let name = poi.categories.first?.name {
-            category = name
-        }
+        var category = poi.getCategoryName()
         var rating = poi.isRatingAvailable() ? poi.rating ?? 0 : 0
         rating = rating.rounded()
         

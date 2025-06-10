@@ -10,21 +10,23 @@ import Foundation
 import UIKit
 extension String {
     
+    static let defaultDateFormat: String = "yyyy-MM-dd"
+    
     /// String veriyi Date haline dönüştürür.
     ///
     /// - Parameters:
     ///   - date: String halinde date verisi
     ///   - format: Date in oluşturulduğu format
     /// - Returns: Date
-    func toDate(format: String) -> Date? {
-        return toDate(format: format, timeZone: "UTC")
+    func toDate(format: String = defaultDateFormat, timeZone: String? = "UTC") -> Date? {
+        return toDateFormat(format: format, timeZone: timeZone)
     }
     
-    func toDateWithoutUTC(format: String) -> Date? {
-        return toDate(format: format)
+    func toDateWithoutUTC(format: String = defaultDateFormat) -> Date? {
+        return toDateFormat(format: format, timeZone: nil)
     }
     
-    private func toDate(format: String, timeZone: String? = nil) -> Date? {
+    private func toDateFormat(format: String, timeZone: String?) -> Date? {
         let dateFormatter = DateFormatter()
         dateFormatter.dateFormat = format
         if let timeZone {
@@ -196,5 +198,11 @@ extension String {
                     .folding(options: .diacriticInsensitive, locale: .current)
                     .lowercased()
             )
+    }
+}
+
+extension String? {
+    func isNilOrEmpty() -> Bool {
+        return self?.isEmpty ?? true
     }
 }

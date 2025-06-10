@@ -271,7 +271,7 @@ extension TRPTripModeCoordinater {
         favoriteUseCases.executeFetchFavorites(cityId: city.id, completion: nil)
         
         //        let currentDay = Date().toString(format: "yyyy-MM-dd", dateStyle: nil, timeStyle: nil)
-        let beforeDay = Date().addDay(-1)!.toString(format: "yyyy-MM-dd", dateStyle: nil, timeStyle: nil)
+        let beforeDay = Date().localDate().addDay(-1)!.toString(format: "yyyy-MM-dd", dateStyle: nil, timeStyle: nil)
         
         reservationUseCases.executefetchReservation(cityId: city.id, from: beforeDay, to: nil, completion: nil)
         
@@ -687,7 +687,7 @@ extension TRPTripModeCoordinater: YelpCoordinaterDelegate {
         if let tripDay = tripModeUseCases.dailyPlan.value?.date{
             return tripDay
         }
-        return Date().toString(format: "YYYY-MM-dd")
+        return Date().localDate().toString(format: "YYYY-MM-dd")
     }
     
     
