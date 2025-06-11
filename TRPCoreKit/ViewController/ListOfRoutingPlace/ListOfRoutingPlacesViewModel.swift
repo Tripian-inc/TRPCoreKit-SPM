@@ -353,6 +353,7 @@ extension ListOfRoutingPoisViewModel: ObserverProtocol {
                         }
                     }
                 }
+            }
             strongSelf.steps = dailyPlan.steps
         })
     }
