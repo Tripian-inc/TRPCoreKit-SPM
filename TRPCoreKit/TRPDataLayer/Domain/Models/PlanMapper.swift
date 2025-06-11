@@ -15,11 +15,12 @@ final class PlanMapper {
         let steps = StepMapper().map(restModel.steps, planId: restModel.id)
         
         return TRPPlan(id: restModel.id,
-                date: restModel.date,
-                startTime: restModel.startTime,
-                endTime: restModel.endTime,
-                steps: steps,
-                generatedStatus: restModel.generatedStatus)
+                       date: restModel.date,
+                       startTime: restModel.startTime,
+                       endTime: restModel.endTime,
+                       steps: steps,
+                       generatedStatus: restModel.generatedStatus,
+                       statusMessage: restModel.statusMessage)
     }
     
     func map(_ restModels: [TRPPlansInfoModel]) -> [TRPPlan] {

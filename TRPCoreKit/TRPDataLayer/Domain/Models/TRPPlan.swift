@@ -21,6 +21,7 @@ public struct TRPPlan: Codable {
     
     public var generatedStatus: Int
     
+    public var statusMessage: String?
     
     
     func getPoi() -> [TRPPoi] {
