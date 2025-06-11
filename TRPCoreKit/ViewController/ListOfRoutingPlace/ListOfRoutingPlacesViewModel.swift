@@ -337,15 +337,20 @@ extension ListOfRoutingPoisViewModel: ObserverProtocol {
             if strongSelf.isDailyPlanEmptyOrOnlyHome(dailyPlan) {
                 
                 if let trip = strongSelf.tripModelObserverUseCase?.trip.value {
-                    if trip.isFirstPlan(planId: dailyPlan.id) && dailyPlan.generatedStatus == -1 {
-                        strongSelf.delegate?.showEmptyMessage(TRPLanguagesController.shared.getLanguageValue(for: "no_recommendations_arrival"))
-                    }else if trip.isLastPlan(planId: dailyPlan.id) && dailyPlan.generatedStatus == -1 {
-                        strongSelf.delegate?.showEmptyMessage(TRPLanguagesController.shared.getLanguageValue(for: "no_recommendations_departure"))
-                    }else if dailyPlan.generatedStatus == 1{
-                        strongSelf.delegate?.showEmptyMessage(TRPLanguagesController.shared.getLanguageValue(for: "trips.myTrips.itinerary.error.emptyMesssage"))
-                    }else {
+                    if dailyPlan.generatedStatus < 0 {
+                        strongSelf.delegate?.showEmptyMessage(dailyPlan.statusMessage)
+                    } else {
                         strongSelf.delegate?.clearEmptyMessage()
                     }
+//                    if trip.isFirstPlan(planId: dailyPlan.id) && dailyPlan.generatedStatus == -1 {
+//                        strongSelf.delegate?.showEmptyMessage(TRPLanguagesController.shared.getLanguageValue(for: "no_recommendations_arrival"))
+//                    }else if trip.isLastPlan(planId: dailyPlan.id) && dailyPlan.generatedStatus == -1 {
+//                        strongSelf.delegate?.showEmptyMessage(TRPLanguagesController.shared.getLanguageValue(for: "no_recommendations_departure"))
+//                    }else if dailyPlan.generatedStatus == 1{
+//                        strongSelf.delegate?.showEmptyMessage(TRPLanguagesController.shared.getLanguageValue(for: "trips.myTrips.itinerary.error.emptyMesssage"))
+//                    }else {
+//                        strongSelf.delegate?.clearEmptyMessage()
+//                    }
                 }
             }
             strongSelf.steps = dailyPlan.steps

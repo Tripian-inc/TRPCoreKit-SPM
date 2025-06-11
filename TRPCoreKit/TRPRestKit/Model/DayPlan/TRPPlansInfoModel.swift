@@ -32,6 +32,8 @@ public struct TRPPlansInfoModel: Decodable {
      *  1: The plan was generated and it has pois.
      */
     public var generatedStatus: Int
+    /// A String value. generated status message
+    public var statusMessage: String?
     
     private enum CodingKeys: String, CodingKey {
         case id
@@ -40,6 +42,7 @@ public struct TRPPlansInfoModel: Decodable {
         case endTime
         case steps
         case generate = "generatedStatus"
+        case statusMessage
     }
     
     /// Initializes a new object with decoder
@@ -54,6 +57,7 @@ public struct TRPPlansInfoModel: Decodable {
         self.startTime = try values.decodeIfPresent(String.self, forKey: .startTime)
         self.endTime = try values.decodeIfPresent(String.self, forKey: .endTime)
         self.generatedStatus = try values.decode(Int.self, forKey: .generate)
+        self.statusMessage = try values.decodeIfPresent(String.self, forKey: .statusMessage)
         //todo:- alk kod açılacak test için yapıldı
         if let planPoints = try? values.decodeIfPresent([FailableDecodable<TRPStepInfoModel>].self, forKey: .steps) {
             let result = planPoints ?? []

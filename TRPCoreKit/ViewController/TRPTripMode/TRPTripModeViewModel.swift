@@ -514,13 +514,16 @@ extension TRPTripModeViewModel: ObserverProtocol {
                 strongSelf.delegate?.viewModel(showPreloader: false)
             }
             if strongSelf.isDailyPlanEmptyOrOnlyHome(dailyPlan) {
-                if let trip = self?.trip {
-                    if trip.isFirstPlan(planId: dailyPlan.id) && dailyPlan.generatedStatus == -1 {
-                        strongSelf.delegate?.viewModelShowInfoMessage(TRPLanguagesController.shared.getLanguageValue(for: "no_recommendations_arrival"))
-                    }else if trip.isLastPlan(planId: dailyPlan.id) && dailyPlan.generatedStatus == -1 {
-                        strongSelf.delegate?.viewModelShowInfoMessage(TRPLanguagesController.shared.getLanguageValue(for: "no_recommendations_departure"))
-                    }
+                if dailyPlan.generatedStatus < 0 {
+                    strongSelf.delegate?.viewModelShowInfoMessage(dailyPlan.statusMessage)
                 }
+//                if let trip = self?.trip {
+//                    if trip.isFirstPlan(planId: dailyPlan.id) && dailyPlan.generatedStatus == -1 {
+//                        strongSelf.delegate?.viewModelShowInfoMessage(TRPLanguagesController.shared.getLanguageValue(for: "no_recommendations_arrival"))
+//                    }else if trip.isLastPlan(planId: dailyPlan.id) && dailyPlan.generatedStatus == -1 {
+//                        strongSelf.delegate?.viewModelShowInfoMessage(TRPLanguagesController.shared.getLanguageValue(for: "no_recommendations_departure"))
+//                    }
+//                }
             }
             strongSelf.dailyPlan = dailyPlan
         })
