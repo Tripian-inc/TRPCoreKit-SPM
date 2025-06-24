@@ -13,7 +13,7 @@ internal class TRPLanguagesServices: TRPRestServices<TRPLanguagesInfoModel> {
     internal override init() {}
     
     override func path() -> String {
-        return "/misc/frontend-translations"
+        return "misc/frontend-translations"
     }
     
     override func requestMode() -> TRPRequestMode {

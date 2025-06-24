@@ -75,7 +75,7 @@ class CreateTripTripInformationViewModel {
     
     public func setNexusTripInformation(startDate: String, endDate: String, city: TRPCity) {
         selectedArrivalDate = startDate
-        if let startDateTime = startDate.toDateWithoutUTC()?.getDateWithZeroHour() {
+        if let startDateTime = startDate.toDate(format: String.fullDateFormat)?.getDateWithZeroHour() {
             if startDateTime.isDatePast() {
                 let (date, time) = Date.getNearestAvailableDateAndTimeForCreateTrip()
                 selectedArrivalDate = date
@@ -84,12 +84,9 @@ class CreateTripTripInformationViewModel {
                 setSelectedArrivalDate(startDate, forNexusTrip: true)
             }
         }
-        if let endDateTime = endDate.toDateWithoutUTC() {
+        if let endDateTime = endDate.toDate(format: String.fullDateFormat) {
             if !endDateTime.isDatePast() {
                 setSelectedDepartureDate(endDate)
-//                let (date, time) = Date.getNearestAvailableDateAndTimeForCreateTrip()
-//                selectedDepartureDate = date
-//                selectedDepartureHour = time
             } else {
                 setSelectedArrivalDate(startDate, forNexusTrip: true)
             }
@@ -107,11 +104,25 @@ extension CreateTripTripInformationViewModel {
     
     private func createData() -> [CreateTripTripInformationSectionModel]{
         var sections = [CreateTripTripInformationSectionModel]()
-        let destinationCell = CreateTripTripInformationCellModel(title: TRPLanguagesController.shared.getLanguageValue(for: "trips.createNewTrip.form.destination.city.placeholder"), contentType: .destination)
-        sections.append(CreateTripTripInformationSectionModel(title: TRPLanguagesController.shared.getLanguageValue(for: "trips.createNewTrip.form.destination.city.label"), cells: [destinationCell], isRequired: true))
-        let arrivalDateCell = CreateTripTripInformationCellModel(title: TRPLanguagesController.shared.getLanguageValue(for: "arrival"), contentType: .arrivalDate)
-        let departureDateCell = CreateTripTripInformationCellModel(title: TRPLanguagesController.shared.getLanguageValue(for: "departure"), contentType: .departureDate)
-        sections.append(CreateTripTripInformationSectionModel(title: TRPLanguagesController.shared.getLanguageValue(for: "trips.createNewTrip.form.destination.dates"), cells: [arrivalDateCell, departureDateCell]))
+        let destinationCell = CreateTripTripInformationCellModel(
+            title: TRPLanguagesController.shared.getLanguageValue(for: "trips.createNewTrip.form.destination.city.placeholder"),
+            contentType: .destination)
+        sections.append(CreateTripTripInformationSectionModel(
+            title: TRPLanguagesController.shared.getLanguageValue(for: "trips.createNewTrip.form.destination.city.label"),
+            cells: [destinationCell],
+            isRequired: true)
+        )
+        let arrivalDateCell = CreateTripTripInformationCellModel(
+            title: TRPLanguagesController.shared.getLanguageValue(for: "arrival"),
+            contentType: .arrivalDate
+        )
+        let departureDateCell = CreateTripTripInformationCellModel(
+            title: TRPLanguagesController.shared.getLanguageValue(for: "departure"),
+            contentType: .departureDate
+        )
+        sections.append(CreateTripTripInformationSectionModel(
+            title: TRPLanguagesController.shared.getLanguageValue(for: "trips.createNewTrip.form.destination.dates"),
+            cells: [arrivalDateCell, departureDateCell]))
         let arrivalHourCell = CreateTripTripInformationCellModel(title: TRPLanguagesController.shared.getLanguageValue(for: "arrival"), contentType: .arrivalHour)
         let departureHourCell = CreateTripTripInformationCellModel(title: TRPLanguagesController.shared.getLanguageValue(for: "departure"), contentType: .departureHour)
         sections.append(CreateTripTripInformationSectionModel(title: TRPLanguagesController.shared.getLanguageValue(for: "trips.createNewTrip.form.destination.hours"), cells: [arrivalHourCell, departureHourCell]))
@@ -136,7 +147,7 @@ extension CreateTripTripInformationViewModel {
         
         if let departureDate = profile.departureDate?.date, let departure = profile.departureDate?.toDate {
             let hour = departure.toStringWithoutTimeZone(format: "HH:mm", dateStyle: nil, timeStyle: nil)
-            if  !hour.isEmpty{
+            if !hour.isEmpty{
                 selectedDepartureHour = hour
             }
             

@@ -202,6 +202,10 @@ extension Date {
         return (date.getDate(forLocal: false), timeString)
     }
     
+    static func getTomorrowDate() -> String {
+        return Date().localDate().addDay(1)?.getDate() ?? Date().localDate().getDate()
+    }
+    
     static func getNearestDate() -> String {
         return getNearestAvailableDateAndTimeForCreateTrip(maxHour: 20).0
     }
