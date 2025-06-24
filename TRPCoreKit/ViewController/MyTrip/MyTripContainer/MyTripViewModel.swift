@@ -12,7 +12,7 @@ import Foundation
 
 
 public protocol MyTripViewModelDelegate: ViewModelDelegate{
-    func callCreateTripWithDestination(startDate: String, endDate: String, city: TRPCity, destinationId: Int)
+    func callCreateTripWithDestination(city: TRPCity, destinationId: Int)
 }
 
 public class MyTripViewModel {
@@ -22,8 +22,6 @@ public class MyTripViewModel {
     public var fetchCityUseCase: FetchCityUseCase?
     public weak var delegate: MyTripViewModelDelegate?
     
-    private var startDate: String? = nil
-    private var endDate: String? = nil
     private var destinationId: String? = nil
     
     let paging = [TRPLanguagesController.shared.getLanguageValue(for: "trips.myTrips.upComingTrips.title"),
@@ -42,8 +40,6 @@ public class MyTripViewModel {
     }
     
     public func setupDetailUrl(_ url: String) {
-        startDate = url.valueOfURL("startDate")
-        endDate = url.valueOfURL("endDate")
         destinationId = url.valueOfURL("destinationID")
         guard let destinationID = destinationId else {return}
         fetchDestinationWithTripianCity(destinationId: destinationID)
@@ -82,7 +78,7 @@ public class MyTripViewModel {
     
     func callCreateTripWithDestination(city: TRPCity) {
         guard let destinationId = destinationId, let destId = Int(destinationId) else {return}
-        delegate?.callCreateTripWithDestination(startDate: startDate!, endDate: endDate!, city: city, destinationId: destId)
+        delegate?.callCreateTripWithDestination(city: city, destinationId: destId)
     }
    
     deinit {

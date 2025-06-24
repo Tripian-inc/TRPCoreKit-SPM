@@ -14,7 +14,7 @@ import Parchment
 
 
 public protocol MyTripVCDelegate: AnyObject {
-    func createNewTripPressed(_ myTrip: MyTripVC, startDate: String?, endDate: String?, city: TRPCity?, destinationId: Int?)
+    func createNewTripPressed(_ myTrip: MyTripVC, city: TRPCity?, destinationId: Int?)
     func myTripOpenTrip(hash: String, city: TRPCity, arrival:String, departure:String)
     func myTripEditTrip(tripHash: String, profile: TRPTripProfile, city: TRPCity)
     func myTripVCDidAppear()
@@ -189,7 +189,7 @@ extension MyTripVC {
     }
     
     @objc func createNewTripPressed() {
-        delegate?.createNewTripPressed(self, startDate: nil, endDate: nil, city: nil, destinationId: nil)
+        delegate?.createNewTripPressed(self, city: nil, destinationId: nil)
     }
     
     @objc func customNavigationButtonClicked(sender: UIBarButtonItem) {
@@ -300,7 +300,7 @@ extension MyTripVC:  MyTripTableViewVCDelegate {
 }
 
 extension MyTripVC:  MyTripViewModelDelegate {
-    public func callCreateTripWithDestination(startDate: String, endDate: String, city: TRPCity, destinationId: Int) {
-        self.delegate?.createNewTripPressed(self, startDate: startDate, endDate: endDate, city: city, destinationId: destinationId)
+    public func callCreateTripWithDestination(city: TRPCity, destinationId: Int) {
+        self.delegate?.createNewTripPressed(self, city: city, destinationId: destinationId)
     }
 }

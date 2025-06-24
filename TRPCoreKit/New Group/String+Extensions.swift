@@ -11,6 +11,7 @@ import UIKit
 extension String {
     
     static let defaultDateFormat: String = "yyyy-MM-dd"
+    static let fullDateFormat: String = "yyyy-MM-dd'T'HH:mm:ss"
     
     /// String veriyi Date haline dönüştürür.
     ///

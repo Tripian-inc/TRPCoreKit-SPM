@@ -29,6 +29,8 @@ public class TRPSDKCoordinater {
     private var canBackFromMyTrip = true
     
     private var nexusMeetingPoint: String? = nil
+    private var nexusStartDate: String? = nil
+    private var nexusEndDate: String? = nil
     private var nexusNumberOfAdults: Int? = nil
     private var nexusNumberOfChildren: Int? = nil
     
@@ -108,10 +110,12 @@ public class TRPSDKCoordinater {
         }
     }
     
-    public func startForNexus(bookingDetailUrl: String, meetingPoint: String, numberOfAdults: Int?, numberOfChildren: Int?) {
+    public func startForNexus(bookingDetailUrl: String, startDate: String?, endDate: String?, meetingPoint: String?, numberOfAdults: Int?, numberOfChildren: Int?) {
         checkAllApiKey()
         userProfile()
         self.nexusMeetingPoint = meetingPoint
+        self.nexusStartDate = startDate
+        self.nexusEndDate = endDate
         self.nexusNumberOfAdults = numberOfAdults
         self.nexusNumberOfChildren = numberOfChildren
         let vc = myTrip
@@ -385,13 +389,13 @@ extension TRPSDKCoordinater:  MyTripVCDelegate {
         setupCreteTripCoordinater()
     }
     
-    public func createNewTripPressed(_ myTrip: MyTripVC, startDate: String?, endDate: String?, city: TRPCity?, destinationId: Int?) {
+    public func createNewTripPressed(_ myTrip: MyTripVC, city: TRPCity?, destinationId: Int?) {
         setupCreteTripCoordinater()
         guard let tripCreateCoordinater = tripCreateCoordinater else {
             return
         }
-        tripCreateCoordinater.nexusTripStartDate = startDate
-        tripCreateCoordinater.nexusTripEndDate = endDate
+        tripCreateCoordinater.nexusTripStartDate = self.nexusStartDate
+        tripCreateCoordinater.nexusTripEndDate = self.nexusEndDate
         tripCreateCoordinater.nexusTripMeetingPoint = self.nexusMeetingPoint
         tripCreateCoordinater.nexusNumberOfAdults = self.nexusNumberOfAdults
         tripCreateCoordinater.nexusNumberOfChildren = self.nexusNumberOfChildren
