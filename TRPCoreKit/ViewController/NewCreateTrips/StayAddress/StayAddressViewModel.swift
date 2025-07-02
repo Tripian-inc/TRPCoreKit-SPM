@@ -60,7 +60,7 @@ class StayAddressViewModel {
     }
     
     private func checkIfMeetingPointIsTerminal() {
-        let terminalTexts = ["terminal", "airport", "aeropuerto"]
+        let terminalTexts = ["terminal", "airport", "aeropuerto", "not available"]
         if let meetingPoint {
             let isTerminal = terminalTexts.contains { text in
                 meetingPoint.lowercased().contains(text)

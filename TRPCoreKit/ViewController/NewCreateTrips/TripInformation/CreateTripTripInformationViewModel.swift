@@ -22,12 +22,12 @@ class CreateTripTripInformationViewModel {
     
     private var tripProfile: TRPTripProfile
     private var oldTripProfile: TRPTripProfile?
-    private var maxTripDays: Int = 3
+    private var maxTripDays: Int = 5
     
     //Arrival date in tutulduğu değer
 //    private var selectedArrivalDate: Date = (Date().localDate().addDay(1))!
     private var selectedArrivalDate: String = (Date().localDate().addDay(1))!.getDate()
-    private var selectedDepartureDate: String = (Date().localDate().addDay(1))!.getDate()
+    private var selectedDepartureDate: String = (Date().localDate().addDay(5))!.getDate()
     //Departure date in tutulduğu değer
 //    private var selectedDepartureDate: Date = (Date().localDate().addDay(1))!
     private var selectedArrivalHour = "09:00"
@@ -41,7 +41,7 @@ class CreateTripTripInformationViewModel {
         case destination, arrivalDate, departureDate, arrivalHour, departureHour
     }
         
-    init(tripProfile: TRPTripProfile, oldTripProfile: TRPTripProfile? = nil, maxTripDays: Int = 3, loadedCity: TRPCity? = nil) {
+    init(tripProfile: TRPTripProfile, oldTripProfile: TRPTripProfile? = nil, maxTripDays: Int = 5, loadedCity: TRPCity? = nil) {
         self.tripProfile = tripProfile
         self.oldTripProfile = oldTripProfile
         self.maxTripDays = maxTripDays
@@ -74,21 +74,23 @@ class CreateTripTripInformationViewModel {
     }
     
     public func setNexusTripInformation(startDate: String, endDate: String, city: TRPCity) {
-        selectedArrivalDate = startDate
-        if let startDateTime = startDate.toDate(format: String.fullDateFormat)?.getDateWithZeroHour() {
+        if startDate.contains("T") {
+            selectedArrivalDate = startDate.toDate(format: String.fullDateFormat)?.getDate() ?? ""
+        } else {
+            selectedArrivalDate = startDate
+        }
+        if let startDateTime = startDate.toDate(format: String.fullDateFormat) {
             if startDateTime.isDatePast() {
-                let (date, time) = Date.getNearestAvailableDateAndTimeForCreateTrip()
-                selectedArrivalDate = date
-                selectedArrivalHour = time
+                selectedArrivalDate = Date.getTomorrowDate()
             } else {
-                setSelectedArrivalDate(startDate, forNexusTrip: true)
+                setSelectedArrivalDate(selectedArrivalDate, forNexusTrip: true)
             }
         }
         if let endDateTime = endDate.toDate(format: String.fullDateFormat) {
             if !endDateTime.isDatePast() {
-                setSelectedDepartureDate(endDate)
-            } else {
-                setSelectedArrivalDate(startDate, forNexusTrip: true)
+                setSelectedDepartureDate(endDateTime.getDate())
+//            } else {
+//                setSelectedArrivalDate(startDate, forNexusTrip: true)
             }
         }
         setSelectedCity(city: city)
