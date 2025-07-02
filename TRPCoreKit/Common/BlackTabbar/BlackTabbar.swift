@@ -34,7 +34,7 @@ class BlackTabbar: UIView {
     }
     
     private func commonInit() {
-        let bundle = Bundle(for: type(of: self))
+//        let bundle = Bundle(for: type(of: self))
         let nib = UINib(nibName: "BlackTabbar", bundle: Bundle.module)
         guard let _view = nib.instantiate(withOwner: self, options: nil).first as? UIView else {return}
         _view.frame = self.bounds
@@ -47,44 +47,6 @@ class BlackTabbar: UIView {
         btnExperiences.setTitle(TRPLanguagesController.shared.getLanguageValue(for: "trips.myTrips.itinerary.experiences"), for: .normal)
         btnPlaces.setTitle(TRPLanguagesController.shared.getLanguageValue(for: "trips.myTrips.itinerary.places"), for: .normal)
     }
-    
-//    override func draw(_ rect: CGRect) {
-//        self.addShape()
-//    }
-//
-//    private func addShape() {
-//        let shapeLayer = CAShapeLayer()
-//        shapeLayer.path = createPath()
-//        shapeLayer.strokeColor = strokeColor.cgColor
-//        shapeLayer.fillColor = fillColor.cgColor
-//        shapeLayer.lineWidth = strokeLineWidth
-//
-//        if let oldShapeLayer = self.shapeLayer {
-//            self.layer.replaceSublayer(oldShapeLayer, with: shapeLayer)
-//        } else {
-//            self.layer.insertSublayer(shapeLayer, at: 0)
-//        }
-//
-//        self.shapeLayer = shapeLayer
-//    }
-//
-//    func createPath() -> CGPath {
-//
-//        let path = UIBezierPath()
-//
-//        path.move(to: CGPoint(x: 0, y: -40)) // start top left
-//        path.addQuadCurve(to: CGPoint(x: 40, y: 0), controlPoint: CGPoint(x: 0, y: 0))
-//
-//        path.addLine(to: CGPoint(x: self.frame.width - 40, y: 0))
-//        path.addQuadCurve(to: CGPoint(x: self.frame.width, y: -40), controlPoint: CGPoint(x: self.frame.width, y: 0))
-//
-//        path.addLine(to: CGPoint(x: self.frame.width, y: 0))
-//        path.addLine(to: CGPoint(x: self.frame.width, y: self.frame.height))
-//        path.addLine(to: CGPoint(x: 0, y: self.frame.height))
-//        path.close()
-//
-//        return path.cgPath
-//    }
     
     @IBAction func mapPressed(_ sender: Any) {
         action?(.experiences)
@@ -130,6 +92,12 @@ class TabbarButton: UIButton {
 //        layer.cornerRadius = 26
         setTitleColor(UIColor.black, for: .normal)
         titleLabel?.font = trpTheme.font.caption
+        contentEdgeInsets = .zero// UIEdgeInsets(top: 20, left: 20, bottom: 20, right: 20)
+        if #available(iOS 15.0, *) {
+            var configuration = configuration
+            configuration?.contentInsets = .zero
+            self.configuration = configuration
+        }
         
     }
     override func layoutSubviews() {

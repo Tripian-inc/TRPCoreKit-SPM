@@ -84,7 +84,7 @@ extension Date {
     }
     
     func isTodayLocal() -> Bool {
-        return getDate(forLocal: false) == Date().localDate().getDate()
+        return getDate() == Date().localDate().getDate()
     }
     
     func addHour(_ hours: Int) -> Date? {
@@ -109,7 +109,7 @@ extension Date {
         return toStringWithoutTimeZone(format: "HH:mm")
     }
     
-    func getDate(forLocal: Bool = true) -> String {
+    func getDate(forLocal: Bool = false) -> String {
         if forLocal {
             return toStringWithoutTimeZone(format: String.defaultDateFormat)
         }
@@ -179,7 +179,7 @@ extension Date {
     static func getNearestAvailableDateAndTimeForCreateTrip(maxHour: Int = 16) -> (String, String) {
         var date = Date().localDate()
         var timeString = "09:00"
-//        if date.isToday() {
+        if date.isToday() {
             let time = date.toString(format: "HH:mm")
             if let hour = time.components(separatedBy: ":").first,
                let minute = time.components(separatedBy: ":").last,
@@ -198,8 +198,8 @@ extension Date {
                     date = dateAfter
                 }
             }
-//        }
-        return (date.getDate(forLocal: false), timeString)
+        }
+        return (date.getDate(), timeString)
     }
     
     static func getTomorrowDate() -> String {

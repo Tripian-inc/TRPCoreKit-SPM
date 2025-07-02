@@ -65,7 +65,7 @@ extension CreateTripSelectDateVC: FSCalendarDataSource, FSCalendarDelegate {
     
     func calendar(_ calendar: FSCalendar, didSelect date: Date, at monthPosition: FSCalendarMonthPosition) {
         guard isDateRangeSelectionActive() else {
-            let dateString = date.getDate()
+            let dateString = date.getDate(forLocal: true)
             if viewModel.isArrival {
                 self.delegate?.createTripSelectDateVCArrivalSelected(date: dateString)
             } else {
