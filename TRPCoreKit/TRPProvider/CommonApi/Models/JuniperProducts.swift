@@ -65,14 +65,7 @@ public class JuniperProduct: Codable {
     
     public func getProductUrl(city: String? = nil, startDate: String) -> String {
         if let destinationZone = destinationZone {
-            let splittedCode = code.split(separator: "¬")
-            if splittedCode.count > 1 {
-                let encodeCode = "\(splittedCode[1])¥TKT¥\(splittedCode[0])¥\(destinationZone)¥\(code)"
-//                if let city = city {
-                    let url = "https://www.nexustours.com/en/services/\(destinationZone)/\(encodeCode)/"
-                    return NexusHelper.getCustomPoiUrl(url: url, startDate: startDate)?.absoluteString ?? ""
-//                }
-            }
+            return NexusHelper.getCustomPoiUrl(destinationZone: destinationZone, startDate: startDate, productCode: code)?.absoluteString ?? ""
         }
         return ""
     }

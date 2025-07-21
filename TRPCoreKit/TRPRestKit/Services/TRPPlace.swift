@@ -21,7 +21,7 @@ internal class TRPPoiService: TRPRestServices<TRPPoiJsonModel> {
     var poiCategories: [Int]?
     var distance: Float?
     var bounds: LocationBounds?
-    var limit: Int = 25
+    var limit: Int = 100
     var page: Int = 1
     
     internal override init() {}

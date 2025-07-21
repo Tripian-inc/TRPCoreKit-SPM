@@ -17,7 +17,7 @@ import UIKit
 class PoiDetailExperienceCell: UITableViewCell {
     
     let collectionHeight: CGFloat = 300
-    public var selectedTourAction: ((_ tourId: String) -> Void)?
+    public var selectedTourAction: ((_ product: TRPBookingProduct) -> Void)?
     
     public lazy var titleLabel: UILabel = {
         let label = UILabel();
@@ -156,6 +156,6 @@ extension PoiDetailExperienceCell: UICollectionViewDelegate, UICollectionViewDat
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         let model = products[indexPath.row]
         
-        selectedTourAction?(model.id)
+        selectedTourAction?(model)
     }
 }

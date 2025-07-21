@@ -101,7 +101,6 @@ extension TRPPoi {
         }
         
         return NexusHelper.getCustomPoiUrl(url: poiUrl.replacingOccurrences(of: "/en/", with: "/\(TRPClient.shared.language)/"), startDate: planDate)
-//        return poiUrl.replacingOccurrences(of: "/en/", with: "/\(TRPClient.shared.language)/")
     }
     
     public func getCategoryName() -> String {

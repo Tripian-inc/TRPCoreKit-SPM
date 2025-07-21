@@ -323,8 +323,8 @@ extension TRPRestKit {
                     mustTryIds: [Int]? = nil,
                     distance: Float? = nil,
                     bounds: LocationBounds? = nil,
-                    limit: Int? = 25,
-                    page: Int? = 1,
+                    limit: Int? = nil,
+                    page: Int? = nil,
                     autoPagination: Bool = false,
                     completion: @escaping CompletionHandlerWithPagination) {
         self.completionHandlerWithPagination = completion
@@ -350,8 +350,8 @@ extension TRPRestKit {
                     mustTryIds: [Int]? = nil,
                     distance: Float? = nil,
                     bounds: LocationBounds? = nil,
-                    limit: Int? = 25,
-                    page: Int? = 1,
+                    limit: Int? = nil,
+                    page: Int? = nil,
                     autoPagination: Bool = false,
                     completion: @escaping CompletionHandlerWithPagination) {
         self.completionHandlerWithPagination = completion
@@ -370,7 +370,7 @@ extension TRPRestKit {
     }
     
     
-    public func poi(url: String, limit: Int? = 25, page: Int? = 1, completion: @escaping CompletionHandlerWithPagination) {
+    public func poi(url: String, limit: Int? = nil, page: Int? = nil, completion: @escaping CompletionHandlerWithPagination) {
         self.completionHandlerWithPagination = completion
         
         poiServices(url: url)
@@ -400,8 +400,8 @@ extension TRPRestKit {
                              mustTryIds: [Int]? = nil,
                              distance: Float? = nil,
                              bounds: LocationBounds? = nil,
-                             limit: Int? = 25,
-                             page: Int? = 1,
+                             limit: Int? = nil,
+                             page: Int? = nil,
                              autoPagination: Bool = false,
                              url: String? = nil
     ) {
@@ -426,8 +426,10 @@ extension TRPRestKit {
         service.placeIds = poiIds
         service.mustTryIds = mustTryIds
         service.poiCategories = poiCategoies
-        service.limit = limit ?? 25
-        service.page = page ?? 1
+        if let limit, let page {
+            service.limit = limit
+            service.page = page
+        }
         
         
         service.isAutoPagination = autoPagination

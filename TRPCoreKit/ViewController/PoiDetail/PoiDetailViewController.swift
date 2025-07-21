@@ -254,18 +254,13 @@ extension PoiDetailViewController {
         if let cellModel = model.data as? [TRPBookingProduct] {
             cell.updateData(cellModel)
             
-            cell.selectedTourAction = { [weak self] tourId in
+            cell.selectedTourAction = { [weak self] product in
                 guard let strongSelf = self,
-                      let tour = cellModel.first(where: {$0.id == tourId}),
-                      let tourUrl = tour.url,
-                      let url = NexusHelper.getCustomPoiUrl(url: tourUrl, startDate: strongSelf.viewModel.planDate) else {return}
+                      let url = NexusHelper.getCustomPoiUrl(destinationZone: String(strongSelf.viewModel.destinationId),
+                                                            startDate: strongSelf.viewModel.planDate,
+                                                            productCode: product.id) else {return}
                 
                 UIApplication.shared.open(url)
-//                strongSelf.delegate?.poiDetailVCOpenTourDetail(strongSelf.navigationController,
-//                                                               viewController: strongSelf,
-//                                                               bookingProduct: tour)
-                
-                
             }
             cell.addSubLabel(text:"\(TRPLanguagesController.shared.getLanguageValue(for: "trips.myTrips.itinerary.step.poi.tourTicket.tour.covering")) \(viewModel.place.name)")
         }

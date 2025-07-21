@@ -609,7 +609,11 @@ extension TRPTripModeCoordinater: PoiDetailViewControllerDelegate {
                                    parentStep: TRPStep? = nil,
                                    closeParent: UIViewController? = nil) -> UINavigationController {
         
-        let viewModel = PoiDetailViewModel(place: poi, parentStep: parentStep, destinationId: destinationId, cityEngName: cityEngName, planDate: planDate)
+        let viewModel = PoiDetailViewModel(place: poi,
+                                           parentStep: parentStep,
+                                           destinationId: destinationId,
+                                           cityEngName: cityEngName,
+                                           planDate: planDate)
         
         viewModel.addFavoriteUseCase = favoriteUseCases
         viewModel.deleteFavoriteUseCase = favoriteUseCases
