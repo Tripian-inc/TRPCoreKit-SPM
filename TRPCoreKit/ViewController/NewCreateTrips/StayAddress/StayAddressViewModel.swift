@@ -112,14 +112,15 @@ class StayAddressViewModel {
     }
     
     public func searchAddress(text: String)  {
-        guard let apiKey = googleApiKey, !text.isEmpty else {
+        let searchText = text.removeWhiteSpace()
+        guard let apiKey = googleApiKey, !searchText.isEmpty else {
             Log.e("TRPGooglePlaceApi can not found")
             return
         }
         self.delegate?.viewModel(showPreloader: true)
         if let boundarySW = boundarySW, let boundaryNE = boundaryNE {
             TRPRestKit().googleAutoComplete(key: apiKey,
-                                            text: text,
+                                            text: searchText,
                                             boundarySW: boundarySW,
                                             //                                        centerForBoundary: cityCenter,
                                             //                                        radiusForBoundary: radius)

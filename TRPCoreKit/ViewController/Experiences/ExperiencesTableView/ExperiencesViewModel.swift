@@ -130,14 +130,9 @@ extension ExperiencesViewModel {
     
     public func getProductUrl(at indexPath: IndexPath) -> URL? {
         let model = getCellViewModel(at: indexPath)
-        
-        let splittedCode = model.code.split(separator: "¬")
-        if splittedCode.count > 1 {
-            let encodeCode = "\(splittedCode[1])¥TKT¥\(splittedCode[0])¥\(destinationId)¥\(model.code)"
-            let url = "https://www.nexustours.com/en/services/\(destinationId)/\(encodeCode)/"
-            return NexusHelper.getCustomPoiUrl(url: url, startDate: self.startDate ?? "")            
-        }
-        return nil
+        return NexusHelper.getCustomPoiUrl(destinationZone: String(destinationId),
+                                           startDate: startDate ?? "",
+                                           productCode: model.code)
     }
     
 }
