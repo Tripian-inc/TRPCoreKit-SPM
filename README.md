@@ -66,7 +66,7 @@ dependencies: [
    * Then, set the access token with calling the TRPClient.start() in your app's `application:didFinishLaunchingWithOptions:` method:
    
       ```swift
-      let environment: Environment = .production // Enumaration value that can be production,test,sandbox, production or a custom BaseUrlCreater instance.
+      let environment: Environment = .dev // Enumaration value that can be production,test,sandbox, production or a custom BaseUrlCreater instance.
       let trpApiKey = "YOUR_API_KEY" // Tripian access token.
       TRPClient.start(enviroment: environment, apiKey: trpApiKey) // Set TRPRestKit access token in order TRPCoreKit to work properly.
       ```
@@ -103,10 +103,9 @@ Then, create coordinator instance and call `start` method to show TRPCoreKit in 
 ```swift
 let nav = UINavigationController() // TRPSDKCoordinater requires navigation controller instance in initialization.
 nav.modalPresentationStyle = .fullScreen // Modally presented view controller to display in full-screen.
-self.present(nav, animated: true, completion: nil)// Present Navigation View Controller instance in your app.
 let coordinator = TRPSDKCoordinater(navigationController: nav) // Create coordinator instance.
-coordinator.delegate = self // Set coordinator's delegate to track the functionality that has been delegated. 
-coordinator.start()// Call `start` method to show the TRPCoreKit in your app.
+coordinator.startForGuest()// Call `startForGuest` method to show the TRPCoreKit in your app. (You can use startWithEmail("test@tripian.com") for login with email)
+self.present(nav, animated: true, completion: nil)// Present Navigation View Controller instance in your app.
 ```
 
 ## Provide your own Appearance Settings in TRPCoreKit
@@ -160,17 +159,6 @@ The [TRPCoreKit-IOS-Examples](https://github/trpcorekitiosexamples) includes exa
 
 All below frameworks are created by the [Tripian Software Team](https://www.tripian.com/about-us/).
 
-* [TRPRestKit](https://rest/kit/linki) - to focus specifically on networking implementations of Tripian Rest API.
-
-* [TRPUIKit](https://foundation/kit/linki) - to provide ui components that are used in TRPCoreKit.
-
-* [TRPUserProfileKit](https://foundation/kit/linki) - to organize user profile operations in TRPCoreKit.
-
-* [TRPAddTravelCompanionsKit](https://foundation/kit/linki) - to obtain and modify travel companions in TRPCoreKit.
-
-* [TRPFoundationKit](https://foundation/kit/linki) - to provide primitive classes and introduce several paradigms that makes developing with TRPCoreKit more easier by introducing consistent conventions.
-
-This library also uses version 5.6.0 of the Mapbox-iOS-SDK API, 4.2.1 of the Polyline, 5.5.0 of the SDWebImage by default.
 
 ## License
 
