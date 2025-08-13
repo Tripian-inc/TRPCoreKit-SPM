@@ -7,7 +7,6 @@ Tripian Core Kit pairs well with Tripian Rest Kit SDK for iOS.
 Tripian Core Kit framework is written in Swift.
 
 - [Features](#features)
-- [Documentation](#documentation)
 - [Requirements](#requirements)
 - [Installation](#installation)
 - [Usage](#usage)
@@ -24,7 +23,6 @@ The key features are:
 * Navigation With No Limits
 * Additional Travelers
 * Plan Around Meetings
-* Detailed documentation is available in the [TRPCoreKit Documentation](http://airmiles-api-1837638174.ca-central-1.elb.amazonaws.com/apidocs/#tripian-recommendation-engine).
 
 ## Requirements
 
@@ -121,12 +119,10 @@ TRPAppearanceSettings.SearchPlaces.title = "Search Places"
 ```
 
 
-Consult the [TRPCoreKit Documentation](http://airmiles-api-1837638174.ca-central-1.elb.amazonaws.com/apidocs/#tripian-recommendation-engine) for further details.
-
 
 ## Communication
 - If you **need help with TRPCore Kit**, use [Stack Overflow](https://stackoverflow.com/questions/tagged/trpcorekit) and tag `trpcorekit`.
-- If you need to **find or understand the Tripian Recommendation Engine API**, check [our documentation](http://airmiles-api-1837638174.ca-central-1.elb.amazonaws.com/apidocs/#tripian-recommendation-engine).
+- If you need to **find or understand the Tripian Recommendation Engine API**, check [our documentation](https://tripian-inc.github.io/TripianApiPlatform/documentation/).
 - If you **found a bug**, open an issue here on GitHub and follow the guide. The more detail the better!
 
 ## Built With
