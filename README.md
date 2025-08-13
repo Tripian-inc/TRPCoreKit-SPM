@@ -75,10 +75,7 @@ dependencies: [
 * Adding LocationWhenInUseUsage Description: 
 
    * The TRPCoreKit SDK accesses location information only when running in the foreground, and requires location permission to work properly. Under the “Property List Key” section, set `Privacy - Location When In Use Usage Description` to a message that tells the user why the app is requesting access to the user’s location information while the app is running in the foreground.
-
-* Adding Image Assets:
-
-   * The TRPCoreKit uses asset catalog in the app. [TRPCoreKit-Annotation-Images](https://TRPCoreKit-Annotation-Images/) contains all the versions of annotation images that support various devices and scale factors. You can add annotation images to your app by dragging them to the asset catalog named Assets.xcassets. 
+   * 
 
 **TRPCoreKit uses MVVM-C iOS app architecture pattern** which is a combination of the Model-View-ViewModel architecture, plus the Coordinator pattern to manage all the screen navigations. 
 `TRPSDKCoordinater` responsibility is to handle navigation flow in TRPCoreKit: the same way that UINavigationController keeps reference of its stack, `TRPSDKCoordinater` do the same with its children. You will need `TRPSDKCoordinator` to start TRPCoreKit navigation flow.
