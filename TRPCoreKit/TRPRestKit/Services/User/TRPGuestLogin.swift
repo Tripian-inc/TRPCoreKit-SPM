@@ -82,7 +82,7 @@ internal class TRPGuestLogin: TRPRestServices<TRPLoginJsonModel>  {
     }
     
     public override func userOAuth() -> Bool {
-        return true
+        return false
     }
     
     public override func requestMode() -> TRPRequestMode {

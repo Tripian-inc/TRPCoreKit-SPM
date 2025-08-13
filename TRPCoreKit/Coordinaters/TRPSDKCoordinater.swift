@@ -34,12 +34,13 @@ public class TRPSDKCoordinater {
     private var nexusNumberOfAdults: Int? = nil
     private var nexusNumberOfChildren: Int? = nil
     
+    private var isAppForNexus = true
+    
+    
     private var alertMessage: (title: String?, message: String)? {
         didSet {
             guard let message = alertMessage else {return}
-            if let myTripVC = myTrip as? MyTripVC {
-                myTripVC.alertMessage = message
-            }
+            myTrip.alertMessage = message
         }
     }
     
@@ -80,7 +81,7 @@ public class TRPSDKCoordinater {
     public init(navigationController: UINavigationController, canBack: Bool = true) {
         self.navigationController = navigationController
         self.canBackFromMyTrip = canBack
-        
+        TRPFonts.registerAll()
 //        self.navigationController.navigationBar.setNexusBar()
     }
     
@@ -89,6 +90,31 @@ public class TRPSDKCoordinater {
         navigationController.navigationBar.setNexusBar()
     }
     
+    private func startWithSplashVC(forGuest: Bool = true, email: String? = nil, password: String? = nil) {
+        isAppForNexus = false
+        let vc = SplashViewController()
+        vc.delegate = self
+        vc.forGuest = forGuest
+        vc.email = email
+        vc.password = password
+        vc.start()
+        DispatchQueue.main.async {
+            self.navigationController.pushViewController(vc, animated: true)
+            self.setupSomeGeneralAppearances()
+        }
+    }
+    
+    public func startForGuest() {
+        startWithSplashVC(forGuest: true)
+    }
+    
+    public func startWithEmail(_ email: String) {
+        startWithSplashVC(forGuest: false, email: email)
+    }
+    
+    public func startWithEmailAndPassword(_ email: String, _ password: String) {
+        startWithSplashVC(forGuest: false, email: email, password: password)
+    }
     
     public func start() {
         checkAllApiKey()
@@ -103,6 +129,7 @@ public class TRPSDKCoordinater {
     private func startFirstVC() {
         
         let vc = myTrip
+        myTrip.isNexus = isAppForNexus
         //navigationController.pushViewController(vc, animated: true)
         DispatchQueue.main.async {
             self.navigationController.pushViewController(vc, animated: true)
@@ -199,6 +226,16 @@ public class TRPSDKCoordinater {
     
 }
 
+extension TRPSDKCoordinater: SplashViewControllerDelegate {
+    func datasFetchCompleted() {
+        start()
+    }
+    
+    func datasFetchFailed() {
+        navigationController.dismiss(animated: true)
+    }
+    
+}
 
 //extension TRPSDKCoordinater: ExperienceDetailViewControllerDelegate, ExperienceAvailabilityViewControllerDelegate {
 //    

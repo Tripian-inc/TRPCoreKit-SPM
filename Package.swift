@@ -38,7 +38,10 @@ let package = Package(
                 "Mapbox",
                 "MapboxMobileEvents",
             ],
-            path: "TRPCoreKit"
+            path: "TRPCoreKit",
+            resources: [
+                .process("Resources/Fonts")   
+            ]
         ),
         .binaryTarget(
             name: "Mapbox",

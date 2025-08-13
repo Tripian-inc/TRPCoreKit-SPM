@@ -92,92 +92,92 @@ class TRPFont1: TRPFontStyle {
     let regular = "Poppins-Regular"
     
     var button: UIFont {
-        return UIFont(name: semiBold, size: 14)!
+        return UIFont(name: semiBold, size: 14) ?? .systemFont(ofSize: 14, weight: .semibold)
     }
     
     var display: UIFont {
-        return UIFont(name: semiBold, size: 20)!
+        return UIFont(name: semiBold, size: 20) ?? .systemFont(ofSize: 20, weight: .semibold)
     }
     
     var header1: UIFont {
-        return UIFont(name: semiBold, size: 18)!
+        return UIFont(name: semiBold, size: 18) ?? .systemFont(ofSize: 18, weight: .semibold)
     }
     
     var header2: UIFont {
-        return UIFont(name: semiBold, size: 16)!
+        return UIFont(name: semiBold, size: 16) ?? .systemFont(ofSize: 16, weight: .semibold)
     }
     
     var header3: UIFont {
-        return UIFont(name: semiBold, size: 22)!
+        return UIFont(name: semiBold, size: 22) ?? .systemFont(ofSize: 22, weight: .semibold)
     }
     
     var title0: UIFont {
-        return UIFont(name: semiBold, size: 18)!
+        return UIFont(name: semiBold, size: 18) ?? .systemFont(ofSize: 18, weight: .semibold)
     }
     
     var title1: UIFont {
-        return UIFont(name: semiBold, size: 16)!
+        return UIFont(name: semiBold, size: 16) ?? .systemFont(ofSize: 16, weight: .semibold)
     }
     
     var title2: UIFont {
-        return UIFont(name: bold, size: 16)!
+        return UIFont(name: bold, size: 16) ?? .systemFont(ofSize: 16, weight: .bold)
     }
     
     var title3: UIFont {
-        return UIFont(name: semiBold, size: 14)!
+        return UIFont(name: semiBold, size: 14) ?? .systemFont(ofSize: 14, weight: .semibold)
     }
     
     var body1: UIFont {
         
-        return UIFont(name: regular, size: 16)!
+        return UIFont(name: regular, size: 16) ?? .systemFont(ofSize: 16)
     }
     
     var body2: UIFont {
-        return UIFont(name: semiBold, size: 14)!
+        return UIFont(name: semiBold, size: 14) ?? .systemFont(ofSize: 14, weight: .semibold)
     }
     
     var body3: UIFont {
-        return UIFont(name: regular, size: 12)!
+        return UIFont(name: regular, size: 12) ?? .systemFont(ofSize: 12)
     }
     
     var regular14: UIFont {
-        return UIFont(name: regular, size: 14)!
+        return UIFont(name: regular, size: 14) ?? .systemFont(ofSize: 14)
     }
         
     var regular24: UIFont {
-        return UIFont(name: regular, size: 24)!
+        return UIFont(name: regular, size: 24) ?? .systemFont(ofSize: 24)
     }
     
     var caption: UIFont {
-        return UIFont(name: regular, size: 12)!
+        return UIFont(name: regular, size: 12) ?? .systemFont(ofSize: 12)
     }
     
     var semiBold12: UIFont {
-        return UIFont(name: semiBold, size: 12)!
+        return UIFont(name: semiBold, size: 12) ?? .systemFont(ofSize: 12, weight: .semibold)
     }
     
     var medium14: UIFont {
-        return UIFont(name: bold, size: 14)!
+        return UIFont(name: bold, size: 14) ?? .systemFont(ofSize: 14, weight: .bold)
     }
     
     var medium12: UIFont {
-        return UIFont(name: bold, size: 12)!
+        return UIFont(name: bold, size: 12) ?? .systemFont(ofSize: 12, weight: .bold)
     }
     
     var regular28: UIFont {
-        return UIFont(name: regular, size: 28)!
+        return UIFont(name: regular, size: 28) ?? .systemFont(ofSize: 28)
     }
     
     var regular22: UIFont {
-        return UIFont(name: regular, size: 22)!
+        return UIFont(name: regular, size: 22) ?? .systemFont(ofSize: 22)
     }
     
     var regular10: UIFont {
-        return UIFont(name: regular, size: 10)!
+        return UIFont(name: regular, size: 10) ?? .systemFont(ofSize: 10)
     }
     
     var bold20: UIFont {
-        return UIFont(name: bold, size: 20)!
+        return UIFont(name: bold, size: 20) ?? .systemFont(ofSize: 20)
     }
     
 }

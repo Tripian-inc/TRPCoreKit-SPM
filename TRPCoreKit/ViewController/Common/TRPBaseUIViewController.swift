@@ -44,6 +44,7 @@ public class TRPBaseUIViewController: UIViewController {
         super.viewDidLoad()
         view.backgroundColor = UIColor.white
         navigationController?.interactivePopGestureRecognizer?.delegate = nil
+        overrideUserInterfaceStyle = .light
         setupViews()
         hideKeyboardWhenTappedAround()
     }

@@ -35,6 +35,7 @@ public class MyTripVC: TRPBaseUIViewController {
     private let pagingViewController = PagingViewController()
     public var canBack: Bool = true
     public var bookingDetailUrl: String = ""
+    public var isNexus: Bool = true
     
     public init(viewModel: MyTripViewModel) {
         self.viewModel = viewModel
@@ -56,7 +57,8 @@ public class MyTripVC: TRPBaseUIViewController {
         showNavigationBar()
         self.navigationController?.navigationBar.setNexusBar()
         
-        let logo = TRPImageController().getImage(inFramework: "ic_nexus_logo", inApp: TRPAppearanceSettings.MyTrip.addTripImage)
+        let logoName = isNexus ? "ic_nexus_logo" : "ic_tripian_new_logo"
+        let logo = TRPImageController().getImage(inFramework: logoName, inApp: TRPAppearanceSettings.MyTrip.addTripImage)
         let imageView = UIImageView(frame: CGRectMake(0, 0, 40, 30))// UIImageView(image:logo)
         imageView.contentMode = .scaleAspectFit
         imageView.image = logo

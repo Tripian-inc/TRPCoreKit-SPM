@@ -669,18 +669,25 @@ extension TRPRestKit {
 
 // MARK: Guest Login
 extension TRPRestKit {
-    public func guestLogin(firstName: String,
-                           lastName: String,
-                           email: String,
-                           password: String,
+    public func guestLogin(firstName: String = "Guest",
+                           lastName: String = "User",
+                           email: String? = nil,
+                           password: String = "Tripian1234",
                            device: TRPDevice? = nil,
                            completion: @escaping CompletionHandler) {
         self.completionHandler = completion
         var _device = device
+        var _email: String
         if device == nil {
             _device = TRPDeviceModel().convertToTRPDevice()
         }
-        guestLoginServices(email: email, password: password, firstName: firstName, lastName: lastName, device: _device)
+        if email == nil {
+            _email = "\(TRPDeviceModel.getUUID())@tripianguest.com"
+        } else {
+            _email = email!
+        }
+        
+        guestLoginServices(email: _email, password: password, firstName: firstName, lastName: lastName, device: _device)
     }
     
     private func guestLoginServices(email: String,

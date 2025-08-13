@@ -1,0 +1,12 @@
+{
+  "images" : [
+    {
+      "filename" : "ic_tripian_new_logo.png",
+      "idiom" : "universal"
+    }
+  ],
+  "info" : {
+    "author" : "xcode",
+    "version" : 1
+  }
+}

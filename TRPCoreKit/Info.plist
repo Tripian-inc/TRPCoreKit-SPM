@@ -20,5 +20,13 @@
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
+    <key>UIAppFonts</key>
+    <array>
+        <string>Poppins-Regular</string>
+        <string>Poppins-Medium</string>
+        <string>Poppins-Bold</string>
+        <string>Poppins-Italic</string>
+        <string>Poppins-SemiBold</string>
+    </array>
 </dict>
 </plist>

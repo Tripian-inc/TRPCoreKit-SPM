@@ -19,6 +19,8 @@ public class TRPLanguagesController {
 //        getLanguages()
     }
     
+    public var isFetched = false
+    
     public func getLanguages(completion: ((Result<Bool, Error>) -> Void)? = nil) {
 //        if !languageResult.isEmpty {
 //            return
@@ -29,6 +31,7 @@ public class TRPLanguagesController {
             case.failure(let error):
                 onComplete(.failure(error))
             case .success(let results):
+                self.isFetched = true
                 self.languageResult = results
                 onComplete(.success(true))
             }
