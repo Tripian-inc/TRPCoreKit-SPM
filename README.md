@@ -88,14 +88,28 @@ Now import the `TRPCoreKit` module and present a new UINavigationController inst
 ```swift
 import TRPCoreKit
 ```
-Then, create coordinator instance and call `start` method to show TRPCoreKit in your app.
+Then, create coordinator instance and call one of `start` method to show TRPCoreKit in your app.
 
 ```swift
 let nav = UINavigationController() // TRPSDKCoordinater requires navigation controller instance in initialization.
 nav.modalPresentationStyle = .fullScreen // Modally presented view controller to display in full-screen.
 let coordinator = TRPSDKCoordinater(navigationController: nav) // Create coordinator instance.
-coordinator.startForGuest()// Call `startForGuest` method to show the TRPCoreKit in your app. (You can use startWithEmail("test@tripian.com") for login with email)
 self.present(nav, animated: true, completion: nil)// Present Navigation View Controller instance in your app.
+```
+
+You can use `startForGuest` method for login as a guest user. Since the device used to log in with this method is recorded, the transactions and data are kept in the background without being deleted at each login.
+```swift
+coordinator.startForGuest()// Call `startForGuest` method to guest login and show the TRPCoreKit in your app.
+```
+You can use `startWithEmail` method for login with given email information. If the user has not registered before with the email address entered, we complete the registration process and log in with an automatically generated password.
+
+```swift
+coordinator.startWithEmail("test@tripian.com")// Call `startWithEmail` method to login with given email and show the TRPCoreKit in your app.
+```
+You can use `startWithEmailAndPassword` method for login with given email and password information. This method functions the same as the startWithEmail method, only the process continues with the email and password information entered by the user instead of the automatic password information.
+
+```swift
+coordinator.startWithEmailAndPassword("test@tripian.com", "12345678")// Call `startWithEmailAndPassword` method to login with given email and password and show the TRPCoreKit in your app.
 ```
 
 ## Provide your own Appearance Settings in TRPCoreKit
