@@ -40,17 +40,18 @@ Tripian Core Kit SDK is also available [for Android](https://github.com/tripian/
 
 ## Installation
 
-### Using CocoaPods
+### Swift Package Manager
 
-To install TRP Core Kit using [CocoaPods](https://cocoapods.org/):
+The [Swift Package Manager](https://swift.org/package-manager/) is a tool for automating the distribution of Swift code and is integrated into the `swift` compiler.
 
-1. Create a [Podfile](https://guides.cocoapods.org/syntax/podfile.html) with the following specification:
-   ```ruby
-   # Add the pods for any other Tripian products you want to use in your app
-   # For example, to use TRPCoreKit
-   pod 'TRPCoreKit'
-   ```
-   The platform specified in your Podfile should be `:iOS '11'`
+Once you have your Swift package set up, adding Alamofire as a dependency is as easy as adding it to the `dependencies` value of your `Package.swift` or the Package list in Xcode.
+
+```swift
+dependencies: [
+    .package(url: "https://github.com/Tripian-inc/TRPCoreKit-SPM.git", branch: "tripian")
+]
+```
+
 
 1. Run `pod repo update && pod install` and open the resulting Xcode workspace.
 
