@@ -57,7 +57,7 @@ dependencies: [
 
 * Tripian APIs require a Tripian account and API access token.
 
-   * TRPCoreKit uses [TRPRestKit framework](https://github.com/tripian/trpRestKitIOS/) to handle networking implementations of Tripian Rest API. 
+   * TRPCoreKit uses [TRPRestKit framework](https://github.com/Tripian-inc/TRPRestKit) to handle networking implementations of Tripian Rest API. 
    *  in `AppDelegate`:
    
        ```swift
