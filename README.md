@@ -53,11 +53,6 @@ dependencies: [
 ```
 
 
-1. Run `pod repo update && pod install` and open the resulting Xcode workspace.
-
-Note that if you're using one of the quickstart samples, the Xcode project and Podfile (with pods) are already present, but you'll still need to install the pods.
-
-
 ## Usage
 
 * Tripian APIs require a Tripian account and API access token.
@@ -80,7 +75,7 @@ Note that if you're using one of the quickstart samples, the Xcode project and P
 * Tripian uses Mapbox to show customized maps. 
 
    * You need a Mapbox access token to use any of Mapbox's tools in TRPCoreKit. 
-   * In the project editor, select the application target, then go to the Info tab. Under the “Property List Key” section, set `MGLMapboxAccessToken` to your mapbox access token.
+   * In the project editor, select the application target, then go to the Info tab. Under the “Property List Key” section, set `MBXAccessToken` to your mapbox access token.
 
 * Tripian uses Google Places autocomplete results in searching places. 
 
