@@ -12,8 +12,6 @@ Tripian Core Kit framework is written in Swift.
 - [Installation](#installation)
 - [Usage](#usage)
 - [Provide your own Appearance Settings in TRPCoreKit](#provide-your-own-appearance-settings-in-tRPCoreKit)
-- [Use Cases](#use-cases)
-- [Examples](#examples)
 - [Communication](#communication)
 - [License](#license)
 
@@ -28,15 +26,9 @@ The key features are:
 * Plan Around Meetings
 * Detailed documentation is available in the [TRPCoreKit Documentation](http://airmiles-api-1837638174.ca-central-1.elb.amazonaws.com/apidocs/#tripian-recommendation-engine).
 
-## Documentation
-
-See the [TRPCoreKit documentation](http://airmiles-api-1837638174.ca-central-1.elb.amazonaws.com/apidocs/#tripian-recommendation-engine) for usage examples.
-
 ## Requirements
 
-Tripian Core Kit is compatible with applications written in Swift 5 in Xcode 10.2 and above. Tripian Core Kit runs on iOS 11.0 and above.
-
-Tripian Core Kit SDK is also available [for Android](https://github.com/tripian/trpCoreKitAndroid/).
+Tripian Core Kit is compatible with applications written in Swift 5 in Xcode 10.2 and above. Tripian Core Kit runs on iOS 13.0 and above.
 
 ## Installation
 
