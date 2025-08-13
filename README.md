@@ -131,24 +131,6 @@ TRPAppearanceSettings.SearchPlaces.title = "Search Places"
 
 Consult the [TRPCoreKit Documentation](http://airmiles-api-1837638174.ca-central-1.elb.amazonaws.com/apidocs/#tripian-recommendation-engine) for further details.
 
-## Use Cases
-//UML DIAGRAMS
-
-## Examples
-
-The [TRPCoreKit-IOS-Examples](https://github/trpcorekitiosexamples) includes example code for accomplishing starting a navigation flow of TRPCoreKit and modifying common appearance feautures in Tripian Core Kit:
-
-1. Clone the repository or download the [.zip file](https://github.com/tripian/trpcorekit-ios/archive/master.zip)
-1. Run `pod repo update && pod install` and open the resulting Xcode workspace.
-1. Open `TrpCoreKitIOSExample.xcodeproj`.
-1. Sign up or log in to your Tripian account and grab a [Tripian Access Token](https://www.tripian.com/request-api-key/).
-1. Set the access token with calling the TRPClient.start() in your app's `application:didFinishLaunchingWithOptions:` method:
-   ```swift
-   let environment: Environment = .production // Enumaration value that can be production,test,sandbox, production or a custom BaseUrlCreater instance.
-   let trpApiKey = "YOUR_API_KEY" // Tripian access token.
-   TRPClient.start(enviroment: environment, apiKey: trpApiKey) // Set TRPRestKit access token in order TRPCoreKit to work properly.
-     ```
-1. Build and run the `Example` target.
 
 ## Communication
 - If you **need help with TRPCore Kit**, use [Stack Overflow](https://stackoverflow.com/questions/tagged/trpcorekit) and tag `trpcorekit`.
