@@ -7,7 +7,7 @@ let package = Package(
     name: "TRPCoreKit",
     defaultLocalization: "en",
     platforms: [
-        .iOS(.v13)
+        .iOS(.v14)
     ],
     products: [
         // Products define the executables and libraries a package produces, making them visible to other packages.
@@ -21,6 +21,7 @@ let package = Package(
         .package(url: "https://github.com/mapbox/mapbox-directions-swift.git", from: "2.0.0"),
         .package(url: "https://github.com/rechsteiner/Parchment", from: "3.1.0"),
         .package(url: "https://github.com/SDWebImage/SDWebImage.git", from: "5.19.7"),
+        .package(url: "https://github.com/Tripian-inc/TRPRestKit.git", branch: "remove-carthage-add-spm"),
 //        .package(url: "https://github.com/mapbox/mapbox-events-ios.git", from: "2.0.0"),
     ],
     targets: [
@@ -37,6 +38,7 @@ let package = Package(
                 "Alamofire",
                 "Mapbox",
                 "MapboxMobileEvents",
+                .product(name: "TRPRestKit", package: "TRPRestKit"),
             ],
             path: "TRPCoreKit"
         ),

@@ -7,7 +7,7 @@
 //
 
 import Foundation
-
+import TRPRestKit
 
 
 /// City için model dönüşümü yapar
@@ -15,8 +15,8 @@ public class CityMapper {
     
     public func map(_ restModel: TRPCityInfoModel) -> TRPCity {
         
-        let coordinate = TRPLocation(lat: restModel.coordinate.lat,
-                                     lon: restModel.coordinate.lon)
+        let coordinate = TRPLocation(lat: restModel.coordinate?.lat,
+                                     lon: restModel.coordinate?.lon)
         
         var newModel = TRPCity(id: restModel.id,
                                name: restModel.name,
@@ -25,14 +25,14 @@ public class CityMapper {
         newModel.image = restModel.image?.url
         newModel.displayName = restModel.displayName
         newModel.isPopular = restModel.isPopular
-        newModel.countryName = restModel.country.name
-        newModel.countryCode = restModel.country.code
+        newModel.countryName = restModel.country?.name ?? ""
+        newModel.countryCode = restModel.country?.code ?? ""
         
-        if let continents = restModel.country.continent {
+        if let continents = restModel.country?.continent {
             newModel.countryContinents = [continents]
         }
         
-        newModel.continent = restModel.country.continentModel.map({
+        newModel.continent = restModel.country?.continentModel.map({
             TRPContinent(name: $0.name, slug: $0.slug)
         })
         
