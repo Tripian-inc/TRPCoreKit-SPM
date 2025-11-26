@@ -11,9 +11,9 @@ import Foundation
 
 public class TRPLanguagesController {
      public static let shared = TRPLanguagesController()
-    public weak var languagesUseCases: TRPLanguagesUseCases? {
+    lazy var languagesUseCases: TRPLanguagesUseCases = {
         return TRPLanguagesUseCases()
-    }
+    }()
     private var languageResult: [String: Any] = [:]
     public init() {
 //        getLanguages()
@@ -26,9 +26,9 @@ public class TRPLanguagesController {
 //            return
 //        }
         let onComplete = completion ?? { result in }
-        languagesUseCases?.executeFetchLanguages() { result in
+        languagesUseCases.executeFetchLanguages() { result in
             switch(result) {
-            case.failure(let error):
+            case .failure(let error):
                 onComplete(.failure(error))
             case .success(let results):
                 self.isFetched = true

@@ -7,9 +7,8 @@
 //
 
 import Foundation
-
-
-
+import TRPRestKit
+import TRPFoundationKit
 
 public class TRPPoiRemoteApi: PoiRemoteApi {
     

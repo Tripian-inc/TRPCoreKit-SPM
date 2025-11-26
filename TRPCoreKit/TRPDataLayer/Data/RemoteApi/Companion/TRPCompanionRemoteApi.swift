@@ -7,6 +7,7 @@
 //
 
 import Foundation
+import TRPRestKit
 
 public class TRPCompanionRemoteApi: CompanionRemoteApi {
     
