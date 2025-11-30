@@ -109,5 +109,3 @@ extension TRPCompanionUseCases: ObserveCompanionUseCase {
         return repository.companions
     }
 }
-
-

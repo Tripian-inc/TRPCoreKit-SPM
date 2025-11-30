@@ -7,6 +7,7 @@
 //
 
 import Foundation
+import TRPFoundationKit
 
 public typealias LocationCoordinate = (lat:Double, lon: Double)
 

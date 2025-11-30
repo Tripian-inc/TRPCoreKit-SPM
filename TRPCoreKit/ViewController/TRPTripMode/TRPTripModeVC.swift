@@ -9,10 +9,10 @@
 import Foundation
 import CoreLocation
 import UIKit
-
-
 import MapboxDirections
 import SDWebImage
+import TRPFoundationKit
+import TRPRestKit
 
 
 var globalNavBarImage: UIImage?
@@ -609,7 +609,7 @@ extension TRPTripModeVC: TRPMapViewDelegate {
         }
         viewModel.getPoiInfo(annotationId) { [weak self] poi in
             guard let poi = poi else {
-                Log.w("Annotaion clicked on \(annotationId) but data didn't find")
+                print("Annotaion clicked on \(annotationId) but data didn't find")
                 return
             }
             self?.openCallOut(poi)
@@ -666,7 +666,7 @@ extension TRPTripModeVC: TRPMapViewDelegate {
         callOutController?.show(model: callOutCell)
         callOutController?.getCellImageView()?.image = nil
         
-        guard let image = TRPImageResizer.generate(withUrl: poi.image.url, standart: .small) else {return}
+        guard let image = TRPImageResizer.generate(withUrl: poi.image?.url, standart: .small) else {return}
         guard let url = URL(string: image) else {return}
         
         SDWebImageManager.shared.loadImage(with: url, options: SDWebImageOptions.lowPriority, context: nil, progress: nil) { [weak self] (downloadedImage, _, error, _, _, _) in

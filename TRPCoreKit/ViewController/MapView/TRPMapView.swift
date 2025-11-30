@@ -9,6 +9,7 @@
 import UIKit
 import Mapbox
 import MapboxDirections
+import TRPFoundationKit
 
 
 public class TRPMapView: UIView {

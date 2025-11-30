@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import TRPRestKit
 
 
 
@@ -95,6 +96,7 @@ extension PersonalInfoViewModel {
         updateUserInfoUseCase?.executeUpdateUserInfo(firstName: firstName,
                                                      lastName: lastName,
                                                      password: nil,
+                                                     currentPassword: nil,
                                                      dateOfBirth: dateOfBirth,
                                                      answers: self.selectedItemIds,
                                                      completion: { [weak self] result in

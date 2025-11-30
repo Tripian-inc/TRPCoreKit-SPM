@@ -7,7 +7,7 @@
 //
 
 import Foundation
-
+import TRPFoundationKit
 
 public protocol SearchPoiUseCase {
 

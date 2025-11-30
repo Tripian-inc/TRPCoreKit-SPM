@@ -5,6 +5,9 @@
 //  Created by Cem Çaygöz on 13.08.2025.
 //
 
+import TRPRestKit
+import UIKit
+
 class TRPLoginHelper {
     public static var shared: TRPLoginHelper = TRPLoginHelper()
     
@@ -13,7 +16,7 @@ class TRPLoginHelper {
     private let tripianFirstName: String = "Tripian"
     private let tripianLastName: String = "User"
     private lazy var guestEmail: String = {
-        "\(TRPDeviceModel.getUUID())@tripianguest.com"
+        "\(getUUID())@tripianguest.com"
     }()
     private let guestPsw = "Tripian1234"
     
@@ -24,6 +27,18 @@ class TRPLoginHelper {
     func guestLogin(completion: @escaping ((Bool) -> Void)) {
         
         TRPRestKit().guestLogin(firstName: guestFirstName, lastName: guestLastName, email: guestEmail, password: guestPsw) { (_, error) in
+            if let error = error as? TRPErrors {
+                EvrAlertView.showAlert(contentText: error.localizedDescription, type: .error)
+                completion(false)
+                return
+            }
+            completion(true)
+        }
+    }
+
+    func lightLogin(uniqueId: String, firstName: String? = nil, lastName: String? = nil, completion: @escaping ((Bool) -> Void)) {
+
+        TRPRestKit().lightLogin(uniqueId: uniqueId, firstName: firstName, lastName: lastName) { (_, error) in
             if let error = error as? TRPErrors {
                 EvrAlertView.showAlert(contentText: error.localizedDescription, type: .error)
                 completion(false)
@@ -74,5 +89,15 @@ class TRPLoginHelper {
             }
             completion(true)
         }
+    }
+    
+    private func getUUID() -> String {
+        var uuid = ""
+        if let uuidString = UIDevice.current.identifierForVendor?.uuidString {
+            uuid = uuidString
+        } else {
+            uuid = UUID().uuidString
+        }
+        return uuid
     }
 }

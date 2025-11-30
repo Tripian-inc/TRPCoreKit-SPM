@@ -25,7 +25,7 @@ public protocol StepRemoteApi {
     
     func deleteStep(id: Int,
                     completion: @escaping (StepStatusValue) -> Void)
- 
+    
     func editStep(id: Int,
                   poiId: String,
                   completion: @escaping (StepResultValue) -> Void)

@@ -14,9 +14,9 @@ public protocol PlanRemoteApi {
     
     
     func updatePlanHours(planId: Int,
-                       start: String,
-                       end: String,
-                       completion: @escaping (PlanResultValue) -> Void)
+                         start: String,
+                         end: String,
+                         completion: @escaping (PlanResultValue) -> Void)
     
     
     func updatePlanStepOrder(planId: Int,
@@ -28,4 +28,3 @@ public protocol PlanRemoteApi {
                        completion: @escaping (PlanExportResultValue) -> Void)
     
 }
-

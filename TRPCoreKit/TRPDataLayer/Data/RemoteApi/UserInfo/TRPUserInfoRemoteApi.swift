@@ -7,6 +7,7 @@
 //
 
 import Foundation
+import TRPRestKit
 
 public class TRPUserInfoRemoteApi: UserInfoRemoteApi {
     
@@ -29,6 +30,7 @@ public class TRPUserInfoRemoteApi: UserInfoRemoteApi {
     public func updateUserInfo(firstName: String?,
                                lastName: String?,
                                password: String?,
+                               currentPassword: String?,
                                dateOfBirth: String?,
                                answers: [Int]?,
                                completion: @escaping (UserInfoResultValue) -> Void) {
@@ -36,6 +38,7 @@ public class TRPUserInfoRemoteApi: UserInfoRemoteApi {
         TRPRestKit().updateUserInfo(firstName: firstName,
                                     lastName: lastName,
                                     password: password,
+                                    currentPassword: currentPassword,
                                     dateOfBirth: dateOfBirth,
                                     answers: answers) { result, error in
             

@@ -149,7 +149,7 @@ extension TRPBaseUIViewController {
 extension TRPBaseUIViewController:  ViewModelDelegate {
     
     @objc nonisolated public func viewModel(error: Error) {
-        EvrAlertView.showAlert(contentText: error.localizedDescription, type: .error, parentViewController: self)
+        EvrAlertView.showAlert(contentText: error.localizedDescription, type: .error)
     }
     
     @objc public func viewModel(showPreloader: Bool) {
@@ -184,11 +184,11 @@ extension TRPBaseUIViewController {
 
 extension TRPBaseUIViewController {
     public func showError(_ error: Error, bottomSpace: CGFloat = 60) {
-        EvrAlertView.showAlert(contentText: error.localizedDescription, type: .error, bottomSpace: bottomSpace, parentViewController: self)
+        EvrAlertView.showAlert(contentText: error.localizedDescription, type: .error, bottomSpace: bottomSpace)
     }
     
     public func showMessage(_ message: String, type: EvrAlertLevel, bottomSpace: CGFloat = 60) {
-        EvrAlertView.showAlert(contentText: message, type: type, bottomSpace:bottomSpace, parentViewController: self)
+        EvrAlertView.showAlert(contentText: message, type: type, bottomSpace:bottomSpace)
     }
     
     public func showLoader(_ show: Bool) {

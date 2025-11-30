@@ -18,14 +18,14 @@ public class TRPPoiRemoteApi: PoiRemoteApi {
     
     public func fetchPoi(poiId: String,
                          completion: @escaping (PoiResultValue) -> Void) {
-       
+        
         TRPRestKit().poi(poiId: poiId) { (result, error) in
-                            
+            
             if let error = error {
                 completion((.failure(error)))
                 return
             }
-                            
+            
             if let result = result as? [TRPPoiInfoModel], !result.isEmpty {
                 //let convertedPagination = PaginationMapper().map(pagination)
                 let converted = PoiMapper().map(result.first!)
@@ -33,7 +33,7 @@ public class TRPPoiRemoteApi: PoiRemoteApi {
             } else {
                 completion((.failure(GeneralError.customMessage("Couldn't convert data"))))
             }
-                            
+            
         }
     }
     
@@ -48,7 +48,7 @@ public class TRPPoiRemoteApi: PoiRemoteApi {
         if let ne = parameters.boundaryNorthEast, let sw = parameters.boundarySouthWest {
             bounds = LocationBounds(northEast: ne, southWest: sw)
         }
-       
+        
         TRPRestKit().poi(cityId: cityId,
                          search: parameters.search,
                          poiIds: parameters.poiIds?.unique(),
@@ -58,24 +58,24 @@ public class TRPPoiRemoteApi: PoiRemoteApi {
                          bounds: bounds,
                          limit: parameters.limit,
                          autoPagination: parameters.autoPagination) { (result, error, pagination) in
-                            
-                            var _pagination: TRPPagination?
-                            
-                            if let pagination = pagination {
-                                _pagination = PaginationMapper().map(pagination)
-                            }
-                            
-                            if let error = error {
-                                completion((.failure(error), _pagination))
-                                return
-                            }
-                            
-                            if let result = result as? [TRPPoiInfoModel] {
-                                //let convertedPagination = PaginationMapper().map(pagination)
-                                let converted = PoiMapper().map(result)
-                                completion((.success(converted), _pagination))
-                            }
-                            
+            
+            var _pagination: TRPPagination?
+            
+            if let pagination = pagination {
+                _pagination = PaginationMapper().map(pagination)
+            }
+            
+            if let error = error {
+                completion((.failure(error), _pagination))
+                return
+            }
+            
+            if let result = result as? [TRPPoiInfoModel] {
+                //let convertedPagination = PaginationMapper().map(pagination)
+                let converted = PoiMapper().map(result)
+                completion((.success(converted), _pagination))
+            }
+            
         }
     }
     
@@ -98,24 +98,24 @@ public class TRPPoiRemoteApi: PoiRemoteApi {
                          bounds: bounds,
                          limit: parameters.limit,
                          autoPagination: parameters.autoPagination) { (result, error, pagination) in
-                            
-                            var _pagination: TRPPagination?
-                            
-                            if let pagination = pagination {
-                                _pagination = PaginationMapper().map(pagination)
-                            }
-                            
-                            
-                            if let error = error {
-                                completion((.failure(error), _pagination))
-                                return
-                            }
-                            
-                            if let result = result as? [TRPPoiInfoModel] {
-                                let converted = PoiMapper().map(result)
-                                completion((.success(converted), _pagination))
-                            }
-                            
+            
+            var _pagination: TRPPagination?
+            
+            if let pagination = pagination {
+                _pagination = PaginationMapper().map(pagination)
+            }
+            
+            
+            if let error = error {
+                completion((.failure(error), _pagination))
+                return
+            }
+            
+            if let result = result as? [TRPPoiInfoModel] {
+                let converted = PoiMapper().map(result)
+                completion((.success(converted), _pagination))
+            }
+            
         }
     }
     

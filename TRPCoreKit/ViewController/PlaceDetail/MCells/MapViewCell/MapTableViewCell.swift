@@ -9,6 +9,7 @@
 
 import Mapbox
 import UIKit
+import TRPFoundationKit
 
 final class MapTableViewCell: UITableViewCell {
     

@@ -73,14 +73,15 @@ extension TRPUserInfoUseCases: UpdateUserInfoUseCase {
     }
     
     public func executeUpdateUserInfo(firstName: String? = nil,
-                                        lastName: String? = nil,
-                                        password: String? = nil,
-                                        dateOfBirth: String? = nil,
-                                        answers: [Int]? = nil,
-                                        completion: ((Result<TRPUser, Error>) -> Void)?) {
+                                      lastName: String? = nil,
+                                      password: String? = nil,
+                                      currentPassword: String? = nil,
+                                      dateOfBirth: String? = nil,
+                                      answers: [Int]? = nil,
+                                      completion: ((Result<TRPUser, Error>) -> Void)?) {
         let onComplete = completion ?? { result in }
         
-        repository.updateUserInfo(firstName: firstName, lastName: lastName, password: password, dateOfBirth: dateOfBirth, answers: answers) { [weak self] result in
+        repository.updateUserInfo(firstName: firstName, lastName: lastName, password: password, currentPassword: currentPassword, dateOfBirth: dateOfBirth, answers: answers) { [weak self] result in
             
             switch(result) {
             case .success(let userInfo):

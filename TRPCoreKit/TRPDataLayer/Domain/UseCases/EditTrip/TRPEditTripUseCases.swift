@@ -8,7 +8,7 @@
 
 import Foundation
 
-//NOTE: FetchTrip usecase i burayada eklenebilir. ????????
+//NOTE: The FetchTrip use case can also be added here. ????????
 final public class TRPEditTripUseCases {
     
     private(set) var repository: TripRepository
@@ -28,12 +28,10 @@ extension TRPEditTripUseCases: EditTripUseCase {
     public func executeEditTrip(profile: TRPEditTripProfile, completion: ((Result<TRPTrip, Error>) -> Void)?) {
         
         let onComplete = completion ?? { result in }
-        //TODO: - ERROR DONDURULECEK
         guard checkTripParameters(profile: profile) else {
-            print("[Error] Trip parameters not valid")
+            onComplete(.failure(GeneralError.customMessage("Trip Parameters are not valid.")))
             return
         }
-//        profile.doNotGenerate = doNotGenerate(newProfile: profile)
         repository.editTrip(profile: profile, completion: onComplete)
     }
     
@@ -46,10 +44,10 @@ extension TRPEditTripUseCases: EditTripUseCase {
         return true
     }
     
-    /// Eski trip ile yeni trip verileri karşılaştırır.
-    /// Eğer aşağıdaki veriler hiç değişme yok TRIP YENİDEN OLUŞTURULMAYACAKTIR. DO NOT GENERATE trip i eskisi gibi tutar.
+    /// Compares the old trip with the new trip data.
+    /// If none of the following data changes, THE TRIP WILL NOT BE REGENERATED. DO NOT GENERATE keeps the trip as it is.
     /// - Parameters:
-    /// - Returns: False ise trip yeniden oluşturulur, true ise trip olduğu gibi kalır.
+    /// - Returns: Returns false if the trip should be regenerated, true if the trip should remain unchanged.
     public func doNotGenerate(newProfile: TRPTripProfile) -> Bool{
         
         guard let oldArrival = oldTrip.arrivalDate, let oldDeparture = oldTrip.departureDate else {return false}
@@ -67,14 +65,14 @@ extension TRPEditTripUseCases: EditTripUseCase {
         }
         let currentAnswer: Set<Int> = Set(currentTotalAnswer)
         
-        //Cevaplar aynı olmadığı için trip yeniden yaratılacak
+        //The trip will be recreated because the answers are not the same
         if tripAnswerSet != currentAnswer || tripAnswerSet.count == 0 {
             return false
         }
         
         let currentCompSet: Set<Int> = Set(newProfile.companionIds)
         let oldCompSet: Set<Int> = Set(oldTrip.companionIds)
-        //Companion sayısı aynı olmadığı için yeniden yaratılacak
+        //Will be recreated because the number of companions is not the same
         if currentCompSet != oldCompSet {
             return false
         }
@@ -87,9 +85,10 @@ extension TRPEditTripUseCases: EditTripUseCase {
             return false
         }
         
-        //Trip kesinlikle değiştirilmeyecek
+        //The trip will definitely not be changed
         return true
     }
     
     
 }
+

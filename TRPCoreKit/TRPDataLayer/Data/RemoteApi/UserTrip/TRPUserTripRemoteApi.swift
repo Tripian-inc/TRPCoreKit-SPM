@@ -7,6 +7,7 @@
 //
 
 import Foundation
+import TRPRestKit
 
 final public class TRPUserTripRemoteApi: UserTripRemoteApi {
     

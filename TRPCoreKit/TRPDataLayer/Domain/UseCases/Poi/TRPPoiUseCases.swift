@@ -7,7 +7,7 @@
 //
 
 import Foundation
-
+import TRPFoundationKit
 
 
 final public class TRPPoiUseCases {
@@ -32,7 +32,7 @@ extension TRPPoiUseCases: SearchPoiUseCase {
                                 ) {
         
         guard let cityId = cityId else {
-            print("[Error] City id is nil")
+            completion?(.failure(GeneralError.customMessage("City id is null")), nil)
             return
         }
         
@@ -72,7 +72,7 @@ extension TRPPoiUseCases: SearchPoiUseCase {
                     onComplete(.failure(error), pagination)
                 }
             }
-        }else {
+        } else {
             poiRepository.fetchLocalPoi { result, pagination in
                 switch result {
                 case .success(let result):
@@ -102,19 +102,6 @@ extension TRPPoiUseCases: SearchPoiUseCase {
     
 }
 
-enum GeneralError: Error {
-    case customMessage(String)
-}
-
-extension GeneralError: LocalizedError {
-    var errorDescription: String? {
-        switch self {
-        case .customMessage(let message):
-            return message
-        }
-    }
-}
-
 extension TRPPoiUseCases: FetchPoiUseCase {
     
     public func executeFetchPoi(ids: [String], completion: ((Result<[TRPPoi], Error>, TRPPagination?) -> Void)?) {
@@ -122,8 +109,7 @@ extension TRPPoiUseCases: FetchPoiUseCase {
         let onComplete = completion ?? { result, pagination in }
         
         guard let cityId = cityId else {
-            print("[Error] City id is nil")
-            onComplete(.failure(GeneralError.customMessage("City id is nil")), nil)
+            onComplete(.failure(GeneralError.customMessage("City id is null")), nil)
             return
         }
         
@@ -165,7 +151,7 @@ extension TRPPoiUseCases: FetchPoiUseCase {
                     onComplete(.failure(error))
                 }
             }
-        }else {
+        } else {
             poiRepository.fetchLocalPoi { result, _ in
                 switch result {
                 case .success(let result):
@@ -178,14 +164,6 @@ extension TRPPoiUseCases: FetchPoiUseCase {
                 }
             }
         }
-//        executeFetchPoi(ids: [id]) { result, _ in
-//            switch result {
-//            case .success(let pois):
-//                onComplete(.success(pois.first))
-//            case .failure(let error):
-//                onComplete(.failure(error))
-//            }
-//        }
     }
     
 }
@@ -195,12 +173,12 @@ extension TRPPoiUseCases: FethCategoryPoisUseCase {
     public func executeFetchCategoryPois(categoryIds: [Int],
                                          completion: ((Result<[TRPPoi], Error>, TRPPagination?) -> Void)?) {
         
+        let onComplete = completion ?? { result, pagination in }
+        
         guard let cityId = cityId else {
-            print("[Error] City id is nil")
+            onComplete(.failure(GeneralError.customMessage("City id is null")), nil)
             return
         }
-        
-        let onComplete = completion ?? { result, pagination in }
         
         if ReachabilityUseCases.shared.isOnline {
             let params = PoiParameters(poiCategoies: categoryIds)
@@ -212,7 +190,7 @@ extension TRPPoiUseCases: FethCategoryPoisUseCase {
                     onComplete(.failure(error), pagination)
                 }
             }
-        }else {
+        } else {
             poiRepository.fetchLocalPoi { result, pagination in
                 switch result {
                 case .success(let result):
@@ -237,8 +215,6 @@ extension TRPPoiUseCases: FethCategoryPoisUseCase {
 
 extension TRPPoiUseCases: FetchNearByPoiUseCase {
     
-    
-    //TODO: - OFFLİNE
     public func executeFetchNearByPois(location: TRPLocation, categoryIds: [Int], completion: ((Result<[TRPPoi], Error>, TRPPagination?) -> Void)?) {
         let onComplete = completion ?? { result, pagination in }
     
@@ -260,15 +236,14 @@ extension TRPPoiUseCases: FetchNearByPoiUseCase {
 
 extension TRPPoiUseCases: FetchBoundsPoisUseCase {
     
-    //TODO: - OFFLİNE
     public func executeFetchNearByPois(northEast: TRPLocation, southWest: TRPLocation, categoryIds: [Int]?, completion: ((Result<[TRPPoi], Error>, TRPPagination?) -> Void)?) {
         
+        let onComplete = completion ?? { result, pagination in }
+        
         guard let cityId = cityId else {
-            print("[Error] City id is nil")
+            onComplete(.failure(GeneralError.customMessage("City id is null")), nil)
             return
         }
-        
-        let onComplete = completion ?? { result, pagination in }
         
         
         if ReachabilityUseCases.shared.isOnline {
@@ -284,7 +259,7 @@ extension TRPPoiUseCases: FetchBoundsPoisUseCase {
                     onComplete(.failure(error), pagination)
                 }
             }
-        }else {
+        } else {
             poiRepository.fetchLocalPoi { result, pagination in
                 switch result {
                 case .success(let result):
@@ -328,7 +303,7 @@ extension TRPPoiUseCases: FetchBoundsPoisUseCase {
 extension TRPPoiUseCases: FetchPoiNextUrlUseCase {
     
     public func executeFetchPoi(url: String, completion: ((Result<[TRPPoi], Error>, TRPPagination?) -> Void)?) {
-         let onComplete = completion ?? { result, pagination in }
+        let onComplete = completion ?? { result, pagination in }
         poiRepository.fetchPoi(url: url) { result, pagination in
             switch result {
             case .success(let result):
@@ -347,12 +322,12 @@ extension TRPPoiUseCases: FetchPoiWithMustTries {
     //TODO: - OFFLİNE
     public func executeFetchPoiWithMustTries(ids: [Int], completion: ((Result<[TRPPoi], Error>, TRPPagination?) -> Void)?) {
         
+        let onComplete = completion ?? { result, pagination in }
+        
         guard let cityId = cityId else {
-            print("[Error] City id is nil")
+            onComplete(.failure(GeneralError.customMessage("City id is null")), nil)
             return
         }
-        
-        let onComplete = completion ?? { result, pagination in }
         
         let params = PoiParameters(mustTryIds: ids)
         

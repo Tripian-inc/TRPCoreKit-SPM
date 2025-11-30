@@ -7,13 +7,10 @@
 //
 
 import Foundation
-
-
-
-
-
 import CoreLocation
 import MapKit
+import TRPFoundationKit
+import TRPRestKit
 
 enum PoiDetailCellType {
     case titleAndAction,
@@ -155,9 +152,10 @@ final class PoiDetailViewModel: TableViewViewModelProtocol {
     }
     
     public func getImageGallery() -> [PagingImage] {
-        return place.gallery.compactMap { image -> PagingImage? in
-            guard let converted = self.getPlaceImage(url: image.url) else {return nil}
-            return PagingImage(imageUrl: converted, picOwner: image.imageOwner)
+        guard let gallery = place.gallery else {return []}
+        return gallery.compactMap { image -> PagingImage? in
+            guard let converted = self.getPlaceImage(url: image?.url ?? "") else {return nil}
+            return PagingImage(imageUrl: converted, picOwner: image?.imageOwner)
         }
     }
     
@@ -319,7 +317,11 @@ extension PoiDetailViewModel {
         
         var tempCells = [PoiDetailCellContent]()
         
-        let gallery = place.gallery.map({PagingImage(imageUrl: $0.url, picOwner: $0.imageOwner)})
+        var gallery: [PagingImage] = []
+        
+        if let placeGallery = place.gallery, !placeGallery.isEmpty {
+            gallery = placeGallery.map({PagingImage(imageUrl: $0?.url, picOwner: $0?.imageOwner)})
+        }
         
         //Title
         let titleCell = PoiImageWithTitleModel(gallery: gallery,

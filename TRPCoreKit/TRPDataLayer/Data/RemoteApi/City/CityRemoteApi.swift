@@ -15,4 +15,6 @@ public protocol CityRemoteApi {
     
     func fetchShorexCities(completion: @escaping (CityResultsValue) -> Void)
     
+    func fetchCityInformation(cityId: Int, completion: @escaping (CityInformationResultValue) -> Void)
+    
 }

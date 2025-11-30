@@ -127,16 +127,6 @@ extension UIStoryboard {
         return vc
     }
     
-    class func makeOverviewContainerViewController() -> OverviewContainerVC {
-        let vc = load(from: .createTripOverview, identifier: "OverviewContainerVC") as! OverviewContainerVC
-        return vc
-    }
-    
-    class func makeOverviewViewController() -> OverviewViewController {
-        let vc = load(from: .createTripOverview, identifier: "OverviewViewController") as! OverviewViewController
-        return vc
-    }
-    
     class func makePoiDetailViewController() -> PoiDetailViewController {
         let vc = load(from: .poiDetail, identifier: "PoiDetailViewController") as! PoiDetailViewController
         vc.modalPresentationStyle = .fullScreen

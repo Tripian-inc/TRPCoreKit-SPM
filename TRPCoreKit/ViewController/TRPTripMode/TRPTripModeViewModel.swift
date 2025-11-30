@@ -12,6 +12,7 @@ import Foundation
 import MapboxDirections
 
 import CoreLocation
+import TRPFoundationKit
 
 
 public protocol TRPTripModeViewModelDelegate: ViewModelDelegate {
@@ -385,7 +386,6 @@ public class TRPTripModeViewModel {
     
     deinit {
         removeObservers()
-        Log.deInitialize()
     }
     
     func getDestinationId() -> Int {
@@ -436,7 +436,7 @@ extension TRPTripModeViewModel {
     private func fetchRouteFromMapBoxServer(pois: [TRPLocation]) {
         guard let currentDailyPlanId = dailyPlan?.id else {return}
         guard let accessToken = TRPApiKeyController.getKey(TRPApiKeys.mglMapboxAccessToken) else {
-            Log.e("MapBox access code is empty")
+            print("MapBox access code is empty")
             return
         }
         let calculater = TRPRouteCalculator(providerApiKey: accessToken, wayPoints: pois, dailyPlanId: currentDailyPlanId)
@@ -480,7 +480,7 @@ extension TRPTripModeViewModel {
     ///   - completion:
     public func fetchRoutes(locations: [TRPLocation], completion: @escaping (_ drawRoute: Route?, _ locations:[TRPLocation], _ error: Error?) -> () ) {
         guard let accessToken = TRPApiKeyController.getKey(TRPApiKeys.mglMapboxAccessToken) else {
-            Log.e("MapBox access code is empty")
+            print("MapBox access code is empty")
             return
         }
         let calculater = TRPRouteCalculator(providerApiKey: accessToken, wayPoints: locations, dailyPlanId: 0)

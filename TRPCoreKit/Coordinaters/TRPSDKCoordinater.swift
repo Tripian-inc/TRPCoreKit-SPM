@@ -8,15 +8,15 @@
 
 import Foundation
 import UIKit
- let trpTheme = TRPTheme1()
- let Log = TRPLogger(prefixText: "Tripian/TRPCoreKit")
+import TRPFoundationKit
+import TRPRestKit
 
 public protocol TRPSDKCoordinaterDelegate: AnyObject {
     func trpSdkCoordinaterMyTripsButtonPressed(_ coordinate: TRPSDKCoordinater, item: TRPBarButtonItem, navigationController: UINavigationController, vc: UIViewController)
     func trpSdkCoordinaterUserSignOut(_ coordinater: TRPSDKCoordinater)
     func trpSdkCoordinaterUserDelete(_ coordinater: TRPSDKCoordinater)
 }
-
+let Log = TRPLogger(prefixText: "Tripian/TRPCoreKit")
 public class TRPSDKCoordinater {
     
     public weak var delegate: TRPSDKCoordinaterDelegate?
@@ -120,10 +120,7 @@ public class TRPSDKCoordinater {
         checkAllApiKey()
         userProfile()
 //        getLanguages()
-//        GetYourGuideApi().jsonParser()
         startFirstVC()
-        //navigationController.pushViewController(makePaymetnViewController(), animated: true)
-        //navigationController.pushViewController(makeBilling(), animated: true)
     }
     
     private func startFirstVC() {
@@ -206,11 +203,6 @@ public class TRPSDKCoordinater {
 //            self.showTripianLoader(false)
 //        }
 //    }
-    
-     private func onlyMap() -> UIViewController {
-        let vc = OnlyMap()
-        return vc
-    }
     
 //     private func makePaymentViewController() -> UIViewController {
 //        let viewModel = PaymentViewModel()
@@ -544,7 +536,7 @@ extension TRPSDKCoordinater {
         let missingApiKey = TRPApiKeyController.checkMissingApiKeys(keys)
         if missingApiKey.count > 0 {
             let missingValus = missingApiKey.toString(", ")
-            Log.d("Could not find '\(missingValus)' key in Info.plist")
+            TRPLogger(prefixText: "Tripian/TRPCoreKit").d("Could not find '\(missingValus)' key in Info.plist")
             fatalError()
         }
     }

@@ -28,3 +28,13 @@ public protocol FetchCityUseCase {
     func executeFetchCity(id: Int, completion: ((Result<TRPCity, Error>) -> Void)?)
     
 }
+
+public protocol FetchCityInformationUseCase {
+    
+    /// Get city
+    /// - Parameters:
+    ///   - id: CityId
+    ///   - completion:
+    func executeFetchCityInformation(id: Int, completion: ((Result<TRPCityInformationData, Error>) -> Void)?)
+    
+}

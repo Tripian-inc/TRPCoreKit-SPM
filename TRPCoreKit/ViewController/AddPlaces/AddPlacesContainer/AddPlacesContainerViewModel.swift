@@ -8,6 +8,8 @@
 
 import Foundation
 import CoreLocation
+import TRPFoundationKit
+import TRPRestKit
 
 public class AddPlacesContainerViewModel {
     
@@ -149,7 +151,7 @@ public class AddPlacesContainerViewModel {
     }
     
     public func getPlaceImage(indexPath:IndexPath) -> URL? {
-        let mUrl = displayedPoi[indexPath.row].image.url
+        let mUrl = displayedPoi[indexPath.row].image?.url
         guard let link = TRPImageResizer.generate(withUrl: mUrl, standart: .small) else {
             return nil
         }

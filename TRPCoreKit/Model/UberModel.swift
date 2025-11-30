@@ -7,6 +7,7 @@
 //
 
 import Foundation
+import TRPFoundationKit
 
 public struct UberModel {
     public var pickupLocation: TRPLocation

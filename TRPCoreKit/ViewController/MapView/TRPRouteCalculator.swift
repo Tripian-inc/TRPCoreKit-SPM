@@ -10,6 +10,7 @@ import Foundation
 import MapboxDirections
 
 import CoreLocation
+import TRPFoundationKit
 
 public class TRPRouteCalculator {
     

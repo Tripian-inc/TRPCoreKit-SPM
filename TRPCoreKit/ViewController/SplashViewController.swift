@@ -16,6 +16,7 @@ class SplashViewController: TRPBaseUIViewController {
     
     var delegate: SplashViewControllerDelegate?
     var forGuest: Bool = true
+    var uniqueId: String? = nil
     var email: String? = nil
     var password: String? = nil
     
@@ -37,6 +38,10 @@ class SplashViewController: TRPBaseUIViewController {
     }
     
     func start() {
+        if let uniqueId {
+            startForLightLogin()
+            return
+        }
         if let email {
             if let password {
                 startWithEmailAndPassword(email, password)
@@ -46,6 +51,18 @@ class SplashViewController: TRPBaseUIViewController {
             return
         }
         startForGuest()
+    }
+    
+    private func startForLightLogin() {
+        TRPLoginHelper.shared.lightLogin(uniqueId: uniqueId!) { [weak self] (result) in
+            self?.viewModel(showPreloader: false)
+            if result {
+                self?.loginSuccess = true
+                self?.checkAllDatasFetched()
+            } else {
+                self?.delegate?.datasFetchFailed()
+            }
+        }
     }
     
     private func startForGuest() {

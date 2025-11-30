@@ -7,11 +7,10 @@
 //
 
 import Foundation
-
 import CoreLocation
-
-
 import MapboxDirections
+import TRPRestKit
+import TRPFoundationKit
 
 protocol ListOfRoutingPoisViewModelDelete: ViewModelDelegate {
     func showEmptyMessage(_ message: String)
@@ -176,7 +175,7 @@ public class ListOfRoutingPoisViewModel {
     }
     
     public func getPlaceImage(indexPath:IndexPath) -> URL? {
-        let url = getStep(index: indexPath).poi.image.url
+        let url = getStep(index: indexPath).poi.image?.url
         guard let link = TRPImageResizer.generate(withUrl: url, standart: .small2) else {
             return nil
         }

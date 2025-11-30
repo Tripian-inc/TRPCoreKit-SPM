@@ -7,10 +7,8 @@
 //
 
 import Foundation
-
 import CoreLocation
-
-
+import TRPFoundationKit
 
 struct PoiWithLocation {
     var poi: TRPPoi

@@ -8,6 +8,7 @@
 
 import Foundation
 import CoreLocation
+import TRPFoundationKit
 
 
 
@@ -57,7 +58,7 @@ public class TRPUserLocationController: NSObject, CLLocationManagerDelegate {
     }
     
     public func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
-        Log.d("Failed to find user location \(error.localizedDescription)")
+        print("Failed to find user location \(error.localizedDescription)")
     }
     
     public func isUserInCity(_ completionHandler: @escaping Completion) {

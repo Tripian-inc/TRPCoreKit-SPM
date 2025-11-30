@@ -7,7 +7,7 @@
 //
 
 import Foundation
-
+import TRPRestKit
 
 public final class TRPLanguagesRepository:  LanguagesRepository {
     public var results: [String : Any] = [:]

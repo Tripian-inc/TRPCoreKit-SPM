@@ -49,4 +49,8 @@ final public class TRPCityRepository: CityRepository {
         remoteApi.fetchShorexCities(completion: completion)
     }
     
+    public func fetchCityInformation(id: Int, completion: @escaping (CityInformationResultValue) -> Void) {
+        remoteApi.fetchCityInformation(cityId: id, completion: completion)
+    }
+    
 }
