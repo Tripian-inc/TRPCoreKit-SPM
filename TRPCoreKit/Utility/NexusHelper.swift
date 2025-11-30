@@ -6,7 +6,6 @@
 //
 
 import Foundation
-import TRPRestKit
 
 public class NexusHelper {
     
@@ -45,7 +44,7 @@ public class NexusHelper {
     private static func getStaticQueryItems(startDate: String) -> [URLQueryItem] {
         [URLQueryItem(name: "startDate", value: startDate),
          URLQueryItem(name: "utm_source", value: "nexusapp"),
-         URLQueryItem(name: "lang", value: TRPClient.getLanguage()),
+         URLQueryItem(name: "lang", value: TRPClient.shared.language),
          URLQueryItem(name: "utm_medium", value: "tripian")]
     }
     

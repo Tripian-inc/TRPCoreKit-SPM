@@ -1,0 +1,12 @@
+//
+//  Release.xcconfig
+//  TRPRestKit
+//
+//  Created by Evren Yaşar on 12.12.2018.
+//  Copyright © 2018 Evren Yaşar. All rights reserved.
+//
+
+// Configuration settings file format documentation can be found at:
+// https://help.apple.com/xcode/#/dev745c5c974
+server_url = ""
+user_name = ""

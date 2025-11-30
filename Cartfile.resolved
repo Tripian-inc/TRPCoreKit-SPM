@@ -1,0 +1,7 @@
+binary "https://api.mapbox.com/downloads/v2/carthage/mobile-maps/mapbox-ios-sdk-dynamic.json" "6.3.0"
+github "Tripian-inc/TRPDataLayer" "9cd08d2a91a8de19500bac74b2e970abadff1427"
+github "Tripian-inc/TRPFoundationKit" "da5b4ecd4b958df1d4c2a3b6fbc357d37eb1e338"
+github "Tripian-inc/TRPProvider" "38e05d3e60191a0018923185e39388f2fe7fd2f6"
+github "Tripian-inc/TRPRestKit" "e0f19eb60172642c326e32d0f107a2c98353e167"
+github "Tripian-inc/TRPUIKit" "36f2941092431c70c26286d14d7f51bce8a32a7c"
+github "mapbox/mapbox-events-ios" "v0.10.8"

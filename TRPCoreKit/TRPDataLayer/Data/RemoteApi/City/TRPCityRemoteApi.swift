@@ -7,7 +7,7 @@
 //
 
 import Foundation
-import TRPRestKit
+
 
 /// Sehir bilgilenirini API den getiri.
 final public class TRPCityRemoteApi: CityRemoteApi {

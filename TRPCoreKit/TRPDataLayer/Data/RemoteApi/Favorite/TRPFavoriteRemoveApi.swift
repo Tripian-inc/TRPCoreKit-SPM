@@ -7,7 +7,6 @@
 //
 
 import Foundation
-import TRPRestKit
 
 final public class TRPFavoriteRemoveApi: FavoriteRemoteApi {
     

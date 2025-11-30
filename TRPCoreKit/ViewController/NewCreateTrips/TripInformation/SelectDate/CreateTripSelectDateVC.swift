@@ -8,13 +8,10 @@
 
 import UIKit
 import FSCalendar
-import TRPRestKit
-
 protocol CreateTripSelectDateVCDelegate: AnyObject {
     func createTripSelectDateVCArrivalSelected(date: String)
     func createTripSelectDateVCDepartureSelected(date: String)
 }
-
 @objc(SPMCreateTripSelectDateVC)
 class CreateTripSelectDateVC: TRPBaseUIViewController {
 
@@ -41,7 +38,7 @@ class CreateTripSelectDateVC: TRPBaseUIViewController {
         calendarView.placeholderType = .none
         calendarView.today = nil
         calendarView.allowsMultipleSelection = isDateRangeSelectionActive()
-        calendarView.locale = Locale(identifier: TRPClient.getLanguage())
+        calendarView.locale = Locale(identifier: TRPClient.shared.language)
     }
     
     private func isDateRangeSelectionActive() -> Bool {

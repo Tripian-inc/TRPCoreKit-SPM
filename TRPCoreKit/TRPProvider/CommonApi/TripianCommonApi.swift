@@ -7,7 +7,6 @@
 //
 
 import Foundation
-import TRPRestKit
 
 public class TripianCommonApi {
     
@@ -101,7 +100,7 @@ extension TripianCommonApi {
         params.append(URLQueryItem(name: "start_date", value: "\(startDate)"))
         params.append(URLQueryItem(name: "end_date", value: "\(endDate)"))
         params.append(URLQueryItem(name: "zone_id", value: "\(destinationId)"))
-        params.append(URLQueryItem(name: "lang", value: TRPClient.getLanguage()))
+        params.append(URLQueryItem(name: "lang", value: TRPClient.shared.language))
         
         networkController?
             .urlComponentPath(path)
