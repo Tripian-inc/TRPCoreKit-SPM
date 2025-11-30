@@ -7,9 +7,10 @@
 //
 
 import Foundation
+import TRPRestKit
 
 public protocol FetchLanguagesUseCase {
-    func executeFetchLanguages(completion: ((Result<[String : Any], Error>) -> Void)?)
+    func executeFetchLanguages(completion: ((Result<TRPLanguagesInfoModel, Error>) -> Void)?)
     func executeGetLanguageValue(for key: String, completion: ((Result<String, Error>) -> Void)?)
     
     func getLanguageValue(for key: String) -> String

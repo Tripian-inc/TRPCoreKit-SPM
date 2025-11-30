@@ -7,9 +7,11 @@
 //
 
 import Foundation
+import TRPRestKit
 
 public protocol LanguagesRepository {
-    var results: [String: Any] {get set}
+    var results: TRPLanguagesInfoModel? {get set}
+    var currentLanguageResults: [String: Any] {get set}
     
-    func fetchLanguages(completion: @escaping ((Result<[String : Any], Error>) -> Void))
+    func fetchLanguages(completion: @escaping ((Result<TRPLanguagesInfoModel, Error>) -> Void))
 }

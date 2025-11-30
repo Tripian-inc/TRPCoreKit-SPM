@@ -10,18 +10,18 @@ import Foundation
 import TRPRestKit
 
 public final class TRPLanguagesRepository:  LanguagesRepository {
-    public var results: [String : Any] = [:]
+    public var results: TRPLanguagesInfoModel? = nil
     
     public init() {}
     
-     public func fetchLanguages(completion: @escaping ((Result<[String : Any], Error>) -> Void)) {
+     public func fetchLanguages(completion: @escaping ((Result<TRPLanguagesInfoModel, Error>) -> Void)) {
         TRPRestKit().getFrontendLanguages() { (result, error) in
             if let error = error {
                 completion(.failure(error))
                 return
             }
             
-            if let result = result as? [String: Any] {
+            if let result = result as? TRPLanguagesInfoModel {
                 self.results = result
                 completion(.success(result))
             }
