@@ -32,18 +32,18 @@ public enum EvrAlertLevel {
 public class EvrAlertView {
     
     public static func showAlert(
-                            contentText: String,
-                            type: EvrAlertLevel = .error,
-                            bottomSpace: CGFloat = 60,
-                            showTime:TimeInterval = 3,
-                            showAnimation: TimeInterval = 0.7,
-                            parentViewController: UIViewController? = nil ) {
+        contentText: String,
+        type: EvrAlertLevel = .error,
+        bottomSpace: CGFloat = 60,
+        showTime:TimeInterval = 3,
+        showAnimation: TimeInterval = 0.7)
+    {
         
-        guard let topViewController = EvrAlertView.getViewController(parentViewController) else {
+        guard let topViewController = UIApplication.getTopViewController() else {
             print("[Error] TopViewController is nil")
             return
         }
-
+        
         DispatchQueue.main.async {
             let container = UIView()
             topViewController.view.addSubview(container)
@@ -76,7 +76,7 @@ public class EvrAlertView {
                 container.leadingAnchor.constraint(equalTo: topViewController.view.leadingAnchor, constant: 8),
                 container.trailingAnchor.constraint(equalTo: topViewController.view.trailingAnchor, constant: -8),
                 container.bottomAnchor.constraint(equalTo: topViewController.view.bottomAnchor, constant: bottomSpace * -1),
-            
+                
                 image.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 16),
                 image.centerYAnchor.constraint(equalTo: container.centerYAnchor),
                 image.widthAnchor.constraint(equalToConstant: 24),
@@ -99,7 +99,7 @@ public class EvrAlertView {
             } completion: { completed in
                 
             }
-
+            
             
             
             Timer.scheduledTimer(withTimeInterval: showTime + showAnimation, repeats: false) { _ in
@@ -115,31 +115,10 @@ public class EvrAlertView {
                         container.removeFromSuperview()
                     }
                 }
-
+                
             }
         }
-       
-    }
-    
-    
-    public static func getViewController(_ parent: UIViewController?) -> UIViewController? {
-        if let parent = parent {
-            return parent
-        }
-        return EvrAlertView.getTopViewController()
-    }
-    
-    public static func getTopViewController() -> UIViewController? {
-        let keyWindow = UIApplication.shared.windows.filter {$0.isKeyWindow}.first
-        if var topController = keyWindow?.rootViewController {
-            while let presentedViewController = topController.presentedViewController {
-                topController = presentedViewController
-            }
-            return topController
-        }
-        return nil
-    }
-    
-    
+        
+    }    
     
 }

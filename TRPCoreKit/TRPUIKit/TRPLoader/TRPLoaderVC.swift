@@ -26,7 +26,7 @@ public class TRPLoaderVC: UIViewController {
     }
     
     public func show() {
-        let window: UIWindow = UIApplication.shared.keyWindow!
+        guard let window: UIWindow = UIApplication.currentUIWindow() else { return }
         window.addSubview(view)
         window.bringSubviewToFront(view)
         view.frame = window.bounds

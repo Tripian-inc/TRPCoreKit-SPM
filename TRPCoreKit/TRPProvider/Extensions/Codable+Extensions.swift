@@ -27,6 +27,10 @@ struct AnyCodable: Codable {
             self.value = intValue
         } else if let doubleValue = try? container.decode(Double.self) {
             self.value = doubleValue
+        } else if let arrayValue = try? container.decode([AnyCodable].self) {
+            self.value = arrayValue.map { $0.value }
+        } else if let dictionaryValue = try? container.decode([String: AnyCodable].self) {
+            self.value = dictionaryValue.mapValues { $0.value }
         } else {
             self.value = ()
         }
@@ -42,6 +46,11 @@ struct AnyCodable: Codable {
             try container.encode(value)
         } else if let value = value as? Double {
             try container.encode(value)
+        } else if let arrayValue = value as? [Any] {
+            try container.encode(arrayValue.map { AnyCodable($0) })
+        } else if let dictionaryValue = value as? [String: Any] {
+            let encodableDictionary = dictionaryValue.mapValues { AnyCodable($0) }
+            try container.encode(encodableDictionary)
         } else {
             try container.encodeNil()
         }
