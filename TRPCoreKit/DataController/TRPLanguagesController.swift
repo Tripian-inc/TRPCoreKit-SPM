@@ -7,6 +7,7 @@
 //
 
 import Foundation
+import TRPRestKit
 
 
 public class TRPLanguagesController {
@@ -32,7 +33,7 @@ public class TRPLanguagesController {
                 onComplete(.failure(error))
             case .success(let results):
                 self.isFetched = true
-                self.languageResult = results
+                self.languageResult = results.translations[TRPClient.getLanguage()] as? [String : Any] ?? [:]
                 onComplete(.success(true))
             }
         }

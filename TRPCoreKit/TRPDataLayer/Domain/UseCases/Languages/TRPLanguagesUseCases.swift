@@ -56,7 +56,6 @@ extension TRPLanguagesUseCases : FetchLanguagesUseCase {
             switch(result) {
             case .success(let result):
                 onComplete(.success(result))
-                self.repository.currentLanguageResults = result.translations[TRPClient.getLanguage()] as? [String : Any] ?? [:]
             case .failure(let error):
                 onComplete(.failure(error))
             }
