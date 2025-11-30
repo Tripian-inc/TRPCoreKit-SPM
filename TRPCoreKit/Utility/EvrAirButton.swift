@@ -34,7 +34,7 @@ class EvrAirButton: UIView {
                                         y: 0,
                                         width: 40,
                                         height: 40))
-        view.backgroundColor = TRPColor.pink
+        view.backgroundColor = trpTheme.color.extraBG
         view.layer.cornerRadius = self.frame.width / 2
         view.layer.masksToBounds = false
         view.layer.shadowColor = UIColor.black.cgColor

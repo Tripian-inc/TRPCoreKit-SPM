@@ -7,7 +7,7 @@
 //
 
 
-import Mapbox
+import MapboxMaps
 
 final class MapTableViewCellController: GenericCellController<MapTableViewCell> {
     private let item: MapCellModel
@@ -32,9 +32,9 @@ final class MapTableViewCellController: GenericCellController<MapTableViewCell> 
 //MARK: Calculations
 extension MapTableViewCellController{
     func setMapView(_ cell: MapTableViewCell){
-        cell.mapView.setCenter(CLLocationCoordinate2D(latitude: item.location.lat, longitude: item.location.lon), zoomLevel: 15, animated: false)
-        let hello = MGLPointAnnotation()
-        hello.coordinate = CLLocationCoordinate2D(latitude: item.location.lat, longitude: item.location.lon)
-        cell.mapView.addAnnotation(hello)
+//        cell.mapView.setCenter(CLLocationCoordinate2D(latitude: item.location.lat, longitude: item.location.lon), zoomLevel: 15, animated: false)
+//        let hello = MGLPointAnnotation()
+//        hello.coordinate = CLLocationCoordinate2D(latitude: item.location.lat, longitude: item.location.lon)
+//        cell.mapView.addAnnotation(hello)
     }
 }

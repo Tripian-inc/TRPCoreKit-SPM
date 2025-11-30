@@ -230,3 +230,64 @@ class TRPColor1: TRPColorStyle {
     var tripianTextPrimary: UIColor = UIColor(named: "tripian_text_primary", in: Bundle.module, compatibleWith: nil)!
     
 }
+
+public enum ColorSet {
+    case mainDark
+    case mainGrayBg
+    case strokeGrey20
+    case strokeGrey10
+    case textDark80
+    case textDark64
+    case textDark48
+    case mainGreySidebar
+    case white
+    case additionalYellow100
+    case additionalOrange
+    case additionalRed
+    
+    public var uiColor: UIColor {
+        switch self {
+        case .white:
+            return .white
+        case .mainDark:
+            return UIColor(named: "main_dark", in: Bundle(identifier: "com.tripian.TRPCoreKit")!, compatibleWith: nil)!
+        case .mainGrayBg:
+            return UIColor(named: "main_gray_bg", in: Bundle(identifier: "com.tripian.TRPCoreKit")!, compatibleWith: nil)!
+        case .strokeGrey20:
+            return UIColor(named: "stroke_grey_20", in: Bundle(identifier: "com.tripian.TRPCoreKit")!, compatibleWith: nil)!
+        case .strokeGrey10:
+            return UIColor(named: "stroke_grey_10", in: Bundle(identifier: "com.tripian.TRPCoreKit")!, compatibleWith: nil)!
+        case .textDark64:
+            return UIColor(named: "text_dark_64", in: Bundle(identifier: "com.tripian.TRPCoreKit")!, compatibleWith: nil)!
+        case .textDark80:
+            return UIColor(named: "text_dark_80", in: Bundle(identifier: "com.tripian.TRPCoreKit")!, compatibleWith: nil)!
+        case .textDark48:
+            return UIColor(named: "text_dark_48", in: Bundle(identifier: "com.tripian.TRPCoreKit")!, compatibleWith: nil)!
+        case .mainGreySidebar:
+            return UIColor(named: "main_gray_sidebar", in: Bundle(identifier: "com.tripian.TRPCoreKit")!, compatibleWith: nil)!
+        case .additionalYellow100:
+            return UIColor(named: "additional_yellow_100", in: Bundle(identifier: "com.tripian.TRPCoreKit")!, compatibleWith: nil)!
+        case .additionalOrange:
+            return UIColor(named: "additional_orange", in: Bundle(identifier: "com.tripian.TRPCoreKit")!, compatibleWith: nil)!
+        case .additionalRed:
+            return UIColor(named: "additional_red", in: Bundle(identifier: "com.tripian.TRPCoreKit")!, compatibleWith: nil)!
+        }
+    }
+    
+    // A new method to get the color with a specified alpha value.
+    public func uiColor(alpha: CGFloat) -> UIColor {
+        return self.uiColor.withAlphaComponent(alpha)
+    }
+    
+    public static func getMapColors() -> [UIColor] {
+        let blueColor = UIColor(red: 53/255.0, green: 152/255.0, blue: 218/255.0, alpha: 1.0)
+        let greenColor = UIColor(red: 38/255.0, green: 202/255.0, blue: 28/255.0, alpha: 1.0)
+        
+        return [blueColor,
+                trpTheme.color.shadeViolent,
+                greenColor,
+                trpTheme.color.deepPink,
+                trpTheme.color.goldAccent,
+                trpTheme.color.tripianBlack]
+    }
+}

@@ -18,7 +18,8 @@ let package = Package(
     dependencies: [
         .package(url: "https://github.com/Alamofire/Alamofire.git", from: "5.8.1"),
         .package(url: "https://github.com/WenchaoD/FSCalendar.git", from: "2.8.3"),
-        .package(url: "https://github.com/mapbox/mapbox-directions-swift.git", from: "2.0.0"),
+        .package(url: "https://github.com/mapbox/mapbox-directions-swift.git", from: "2.1.0"),
+        .package(url: "https://github.com/mapbox/mapbox-maps-ios.git", from: "11.6.1"),
         .package(url: "https://github.com/rechsteiner/Parchment", from: "3.1.0"),
         .package(url: "https://github.com/SDWebImage/SDWebImage.git", from: "5.19.7"),
         .package(url: "https://github.com/Tripian-inc/TRPRestKit.git", branch: "remove-carthage-add-spm"),
@@ -36,23 +37,23 @@ let package = Package(
                 "SDWebImage",
                 "FSCalendar",
                 "Alamofire",
-                "Mapbox",
-                "MapboxMobileEvents",
+                "MapboxMaps",
                 .product(name: "TRPRestKit", package: "TRPRestKit"),
+                .product(name: "TRPFoundationKit", package: "TRPFoundationKit"),
             ],
             path: "TRPCoreKit",
             resources: [
                 .process("Resources/Fonts")   
             ]
         ),
-        .binaryTarget(
-            name: "Mapbox",
-            path: "./Mapbox.xcframework"
-        ),
-        .binaryTarget(
-            name: "MapboxMobileEvents",
-            path: "./MapboxMobileEvents.xcframework"
-        ),
+//        .binaryTarget(
+//            name: "Mapbox",
+//            path: "./Mapbox.xcframework"
+//        ),
+//        .binaryTarget(
+//            name: "MapboxMobileEvents",
+//            path: "./MapboxMobileEvents.xcframework"
+//        ),
         .testTarget(
             name: "TRPCoreKitTests",
             dependencies: ["TRPCoreKit"]
