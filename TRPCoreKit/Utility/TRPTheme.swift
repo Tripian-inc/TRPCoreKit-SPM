@@ -230,3 +230,85 @@ class TRPColor1: TRPColorStyle {
     var tripianTextPrimary: UIColor = UIColor(named: "tripian_text_primary", in: Bundle.module, compatibleWith: nil)!
     
 }
+
+public enum ColorSet {
+    case primary
+    case nutral100
+    case neutral200
+    case bgPink
+    case bgGreen
+    case bgDisabled
+    case bgOrange
+    case bgBlue
+    case primaryText
+    case primaryWeakText
+    case inactive
+    case green250
+    case greenAdvantage
+    case line
+    case ratingStar
+    case fg
+    case fgGreen
+    case fgWeak
+    case fgSecondary
+    case fgOrange
+    case fgPink
+    case fgBlue
+    
+    public var uiColor: UIColor {
+        switch self {
+        case .primary, .ratingStar, .fgSecondary:
+            return UIColor(red: 234, green: 5, blue: 88)
+        case .nutral100:
+            return UIColor(red: 247, green: 247, blue: 247)
+        case .neutral200:
+            return UIColor(red: 234, green: 234, blue: 234)
+        case .bgPink:
+            return UIColor(red: 255, green: 234, blue: 241)
+        case .bgGreen:
+            return UIColor(red: 218, green: 250, blue: 235)
+        case .bgDisabled:
+            return UIColor(red: 204, green: 204, blue: 204)
+        case .bgBlue:
+            return UIColor(red: 212, green: 238, blue: 248)
+        case .primaryText, .fg:
+            return UIColor(red: 51, green: 51, blue: 51)
+        case .primaryWeakText, .fgWeak:
+            return UIColor(red: 102, green: 102, blue: 102)
+        case .inactive:
+            return UIColor(red: 153, green: 153, blue: 153)
+        case .green250:
+            return UIColor(red: 196, green: 245, blue: 225)
+        case .fgGreen:
+            return UIColor(red: 7, green: 94, blue: 69)
+        case .greenAdvantage:
+            return UIColor(red: 0, green: 130, blue: 91)
+        case .line:
+            return UIColor(red: 140, green: 140, blue: 140)
+        case .bgOrange:
+            return UIColor(red: 255, green: 227, blue: 204)
+        case .fgOrange:
+            return UIColor(red: 125, green: 41, blue: 35)
+        case .fgPink:
+            return UIColor(red: 194, green: 4, blue: 75)
+        case .fgBlue:
+            return UIColor(red: 5, green: 90, blue: 128)
+        }
+    }
+    
+    // A new method to get the color with a specified alpha value.
+    public func uiColor(alpha: CGFloat) -> UIColor {
+        return self.uiColor.withAlphaComponent(alpha)
+    }
+    
+    public static func getMapColor(_ index: Int) -> UIColor {
+        let colors = [ColorSet.fgBlue.uiColor,
+                      ColorSet.greenAdvantage.uiColor,
+                      ColorSet.fgPink.uiColor,
+                      ColorSet.fgOrange.uiColor,
+                      ColorSet.primaryText.uiColor]
+        
+        let safeIndex = index % colors.count
+        return colors[safeIndex]
+    }
+}

@@ -1,25 +1,29 @@
-
 import Foundation
-import Mapbox
+import MapboxMaps
+import UIKit
 
-class TRPRotaAnnotationView: MGLAnnotationView {
+class TRPRotaAnnotationView: UIView {
     
-    let redColor = UIColor.black.cgColor //UIColor(red: 229.0/255.0, green: 78.0/255.0, blue: 83.0/255.0, alpha: 1.0).cgColor
-    let blueColor = UIColor(red: 53/255.0, green: 152/255.0, blue: 218/255.0, alpha: 1.0).cgColor
+//    let redColor = UIColor.black.cgColor //UIColor(red: 229.0/255.0, green: 78.0/255.0, blue: 83.0/255.0, alpha: 1.0).cgColor
+    
     var bgView: UIView = UIView();
     let label = UILabel()
     let cirleShape = CAShapeLayer()
     var imageName:String = ""
     var order: Int?
+    var annotationOrder: Int = 0
     var isOffer: Bool = false
+    var onTapHandler: ((String) -> Void)? = nil
+    var poiId: String?
     
     private var viewDidLoaded = false
     
-    init(reuseIdentifier: String, imageName:String, order:Int?, isOffer: Bool = false) {
-        super.init(reuseIdentifier: reuseIdentifier)
+    init(reuseIdentifier: String, imageName: String, order: Int?, isOffer: Bool = false, annotationOrder: Int = 0) {
+        super.init(frame: .zero)
         self.imageName = imageName
         self.order = order
         self.isOffer = isOffer
+        self.annotationOrder = annotationOrder
     }
     
     required init?(coder aDecoder: NSCoder) {
@@ -33,25 +37,32 @@ class TRPRotaAnnotationView: MGLAnnotationView {
         layer.cornerRadius = bounds.width / 2
         layer.backgroundColor = UIColor.clear.cgColor
         addImageView(named: imageName)
-        addBGView()
-        guard let order = self.order else { return }
-        addLabel(text: "\(order)")
+//        guard let order = self.order else { return }
+        var orderText = "\(order ?? -1)"
+        if orderText == "-1" {
+            orderText = ""
+        }
+        addLabel(text: "\(orderText)")
+        
+        self.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(handleTap)))
     }
     
-    override func setSelected(_ selected: Bool, animated: Bool) {
-        super.setSelected(selected, animated: animated)
-        
-        let animation = CABasicAnimation(keyPath: "ClickAnim")
-        animation.duration = 0.1
-        bgView.layer.borderWidth = selected ? bounds.width / 7 : 1
-        bgView.layer.add(animation, forKey: "ClickAnim")
-        bgView.layer.borderColor = selected ? redColor : blueColor
-        label.alpha = selected ? 0.1 : 1.0
-        label.layer.add(animation, forKey: "ClickAnim")
-        cirleShape.fillColor = selected ? UIColor.red.cgColor : redColor
-        cirleShape.lineWidth = selected ? 0 : 1
-        cirleShape.add(animation, forKey: "ClickAnim")
+    @objc func handleTap() {
+        onTapHandler?(poiId ?? "")
     }
+    
+//    func setSelected(_ selected: Bool) {
+//        let animation = CABasicAnimation(keyPath: "ClickAnim")
+//        animation.duration = 0.1
+//        bgView.layer.borderWidth = selected ? bounds.width / 7 : 1
+//        bgView.layer.add(animation, forKey: "ClickAnim")
+//        bgView.layer.borderColor = selected ? redColor : blueColor
+//        label.alpha = selected ? 0.1 : 1.0
+//        label.layer.add(animation, forKey: "ClickAnim")
+//        cirleShape.fillColor = selected ? UIColor.red.cgColor : redColor
+//        cirleShape.lineWidth = selected ? 0 : 1
+//        cirleShape.add(animation, forKey: "ClickAnim")
+//    }
     
     private func addImageView(named: String){
         let img = TRPImageController().getImage(inFramework: named, inApp: nil) ?? UIImage()
@@ -90,7 +101,7 @@ class TRPRotaAnnotationView: MGLAnnotationView {
                                       endAngle: CGFloat(Double.pi * 2),
                                       clockwise: true)
         cirleShape.path = circlePath.cgPath
-        cirleShape.fillColor = UIColor(red: 44/255.0, green: 152/255.0, blue: 240/255.0, alpha: 1.0).cgColor
+        cirleShape.fillColor = ColorSet.getMapColor(annotationOrder).cgColor
         //cirleShape.strokeColor = UIColor(red: 80/255.0, green: 80/255.0, blue: 80/255.0, alpha: 1.0).cgColor
         cirleShape.lineWidth = 0
         

@@ -7,7 +7,6 @@
 //
 
 import UIKit
-import Mapbox
 import CoreText
 import SDWebImage
 import TRPRestKit
@@ -178,7 +177,7 @@ public class PlaceDetailVC: TRPBaseUIViewController {
         //DEMO RESTAURANT REZERVASYONU İÇİN KULLANILIYOR, SİLİNECEK
         if viewModel.place.categories.contains(where: {$0.id == 3}) {
             let isReserved = viewModel.isAvaliableInReservation()
-            let explaineText = isReserved ? "Cancel Your Reservation" : "Make a Reservation"
+            let explaineText = isReserved ? TRPLanguagesController.shared.getLanguageValue(for: "cancel_reservation") : TRPLanguagesController.shared.getLanguageValue(for: "make_reservation")
             data.append(.button(ButtonCellModel(title: explaineText)))
         }
         

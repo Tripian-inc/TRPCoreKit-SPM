@@ -40,7 +40,7 @@ public class EvrAlertView {
     {
         
         guard let topViewController = UIApplication.getTopViewController() else {
-            print("[Error] TopViewController is nil")
+            Log.e("[Error] TopViewController is nil")
             return
         }
         

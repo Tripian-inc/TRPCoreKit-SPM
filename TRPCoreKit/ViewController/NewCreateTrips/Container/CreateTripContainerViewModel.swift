@@ -85,10 +85,10 @@ extension CreateTripContainerViewModel {
     func createOrEditTrip(profile: TRPTripProfile) {
         tripProfile = profile
         if !isEditing {
-            if nexusDestinationId == nil && profile.additionalData == nil {
-                getJuniperDestinationId(cityId: profile.cityId)
-                return
-            }
+//            if nexusDestinationId == nil && profile.additionalData == nil {
+//                getJuniperDestinationId(cityId: profile.cityId)
+//                return
+//            }
             createTrip()
         } else {
             

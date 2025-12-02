@@ -116,7 +116,7 @@ class StayAddressViewModel {
     public func searchAddress(text: String)  {
         let searchText = text.removeWhiteSpace()
         guard let apiKey = googleApiKey, !searchText.isEmpty else {
-            TRPLogger(prefixText: "Tripian/TRPCoreKit").e("TRPGooglePlaceApi can not found")
+            Log.e("TRPGooglePlaceApi can not found")
             return
         }
         self.delegate?.viewModel(showPreloader: true)

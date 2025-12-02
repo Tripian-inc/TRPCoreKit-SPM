@@ -548,23 +548,39 @@ extension TRPTripModeVC {
 
 // MARK: - MapView
 extension TRPTripModeVC: TRPMapViewDelegate {
+    public func mapView(clickedLocation: TRPFoundationKit.TRPLocation) {
+        
+    }
     
     fileprivate func setupTRPMap() {
         let lat = viewModel.startLocation.lat
         let lon = viewModel.startLocation.lon
         let startLocation = LocationCoordinate(lat:lat, lon:lon)
         
-        if map == nil {
-            map = TRPMapView(frame: CGRect(x: 0, y: 0, width: mapContainer.frame.width + 50, height: mapContainer.frame.height + 70), startLocation: startLocation,zoomLevel:12)
-            mapContainer.backgroundColor = UIColor.white
-            map!.delegate = self
-            map!.showUserLocation = false
-            mapContainer.addSubview(map!)
-        } else {
-            map?.frame = CGRect(x: 0, y: 0, width: mapContainer.frame.width + 50, height: mapContainer.frame.height + 70)
-        }
+//        if map == nil {
+//            map = TRPMapView(frame: CGRect(x: 0, y: 0, width: mapContainer.frame.width + 50, height: mapContainer.frame.height + 70), startLocation: startLocation,zoomLevel:12)
+//            mapContainer.backgroundColor = UIColor.white
+//            map!.delegate = self
+//            map!.showUserLocation = false
+//            mapContainer.addSubview(map!)
+//        } else {
+//            map?.frame = CGRect(x: 0, y: 0, width: mapContainer.frame.width + 50, height: mapContainer.frame.height + 70)
+//        }
         //todo: bottomtabbar çıkarılmayacak. orada bi sorun var
-        print("[Info] MapContaioner2 \(mapContainer.frame.height)")
+        mapContainer.backgroundColor = UIColor.white
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { [weak self] in
+            guard let self = self else { return }
+            self.map = TRPMapView(frame: CGRect(x: 0,
+                                                y: 0,
+                                                width: self.mapContainer.frame.width,
+                                                height: self.mapContainer.frame.height + 70),
+                                  startLocation: startLocation,
+                                  zoomLevel:12)
+            self.mapContainer.addSubview(map!)
+            self.map!.delegate = self
+            self.map!.showUserLocation = true
+        }
     }
     
     public func mapView(_ mapView: TRPMapView, regionDidChangeAnimated animated: Bool) {
@@ -601,7 +617,7 @@ extension TRPTripModeVC: TRPMapViewDelegate {
     
     public func mapViewDidFinishLoading(_ mapView: TRPMapView) {}
     
-    public func mapView(_ mapView: TRPMapView, annotationPressed annotationId: String, type: TRPAnnotationType) {
+    public func mapView(annotationPressed annotationId: String, type: TRPAnnotationType) {
         if type == .tourAnnotation {
             guard let tour = viewModel.getJuniperTour(from: annotationId) else { return  }
             openCallOutForNexus(tour)
@@ -811,7 +827,7 @@ extension TRPTripModeVC: TRPTripModeViewModelDelegate {
             oldRouteView.removeFromSuperview()
             routeInfoView = nil
         }
-        map.clearAnnotation()
+        map.clearViewAnnotation()
         searchAreaBtn?.setZoomLevelTreshold(20)
         
         mapStatus = .mapIsReady
@@ -834,7 +850,7 @@ extension TRPTripModeVC: TRPTripModeViewModelDelegate {
         var poiData = [TRPLocation]()
         
         for (index, element) in rotaPois.enumerated() {
-            let customAno = TRPPointAnnotation()
+            var customAno = TRPPointAnnotation()
             var iconTag = element.icon
             //with offer icon
 //            if !element.offers.isEmpty {
@@ -856,13 +872,14 @@ extension TRPTripModeVC: TRPTripModeViewModelDelegate {
                 }
             }
             customAno.order = element.placeType == .hotel ? nil : index
-            customAno.coordinate = CLLocationCoordinate2D(latitude: element.coordinate.lat, longitude: element.coordinate.lon)
+            customAno.lat = element.coordinate.lat
+            customAno.lon = element.coordinate.lon
             customAno.poiId = element.id
             customAno.isOffer = !element.offers.isEmpty
             newAnnotations.append(customAno)
             poiData.append(element.coordinate)
         }
-        map.addAnnotations(newAnnotations)
+        map.addViewAnnotations(newAnnotations)
         
         viewModel.calculateRouteForRotutinPoi(rotaPois)
         //Rotada sadece 1 mekan varsa cizim yapılmadığı için eklenen poi center yapılıyor
@@ -900,7 +917,7 @@ extension TRPTripModeVC: TRPTripModeViewModelDelegate {
             EvrAlertView.showAlert(contentText: alertText, type: .info)
         }
         let annotations = searchThisArea.map{self.placeToMapFeature($0)}
-        self.map?.addPointsForAlternative(annotations, styleAnnotation: TRPMapView.StyleAnnotatoin.searchThisAreaPois, clickAble: true)
+        self.map?.addPointsForAlternative(annotations, styleAnnotation: TRPMapView.StyleAnnotatoin.searchThisAreaPois, clickable: true)
     }
     
     
@@ -1107,7 +1124,7 @@ extension TRPTripModeVC {
             isSearchingOffer = false
             isSearchThisArea = true
             guard let map = map else {return}
-            map.addPointsForAlternative([], styleAnnotation: TRPMapView.StyleAnnotatoin.searchThisAreaPois, clickAble: true)
+            map.addPointsForAlternative([], styleAnnotation: TRPMapView.StyleAnnotatoin.searchThisAreaPois, clickable: true)
         }
     }
     
@@ -1141,10 +1158,10 @@ extension TRPTripModeVC {
     @objc func showAlternativePressed() {
         guard let map = map else {return}
         if alternativeIsAdded == false {
-            map.addPointsForAlternative(alternativePois, styleAnnotation: TRPMapView.StyleAnnotatoin.alternativePois, clickAble: true)
+            map.addPointsForAlternative(alternativePois, styleAnnotation: TRPMapView.StyleAnnotatoin.alternativePois, clickable: true)
             alternativeIsAdded.toggle()
         }else {
-            map.addPointsForAlternative([], styleAnnotation: TRPMapView.StyleAnnotatoin.alternativePois, clickAble: true)
+            map.addPointsForAlternative([], styleAnnotation: TRPMapView.StyleAnnotatoin.alternativePois, clickable: true)
             alternativeIsAdded.toggle()
         }
     }
@@ -1165,7 +1182,7 @@ extension TRPTripModeVC: PoiCategoryVCDelegate {
 extension TRPTripModeVC {
     
     func hideNexusTours() {
-        map?.removePointsForNexusTours(styleAnnotation: TRPMapView.StyleAnnotatoin.nexusTours)
+//        map?.removePointsForNexusTours(styleAnnotation: TRPMapView.StyleAnnotatoin.nexusTours)
         nexusToursAdded = false
 //            map.addPointsForNexusTours([], styleAnnotation: TRPMapView.StyleAnnotatoin.nexusTours, clickAble: true)
     }
@@ -1186,7 +1203,7 @@ extension TRPTripModeVC {
             return
         }
         guard let map = map else {return}
-        map.addPointsForNexusTours(tours, styleAnnotation: TRPMapView.StyleAnnotatoin.nexusTours, clickAble: true)
+//        map.addPointsForNexusTours(tours, styleAnnotation: TRPMapView.StyleAnnotatoin.nexusTours, clickAble: true)
     }
     
     private func selectTypeOfNexusTourSearch() {

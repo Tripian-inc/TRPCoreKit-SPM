@@ -302,7 +302,7 @@ extension PoiDetailViewController {
     private func makeMapCell(_ tableView: UITableView, cellForRowAt indexPath: IndexPath, model: PoiDetailCellContent) -> UITableViewCell {
         let cell = tableView.dequeue(cellClass: MapTableViewCell.self, forIndexPath: indexPath)
         if let cellModel = model.data as? TRPLocation {
-            cell.setMapView(cellModel)
+            cell.setMapView(cellModel, iconTag: viewModel.place.icon)
         }
         
         cell.selectionStyle = .none

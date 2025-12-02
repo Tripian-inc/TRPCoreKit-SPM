@@ -57,3 +57,23 @@ struct AnyCodable: Codable {
     }
 }
 
+extension Encodable {
+    /// Converts a Codable object to a JSON dictionary
+    /// - Returns: A dictionary representation of the object, or nil if encoding fails
+    func convertToJSONObject() -> [String: Any]? {
+        do {
+            // Encode the object into JSON Data.
+            let jsonData = try JSONEncoder().encode(self)
+            
+            // Convert the JSON Data into a JSON object (dictionary).
+            let jsonObject = try JSONSerialization.jsonObject(with: jsonData, options: [])
+            
+            // Cast the JSON object as a [String: Any] dictionary.
+            return jsonObject as? [String: Any]
+        } catch {
+            print("Error converting object to JSON: \(error)")
+            return nil
+        }
+    }
+}
+
