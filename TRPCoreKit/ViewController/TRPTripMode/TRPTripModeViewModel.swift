@@ -436,7 +436,7 @@ extension TRPTripModeViewModel {
     private func fetchRouteFromMapBoxServer(pois: [TRPLocation]) {
         guard let currentDailyPlanId = dailyPlan?.id else {return}
         guard let accessToken = TRPApiKeyController.getKey(TRPApiKeys.mglMapboxAccessToken) else {
-            print("MapBox access code is empty")
+            Log.e("MapBox access code is empty")
             return
         }
         let calculater = TRPRouteCalculator(providerApiKey: accessToken, wayPoints: pois, dailyPlanId: currentDailyPlanId)

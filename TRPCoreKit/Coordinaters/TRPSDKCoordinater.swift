@@ -536,8 +536,7 @@ extension TRPSDKCoordinater {
         let missingApiKey = TRPApiKeyController.checkMissingApiKeys(keys)
         if missingApiKey.count > 0 {
             let missingValus = missingApiKey.toString(", ")
-            TRPLogger(prefixText: "Tripian/TRPCoreKit").d("Could not find '\(missingValus)' key in Info.plist")
-            fatalError()
+            Log.e("Could not find '\(missingValus)' key in Info.plist")
         }
     }
     
