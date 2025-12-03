@@ -38,6 +38,10 @@ public class TRPTimelineProfile: Codable {
         self.cityId = cityId
     }
     
+    public init() {
+        
+    }
+    
     public func getTotalPeopleCount() -> Int {
         let count = adults + children
         return count

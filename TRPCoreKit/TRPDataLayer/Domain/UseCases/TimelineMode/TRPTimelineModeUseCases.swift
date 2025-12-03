@@ -113,14 +113,14 @@ final public class TRPTimelineModeUseCases: ObserveTripEventStatusUseCase {
         var tempPlan = dailyPlan
         
         let stayAddress = getStepFromAccommodation(accommodation, cityId: trip.city.id)
-        if let firstStep = tempPlan.steps.first, firstStep.poi.id != accommodation.referanceId {
+        if let firstStep = tempPlan.steps.first, firstStep.poi?.id != accommodation.referanceId {
             tempPlan.steps.insert(stayAddress, at: 0)
         }
         
         guard let destinationAccommodation = dailyPlan.destinationAccommodation else { return tempPlan}
         
         let destinationAddress = getStepFromAccommodation(destinationAccommodation, cityId: trip.city.id)
-        if let lastStep = tempPlan.steps.last, lastStep.poi.id != destinationAccommodation.referanceId {
+        if let lastStep = tempPlan.steps.last, lastStep.poi?.id != destinationAccommodation.referanceId {
             tempPlan.steps.append(destinationAddress)
         }
         
@@ -200,13 +200,13 @@ extension TRPTimelineModeUseCases: FetchTimelineUseCases {
     private func addPoisIn(trip: TRPTimeline){
         var pois = [TRPPoi]()
         trip.plans?.forEach { plan in
-            pois.append(contentsOf: plan.steps.map({$0.poi}))
+            pois.append(contentsOf: plan.steps.compactMap({$0.poi}))
         }
         poiRepository.addPois(contentsOf: pois)
     }
     
     private func addPoisIn(plan: TRPTimelinePlan){
-        poiRepository.addPois(contentsOf: plan.steps.map({$0.poi}))
+        poiRepository.addPois(contentsOf: plan.steps.compactMap({$0.poi}))
     }
 }
 
@@ -498,7 +498,7 @@ extension TRPTimelineModeUseCases: DeleteTimelineStepUseCase {
             return
         }
         
-        guard let step = plan.steps.first(where: {$0.poi.id == id}) else {
+        guard let step = plan.steps.first(where: {$0.poi?.id == id}) else {
             print("[Error] Poi not found")
             return
         }
@@ -642,7 +642,7 @@ extension TRPTimelineModeUseCases: FetchAlternativeWithCategory {
     
             categories.forEach { (categoryId) in
                 
-                let categorySteps = plan.steps.filter({$0.poi.categories.contains(where: {$0.id == categoryId})})
+                let categorySteps = plan.steps.filter({$0.poi?.categories.contains(where: {$0.id == categoryId}) == true})
                 categorySteps.forEach { step in
                     poiIds.append(contentsOf: step.alternatives ?? [])
                 }

@@ -350,12 +350,3 @@
 //        _viewController.showPageSheet(destination: selectHourVC)
 //    }
 //}
-//
-//
-////MARK: - Create Trip
-//extension TRPCreateTimelineCoordinator {
-//    
-//    private func fetchUpcomingTrip() {
-//        fetchUserTripUseCase?.executeUpcomingTrip(completion: nil)
-//    }
-//}

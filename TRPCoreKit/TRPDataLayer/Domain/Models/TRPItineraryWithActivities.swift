@@ -17,8 +17,8 @@ public struct TRPItineraryWithActivities: Codable {
     public var uniqueId: String
     public var tripianHash: String?
     public var destinationItems: [TRPSegmentDestinationItem]
-    public var favouriteItems: [TRPSegmentFavoriteItem]
-    public var tripItems: [TRPSegmentActivityItem]
+    public var favouriteItems: [TRPSegmentFavoriteItem]?
+    public var tripItems: [TRPSegmentActivityItem]?
     
     enum CodingKeys: String, CodingKey {
         case tripName
@@ -81,6 +81,8 @@ public struct TRPSegmentActivityItem: Codable {
     public var endDatetime: String?
     public var coordinate: TRPLocation
     public var cancellation: String?
+    public var adultCount: Int = 1
+    public var childCount: Int = 0
     
     enum CodingKeys: String, CodingKey {
         case activityId
@@ -92,6 +94,8 @@ public struct TRPSegmentActivityItem: Codable {
         case endDatetime
         case coordinate
         case cancellation
+        case adultCount
+        case childCount
     }
     
 }
@@ -108,37 +112,22 @@ extension TRPItineraryWithActivities {
     
     /// Creates a TRPTimelineProfile from booking products (tripItems) in the itinerary export
     /// This method creates timeline segments ONLY from booking products - no gaps or available segments are generated
-    /// - Parameters:
-    ///   - cityId: Optional city ID (can be nil if using destinationItems)
-    ///   - adults: Number of adults (default: 1)
-    ///   - children: Number of children (default: 0)
-    ///   - pets: Number of pets (default: 0)
-    ///   - destinationCityIds: Optional dictionary mapping destination titles to city IDs
     /// - Returns: TRPTimelineProfile ready to be used with Timeline API's createTimeline method
-    public func createTimelineProfileFromBookings(
-        cityId: Int? = nil,
-        adults: Int = 1,
-        children: Int = 0,
-        pets: Int = 0,
-        destinationCityIds: [String: Int]? = nil
-    ) -> TRPTimelineProfile {
-        let timelineProfile = TRPTimelineProfile(cityId: cityId)
-        timelineProfile.adults = adults
-        timelineProfile.children = children
-        timelineProfile.pets = pets
+    public func createTimelineProfileFromBookings() -> TRPTimelineProfile {
+        let timelineProfile = TRPTimelineProfile()
         
         // Create segments only from tripItems (booking products)
-        let segments = tripItems.map { tripItem in
-            createTimelineSegment(from: tripItem, cityId: getCityIdForItem(tripItem: tripItem, destinationCityIds: destinationCityIds, defaultCityId: cityId), adults: adults, children: children, pets: pets)
+        let segments = tripItems?.map { tripItem in
+            createTimelineSegment(from: tripItem)
         }
         
-        timelineProfile.segments = segments
+        timelineProfile.segments = segments ?? []
         
         return timelineProfile
     }
     
     /// Creates a TRPTimelineSegment from a TRPSegmentActivityItem
-    private func createTimelineSegment(from tripItem: TRPSegmentActivityItem, cityId: Int?, adults: Int, children: Int, pets: Int) -> TRPTimelineSegment {
+    private func createTimelineSegment(from tripItem: TRPSegmentActivityItem) -> TRPTimelineSegment {
         let segment = TRPTimelineSegment()
         
         segment.title = tripItem.title
@@ -152,48 +141,12 @@ extension TRPItineraryWithActivities {
         
         segment.coordinate = tripItem.coordinate
         
-        segment.adults = adults
-        segment.children = children
-        segment.pets = pets
+        segment.adults = tripItem.adultCount
+        segment.children = tripItem.childCount
         
-        // Set city if cityId is provided
-        if let cityId = cityId {
-            // Note: You may need to set the city object if you have it available
-            // segment.city = TRPCity(id: cityId, ...)
-        }
+        
         
         return segment
-    }
-    
-    // MARK: - Private Helpers
-    
-    /// Gets city ID for a trip item based on destination mapping or default
-    private func getCityIdForItem(
-        tripItem: TRPSegmentActivityItem,
-        destinationCityIds: [String: Int]?,
-        defaultCityId: Int?
-    ) -> Int? {
-        // If destination mapping is provided, try to match by title
-        if let destinationCityIds = destinationCityIds,
-           let title = tripItem.title {
-            // Try to find matching destination
-            for (destinationTitle, cityId) in destinationCityIds {
-                if title.localizedCaseInsensitiveContains(destinationTitle) {
-                    return cityId
-                }
-            }
-        }
-        
-        // Try to match with destinationItems
-        if let destinationCityIds = destinationCityIds {
-            for destinationItem in destinationItems {
-                if let cityId = destinationCityIds[destinationItem.title] {
-                    return cityId
-                }
-            }
-        }
-        
-        return defaultCityId
     }
     
 }

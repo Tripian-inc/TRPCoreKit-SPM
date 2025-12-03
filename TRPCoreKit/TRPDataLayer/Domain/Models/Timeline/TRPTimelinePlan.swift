@@ -33,7 +33,7 @@ public struct TRPTimelinePlan: Codable {
     public var destinationAccommodation: TRPAccommodation?
     
     func getPoi() -> [TRPPoi] {
-        return steps.map({$0.poi})
+        return steps.compactMap({$0.poi})
     }
     
     public func getStartDate() -> Date {

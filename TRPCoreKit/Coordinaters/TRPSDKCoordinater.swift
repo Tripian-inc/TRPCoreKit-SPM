@@ -28,15 +28,6 @@ public class TRPSDKCoordinater {
     
     private var canBackFromMyTrip = true
     
-    private var nexusMeetingPoint: String? = nil
-    private var nexusStartDate: String? = nil
-    private var nexusEndDate: String? = nil
-    private var nexusNumberOfAdults: Int? = nil
-    private var nexusNumberOfChildren: Int? = nil
-    
-    private var isAppForNexus = true
-    
-    
     private var alertMessage: (title: String?, message: String)? {
         didSet {
             guard let message = alertMessage else {return}
@@ -74,15 +65,10 @@ public class TRPSDKCoordinater {
         return makeMyTrip()
     }()
     
-//    private lazy var bookingUseCases: TRPMakeBookingUseCases = {
-//        return TRPMakeBookingUseCases()
-//    }()
-    
     public init(navigationController: UINavigationController, canBack: Bool = true) {
         self.navigationController = navigationController
         self.canBackFromMyTrip = canBack
         TRPFonts.registerAll()
-//        self.navigationController.navigationBar.setNexusBar()
     }
     
      private func setupSomeGeneralAppearances() {
@@ -90,11 +76,10 @@ public class TRPSDKCoordinater {
         navigationController.navigationBar.setNexusBar()
     }
     
-    private func startWithSplashVC(forGuest: Bool = true, email: String? = nil, password: String? = nil) {
-        isAppForNexus = false
+    private func startWithSplashVC(uniqueId: String? = nil, email: String? = nil, password: String? = nil) {
         let vc = SplashViewController()
         vc.delegate = self
-        vc.forGuest = forGuest
+        vc.uniqueId = uniqueId
         vc.email = email
         vc.password = password
         vc.start()
@@ -104,16 +89,16 @@ public class TRPSDKCoordinater {
         }
     }
     
-    public func startForGuest() {
-        startWithSplashVC(forGuest: true)
+    public func startForGuest(uniqueId: String? = nil) {
+        startWithSplashVC(uniqueId: uniqueId)
     }
     
     public func startWithEmail(_ email: String) {
-        startWithSplashVC(forGuest: false, email: email)
+        startWithSplashVC(email: email)
     }
     
     public func startWithEmailAndPassword(_ email: String, _ password: String) {
-        startWithSplashVC(forGuest: false, email: email, password: password)
+        startWithSplashVC(email: email, password: password)
     }
     
     public func start() {
@@ -126,7 +111,7 @@ public class TRPSDKCoordinater {
     private func startFirstVC() {
         
         let vc = myTrip
-        myTrip.isNexus = isAppForNexus
+//        myTrip.isNexus = isAppForNexus
         //navigationController.pushViewController(vc, animated: true)
         DispatchQueue.main.async {
             self.navigationController.pushViewController(vc, animated: true)
@@ -137,11 +122,6 @@ public class TRPSDKCoordinater {
     public func startForNexus(bookingDetailUrl: String, startDate: String?, endDate: String?, meetingPoint: String?, numberOfAdults: Int?, numberOfChildren: Int?) {
         checkAllApiKey()
         userProfile()
-        self.nexusMeetingPoint = meetingPoint
-        self.nexusStartDate = startDate
-        self.nexusEndDate = endDate
-        self.nexusNumberOfAdults = numberOfAdults
-        self.nexusNumberOfChildren = numberOfChildren
         let vc = myTrip
         vc.bookingDetailUrl = bookingDetailUrl
         //navigationController.pushViewController(vc, animated: true)
@@ -423,11 +403,11 @@ extension TRPSDKCoordinater:  MyTripVCDelegate {
         guard let tripCreateCoordinater = tripCreateCoordinater else {
             return
         }
-        tripCreateCoordinater.nexusTripStartDate = self.nexusStartDate
-        tripCreateCoordinater.nexusTripEndDate = self.nexusEndDate
-        tripCreateCoordinater.nexusTripMeetingPoint = self.nexusMeetingPoint
-        tripCreateCoordinater.nexusNumberOfAdults = self.nexusNumberOfAdults
-        tripCreateCoordinater.nexusNumberOfChildren = self.nexusNumberOfChildren
+//        tripCreateCoordinater.nexusTripStartDate = self.nexusStartDate
+//        tripCreateCoordinater.nexusTripEndDate = self.nexusEndDate
+//        tripCreateCoordinater.nexusTripMeetingPoint = self.nexusMeetingPoint
+//        tripCreateCoordinater.nexusNumberOfAdults = self.nexusNumberOfAdults
+//        tripCreateCoordinater.nexusNumberOfChildren = self.nexusNumberOfChildren
         tripCreateCoordinater.nexusDestinationId = destinationId
         tripCreateCoordinater.start(city: city)
     }

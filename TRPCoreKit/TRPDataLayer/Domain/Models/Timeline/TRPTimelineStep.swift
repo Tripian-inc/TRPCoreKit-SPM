@@ -10,7 +10,7 @@ import Foundation
 
 public struct TRPTimelineStep: Codable, Hashable {
     public var id: Int
-    public var poi: TRPPoi
+    public var poi: TRPPoi?
     public var score: Double?
     public var planId: String?
     public var scoreDetails: [Double]?
@@ -18,6 +18,7 @@ public struct TRPTimelineStep: Codable, Hashable {
     public var startDateTimes: String?
     public var endDateTimes: String?
     public var stepType: String?
+    public var attention: String?
     public var alternatives: [String]?
     public var warningMessage: [String]?
 }

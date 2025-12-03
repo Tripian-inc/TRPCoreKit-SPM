@@ -6,6 +6,8 @@
 //  Copyright © 2025 Tripian Inc. All rights reserved.
 //
 
+import UIKit
+
 class DynamicHeightTableView: UITableView {
 
     override func reloadData() {

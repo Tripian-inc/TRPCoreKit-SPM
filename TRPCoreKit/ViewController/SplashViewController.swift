@@ -15,7 +15,6 @@ protocol SplashViewControllerDelegate: AnyObject {
 class SplashViewController: TRPBaseUIViewController {
     
     var delegate: SplashViewControllerDelegate?
-    var forGuest: Bool = true
     var uniqueId: String? = nil
     var email: String? = nil
     var password: String? = nil

@@ -374,41 +374,60 @@ extension TRPCreateTripCoordinater: CreateTripTripInformationVCDelegate {
     }
     
     public func createTripTripInformationVCOpenDate(_ viewController: UIViewController, isArrival: Bool, arrivalDate: CreateTripDateModel?, departureDate: CreateTripDateModel?) {
-        let selectDateVC = UIStoryboard.makeCreateTripSelectDateViewController() as CreateTripSelectDateVC
-        selectDateVC.modalPresentationStyle = .pageSheet
-        if #available(iOS 15.0, *) {
-            if let sheet = selectDateVC.sheetPresentationController {
-                sheet.detents = [.medium()]
-            }
-        }
-        let viewModel = CreateTripSelectDateViewModel()
-        viewModel.isArrival = isArrival
-        if isArrival {
-            viewModel.dateModel = arrivalDate
-        } else {
-            viewModel.dateModel = departureDate
-        }
-        selectDateVC.viewModel = viewModel
-        selectDateVC.delegate = self
-        viewController.present(selectDateVC, animated: true)
+//        let selectDateVC = UIStoryboard.makeCreateTripSelectDateViewController() as CreateTripSelectDateVC
+//        selectDateVC.modalPresentationStyle = .pageSheet
+//        if #available(iOS 15.0, *) {
+//            if let sheet = selectDateVC.sheetPresentationController {
+//                sheet.detents = [.medium()]
+//            }
+//        }
+//        let viewModel = CreateTripSelectDateViewModel()
+//        viewModel.isArrival = isArrival
+//        if isArrival {
+//            viewModel.dateModel = arrivalDate
+//        } else {
+//            viewModel.dateModel = departureDate
+//        }
+//        selectDateVC.viewModel = viewModel
+//        selectDateVC.delegate = self
+//        viewController.present(selectDateVC, animated: true)
+        TRPTimelineMockCoordinator.quickTest(from: viewController)
+//        let calendarVC = TRPCalendarViewController(
+//            allowsMultipleSelection: false,  // Enable range selection
+//            minimumDate: Date().addDay(-5000),           // Optional minimum date
+//            maximumDate: Date().addDay(5000),               // Optional maximum date
+//            preselectedDate: nil,
+//            selectableStartDate: Date(),
+//            selectableEndDate: Date().addDay(5)
+//            
+//        )
+//
+////        calendarVC.delegate = self
+////        calendarVC.show()
+//        viewController.present(calendarVC, animated: true)
     }
     
     public func createTripTripInformationVCOpenHour(_ viewController: UIViewController, isArrival: Bool, selectedHour: String?, minimumHour: String?) {
-        let selectHourVC = UIStoryboard.makeCreateTripSelectTimeViewController() as CreateTripSelectTimeVC
-        selectHourVC.modalPresentationStyle = .pageSheet
-        if #available(iOS 15.0, *) {
-            if let sheet = selectHourVC.sheetPresentationController {
-                sheet.detents = [.medium()]
-            }
-        }
-        let viewModel = CreateTripSelectTimeViewModel()
-        viewModel.isArrival = isArrival
-        viewModel.selectedHour = selectedHour
-        viewModel.minimumHour = minimumHour
-        viewModel.start()
-        selectHourVC.delegate = self
-        selectHourVC.viewModel = viewModel
-        viewController.present(selectHourVC, animated: true)
+//        let selectHourVC = UIStoryboard.makeCreateTripSelectTimeViewController() as CreateTripSelectTimeVC
+//        selectHourVC.modalPresentationStyle = .pageSheet
+//        if #available(iOS 15.0, *) {
+//            if let sheet = selectHourVC.sheetPresentationController {
+//                sheet.detents = [.medium()]
+//            }
+//        }
+//        let viewModel = CreateTripSelectTimeViewModel()
+//        viewModel.isArrival = isArrival
+//        viewModel.selectedHour = selectedHour
+//        viewModel.minimumHour = minimumHour
+//        viewModel.start()
+//        selectHourVC.delegate = self
+//        selectHourVC.viewModel = viewModel
+//        viewController.present(selectHourVC, animated: true)
+        let timeRangeVC = TRPTimeRangeSelectionViewController()
+//                timeRangeVC.delegate = self
+                timeRangeVC.setInitialTimes(from: "11:00 AM", to: "12:00 PM")
+                timeRangeVC.show(from: viewController)
+//        viewController.present(timeRangeVC, animated: true)
     }
 }
 

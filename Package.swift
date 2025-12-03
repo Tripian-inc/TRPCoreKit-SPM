@@ -44,7 +44,7 @@ let package = Package(
             ],
             path: "TRPCoreKit",
             resources: [
-                .process("Resources/Fonts")   
+                .copy("Resources/Fonts")   
             ]
         ),
 //        .binaryTarget(

@@ -268,6 +268,10 @@ extension TRPMapView {
         mapView.location.options.puckType = .puck2D()
         mapView.location.options.puckBearingEnabled = true
         
+        // Hide Mapbox attribution and logo by moving them off screen
+        mapView.ornaments.options.logo.margins = CGPoint(x: -1000, y: -1000)
+        mapView.ornaments.options.attributionButton.margins = CGPoint(x: -1000, y: -1000)
+        
         // Setup delegates and gestures
         mapView.gestures.delegate = self
         mapView.mapboxMap.onMapLoaded.observeNext {  [weak self] _ in

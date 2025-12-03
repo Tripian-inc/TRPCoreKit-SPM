@@ -55,14 +55,14 @@ final class TimelinePlanMapper {
         guard let city = restModel.city, let accommodation = profileSegment?.accommodation else { return steps}
         
         let stayAddress = getStepFromAccommodation(accommodation, cityId: city.id)
-        if let firstStep = steps.first, firstStep.poi.id != accommodation.referanceId {
+        if let firstStep = steps.first, firstStep.poi?.id != accommodation.referanceId {
             steps.insert(stayAddress, at: 0)
         }
         
         guard let destinationAccommodation = profileSegment?.destinationAccommodation else { return steps}
         
         let destinationAddress = getStepFromAccommodation(destinationAccommodation, cityId: city.id)
-        if let lastStep = steps.last, lastStep.poi.id != destinationAccommodation.referanceId {
+        if let lastStep = steps.last, lastStep.poi?.id != destinationAccommodation.referanceId {
             steps.append(destinationAddress)
         }
         

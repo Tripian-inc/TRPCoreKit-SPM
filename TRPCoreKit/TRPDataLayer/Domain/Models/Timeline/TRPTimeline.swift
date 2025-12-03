@@ -21,6 +21,8 @@ public struct TRPTimeline: Codable {
 
     public var plans: [TRPTimelinePlan]?
     
+    public var segments: [TRPTimelineSegment]?
+    
     /// Tripdeki tüm poileri döndürür.
     /// - Returns: All pois of trip that are unique
     public func getPois() -> [TRPPoi] {
@@ -60,7 +62,7 @@ public struct TRPTimeline: Codable {
         for (order,plan) in plans.enumerated() {
             var exist = false
             for pois in plan.steps {
-                if pois.poi.id == placeId {
+                if pois.poi?.id == placeId {
                     exist = true
                 }
             }
@@ -75,7 +77,7 @@ public struct TRPTimeline: Codable {
         guard let plans else { return nil}
         var score: Double? = nil
         plans.forEach { plan in
-            if let step = plan.steps.first(where: {$0.poi.id == poiId}) {
+            if let step = plan.steps.first(where: {$0.poi?.id == poiId}) {
                 score = step.score
             }
         }

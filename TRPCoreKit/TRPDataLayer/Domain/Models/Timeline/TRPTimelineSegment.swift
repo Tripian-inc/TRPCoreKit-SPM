@@ -8,6 +8,11 @@
 
 import TRPFoundationKit
 
+public enum TRPTimelineSegmentType: String, Codable {
+    case bookedActivity = "booked_activity"
+    case itinerary = "itinerary"
+}
+
 public class TRPTimelineSegment: Codable {
     public var available: Bool = true
     public var title: String?
@@ -27,6 +32,7 @@ public class TRPTimelineSegment: Codable {
     public var dayIds: [Int]?
     public var considerWeather: Bool?
     public var distinctPlan: Bool?
+    public var segmentType: TRPTimelineSegmentType = .itinerary
     
     public var city: TRPCity?
     public var differentEndLocation: Bool = false
@@ -34,6 +40,8 @@ public class TRPTimelineSegment: Codable {
     public var customSettings: Bool = false
     public var accommodation: TRPAccommodation?
     public var destinationAccommodation: TRPAccommodation?
+    
+    public var additionalData: TRPSegmentActivityItem?
     
     public init() {
         

@@ -231,9 +231,41 @@ class TRPColor1: TRPColorStyle {
     
 }
 
+public enum FontSet {
+    case montserratSemiBold
+    case montserratBold
+    case montserratMedium
+    case montserratLight
+    case montserratRegular
+    
+    private var fontName: String {
+        switch self {
+        case .montserratSemiBold:
+            return "Montserrat-SemiBold"
+        case .montserratBold:
+            return "Montserrat-Bold"
+        case .montserratMedium:
+            return "Montserrat-Medium"
+        case .montserratLight:
+            return "Montserrat-Light"
+        case .montserratRegular:
+            return "Montserrat-Regular"
+        }
+    }
+    
+    public func font(_ size: CGFloat) -> UIFont {
+        return UIFont(name: fontName, size: size) ?? .systemFont(ofSize: size)
+    }
+    
+    // Convenience property for default size (backward compatibility if needed)
+    public var font: UIFont {
+        return font(14)
+    }
+}
+
 public enum ColorSet {
     case primary
-    case nutral100
+    case neutral100
     case neutral200
     case bgPink
     case bgGreen
@@ -246,20 +278,23 @@ public enum ColorSet {
     case green250
     case greenAdvantage
     case line
+    case lineWeak
     case ratingStar
     case fg
     case fgGreen
     case fgWeak
+    case fgWeaker
     case fgSecondary
     case fgOrange
     case fgPink
     case fgBlue
+    case borderActive
     
     public var uiColor: UIColor {
         switch self {
         case .primary, .ratingStar, .fgSecondary:
             return UIColor(red: 234, green: 5, blue: 88)
-        case .nutral100:
+        case .neutral100:
             return UIColor(red: 247, green: 247, blue: 247)
         case .neutral200:
             return UIColor(red: 234, green: 234, blue: 234)
@@ -275,7 +310,7 @@ public enum ColorSet {
             return UIColor(red: 51, green: 51, blue: 51)
         case .primaryWeakText, .fgWeak:
             return UIColor(red: 102, green: 102, blue: 102)
-        case .inactive:
+        case .inactive, .borderActive:
             return UIColor(red: 153, green: 153, blue: 153)
         case .green250:
             return UIColor(red: 196, green: 245, blue: 225)
@@ -283,8 +318,10 @@ public enum ColorSet {
             return UIColor(red: 7, green: 94, blue: 69)
         case .greenAdvantage:
             return UIColor(red: 0, green: 130, blue: 91)
-        case .line:
+        case .line, .fgWeaker:
             return UIColor(red: 140, green: 140, blue: 140)
+        case .lineWeak:
+            return UIColor(red: 207, green: 207, blue: 207)
         case .bgOrange:
             return UIColor(red: 255, green: 227, blue: 204)
         case .fgOrange:

@@ -1,0 +1,507 @@
+//
+//  TRPTimelineRecommendationsCell.swift
+//  TRPCoreKit
+//
+//  Created by Cem Çaygöz on 02.12.2024.
+//  Copyright © 2024 Tripian Inc. All rights reserved.
+//
+
+import UIKit
+import SDWebImage
+import TRPFoundationKit
+
+protocol TRPTimelineRecommendationsCellDelegate: AnyObject {
+    func recommendationsCellDidTapEdit(_ cell: TRPTimelineRecommendationsCell)
+    func recommendationsCellDidTapToggle(_ cell: TRPTimelineRecommendationsCell, isExpanded: Bool)
+    func recommendationsCellDidSelectStep(_ cell: TRPTimelineRecommendationsCell, step: TRPTimelineStep)
+    func recommendationsCellDidTapThumbsUp(_ cell: TRPTimelineRecommendationsCell, step: TRPTimelineStep)
+    func recommendationsCellDidTapThumbsDown(_ cell: TRPTimelineRecommendationsCell, step: TRPTimelineStep)
+    func recommendationsCellNeedsRouteCalculation(_ cell: TRPTimelineRecommendationsCell, from: TRPLocation, to: TRPLocation, index: Int)
+}
+
+class TRPTimelineRecommendationsCell: UITableViewCell {
+    
+    static let reuseIdentifier = "TRPTimelineRecommendationsCell"
+    
+    weak var delegate: TRPTimelineRecommendationsCellDelegate?
+    private var steps: [TRPTimelineStep] = []
+    private var isExpanded: Bool = true
+    private var distanceViews: [Int: UIView] = [:] // Track distance views by index
+    
+    // MARK: - UI Components
+    private let containerView: UIView = {
+        let view = UIView()
+        view.translatesAutoresizingMaskIntoConstraints = false
+        view.backgroundColor = ColorSet.neutral100.uiColor
+        view.layer.borderWidth = 1
+        view.layer.borderColor = ColorSet.neutral200.uiColor.cgColor
+        view.layer.cornerRadius = 12
+        return view
+    }()
+    
+    // Header components
+    private let headerView: UIView = {
+        let view = UIView()
+        view.translatesAutoresizingMaskIntoConstraints = false
+        view.backgroundColor = .clear
+        return view
+    }()
+    
+    private let titleLabel: UILabel = {
+        let label = UILabel()
+        label.translatesAutoresizingMaskIntoConstraints = false
+        label.text = "Recommendations"
+        label.font = FontSet.montserratSemiBold.font(16)
+        label.textColor = ColorSet.fg.uiColor
+        return label
+    }()
+    
+    private let chevronButton: UIButton = {
+        let button = UIButton(type: .system)
+        button.translatesAutoresizingMaskIntoConstraints = false
+        button.setImage(TRPImageController().getImage(inFramework: "ic_chevron_down", inApp: nil), for: .normal)
+        button.tintColor = ColorSet.fgWeaker.uiColor
+        return button
+    }()
+    
+    private let editButton: UIButton = {
+        let button = UIButton(type: .system)
+        button.translatesAutoresizingMaskIntoConstraints = false
+        button.setTitle("Edit", for: .normal)
+        button.titleLabel?.font = FontSet.montserratMedium.font(14)
+        button.setTitleColor(ColorSet.primary.uiColor, for: .normal)
+        button.layer.borderWidth = 1
+        button.layer.borderColor = ColorSet.primary.uiColor.cgColor
+        button.layer.cornerRadius = 8
+        button.contentEdgeInsets = UIEdgeInsets(top: 8, left: 16, bottom: 8, right: 16)
+        return button
+    }()
+    
+    // Recommendations stack
+    private let recommendationsStackView: UIStackView = {
+        let stack = UIStackView()
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        stack.axis = .vertical
+        stack.spacing = 16
+        stack.isHidden = false
+        return stack
+    }()
+    
+    private var stackViewHeightConstraint: NSLayoutConstraint?
+    private var stackToContainerBottomConstraint: NSLayoutConstraint?
+    private var headerToContainerBottomConstraint: NSLayoutConstraint?
+    
+    // MARK: - Initialization
+    override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
+        super.init(style: style, reuseIdentifier: reuseIdentifier)
+        setupCell()
+    }
+    
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+    
+    // MARK: - Setup
+    private func setupCell() {
+        selectionStyle = .none
+        backgroundColor = .clear
+        
+        contentView.addSubview(containerView)
+        containerView.addSubview(headerView)
+        containerView.addSubview(recommendationsStackView)
+        
+        headerView.addSubview(titleLabel)
+        headerView.addSubview(chevronButton)
+        headerView.addSubview(editButton)
+        
+        // Create both bottom constraints but only activate one at a time
+        stackToContainerBottomConstraint = recommendationsStackView.bottomAnchor.constraint(equalTo: containerView.bottomAnchor, constant: -16)
+        headerToContainerBottomConstraint = headerView.bottomAnchor.constraint(equalTo: containerView.bottomAnchor, constant: -12)
+        
+        NSLayoutConstraint.activate([
+            // Container View
+            containerView.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 8),
+            containerView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
+            containerView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
+            containerView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -8),
+            
+            // Header View
+            headerView.topAnchor.constraint(equalTo: containerView.topAnchor, constant: 12),
+            headerView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 16),
+            headerView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -16),
+            headerView.heightAnchor.constraint(equalToConstant: 44),
+            
+            // Title Label
+            titleLabel.leadingAnchor.constraint(equalTo: headerView.leadingAnchor),
+            titleLabel.centerYAnchor.constraint(equalTo: headerView.centerYAnchor),
+            
+            // Chevron Button
+            chevronButton.leadingAnchor.constraint(equalTo: titleLabel.trailingAnchor, constant: 8),
+            chevronButton.centerYAnchor.constraint(equalTo: headerView.centerYAnchor),
+            chevronButton.widthAnchor.constraint(equalToConstant: 16),
+            chevronButton.heightAnchor.constraint(equalToConstant: 16),
+            
+            // Edit Button
+            editButton.trailingAnchor.constraint(equalTo: headerView.trailingAnchor),
+            editButton.centerYAnchor.constraint(equalTo: headerView.centerYAnchor),
+            editButton.heightAnchor.constraint(equalToConstant: 36),
+            
+            // Recommendations Stack
+            recommendationsStackView.topAnchor.constraint(equalTo: headerView.bottomAnchor, constant: 12),
+            recommendationsStackView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 16),
+            recommendationsStackView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -16)
+        ])
+        
+        // Initially expanded, so activate stack to bottom constraint
+        stackToContainerBottomConstraint?.isActive = true
+        
+        setupActions()
+    }
+    
+    private func setupActions() {
+        let chevronTap = UITapGestureRecognizer(target: self, action: #selector(toggleTapped))
+        headerView.addGestureRecognizer(chevronTap)
+        
+        editButton.addTarget(self, action: #selector(editTapped), for: .touchUpInside)
+    }
+    
+    // MARK: - Actions
+    @objc private func toggleTapped() {
+        isExpanded.toggle()
+        updateChevron()
+        
+        // Switch constraints before animation
+        if isExpanded {
+            // Expanding: container bottom connects to stack
+            headerToContainerBottomConstraint?.isActive = false
+            stackToContainerBottomConstraint?.isActive = true
+        } else {
+            // Collapsing: container bottom connects to header
+            stackToContainerBottomConstraint?.isActive = false
+            headerToContainerBottomConstraint?.isActive = true
+        }
+        
+        // Animate the collapse/expand
+        UIView.animate(withDuration: 0.3, delay: 0, usingSpringWithDamping: 0.8, initialSpringVelocity: 0.5, options: .curveEaseInOut) {
+            self.recommendationsStackView.alpha = self.isExpanded ? 1.0 : 0.0
+            self.layoutIfNeeded() // Animate constraint changes
+        } completion: { _ in
+            self.recommendationsStackView.isHidden = !self.isExpanded
+        }
+        
+        delegate?.recommendationsCellDidTapToggle(self, isExpanded: isExpanded)
+    }
+    
+    @objc private func editTapped() {
+        delegate?.recommendationsCellDidTapEdit(self)
+    }
+    
+    // MARK: - Updates
+    private func updateChevron() {
+        let chevronImage = isExpanded ? "chevron.down" : "chevron.right"
+        chevronButton.setImage(UIImage(systemName: chevronImage), for: .normal)
+    }
+    
+    // MARK: - Configuration
+    func configure(with steps: [TRPTimelineStep]) {
+        self.steps = steps
+        self.isExpanded = true
+        
+        // Clear existing views and distance views
+        recommendationsStackView.arrangedSubviews.forEach { $0.removeFromSuperview() }
+        distanceViews.removeAll()
+        
+        // Add recommendation views for each step with distance info between them
+        for (index, step) in steps.enumerated() {
+            let recommendationView = createRecommendationView(for: step)
+            recommendationsStackView.addArrangedSubview(recommendationView)
+            
+            // Add distance view between POIs (except after the last one)
+            if index < steps.count - 1 {
+                let distanceView = createDistanceView(for: index)
+                distanceViews[index] = distanceView
+                recommendationsStackView.addArrangedSubview(distanceView)
+                
+                // Request route calculation if both POIs have coordinates
+                if let fromPoi = step.poi, let toPoi = steps[index + 1].poi {
+                    delegate?.recommendationsCellNeedsRouteCalculation(self, 
+                                                                       from: fromPoi.coordinate, 
+                                                                       to: toPoi.coordinate, 
+                                                                       index: index)
+                }
+            }
+        }
+        
+        updateChevron()
+        
+        // Reset to expanded state
+        recommendationsStackView.isHidden = false
+        recommendationsStackView.alpha = 1.0
+        
+        // Ensure expanded constraints are active
+        headerToContainerBottomConstraint?.isActive = false
+        stackToContainerBottomConstraint?.isActive = true
+    }
+    
+    private func createRecommendationView(for step: TRPTimelineStep) -> UIView {
+        let containerView = UIView()
+        containerView.translatesAutoresizingMaskIntoConstraints = false
+        containerView.backgroundColor = .clear
+        
+        // Time label
+        let timeLabel = UILabel()
+        timeLabel.translatesAutoresizingMaskIntoConstraints = false
+        timeLabel.font = FontSet.montserratMedium.font(14)
+        timeLabel.textColor = ColorSet.fg.uiColor
+        timeLabel.textAlignment = .center
+        timeLabel.backgroundColor = .white
+        timeLabel.layer.cornerRadius = 16
+        timeLabel.layer.borderColor = ColorSet.neutral200.uiColor.cgColor
+        timeLabel.layer.borderWidth = 1
+        timeLabel.clipsToBounds = true
+        
+        if let startTime = step.getStartTime(), let endTime = step.getEndTime() {
+            timeLabel.text = "\(startTime) - \(endTime)"
+        }
+        
+        // Vertical line
+        let verticalLineView = UIView()
+        verticalLineView.translatesAutoresizingMaskIntoConstraints = false
+        verticalLineView.backgroundColor = ColorSet.neutral100.uiColor
+        
+        // Content container
+        let contentContainer = UIView()
+        contentContainer.translatesAutoresizingMaskIntoConstraints = false
+        
+        // POI Image
+        let poiImageView = UIImageView()
+        poiImageView.translatesAutoresizingMaskIntoConstraints = false
+        poiImageView.contentMode = .scaleAspectFill
+        poiImageView.clipsToBounds = true
+        poiImageView.layer.cornerRadius = 8
+        poiImageView.backgroundColor = ColorSet.bgDisabled.uiColor
+        
+        if let poi = step.poi, let imageUrl = poi.image?.url {
+            poiImageView.sd_setImage(with: URL(string: imageUrl), placeholderImage: nil)
+        }
+        
+        // Category label
+        let categoryLabel = UILabel()
+        categoryLabel.translatesAutoresizingMaskIntoConstraints = false
+        categoryLabel.font = FontSet.montserratRegular.font(12)
+        categoryLabel.textColor = ColorSet.fgWeak.uiColor
+        
+        if let poi = step.poi, let firstCategory = poi.categories.first {
+            categoryLabel.text = firstCategory.name
+        }
+        
+        // Title label
+        let titleLabel = UILabel()
+        titleLabel.translatesAutoresizingMaskIntoConstraints = false
+        titleLabel.font = FontSet.montserratSemiBold.font(16)
+        titleLabel.textColor = ColorSet.fg.uiColor
+        titleLabel.numberOfLines = 2
+        titleLabel.text = step.poi?.name ?? ""
+        
+        // Rating stack
+        let ratingStack = UIStackView()
+        ratingStack.translatesAutoresizingMaskIntoConstraints = false
+        ratingStack.axis = .horizontal
+        ratingStack.spacing = 4
+        ratingStack.alignment = .center
+        
+        if let poi = step.poi, let rating = poi.rating {
+            let ratingLabel = UILabel()
+            ratingLabel.font = FontSet.montserratMedium.font(14)
+            ratingLabel.textColor = ColorSet.fg.uiColor
+            ratingLabel.text = String(format: "%.1f", rating)
+            
+            let starIcon = UIImageView()
+            starIcon.image = UIImage(systemName: "star.fill")
+            starIcon.tintColor = ColorSet.ratingStar.uiColor
+            starIcon.translatesAutoresizingMaskIntoConstraints = false
+            starIcon.widthAnchor.constraint(equalToConstant: 16).isActive = true
+            starIcon.heightAnchor.constraint(equalToConstant: 16).isActive = true
+            
+            let reviewLabel = UILabel()
+            reviewLabel.font = FontSet.montserratRegular.font(12)
+            reviewLabel.textColor = ColorSet.fgWeak.uiColor
+            if let reviewCount = poi.ratingCount {
+                reviewLabel.text = "\(reviewCount) opiniones"
+            }
+            
+            ratingStack.addArrangedSubview(ratingLabel)
+            ratingStack.addArrangedSubview(starIcon)
+            ratingStack.addArrangedSubview(reviewLabel)
+        }
+        
+        // Feedback buttons
+        let feedbackStack = UIStackView()
+        feedbackStack.translatesAutoresizingMaskIntoConstraints = false
+        feedbackStack.axis = .horizontal
+        feedbackStack.spacing = 12
+        feedbackStack.distribution = .fillEqually
+        
+        let thumbsDownButton = UIButton(type: .system)
+        thumbsDownButton.setImage(UIImage(systemName: "hand.thumbsdown"), for: .normal)
+        thumbsDownButton.tintColor = ColorSet.fg.uiColor
+        thumbsDownButton.backgroundColor = ColorSet.neutral100.uiColor
+        thumbsDownButton.layer.cornerRadius = 20
+        thumbsDownButton.tag = steps.firstIndex(where: { $0.id == step.id }) ?? 0
+        thumbsDownButton.addTarget(self, action: #selector(thumbsDownTapped(_:)), for: .touchUpInside)
+        
+        let thumbsUpButton = UIButton(type: .system)
+        thumbsUpButton.setImage(UIImage(systemName: "hand.thumbsup"), for: .normal)
+        thumbsUpButton.tintColor = ColorSet.fg.uiColor
+        thumbsUpButton.backgroundColor = ColorSet.neutral100.uiColor
+        thumbsUpButton.layer.cornerRadius = 20
+        thumbsUpButton.tag = steps.firstIndex(where: { $0.id == step.id }) ?? 0
+        thumbsUpButton.addTarget(self, action: #selector(thumbsUpTapped(_:)), for: .touchUpInside)
+        
+        feedbackStack.addArrangedSubview(thumbsDownButton)
+        feedbackStack.addArrangedSubview(thumbsUpButton)
+        
+        // Add all subviews
+        containerView.addSubview(timeLabel)
+        containerView.addSubview(verticalLineView)
+        containerView.addSubview(contentContainer)
+        contentContainer.addSubview(poiImageView)
+        contentContainer.addSubview(categoryLabel)
+        contentContainer.addSubview(titleLabel)
+        contentContainer.addSubview(ratingStack)
+        contentContainer.addSubview(feedbackStack)
+        
+        // Constraints
+        NSLayoutConstraint.activate([
+            timeLabel.topAnchor.constraint(equalTo: containerView.topAnchor),
+            timeLabel.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
+            timeLabel.widthAnchor.constraint(equalToConstant: 120),
+            timeLabel.heightAnchor.constraint(equalToConstant: 32),
+            
+            verticalLineView.topAnchor.constraint(equalTo: timeLabel.bottomAnchor),
+            verticalLineView.leadingAnchor.constraint(equalTo: timeLabel.leadingAnchor, constant: 25),
+            verticalLineView.widthAnchor.constraint(equalToConstant: 0.5),
+            verticalLineView.bottomAnchor.constraint(equalTo: containerView.bottomAnchor),
+            
+            contentContainer.topAnchor.constraint(equalTo: timeLabel.bottomAnchor, constant: 24),
+            contentContainer.leadingAnchor.constraint(equalTo: timeLabel.leadingAnchor),
+            contentContainer.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
+            contentContainer.bottomAnchor.constraint(equalTo: containerView.bottomAnchor),
+            
+            poiImageView.topAnchor.constraint(equalTo: contentContainer.topAnchor),
+            poiImageView.leadingAnchor.constraint(equalTo: contentContainer.leadingAnchor),
+            poiImageView.widthAnchor.constraint(equalToConstant: 80),
+            poiImageView.heightAnchor.constraint(equalToConstant: 80),
+            
+            categoryLabel.topAnchor.constraint(equalTo: contentContainer.topAnchor),
+            categoryLabel.leadingAnchor.constraint(equalTo: poiImageView.trailingAnchor, constant: 12),
+            categoryLabel.trailingAnchor.constraint(equalTo: contentContainer.trailingAnchor, constant: -12),
+            
+            titleLabel.topAnchor.constraint(equalTo: categoryLabel.bottomAnchor, constant: 4),
+            titleLabel.leadingAnchor.constraint(equalTo: poiImageView.trailingAnchor, constant: 12),
+            titleLabel.trailingAnchor.constraint(equalTo: contentContainer.trailingAnchor, constant: -12),
+            
+            ratingStack.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 6),
+            ratingStack.leadingAnchor.constraint(equalTo: poiImageView.trailingAnchor, constant: 12),
+            ratingStack.trailingAnchor.constraint(lessThanOrEqualTo: contentContainer.trailingAnchor, constant: -12),
+            
+            feedbackStack.topAnchor.constraint(equalTo: ratingStack.bottomAnchor, constant: 8),
+            feedbackStack.leadingAnchor.constraint(equalTo: poiImageView.trailingAnchor, constant: 12),
+            feedbackStack.trailingAnchor.constraint(equalTo: contentContainer.trailingAnchor, constant: -12),
+            feedbackStack.heightAnchor.constraint(equalToConstant: 40),
+            feedbackStack.bottomAnchor.constraint(lessThanOrEqualTo: contentContainer.bottomAnchor)
+        ])
+        
+        // Add tap gesture for selection
+        let tapGesture = UITapGestureRecognizer(target: self, action: #selector(recommendationTapped(_:)))
+        containerView.addGestureRecognizer(tapGesture)
+        containerView.tag = steps.firstIndex(where: { $0.id == step.id }) ?? 0
+        
+        return containerView
+    }
+    
+    @objc private func recommendationTapped(_ sender: UITapGestureRecognizer) {
+        guard let tag = sender.view?.tag, tag < steps.count else { return }
+        delegate?.recommendationsCellDidSelectStep(self, step: steps[tag])
+    }
+    
+    @objc private func thumbsUpTapped(_ sender: UIButton) {
+        let tag = sender.tag
+        guard tag < steps.count else { return }
+        delegate?.recommendationsCellDidTapThumbsUp(self, step: steps[tag])
+    }
+    
+    @objc private func thumbsDownTapped(_ sender: UIButton) {
+        let tag = sender.tag
+        guard tag < steps.count else { return }
+        delegate?.recommendationsCellDidTapThumbsDown(self, step: steps[tag])
+    }
+    
+    // MARK: - Distance View
+    private func createDistanceView(for index: Int) -> UIView {
+        let containerView = UIView()
+        containerView.translatesAutoresizingMaskIntoConstraints = false
+        containerView.backgroundColor = .clear
+        
+        // Icon
+        let iconImageView = UIImageView()
+        iconImageView.translatesAutoresizingMaskIntoConstraints = false
+        iconImageView.image = UIImage(systemName: "figure.walk")
+        iconImageView.tintColor = ColorSet.fgWeak.uiColor
+        iconImageView.contentMode = .scaleAspectFit
+        
+        // Distance label
+        let distanceLabel = UILabel()
+        distanceLabel.translatesAutoresizingMaskIntoConstraints = false
+        distanceLabel.font = FontSet.montserratRegular.font(14)
+        distanceLabel.textColor = ColorSet.fgWeak.uiColor
+        distanceLabel.text = "Calculating..."
+        distanceLabel.tag = 1000 + index // Tag to identify label for updates
+        
+        // Horizontal line
+        let horizontalLine = UIView()
+        horizontalLine.translatesAutoresizingMaskIntoConstraints = false
+        horizontalLine.backgroundColor = ColorSet.lineWeak.uiColor
+        horizontalLine.layer.cornerRadius = 0.5
+        
+        containerView.addSubview(iconImageView)
+        containerView.addSubview(distanceLabel)
+        containerView.addSubview(horizontalLine)
+        
+        NSLayoutConstraint.activate([
+            // Icon
+            iconImageView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 16),
+            iconImageView.centerYAnchor.constraint(equalTo: containerView.centerYAnchor),
+            iconImageView.widthAnchor.constraint(equalToConstant: 20),
+            iconImageView.heightAnchor.constraint(equalToConstant: 20),
+            
+            // Distance label
+            distanceLabel.leadingAnchor.constraint(equalTo: iconImageView.trailingAnchor, constant: 8),
+            distanceLabel.centerYAnchor.constraint(equalTo: containerView.centerYAnchor),
+            
+            // Horizontal line
+            horizontalLine.leadingAnchor.constraint(equalTo: distanceLabel.trailingAnchor, constant: 12),
+            horizontalLine.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -16),
+            horizontalLine.centerYAnchor.constraint(equalTo: containerView.centerYAnchor),
+            horizontalLine.heightAnchor.constraint(equalToConstant: 1),
+            
+            // Container height
+            containerView.heightAnchor.constraint(equalToConstant: 32)
+        ])
+        
+        return containerView
+    }
+    
+    // Update distance info after route calculation
+    public func updateDistance(at index: Int, distance: Float, time: Int) {
+        guard let distanceView = distanceViews[index] else { return }
+        
+        // Find the distance label using tag
+        if let distanceLabel = distanceView.viewWithTag(1000 + index) as? UILabel {
+            // Format distance with comma as decimal separator (e.g., "1,2 km")
+            let distanceString = String(format: "%.1f", distance).replacingOccurrences(of: ".", with: ",")
+            distanceLabel.text = "\(time) min (\(distanceString) km)"
+        }
+    }
+}
+
