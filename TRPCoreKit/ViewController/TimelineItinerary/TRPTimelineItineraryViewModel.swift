@@ -266,6 +266,16 @@ public class TRPTimelineItineraryViewModel {
         return days
     }
     
+    /// Get the trip date range (start and end dates)
+    public func getTripDateRange() -> (start: Date, end: Date)? {
+        guard let plans = timeline?.plans, !plans.isEmpty else { return nil }
+        
+        let startDate = plans.first?.getStartDate() ?? Date()
+        let endDate = plans.last?.getEndDate() ?? Date()
+        
+        return (start: startDate, end: endDate)
+    }
+    
     // MARK: - TableView Data Methods
     public func numberOfSections() -> Int {
         return segmentsWithSteps.count
@@ -403,6 +413,22 @@ public class TRPTimelineItineraryViewModel {
         return segmentGroups
     }
     
+    /// Get booked activities for the selected day
+    public func getBookedActivitiesForSelectedDay() -> [TRPTimelineSegment] {
+        var bookedActivities: [TRPTimelineSegment] = []
+        
+        for sectionSegments in segmentsWithSteps {
+            for segmentWithSteps in sectionSegments {
+                let segment = segmentWithSteps.segment
+                if segment.segmentType == .bookedActivity {
+                    bookedActivities.append(segment)
+                }
+            }
+        }
+        
+        return bookedActivities
+    }
+    
     /// Get POI by ID
     public func getPoi(byId id: String) -> TRPPoi? {
         for sectionSegments in segmentsWithSteps {
@@ -411,6 +437,21 @@ public class TRPTimelineItineraryViewModel {
                     if let poi = step.poi, poi.id == id {
                         return poi
                     }
+                }
+            }
+        }
+        return nil
+    }
+    
+    /// Get booked activity by activity ID
+    public func getBookedActivity(byId activityId: String) -> TRPTimelineSegment? {
+        for sectionSegments in segmentsWithSteps {
+            for segmentWithSteps in sectionSegments {
+                let segment = segmentWithSteps.segment
+                if segment.segmentType == .bookedActivity,
+                   let additionalData = segment.additionalData,
+                   additionalData.activityId == activityId {
+                    return segment
                 }
             }
         }

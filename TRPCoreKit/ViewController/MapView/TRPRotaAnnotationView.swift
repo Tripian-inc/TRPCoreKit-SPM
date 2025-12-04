@@ -37,12 +37,11 @@ class TRPRotaAnnotationView: UIView {
         layer.cornerRadius = bounds.width / 2
         layer.backgroundColor = UIColor.clear.cgColor
         addImageView(named: imageName)
-//        guard let order = self.order else { return }
-        var orderText = "\(order ?? -1)"
-        if orderText == "-1" {
-            orderText = ""
+        
+        // Only add order label if order is not -1
+        if let orderValue = self.order, orderValue >= 0 {
+            addLabel(text: "\(orderValue)")
         }
-        addLabel(text: "\(orderText)")
         
         self.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(handleTap)))
     }
@@ -102,7 +101,6 @@ class TRPRotaAnnotationView: UIView {
                                       clockwise: true)
         cirleShape.path = circlePath.cgPath
         cirleShape.fillColor = ColorSet.getMapColor(annotationOrder).cgColor
-        //cirleShape.strokeColor = UIColor(red: 80/255.0, green: 80/255.0, blue: 80/255.0, alpha: 1.0).cgColor
         cirleShape.lineWidth = 0
         
         label.frame = CGRect(x: CGFloat( -1 * (circleRadius / 2)),

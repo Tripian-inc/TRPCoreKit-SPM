@@ -100,7 +100,7 @@ class TRPTimelineTabView: UIView {
         let button = UIButton(type: .system)
         button.translatesAutoresizingMaskIntoConstraints = false
         button.setTitle(title, for: .normal)
-        button.titleLabel?.font = FontSet.montserratRegular.font(14)
+        button.titleLabel?.font = FontSet.montserratMedium.font(14)
         button.tag = index
         button.addTarget(self, action: #selector(tabButtonTapped(_:)), for: .touchUpInside)
         return button
@@ -122,10 +122,8 @@ class TRPTimelineTabView: UIView {
         for (index, button) in tabButtons.enumerated() {
             if index == selectedIndex {
                 button.setTitleColor(ColorSet.primary.uiColor, for: .normal)
-                button.titleLabel?.font = FontSet.montserratSemiBold.font(14)
             } else {
                 button.setTitleColor(ColorSet.fg.uiColor, for: .normal)
-                button.titleLabel?.font = FontSet.montserratRegular.font(14)
             }
         }
     }

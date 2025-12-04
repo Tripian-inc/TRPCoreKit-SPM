@@ -28,6 +28,12 @@ public class TRPTimelineItineraryVC: TRPBaseUIViewController {
     internal var callOutController: TRPCallOutController?
     internal var hasLoadedInitialMapData: Bool = false
     
+    // Cache for route calculations - keyed by route coordinates
+    private var routeCache: [String: (distance: Float, time: Int)] = [:]
+    
+    // Store calculated distances for each section (using cached or new calculations)
+    private var calculatedDistances: [IndexPath: [Int: (distance: Float, time: Int)]] = [:]
+    
     // MARK: - UI Components
     private lazy var customNavigationBar: TRPTimelineCustomNavigationBar = {
         let bar = TRPTimelineCustomNavigationBar()
@@ -251,8 +257,21 @@ public class TRPTimelineItineraryVC: TRPBaseUIViewController {
     
     // MARK: - Public Methods
     public func reload() {
+        // Clear both caches when reloading data
+        routeCache.removeAll()
+        calculatedDistances.removeAll()
         dayFilterView.configure(with: viewModel.getDays(), selectedDay: viewModel.selectedDayIndex)
         tableView.reloadData()
+    }
+    
+    /// Update timeline data
+    /// - Parameter timeline: New timeline data
+    public func updateTimeline(_ timeline: TRPTimeline) {
+        // Clear both caches when timeline data changes
+        routeCache.removeAll()
+        calculatedDistances.removeAll()
+        viewModel.updateTimeline(timeline)
+        reload()
     }
     
     /// Set the custom navigation bar title
@@ -334,6 +353,14 @@ extension TRPTimelineItineraryVC: UITableViewDataSource {
             }
             cell.configure(with: steps)
             cell.delegate = self
+            
+            // Apply any pre-calculated distances
+            if let distances = calculatedDistances[indexPath] {
+                for (index, distanceData) in distances {
+                    cell.updateDistance(at: index, distance: distanceData.distance, time: distanceData.time)
+                }
+            }
+            
             return cell
         }
     }
@@ -438,6 +465,8 @@ extension TRPTimelineItineraryVC: UITableViewDelegate {
 extension TRPTimelineItineraryVC: TRPTimelineDayFilterViewDelegate {
     
     public func dayFilterViewDidSelectDay(_ view: TRPTimelineDayFilterView, dayIndex: Int) {
+        // Clear only the IndexPath-based cache, keep route calculations cached
+        calculatedDistances.removeAll()
         viewModel.selectDay(at: dayIndex)
         tableView.reloadData()
         
@@ -454,7 +483,41 @@ extension TRPTimelineItineraryVC: TRPTimelineDayFilterViewDelegate {
     }
     
     public func dayFilterViewDidTapFilter(_ view: TRPTimelineDayFilterView) {
-        // Handle filter button tap
+        showCalendarPicker()
+    }
+    
+    private func showCalendarPicker() {
+        // Get trip date range from viewModel
+        guard let tripDates = viewModel.getTripDateRange() else {
+            return
+        }
+        
+        let startDate = tripDates.start
+        let endDate = tripDates.end
+        let calendar = Calendar.current
+        
+        // Calculate the currently selected date based on selectedDayIndex
+        let selectedDate = calendar.date(byAdding: .day, value: viewModel.selectedDayIndex, to: startDate)
+        
+        // Set broader min/max dates to allow month navigation (1 year before and after trip)
+        let minNavigationDate = calendar.date(byAdding: .year, value: -1, to: startDate) ?? startDate
+        let maxNavigationDate = calendar.date(byAdding: .year, value: 1, to: endDate) ?? endDate
+        
+        // Create calendar view controller
+        // minimumDate and maximumDate control navigation range
+        // selectableStartDate and selectableEndDate control which dates can be selected
+        let calendarVC = TRPCalendarViewController(
+            selectionMode: .single,
+            minimumDate: minNavigationDate,
+            maximumDate: maxNavigationDate,
+            preselectedDate: selectedDate,
+            preselectedDateRange: nil,
+            selectableStartDate: startDate,
+            selectableEndDate: endDate
+        )
+        
+        calendarVC.delegate = self
+        present(calendarVC, animated: true, completion: nil)
     }
 }
 
@@ -520,24 +583,65 @@ extension TRPTimelineItineraryVC: TRPTimelineRecommendationsCellDelegate {
     }
     
     func recommendationsCellNeedsRouteCalculation(_ cell: TRPTimelineRecommendationsCell, from: TRPLocation, to: TRPLocation, index: Int) {
-        // Calculate route between two POIs
-        viewModel.calculateRoute(for: [from, to]) { [weak self, weak cell] route, error in
-            guard let self = self, let cell = cell else { return }
+        // Get the index path of the cell
+        guard let indexPath = tableView.indexPath(for: cell) else { return }
+        
+        // Generate cache key from coordinates
+        let cacheKey = generateRouteCacheKey(from: from, to: to)
+        
+        // Check if we have this route cached
+        if let cachedResult = routeCache[cacheKey] {
+            // Use cached result immediately
+            if calculatedDistances[indexPath] == nil {
+                calculatedDistances[indexPath] = [:]
+            }
+            calculatedDistances[indexPath]?[index] = cachedResult
             
-            if let route = route {
-                // Convert distance and time to readable format
-                let readable = ReadableDistance.calculate(distance: Float(route.distance), time: route.expectedTravelTime)
+            // Update the cell
+            cell.updateDistance(at: index, distance: cachedResult.distance, time: cachedResult.time)
+            return
+        }
+        
+        // Calculate route between two POIs
+        viewModel.calculateRoute(for: [from, to]) { [weak self] route, error in
+            guard let self = self else { return }
+            
+            DispatchQueue.main.async {
+                let distanceData: (distance: Float, time: Int)
                 
-                DispatchQueue.main.async {
-                    cell.updateDistance(at: index, distance: readable.distance, time: readable.time)
+                if let route = route {
+                    // Convert distance and time to readable format
+                    let readable = ReadableDistance.calculate(distance: Float(route.distance), time: route.expectedTravelTime)
+                    distanceData = (distance: readable.distance, time: readable.time)
+                } else {
+                    // Store failed calculation
+                    distanceData = (distance: 0, time: 0)
                 }
-            } else {
-                // If route calculation fails, show a placeholder
-                DispatchQueue.main.async {
-                    cell.updateDistance(at: index, distance: 0, time: 0)
+                
+                // Cache the result
+                self.routeCache[cacheKey] = distanceData
+                
+                // Store the calculated distance for this cell
+                if self.calculatedDistances[indexPath] == nil {
+                    self.calculatedDistances[indexPath] = [:]
+                }
+                self.calculatedDistances[indexPath]?[index] = distanceData
+                
+                // Update the cell if it's still visible
+                if let currentCell = self.tableView.cellForRow(at: indexPath) as? TRPTimelineRecommendationsCell {
+                    currentCell.updateDistance(at: index, distance: distanceData.distance, time: distanceData.time)
                 }
             }
         }
+    }
+    
+    private func generateRouteCacheKey(from: TRPLocation, to: TRPLocation) -> String {
+        // Create a unique key based on coordinates (rounded to avoid floating point precision issues)
+        let fromLat = String(format: "%.6f", from.lat)
+        let fromLon = String(format: "%.6f", from.lon)
+        let toLat = String(format: "%.6f", to.lat)
+        let toLon = String(format: "%.6f", to.lon)
+        return "\(fromLat),\(fromLon)-\(toLat),\(toLon)"
     }
 }
 
@@ -551,6 +655,49 @@ extension TRPTimelineItineraryVC: TRPTimelineCustomNavigationBarDelegate {
         } else {
             dismiss(animated: true, completion: nil)
         }
+    }
+}
+
+// MARK: - TRPCalendarViewControllerDelegate
+extension TRPTimelineItineraryVC: TRPCalendarViewControllerDelegate {
+    
+    func calendarViewControllerDidSelectDate(_ date: Date) {
+        // Calculate which day index was selected based on trip start date
+        guard let tripDates = viewModel.getTripDateRange() else {
+            return
+        }
+        
+        let startDate = tripDates.start
+        let calendar = Calendar.current
+        
+        // Calculate the number of days between start date and selected date
+        let components = calendar.dateComponents([.day], from: calendar.startOfDay(for: startDate), to: calendar.startOfDay(for: date))
+        if let dayIndex = components.day, dayIndex >= 0 {
+            // Update the selected day in the view model and UI
+            viewModel.selectDay(at: dayIndex)
+            dayFilterView.configure(with: viewModel.getDays(), selectedDay: dayIndex)
+            
+            // Clear cache and reload table
+            calculatedDistances.removeAll()
+            tableView.reloadData()
+            
+            // Refresh map if visible
+            if !mapContainerView.isHidden {
+                if let map = map {
+                    refreshMap()
+                } else {
+                    initializeMap()
+                }
+            }
+        }
+    }
+    
+    func calendarViewControllerDidSelectDateRange(_ startDate: Date, _ endDate: Date) {
+        // Not used in single selection mode
+    }
+    
+    func calendarViewControllerDidCancel() {
+        // Calendar was dismissed without selecting a date
     }
 }
 

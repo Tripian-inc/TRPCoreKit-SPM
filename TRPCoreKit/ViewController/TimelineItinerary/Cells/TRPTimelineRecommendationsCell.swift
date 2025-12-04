@@ -312,19 +312,19 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
         
         if let poi = step.poi, let rating = poi.rating {
             let ratingLabel = UILabel()
-            ratingLabel.font = FontSet.montserratMedium.font(14)
+            ratingLabel.font = FontSet.montserratBold.font(14)
             ratingLabel.textColor = ColorSet.fg.uiColor
             ratingLabel.text = String(format: "%.1f", rating)
             
             let starIcon = UIImageView()
-            starIcon.image = UIImage(systemName: "star.fill")
+            starIcon.image = TRPImageController().getImage(inFramework: "ic_rating_star", inApp: nil)
             starIcon.tintColor = ColorSet.ratingStar.uiColor
             starIcon.translatesAutoresizingMaskIntoConstraints = false
-            starIcon.widthAnchor.constraint(equalToConstant: 16).isActive = true
-            starIcon.heightAnchor.constraint(equalToConstant: 16).isActive = true
+            starIcon.widthAnchor.constraint(equalToConstant: 12).isActive = true
+            starIcon.heightAnchor.constraint(equalToConstant: 12).isActive = true
             
             let reviewLabel = UILabel()
-            reviewLabel.font = FontSet.montserratRegular.font(12)
+            reviewLabel.font = FontSet.montserratLight.font(14)
             reviewLabel.textColor = ColorSet.fgWeak.uiColor
             if let reviewCount = poi.ratingCount {
                 reviewLabel.text = "\(reviewCount) opiniones"
@@ -339,24 +339,26 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
         let feedbackStack = UIStackView()
         feedbackStack.translatesAutoresizingMaskIntoConstraints = false
         feedbackStack.axis = .horizontal
-        feedbackStack.spacing = 12
+        feedbackStack.spacing = 8
         feedbackStack.distribution = .fillEqually
         
         let thumbsDownButton = UIButton(type: .system)
-        thumbsDownButton.setImage(UIImage(systemName: "hand.thumbsdown"), for: .normal)
+        thumbsDownButton.setImage(TRPImageController().getImage(inFramework: "ic_dislike", inApp: nil), for: .normal)
         thumbsDownButton.tintColor = ColorSet.fg.uiColor
-        thumbsDownButton.backgroundColor = ColorSet.neutral100.uiColor
+        thumbsDownButton.backgroundColor = ColorSet.neutral200.uiColor
         thumbsDownButton.layer.cornerRadius = 20
         thumbsDownButton.tag = steps.firstIndex(where: { $0.id == step.id }) ?? 0
         thumbsDownButton.addTarget(self, action: #selector(thumbsDownTapped(_:)), for: .touchUpInside)
+        thumbsDownButton.translatesAutoresizingMaskIntoConstraints = false
         
         let thumbsUpButton = UIButton(type: .system)
-        thumbsUpButton.setImage(UIImage(systemName: "hand.thumbsup"), for: .normal)
-        thumbsUpButton.tintColor = ColorSet.fg.uiColor
-        thumbsUpButton.backgroundColor = ColorSet.neutral100.uiColor
+        thumbsUpButton.setImage(TRPImageController().getImage(inFramework: "ic_like", inApp: nil), for: .normal)
+        thumbsUpButton.tintColor = ColorSet.mainDark.uiColor
+        thumbsUpButton.backgroundColor = ColorSet.neutral200.uiColor
         thumbsUpButton.layer.cornerRadius = 20
         thumbsUpButton.tag = steps.firstIndex(where: { $0.id == step.id }) ?? 0
         thumbsUpButton.addTarget(self, action: #selector(thumbsUpTapped(_:)), for: .touchUpInside)
+        thumbsUpButton.translatesAutoresizingMaskIntoConstraints = false
         
         feedbackStack.addArrangedSubview(thumbsDownButton)
         feedbackStack.addArrangedSubview(thumbsUpButton)
@@ -381,7 +383,7 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
             verticalLineView.topAnchor.constraint(equalTo: timeLabel.bottomAnchor),
             verticalLineView.leadingAnchor.constraint(equalTo: timeLabel.leadingAnchor, constant: 25),
             verticalLineView.widthAnchor.constraint(equalToConstant: 0.5),
-            verticalLineView.bottomAnchor.constraint(equalTo: containerView.bottomAnchor),
+            verticalLineView.bottomAnchor.constraint(equalTo: contentContainer.topAnchor),
             
             contentContainer.topAnchor.constraint(equalTo: timeLabel.bottomAnchor, constant: 24),
             contentContainer.leadingAnchor.constraint(equalTo: timeLabel.leadingAnchor),
@@ -406,10 +408,15 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
             ratingStack.trailingAnchor.constraint(lessThanOrEqualTo: contentContainer.trailingAnchor, constant: -12),
             
             feedbackStack.topAnchor.constraint(equalTo: ratingStack.bottomAnchor, constant: 8),
-            feedbackStack.leadingAnchor.constraint(equalTo: poiImageView.trailingAnchor, constant: 12),
-            feedbackStack.trailingAnchor.constraint(equalTo: contentContainer.trailingAnchor, constant: -12),
+            feedbackStack.trailingAnchor.constraint(equalTo: contentContainer.trailingAnchor, constant: -16),
             feedbackStack.heightAnchor.constraint(equalToConstant: 40),
-            feedbackStack.bottomAnchor.constraint(lessThanOrEqualTo: contentContainer.bottomAnchor)
+            feedbackStack.bottomAnchor.constraint(lessThanOrEqualTo: contentContainer.bottomAnchor),
+            
+            thumbsDownButton.widthAnchor.constraint(equalToConstant: 40),
+            thumbsDownButton.heightAnchor.constraint(equalToConstant: 40),
+            
+            thumbsUpButton.widthAnchor.constraint(equalToConstant: 40),
+            thumbsUpButton.heightAnchor.constraint(equalToConstant: 40),
         ])
         
         // Add tap gesture for selection

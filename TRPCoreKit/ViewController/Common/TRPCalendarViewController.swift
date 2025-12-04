@@ -109,21 +109,16 @@ class TRPCalendarViewController: UIViewController {
         button.titleLabel?.font = trpTheme.font.header2
         button.setTitleColor(trpTheme.color.tripianBlack, for: .normal)
         button.translatesAutoresizingMaskIntoConstraints = false
-        // Add down arrow icon
-        if let downArrow = UIImage(systemName: "chevron.down") {
-            button.setImage(downArrow, for: .normal)
-            button.tintColor = trpTheme.color.tripianBlack
-            button.semanticContentAttribute = .forceRightToLeft
-            button.imageEdgeInsets = UIEdgeInsets(top: 0, left: 4, bottom: 0, right: 0)
-        }
+        button.isUserInteractionEnabled = false // Disable interaction
+        // Don't add dropdown arrow since it's not clickable
         return button
     }()
     
     private let previousMonthButton: UIButton = {
         let button = UIButton(type: .system)
-        let image = UIImage(systemName: "chevron.left") ?? UIImage()
+        let image = TRPImageController().getImage(inFramework: "ic_previous", inApp: nil) ?? UIImage()
         button.setImage(image, for: .normal)
-        button.tintColor = trpTheme.color.tripianBlack
+        button.tintColor = ColorSet.fg.uiColor
         button.translatesAutoresizingMaskIntoConstraints = false
         button.isUserInteractionEnabled = true
         return button
@@ -131,9 +126,9 @@ class TRPCalendarViewController: UIViewController {
     
     private let nextMonthButton: UIButton = {
         let button = UIButton(type: .system)
-        let image = UIImage(systemName: "chevron.right") ?? UIImage()
+        let image = TRPImageController().getImage(inFramework: "ic_next", inApp: nil) ?? UIImage()
         button.setImage(image, for: .normal)
-        button.tintColor = trpTheme.color.tripianBlack
+        button.tintColor = ColorSet.fg.uiColor
         button.translatesAutoresizingMaskIntoConstraints = false
         button.isUserInteractionEnabled = true
         return button
@@ -184,8 +179,8 @@ class TRPCalendarViewController: UIViewController {
     private let cancelButton: UIButton = {
         let button = UIButton(type: .system)
         button.setTitle("Cancel".toLocalized(), for: .normal)
-        button.titleLabel?.font = trpTheme.font.title2
-        button.setTitleColor(trpTheme.color.tripianPrimary, for: .normal)
+        button.titleLabel?.font = FontSet.montserratMedium.font(16)
+        button.setTitleColor(ColorSet.primary.uiColor, for: .normal)
         button.backgroundColor = .clear
         button.translatesAutoresizingMaskIntoConstraints = false
         return button
@@ -194,9 +189,9 @@ class TRPCalendarViewController: UIViewController {
     private let selectButton: UIButton = {
         let button = UIButton(type: .system)
         button.setTitle("Select".toLocalized(), for: .normal)
-        button.titleLabel?.font = trpTheme.font.title2
+        button.titleLabel?.font = FontSet.montserratMedium.font(16)
         button.setTitleColor(.white, for: .normal)
-        button.backgroundColor = trpTheme.color.tripianPrimary
+        button.backgroundColor = ColorSet.primary.uiColor
         button.layer.cornerRadius = 8
         button.translatesAutoresizingMaskIntoConstraints = false
         return button
@@ -278,8 +273,34 @@ class TRPCalendarViewController: UIViewController {
     
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
-        // Reload calendar to apply appearance changes
+        
+        // Save selected dates before reload
+        let selectedDates = calendarView.selectedDates
+        
+        // Force reload calendar to apply appearance changes
         calendarView.reloadData()
+        
+        // Restore selection after reload
+        for date in selectedDates {
+            calendarView.select(date, scrollToDate: false)
+        }
+        
+        // Force refresh all visible cells to apply custom appearance
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
+            guard let self = self else { return }
+            
+            // Save selected dates again before second reload
+            let selectedDates = self.calendarView.selectedDates
+            
+            self.calendarView.reloadData()
+            
+            // Restore selection after second reload
+            for date in selectedDates {
+                self.calendarView.select(date, scrollToDate: false)
+            }
+            
+            self.configureVisibleCells()
+        }
     }
     
     // MARK: - Setup
@@ -362,31 +383,31 @@ class TRPCalendarViewController: UIViewController {
         let appearance = calendar.appearance
         
         // Header appearance
-        appearance.headerTitleFont = trpTheme.font.header2
-        appearance.headerTitleColor = trpTheme.color.tripianBlack
+        appearance.headerTitleFont = FontSet.montserratMedium.font(14)
+        appearance.headerTitleColor = ColorSet.primaryText.uiColor
         appearance.headerDateFormat = "MMMM yyyy"
         appearance.headerMinimumDissolvedAlpha = 0.0
         appearance.headerTitleOffset = CGPoint(x: 0, y: -1000) // Hide default header
         
         // Weekday appearance
-        appearance.weekdayFont = trpTheme.font.body3
-        appearance.weekdayTextColor = trpTheme.color.tripianTextPrimary
+        appearance.weekdayFont = FontSet.montserratRegular.font(16)
+        appearance.weekdayTextColor = ColorSet.primaryText.uiColor
         
         // Title appearance
         appearance.titleFont = trpTheme.font.body3
-        appearance.titleDefaultColor = trpTheme.color.tripianBlack
+        // Don't set titleDefaultColor - let delegate method handle it
         appearance.titleSelectionColor = .white
-        appearance.titleTodayColor = trpTheme.color.tripianBlack
-        appearance.titlePlaceholderColor = trpTheme.color.tripianTextPrimary.withAlphaComponent(0.3)
+        // Don't set titleTodayColor - let delegate method handle it
+        appearance.titlePlaceholderColor = ColorSet.primaryText.uiColor.withAlphaComponent(0.3)
         
         // Selection colors
-        appearance.selectionColor = trpTheme.color.tripianPrimary
+        appearance.selectionColor = ColorSet.primary.uiColor
         appearance.todayColor = .clear
-        appearance.todaySelectionColor = trpTheme.color.tripianPrimary
+        appearance.todaySelectionColor = ColorSet.primary.uiColor
         
         // Border - only for today
         appearance.borderRadius = 1.0 // Circular
-        appearance.borderDefaultColor = .clear // No default border
+        // Don't set borderDefaultColor - let delegate method handle it
         appearance.borderSelectionColor = .clear // No border for selected dates
         
         // Event dot
@@ -402,12 +423,7 @@ class TRPCalendarViewController: UIViewController {
         nextMonthButton.addTarget(self, action: #selector(nextMonthTapped), for: .touchUpInside)
         cancelButton.addTarget(self, action: #selector(cancelTapped), for: .touchUpInside)
         selectButton.addTarget(self, action: #selector(selectTapped), for: .touchUpInside)
-        monthYearButton.addTarget(self, action: #selector(monthYearTapped), for: .touchUpInside)
-        
-        // Hide picker when tapping outside
-        let pickerBackgroundTap = UITapGestureRecognizer(target: self, action: #selector(pickerBackgroundTapped))
-        pickerBackgroundTap.cancelsTouchesInView = false
-        view.addGestureRecognizer(pickerBackgroundTap)
+        // monthYearButton action removed - button is now disabled
     }
     
     @objc private func pickerBackgroundTapped(_ gesture: UITapGestureRecognizer) {
@@ -435,12 +451,6 @@ class TRPCalendarViewController: UIViewController {
     }
     
     @objc private func previousMonthTapped() {
-        // Hide picker if visible
-        if isPickerVisible {
-            hideMonthYearPicker()
-            isPickerVisible = false
-        }
-        
         let calendar = Calendar.current
         let currentPage = calendarView.currentPage
         
@@ -471,12 +481,6 @@ class TRPCalendarViewController: UIViewController {
     }
     
     @objc private func nextMonthTapped() {
-        // Hide picker if visible
-        if isPickerVisible {
-            hideMonthYearPicker()
-            isPickerVisible = false
-        }
-        
         let calendar = Calendar.current
         let currentPage = calendarView.currentPage
         
@@ -608,8 +612,7 @@ class TRPCalendarViewController: UIViewController {
         formatter.dateFormat = "MMMM yyyy"
         let monthYear = formatter.string(from: calendarView.currentPage)
         monthYearButton.setTitle(monthYear, for: .normal)
-        // Ensure image stays on the right
-        monthYearButton.semanticContentAttribute = .forceRightToLeft
+        // No image to align since button is now disabled
     }
     
     private func generateDateRange(from startDate: Date, to endDate: Date) -> [Date] {
@@ -636,18 +639,14 @@ class TRPCalendarViewController: UIViewController {
 // MARK: - FSCalendarDataSource
 extension TRPCalendarViewController: FSCalendarDataSource {
     func minimumDate(for calendar: FSCalendar) -> Date {
-        // Use selectable range start if provided, otherwise use minimumDate or today
-        if let selectableStart = selectableStartDate {
-            return selectableStart
-        }
+        // Return the navigation range minimum (not the selectable range)
+        // This allows users to navigate to months outside the selectable date range
         return minimumDate ?? Date()
     }
     
     func maximumDate(for calendar: FSCalendar) -> Date {
-        // Use selectable range end if provided, otherwise use maximumDate or 1 year from now
-        if let selectableEnd = selectableEndDate {
-            return selectableEnd
-        }
+        // Return the navigation range maximum (not the selectable range)
+        // This allows users to navigate to months outside the selectable date range
         return maximumDate ?? Calendar.current.date(byAdding: .year, value: 1, to: Date()) ?? Date()
     }
     
@@ -668,6 +667,20 @@ extension TRPCalendarViewController: FSCalendarDataSource {
 // MARK: - FSCalendarDelegate
 extension TRPCalendarViewController: FSCalendarDelegate {
     func calendar(_ calendar: FSCalendar, didSelect date: Date, at monthPosition: FSCalendarMonthPosition) {
+        // Double-check that the selected date is within selectable range
+        if let start = selectableStartDate, let end = selectableEndDate {
+            let gregorian = Calendar.current
+            let dateToCheck = gregorian.startOfDay(for: date)
+            let startOfDay = gregorian.startOfDay(for: start)
+            let endOfDay = gregorian.startOfDay(for: end)
+            
+            // If date is outside selectable range, deselect it immediately
+            if dateToCheck < startOfDay || dateToCheck > endOfDay {
+                calendar.deselect(date)
+                return
+            }
+        }
+        
         switch selectionMode {
         case .range:
             handleMultipleSelection(date: date, calendar: calendar)
@@ -678,7 +691,14 @@ extension TRPCalendarViewController: FSCalendarDelegate {
             }
             firstSelectedDate = date
         }
+        
+        // Force update visible cells to apply white text color to selected date
         configureVisibleCells()
+        
+        // Also force the selected cell to have white text
+        if let cell = calendar.cell(for: date, at: monthPosition) as? FSCalendarCell {
+            cell.titleLabel.textColor = .white
+        }
     }
     
     func calendar(_ calendar: FSCalendar, didDeselect date: Date, at monthPosition: FSCalendarMonthPosition) {
@@ -688,17 +708,41 @@ extension TRPCalendarViewController: FSCalendarDelegate {
         case .single:
             firstSelectedDate = nil
         }
+        
+        // Force update visible cells to restore primary color to deselected date
         configureVisibleCells()
+        
+        // Also force the deselected cell to revert to primary color
+        if let cell = calendar.cell(for: date, at: monthPosition) as? FSCalendarCell {
+            // Check if date is in selectable range
+            if let selectableStart = selectableStartDate, let selectableEnd = selectableEndDate {
+                let gregorian = Calendar.current
+                let dateToCheck = gregorian.startOfDay(for: date)
+                let startOfDay = gregorian.startOfDay(for: selectableStart)
+                let endOfDay = gregorian.startOfDay(for: selectableEnd)
+                
+                if dateToCheck >= startOfDay && dateToCheck <= endOfDay {
+                    cell.titleLabel.textColor = ColorSet.primary.uiColor
+                }
+            }
+        }
     }
     
     func calendarCurrentPageDidChange(_ calendar: FSCalendar) {
         updateMonthYearLabel()
-        configureVisibleCells()
-        // Hide picker if visible when calendar page changes
-        if isPickerVisible {
-            hideMonthYearPicker()
-            isPickerVisible = false
+        
+        // Save currently selected dates before reload
+        let selectedDates = calendar.selectedDates
+        
+        // Force reload to refresh appearance when month changes
+        calendar.reloadData()
+        
+        // Restore selection after reload
+        for date in selectedDates {
+            calendar.select(date, scrollToDate: false)
         }
+        
+        configureVisibleCells()
     }
     
     func calendar(_ calendar: FSCalendar, appearance: FSCalendarAppearance, fillDefaultColorFor date: Date?) -> UIColor? {
@@ -716,9 +760,9 @@ extension TRPCalendarViewController: FSCalendarDelegate {
                 return .clear
             }
             
-            // Date is INSIDE selectable range
+            // Date is INSIDE selectable range (trip dates)
             if dateToCheck >= startOfDay && dateToCheck <= endOfDay {
-                // Check if it's part of a selected range
+                // Check if it's part of a selected range (for range mode)
                 if selectionMode == .range, let start = firstSelectedDate, let end = lastSelectedDate {
                     let selectedStart = gregorian.startOfDay(for: start)
                     let selectedEnd = gregorian.startOfDay(for: end)
@@ -729,16 +773,17 @@ extension TRPCalendarViewController: FSCalendarDelegate {
                         if gregorian.isDate(date, inSameDayAs: start) || gregorian.isDate(date, inSameDayAs: end) {
                             return nil // Use default selection color (primary)
                         }
-                        // Middle dates of selected range - bgPink
+                        // Middle dates of selected range - lighter primary color
                         if date > start && date < end {
-                            return ColorSet.bgPink.uiColor
+                            return ColorSet.primary.uiColor.withAlphaComponent(0.15)
                         }
                         return nil
                     }
                 }
                 
-                // Date is in selectable range but not selected - show bgPink circle background
-                return ColorSet.bgPink.uiColor
+                // Date is in selectable range but not selected - show primary color with alpha
+                // This makes it clear these dates are selectable (trip dates)
+                return ColorSet.primary.uiColor.withAlphaComponent(0.15)
             }
         }
         
@@ -748,8 +793,8 @@ extension TRPCalendarViewController: FSCalendarDelegate {
                 return nil // Use default selection color
             }
             if date > start && date < end {
-                // bgPink for range dates
-                return ColorSet.bgPink.uiColor
+                // Lighter primary color for range dates
+                return ColorSet.primary.uiColor.withAlphaComponent(0.15)
             }
         }
         
@@ -758,12 +803,17 @@ extension TRPCalendarViewController: FSCalendarDelegate {
     }
     
     func calendar(_ calendar: FSCalendar, appearance: FSCalendarAppearance, fillSelectionColorFor date: Date?) -> UIColor? {
-        // Selected dates use primary color
-        return trpTheme.color.tripianPrimary
+        // Selected dates use solid primary color
+        return ColorSet.primary.uiColor
+    }
+    
+    func calendar(_ calendar: FSCalendar, appearance: FSCalendarAppearance, titleSelectionColorFor date: Date?) -> UIColor? {
+        // Selected date text should be white for visibility
+        return .white
     }
     
     func calendar(_ calendar: FSCalendar, appearance: FSCalendarAppearance, titleDefaultColorFor date: Date?) -> UIColor? {
-        guard let date = date else { return nil }
+        guard let date = date else { return ColorSet.primaryText.uiColor }
         
         // Check if date is outside selectable range
         if let selectableStart = selectableStartDate, let selectableEnd = selectableEndDate {
@@ -773,12 +823,15 @@ extension TRPCalendarViewController: FSCalendarDelegate {
             let endOfDay = gregorian.startOfDay(for: selectableEnd)
             
             if dateToCheck < startOfDay || dateToCheck > endOfDay {
-                // Date is outside selectable range - use default text color (not grayed out)
-                return trpTheme.color.tripianBlack
+                // Date is outside selectable range - gray it out to show it's disabled
+                return ColorSet.primaryText.uiColor.withAlphaComponent(0.3)
+            } else {
+                // Date is inside selectable range (trip dates) - use primary color for text
+                return ColorSet.primary.uiColor
             }
         }
         
-        return nil // Use default color for selectable dates
+        return ColorSet.primaryText.uiColor // Default color if no selectable range is set
     }
     
     func calendar(_ calendar: FSCalendar, appearance: FSCalendarAppearance, borderDefaultColorFor date: Date?) -> UIColor? {
@@ -787,7 +840,7 @@ extension TRPCalendarViewController: FSCalendarDelegate {
         // Show border ONLY for today's date (whether selected or not)
         let gregorian = Calendar.current
         if gregorian.isDateInToday(date) {
-            return trpTheme.color.tripianBlack.withAlphaComponent(0.5)
+            return ColorSet.primaryText.uiColor.withAlphaComponent(0.5)
         }
         
         return .clear // No border for other dates
@@ -799,19 +852,81 @@ extension TRPCalendarViewController: FSCalendarDelegate {
         // Show border for today's date even when selected
         let gregorian = Calendar.current
         if gregorian.isDateInToday(date) {
-            return trpTheme.color.tripianBlack.withAlphaComponent(0.5)
+            return ColorSet.primaryText.uiColor.withAlphaComponent(0.5)
         }
         
         return .clear // No border for selected dates that are not today
     }
     
+    func calendar(_ calendar: FSCalendar, willDisplay cell: FSCalendarCell, for date: Date, at monthPosition: FSCalendarMonthPosition) {
+        // This delegate method is called for every cell and allows us to customize appearance
+        guard monthPosition == .current else { return }
+        
+        let gregorian = Calendar.current
+        let dateToCheck = gregorian.startOfDay(for: date)
+        
+        // Check if this date is currently selected
+        let isSelected = calendar.selectedDates.contains(where: { gregorian.isDate($0, inSameDayAs: date) })
+        
+        // Don't override text color for selected cells - let the selection appearance handle it
+        if isSelected {
+            cell.titleLabel.textColor = ColorSet.primary.uiColor
+            return
+        }
+        
+        // Check if date is in selectable range
+        if let selectableStart = selectableStartDate, let selectableEnd = selectableEndDate {
+            let startOfDay = gregorian.startOfDay(for: selectableStart)
+            let endOfDay = gregorian.startOfDay(for: selectableEnd)
+            
+            let isInRange = dateToCheck >= startOfDay && dateToCheck <= endOfDay
+            
+            // Update cell appearance based on whether it's selectable
+            if isInRange {
+                // Selectable date (trip date)
+                cell.titleLabel.textColor = ColorSet.primary.uiColor
+            } else {
+                // Non-selectable date
+                cell.titleLabel.textColor = ColorSet.primaryText.uiColor.withAlphaComponent(0.3)
+            }
+        }
+    }
+    
     private func configureVisibleCells() {
         calendarView.visibleCells().forEach { cell in
-            let date = calendarView.date(for: cell)
+            guard let date = calendarView.date(for: cell) else { return }
             let position = calendarView.monthPosition(for: cell)
             
             if position == .current {
-                // Additional cell configuration if needed
+                // Force update cell appearance
+                if let calendarCell = cell as? FSCalendarCell {
+                    let gregorian = Calendar.current
+                    let isSelected = calendarView.selectedDates.contains(where: { gregorian.isDate($0, inSameDayAs: date) })
+                    
+                    // Always set white text for selected cells
+                    if isSelected {
+                        calendarCell.titleLabel.textColor = .white
+                        return
+                    }
+                    
+                    // Check if date is in selectable range
+                    if let selectableStart = selectableStartDate, let selectableEnd = selectableEndDate {
+                        let dateToCheck = gregorian.startOfDay(for: date)
+                        let startOfDay = gregorian.startOfDay(for: selectableStart)
+                        let endOfDay = gregorian.startOfDay(for: selectableEnd)
+                        
+                        let isSelectable = dateToCheck >= startOfDay && dateToCheck <= endOfDay
+                        
+                        // Update cell colors for non-selected cells
+                        if isSelectable {
+                            calendarCell.backgroundView?.backgroundColor = ColorSet.primary.uiColor.withAlphaComponent(0.15)
+                            calendarCell.titleLabel.textColor = ColorSet.primary.uiColor
+                        } else {
+                            calendarCell.backgroundView?.backgroundColor = .clear
+                            calendarCell.titleLabel.textColor = ColorSet.primaryText.uiColor.withAlphaComponent(0.3)
+                        }
+                    }
+                }
             }
         }
     }
@@ -929,10 +1044,11 @@ extension TRPCalendarViewController: UIPickerViewDelegate {
         return NSAttributedString(
             string: title,
             attributes: [
-                .foregroundColor: trpTheme.color.tripianBlack,
-                .font: trpTheme.font.body3
+                .foregroundColor: ColorSet.primaryText.uiColor,
+                .font: FontSet.montserratRegular.font(16)
             ]
         )
     }
 }
+
 

@@ -84,12 +84,14 @@ extension TRPTimelineItineraryVC {
         let segments = viewModel.getSegmentsWithPoisForSelectedDay()
         let allPois = segments.flatMap { $0 }
         
+        // Get booked activities from current day
+        let bookedActivities = viewModel.getBookedActivitiesForSelectedDay()
         
         // Mark that we've loaded initial data
         hasLoadedInitialMapData = true
         
-        if allPois.isEmpty {
-            // Center on city if no POIs
+        if allPois.isEmpty && bookedActivities.isEmpty {
+            // Center on city if no POIs or booked activities
             let centerLocation = getMapCenterLocation()
             map.setCenter(centerLocation, zoomLevel: 12)
             // Remove any existing routes
@@ -100,8 +102,18 @@ extension TRPTimelineItineraryVC {
         // Add annotations for each segment with proper ordering
         addAnnotationsForSegments(segments)
         
+        // Add booked activity annotations
+        addBookedActivityAnnotations(bookedActivities)
+        
         // Draw separate routes for each segment
         if segments.isEmpty {
+            // No POI segments, center on booked activities if any
+            if !bookedActivities.isEmpty, let firstActivity = bookedActivities.first {
+                let coordinate = firstActivity.additionalData?.coordinate ?? firstActivity.coordinate
+                if let coordinate = coordinate {
+                    map.setCenter(coordinate, zoomLevel: 14)
+                }
+            }
             return
         }
         
@@ -155,6 +167,32 @@ extension TRPTimelineItineraryVC {
             // annotationOrder determines the background color of the order badge
             map.addViewAnnotations(annotations, segmentId: segmentId, annotationOrder: segmentIndex)
             
+        }
+    }
+    
+    private func addBookedActivityAnnotations(_ bookedActivities: [TRPTimelineSegment]) {
+        guard let map = map else { return }
+        
+        var annotations = [TRPPointAnnotation]()
+        
+        for activity in bookedActivities {
+            // Use coordinate from segment or additionalData
+            let coordinate = activity.additionalData?.coordinate ?? activity.coordinate
+            guard let lat = coordinate?.lat, let lon = coordinate?.lon else { continue }
+            
+            var annotation = TRPPointAnnotation()
+            annotation.imageName = "ic_booked_activity"
+            annotation.order = -1 // -1 means no order label will be shown
+            annotation.lat = lat
+            annotation.lon = lon
+            annotation.poiId = activity.additionalData?.activityId ?? ""
+            annotation.isOffer = false
+            annotations.append(annotation)
+        }
+        
+        if !annotations.isEmpty {
+            // Add booked activities as a separate segment with no specific order color
+            map.addViewAnnotations(annotations, segmentId: "timeline_booked_activities", annotationOrder: -1)
         }
     }
     
@@ -356,9 +394,16 @@ extension TRPTimelineItineraryVC: TRPMapViewDelegate {
     }
     
     public func mapView(annotationPressed poiId: String, type: TRPAnnotationType) {
-        // Handle POI annotation tap
+        // Check if it's a POI
         if let poi = viewModel.getPoi(byId: poiId) {
             openCallOut(poi)
+            return
+        }
+        
+        // Check if it's a booked activity
+        if let bookedActivity = viewModel.getBookedActivity(byId: poiId) {
+            openCallOutForBookedActivity(bookedActivity)
+            return
         }
     }
     
@@ -395,6 +440,36 @@ extension TRPTimelineItineraryVC {
     public func centerMap(on location: TRPLocation, zoomLevel: Double = 14) {
         guard let map = map else { return }
         map.setCenter(location, zoomLevel: zoomLevel)
+    }
+    
+    /// Open callout for a booked activity
+    private func openCallOutForBookedActivity(_ segment: TRPTimelineSegment) {
+        guard let additionalData = segment.additionalData else { return }
+        
+        // For booked activities, show title and description
+        let callOutCell = CallOutCellModel(id: additionalData.activityId ?? "",
+                                           name: additionalData.title ?? segment.title ?? "Booked Activity",
+                                           poiCategory: "Booked Activity",
+                                           starCount: 0,
+                                           reviewCount: 0,
+                                           price: 0,
+                                           rightButton: nil) // No add/remove button for booked activities
+        
+        callOutController?.cellPressed = { [weak self] id, inRoute in
+            guard let self = self else { return }
+            self.callOutController?.hidden()
+            
+            // Handle booked activity selection
+            self.delegate?.timelineItineraryDidSelectBookedActivity(self, segment: segment)
+        }
+        
+        callOutController?.action = { [weak self] status, id in
+            guard let self = self else { return }
+            self.callOutController?.hidden()
+            // No add/remove actions for booked activities
+        }
+        
+        callOutController?.show(model: callOutCell)
     }
     
     /// Open callout for a POI
