@@ -248,17 +248,30 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
         containerView.translatesAutoresizingMaskIntoConstraints = false
         containerView.backgroundColor = .clear
         
-        // Time label
+        // Check if this is an activity step
+        let isActivity = step.stepType == "activity"
+        
+        // Time label (styled differently for activities)
         let timeLabel = UILabel()
         timeLabel.translatesAutoresizingMaskIntoConstraints = false
         timeLabel.font = FontSet.montserratMedium.font(14)
-        timeLabel.textColor = ColorSet.fg.uiColor
         timeLabel.textAlignment = .center
-        timeLabel.backgroundColor = .white
         timeLabel.layer.cornerRadius = 16
-        timeLabel.layer.borderColor = ColorSet.neutral200.uiColor.cgColor
-        timeLabel.layer.borderWidth = 1
         timeLabel.clipsToBounds = true
+        
+        if isActivity {
+            // Activity style: green background
+            timeLabel.textColor = ColorSet.fgGreen.uiColor
+            timeLabel.backgroundColor = ColorSet.bgGreen.uiColor
+            timeLabel.layer.borderColor = ColorSet.green250.uiColor.cgColor
+            timeLabel.layer.borderWidth = 2
+        } else {
+            // POI style: white background
+            timeLabel.textColor = ColorSet.fg.uiColor
+            timeLabel.backgroundColor = .white
+            timeLabel.layer.borderColor = ColorSet.neutral200.uiColor.cgColor
+            timeLabel.layer.borderWidth = 1
+        }
         
         if let startTime = step.getStartTime(), let endTime = step.getEndTime() {
             timeLabel.text = "\(startTime) - \(endTime)"
@@ -285,14 +298,27 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
             poiImageView.sd_setImage(with: URL(string: imageUrl), placeholderImage: nil)
         }
         
-        // Category label
+        // Category label (or Activity badge for activity steps)
         let categoryLabel = UILabel()
         categoryLabel.translatesAutoresizingMaskIntoConstraints = false
-        categoryLabel.font = FontSet.montserratRegular.font(12)
-        categoryLabel.textColor = ColorSet.fgWeak.uiColor
+        categoryLabel.layer.cornerRadius = 4
+        categoryLabel.clipsToBounds = true
+        categoryLabel.textAlignment = .center
         
-        if let poi = step.poi, let firstCategory = poi.categories.first {
-            categoryLabel.text = firstCategory.name
+        if isActivity {
+            // Activity badge
+            categoryLabel.text = "Activity"
+            categoryLabel.font = FontSet.montserratMedium.font(12)
+            categoryLabel.textColor = ColorSet.fgGreen.uiColor
+            categoryLabel.backgroundColor = ColorSet.bgGreen.uiColor
+        } else {
+            // POI category
+            categoryLabel.font = FontSet.montserratRegular.font(12)
+            categoryLabel.textColor = ColorSet.fgWeak.uiColor
+            categoryLabel.backgroundColor = .clear
+            if let poi = step.poi, let firstCategory = poi.categories.first {
+                categoryLabel.text = firstCategory.name
+            }
         }
         
         // Title label
@@ -397,7 +423,6 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
             
             categoryLabel.topAnchor.constraint(equalTo: contentContainer.topAnchor),
             categoryLabel.leadingAnchor.constraint(equalTo: poiImageView.trailingAnchor, constant: 12),
-            categoryLabel.trailingAnchor.constraint(equalTo: contentContainer.trailingAnchor, constant: -12),
             
             titleLabel.topAnchor.constraint(equalTo: categoryLabel.bottomAnchor, constant: 4),
             titleLabel.leadingAnchor.constraint(equalTo: poiImageView.trailingAnchor, constant: 12),
@@ -418,6 +443,14 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
             thumbsUpButton.widthAnchor.constraint(equalToConstant: 40),
             thumbsUpButton.heightAnchor.constraint(equalToConstant: 40),
         ])
+        
+        // Additional constraints for activity badge
+        if isActivity {
+            NSLayoutConstraint.activate([
+                categoryLabel.widthAnchor.constraint(equalToConstant: 80),
+                categoryLabel.heightAnchor.constraint(equalToConstant: 24),
+            ])
+        }
         
         // Add tap gesture for selection
         let tapGesture = UITapGestureRecognizer(target: self, action: #selector(recommendationTapped(_:)))

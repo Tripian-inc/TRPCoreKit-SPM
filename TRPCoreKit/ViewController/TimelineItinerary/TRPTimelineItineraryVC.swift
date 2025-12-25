@@ -217,6 +217,7 @@ public class TRPTimelineItineraryVC: TRPBaseUIViewController {
     
     private func registerCells() {
         tableView.register(TRPTimelineBookedActivityCell.self, forCellReuseIdentifier: TRPTimelineBookedActivityCell.reuseIdentifier)
+        tableView.register(TRPTimelineActivityStepCell.self, forCellReuseIdentifier: TRPTimelineActivityStepCell.reuseIdentifier)
         tableView.register(TRPTimelineRecommendationsCell.self, forCellReuseIdentifier: TRPTimelineRecommendationsCell.reuseIdentifier)
         tableView.register(TRPTimelineSectionHeaderView.self, forHeaderFooterViewReuseIdentifier: TRPTimelineSectionHeaderView.reuseIdentifier)
         tableView.register(TRPTimelineSectionFooterView.self, forHeaderFooterViewReuseIdentifier: TRPTimelineSectionFooterView.reuseIdentifier)
@@ -347,6 +348,15 @@ extension TRPTimelineItineraryVC: UITableViewDataSource {
             cell.delegate = self
             return cell
             
+        case .activityStep(let step):
+            // Activity steps use the same booking cell as booked activities
+            guard let cell = tableView.dequeueReusableCell(withIdentifier: TRPTimelineActivityStepCell.reuseIdentifier, for: indexPath) as? TRPTimelineActivityStepCell else {
+                return UITableViewCell()
+            }
+            cell.configure(with: step)
+            cell.delegate = self
+            return cell
+            
         case .recommendations(let steps):
             guard let cell = tableView.dequeueReusableCell(withIdentifier: TRPTimelineRecommendationsCell.reuseIdentifier, for: indexPath) as? TRPTimelineRecommendationsCell else {
                 return UITableViewCell()
@@ -454,6 +464,10 @@ extension TRPTimelineItineraryVC: UITableViewDelegate {
         case .bookedActivity(let segment):
             delegate?.timelineItineraryDidSelectBookedActivity(self, segment: segment)
             
+        case .activityStep(let step):
+            // Treat activity step selection similar to regular step selection
+            delegate?.timelineItineraryDidSelectStep(self, step: step)
+            
         case .recommendations:
             // Recommendations cell handles selection internally
             break
@@ -529,6 +543,14 @@ extension TRPTimelineItineraryVC: TRPTimelineBookedActivityCellDelegate {
     }
 }
 
+// MARK: - TRPTimelineActivityStepCellDelegate
+extension TRPTimelineItineraryVC: TRPTimelineActivityStepCellDelegate {
+    
+    func activityStepCellDidTapMoreOptions(_ cell: TRPTimelineActivityStepCell) {
+        // Handle more options for activity steps
+    }
+}
+
 // MARK: - TRPTimelineSectionHeaderViewDelegate
 extension TRPTimelineItineraryVC: TRPTimelineSectionHeaderViewDelegate {
     
@@ -537,7 +559,8 @@ extension TRPTimelineItineraryVC: TRPTimelineSectionHeaderViewDelegate {
     }
     
     func sectionHeaderViewDidTapAddPlans(_ view: TRPTimelineSectionHeaderView) {
-        delegate?.timelineItineraryAddPlansPressed(self)
+        // Launch add plan flow
+        showAddPlanFlow()
     }
 }
 
@@ -698,6 +721,77 @@ extension TRPTimelineItineraryVC: TRPCalendarViewControllerDelegate {
     
     func calendarViewControllerDidCancel() {
         // Calendar was dismissed without selecting a date
+    }
+}
+
+// MARK: - Add Plan Flow
+extension TRPTimelineItineraryVC {
+    
+    func showAddPlanFlow() {
+        // Get available days and cities from view model
+        let days = viewModel.getDayDates()
+        let cities = viewModel.getCities()
+        let selectedDayIndex = viewModel.selectedDayIndex
+        
+        // Create container view model
+        let containerViewModel = AddPlanContainerViewModel(days: days,
+                                                           cities: cities,
+                                                           selectedDayIndex: selectedDayIndex)
+        
+        // Create container VC
+        let containerVC = AddPlanContainerVC()
+        containerVC.viewModel = containerViewModel
+        containerVC.delegate = self
+        
+        // Create step ViewModels and VCs
+        let selectDayViewModel = AddPlanSelectDayViewModel(containerViewModel: containerViewModel)
+        let selectDayVC = AddPlanSelectDayVC()
+        selectDayVC.viewModel = selectDayViewModel
+        selectDayVC.containerVC = containerVC
+        
+        let timeAndTravelersViewModel = AddPlanTimeAndTravelersViewModel(containerViewModel: containerViewModel)
+        let timeAndTravelersVC = AddPlanTimeAndTravelersVC()
+        timeAndTravelersVC.viewModel = timeAndTravelersViewModel
+        timeAndTravelersVC.containerVC = containerVC
+        
+        let categoryViewModel = AddPlanCategorySelectionViewModel(containerViewModel: containerViewModel)
+        let categoryVC = AddPlanCategorySelectionVC()
+        categoryVC.viewModel = categoryViewModel
+        categoryVC.containerVC = containerVC
+        
+        // Add VCs to container
+        containerVC.addViewController(selectDayVC)
+        containerVC.addViewController(timeAndTravelersVC)
+        containerVC.addViewController(categoryVC)
+        
+        // Present modally
+        containerVC.modalPresentationStyle = .overFullScreen
+        containerVC.modalTransitionStyle = .crossDissolve
+        present(containerVC, animated: true)
+    }
+}
+
+// MARK: - AddPlanContainerVCDelegate
+extension TRPTimelineItineraryVC: AddPlanContainerVCDelegate {
+    
+    public func addPlanContainerDidComplete(_ viewController: AddPlanContainerVC, data: AddPlanData) {
+        print("📝 Plan creation completed:")
+        print("  - Day: \(data.selectedDay?.description ?? "N/A")")
+        print("  - City: \(data.selectedCity?.name ?? "N/A")")
+        print("  - Start Time: \(data.startTime?.description ?? "N/A")")
+        print("  - End Time: \(data.endTime?.description ?? "N/A")")
+        print("  - Travelers: \(data.travelers)")
+        print("  - Categories: \(data.selectedCategories.joined(separator: ", "))")
+        
+        // TODO: Call create timeline segment API with the data
+        // Example: createTimelineSegment(with: data)
+        
+        // For now, notify delegate
+        delegate?.timelineItineraryAddPlansPressed(self)
+    }
+    
+    public func addPlanContainerDidCancel(_ viewController: AddPlanContainerVC) {
+        print("❌ Plan creation cancelled")
     }
 }
 

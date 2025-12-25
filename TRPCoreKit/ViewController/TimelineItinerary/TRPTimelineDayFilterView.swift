@@ -21,41 +21,13 @@ public class TRPTimelineDayFilterView: UIView {
     private var selectedDayIndex: Int = 0
     
     // MARK: - UI Components
-    private lazy var filterButton: UIButton = {
-        let button = UIButton(type: .custom)
-        button.translatesAutoresizingMaskIntoConstraints = false
-        
-        // Load custom calendar icon
-        let calendarIcon = TRPImageController().getImage(inFramework: "ic_calendar", inApp: nil)
-        button.setImage(calendarIcon, for: .normal)
-        button.tintColor = ColorSet.fg.uiColor
-        
-        // Light gray circular background with subtle outer ring
-        button.backgroundColor = ColorSet.neutral100.uiColor
-        button.layer.cornerRadius = 22
-        button.clipsToBounds = false
-        
-        // Add subtle shadow/border effect for the outer ring
-        button.layer.borderWidth = 1
-        button.layer.borderColor = ColorSet.neutral200.uiColor.cgColor
-        button.layer.shadowColor = UIColor.black.cgColor
-        button.layer.shadowOffset = CGSize(width: 0, height: 1)
-        button.layer.shadowOpacity = 0.05
-        button.layer.shadowRadius = 2
-        
-        button.imageView?.contentMode = .scaleAspectFit
-        button.imageEdgeInsets = UIEdgeInsets(top: 5, left: 5, bottom: 5, right: 5)
-        button.addTarget(self, action: #selector(filterButtonTapped), for: .touchUpInside)
-        return button
-    }()
-    
     private lazy var collectionView: UICollectionView = {
         let layout = UICollectionViewFlowLayout()
         layout.scrollDirection = .horizontal
         layout.minimumInteritemSpacing = 8
         layout.minimumLineSpacing = 8
         layout.estimatedItemSize = CGSize(width: 150, height: 44)
-        layout.sectionInset = UIEdgeInsets(top: 0, left: 12, bottom: 0, right: 16)
+        layout.sectionInset = UIEdgeInsets(top: 0, left: 16, bottom: 0, right: 16)
         
         let collection = UICollectionView(frame: .zero, collectionViewLayout: layout)
         collection.translatesAutoresizingMaskIntoConstraints = false
@@ -82,27 +54,15 @@ public class TRPTimelineDayFilterView: UIView {
     private func setupView() {
         backgroundColor = .white
         
-        addSubview(filterButton)
         addSubview(collectionView)
         
         NSLayoutConstraint.activate([
-            // Filter Button
-            filterButton.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 16),
-            filterButton.centerYAnchor.constraint(equalTo: centerYAnchor),
-            filterButton.widthAnchor.constraint(equalToConstant: 44),
-            filterButton.heightAnchor.constraint(equalToConstant: 44),
-            
             // Collection View
-            collectionView.leadingAnchor.constraint(equalTo: filterButton.trailingAnchor, constant: 0),
-            collectionView.trailingAnchor.constraint(equalTo: trailingAnchor, constant: 0),
+            collectionView.leadingAnchor.constraint(equalTo: leadingAnchor),
+            collectionView.trailingAnchor.constraint(equalTo: trailingAnchor),
             collectionView.topAnchor.constraint(equalTo: topAnchor),
             collectionView.bottomAnchor.constraint(equalTo: bottomAnchor)
         ])
-    }
-    
-    // MARK: - Actions
-    @objc private func filterButtonTapped() {
-        delegate?.dayFilterViewDidTapFilter(self)
     }
     
     // MARK: - Public Methods

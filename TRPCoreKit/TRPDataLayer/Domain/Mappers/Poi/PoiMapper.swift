@@ -27,36 +27,39 @@ final class PoiMapper {
         let mustTaste = TasteMapper().map(restModel.mustTries)
         let offers = OfferMapper().map(restModel.offers)
         let additionalData = AdditionalDataMapper().map(restModel.additionalData)
+        let locations = PoiLocationMapper().map(restModel.locations ?? [])
         
-        return TRPPoi(id: restModel.id,
-                      cityId: restModel.cityId,
-                      name: restModel.name,
-                      image: mainImage,
-                      gallery: gallery,
-                      duration: restModel.duration,
-                      price: restModel.price,
-                      rating: restModel.rating,
-                      ratingCount: restModel.ratingCount,
-                      description: restModel.description,
-                      webUrl: restModel.web,
-                      phone: restModel.phone,
-                      hours: restModel.hours,
-                      address: restModel.address,
-                      icon: restModel.icon,
-                      coordinate: coordinate,
-                      bookings: bookings,
-                      categories: categoreies,
-                      tags: restModel.tags ?? [],
-                      mustTries: mustTaste,
-                      cuisines: restModel.cuisines,
-                      attention: restModel.attention,
-                      closed: restModel.closed,
-                      distance: restModel.distance,
-                      safety: restModel.safety,
-                      status: restModel.status,
-                      placeType: .poi,
-                      offers: offers,
-                      additionalData: additionalData)
+        var poi = TRPPoi(id: restModel.id,
+                         cityId: restModel.cityId,
+                         name: restModel.name,
+                         image: mainImage,
+                         gallery: gallery,
+                         duration: restModel.duration,
+                         price: restModel.price,
+                         rating: restModel.rating,
+                         ratingCount: restModel.ratingCount,
+                         description: restModel.description,
+                         webUrl: restModel.web,
+                         phone: restModel.phone,
+                         hours: restModel.hours,
+                         address: restModel.address,
+                         icon: restModel.icon,
+                         coordinate: coordinate,
+                         bookings: bookings,
+                         categories: categoreies,
+                         tags: restModel.tags ?? [],
+                         mustTries: mustTaste,
+                         cuisines: restModel.cuisines,
+                         attention: restModel.attention,
+                         closed: restModel.closed,
+                         distance: restModel.distance,
+                         safety: restModel.safety,
+                         status: restModel.status,
+                         placeType: .poi,
+                         offers: offers,
+                         additionalData: additionalData)
+        poi.locations = locations
+        return poi
     }
     
     

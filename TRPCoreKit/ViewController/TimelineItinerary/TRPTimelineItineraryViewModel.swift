@@ -13,12 +13,19 @@ import MapboxDirections
 
 public enum TRPTimelineCellType {
     case bookedActivity(TRPTimelineSegment)
-    case recommendations([TRPTimelineStep])
+    case activityStep(TRPTimelineStep) // For activity type steps
+    case recommendations([TRPTimelineStep]) // For POI type steps
 }
 
 private struct SegmentWithSteps {
     let segment: TRPTimelineSegment
     let steps: [TRPTimelineStep]
+}
+
+private enum TimelineItem {
+    case bookedActivitySegment(TRPTimelineSegment)
+    case activityStep(TRPTimelineStep)
+    case poiSteps([TRPTimelineStep])
 }
 
 public struct TRPTimelineSectionHeaderData {
@@ -36,6 +43,8 @@ public class TRPTimelineItineraryViewModel {
     private var timeline: TRPTimeline?
     private var allSegmentsWithSteps: [[SegmentWithSteps]] = []
     private var segmentsWithSteps: [[SegmentWithSteps]] = []
+    private var allTimelineItems: [[TimelineItem]] = []
+    private var filteredTimelineItems: [[TimelineItem]] = []
     public var selectedDayIndex: Int = 0
     private var startDate: Date?
     
@@ -50,6 +59,8 @@ public class TRPTimelineItineraryViewModel {
         guard let timeline = timeline else {
             segmentsWithSteps = []
             allSegmentsWithSteps = []
+            allTimelineItems = []
+            filteredTimelineItems = []
             startDate = nil
             return
         }
@@ -57,8 +68,7 @@ public class TRPTimelineItineraryViewModel {
         // Store start date for filtering
         startDate = timeline.plans?.first?.getStartDate()
         
-        // Process all segments (both booked activities and itineraries)
-        var allSegments: [SegmentWithSteps] = []
+        var items: [TimelineItem] = []
         
         // 1. Process booked activity segments (those with additionalData)
         if let segments = timeline.segments {
@@ -69,101 +79,99 @@ public class TRPTimelineItineraryViewModel {
                     segment.endDate = additionalData.endDatetime
                     segment.segmentType = .bookedActivity
                     
-                    // Booked activities don't have steps, create empty array
-                    let segmentWithSteps = SegmentWithSteps(segment: segment, steps: [])
-                    allSegments.append(segmentWithSteps)
+                    items.append(.bookedActivitySegment(segment))
                 }
             }
         }
         
-        // 2. Process plan segments (itineraries with recommendations)
+        // 2. Process plan steps (group all steps together including activities)
         if let plans = timeline.plans {
             for plan in plans {
-                // Create an itinerary segment for the plan with all its steps
+                // Group all steps together (both POI and activity types)
                 if !plan.steps.isEmpty {
-                    let segment = TRPTimelineSegment()
-                    segment.segmentType = .itinerary
-                    segment.city = plan.city
-                    segment.startDate = plan.startDate
-                    segment.endDate = plan.endDate
-                    
-                    let segmentWithSteps = SegmentWithSteps(segment: segment, steps: plan.steps)
-                    allSegments.append(segmentWithSteps)
+                    items.append(.poiSteps(plan.steps))
                 }
             }
         }
         
-        // 3. Sort all segments by start time
-        allSegments.sort { segment1, segment2 in
-            // For booked activities, prioritize additionalData startDatetime
-            let date1: Date
-            if segment1.segment.segmentType == .bookedActivity, 
-               let startDatetime = segment1.segment.additionalData?.startDatetime {
-                date1 = Date.fromString(startDatetime, format: "yyyy-MM-dd HH:mm:ss") ?? Date()
-            } else if let firstStep = segment1.steps.first, let stepStart = firstStep.startDateTimes {
-                date1 = Date.fromString(stepStart, format: "yyyy-MM-dd HH:mm:ss") ?? Date()
-            } else if let segmentStart = segment1.segment.startDate {
-                date1 = Date.fromString(segmentStart, format: "yyyy-MM-dd HH:mm:ss") ?? Date()
-            } else {
-                date1 = Date()
-            }
-            
-            let date2: Date
-            if segment2.segment.segmentType == .bookedActivity,
-               let startDatetime = segment2.segment.additionalData?.startDatetime {
-                date2 = Date.fromString(startDatetime, format: "yyyy-MM-dd HH:mm:ss") ?? Date()
-            } else if let firstStep = segment2.steps.first, let stepStart = firstStep.startDateTimes {
-                date2 = Date.fromString(stepStart, format: "yyyy-MM-dd HH:mm:ss") ?? Date()
-            } else if let segmentStart = segment2.segment.startDate {
-                date2 = Date.fromString(segmentStart, format: "yyyy-MM-dd HH:mm:ss") ?? Date()
-            } else {
-                date2 = Date()
-            }
-            
+        // 3. Sort all items by start time
+        items.sort { item1, item2 in
+            let date1 = getItemStartDate(item1)
+            let date2 = getItemStartDate(item2)
             return date1 < date2
         }
         
-        // 4. Each segment becomes its own section
-        allSegmentsWithSteps = allSegments.map { [$0] }
-        filterSegmentsByDay(selectedDayIndex)
+        // 4. Each item becomes its own section
+        allTimelineItems = items.map { [$0] }
+        filterItemsByDay(selectedDayIndex)
     }
     
-    private func filterSegmentsByDay(_ dayIndex: Int) {
+    // Helper to get start date for timeline items
+    private func getItemStartDate(_ item: TimelineItem) -> Date {
+        switch item {
+        case .bookedActivitySegment(let segment):
+            if let startDatetime = segment.additionalData?.startDatetime {
+                return Date.fromString(startDatetime, format: "yyyy-MM-dd HH:mm:ss") ?? Date()
+            }
+            return Date()
+            
+        case .activityStep(let step):
+            if let stepStart = step.startDateTimes {
+                return Date.fromString(stepStart, format: "yyyy-MM-dd HH:mm:ss") ?? Date()
+            }
+            return Date()
+            
+        case .poiSteps(let steps):
+            if let firstStep = steps.first, let stepStart = firstStep.startDateTimes {
+                return Date.fromString(stepStart, format: "yyyy-MM-dd HH:mm:ss") ?? Date()
+            }
+            return Date()
+        }
+    }
+    
+    private func filterItemsByDay(_ dayIndex: Int) {
         guard let startDate = startDate else {
-            segmentsWithSteps = allSegmentsWithSteps
+            filteredTimelineItems = allTimelineItems
             return
         }
         
         // Calculate the selected date
         guard let selectedDate = startDate.addDay(dayIndex) else {
-            segmentsWithSteps = allSegmentsWithSteps
+            filteredTimelineItems = allTimelineItems
             return
         }
         
-        // Filter segments that fall on the selected day
-        var filteredSegments: [[SegmentWithSteps]] = []
+        // Filter items that fall on the selected day
+        var filtered: [[TimelineItem]] = []
         let selectedDayStart = selectedDate.getDateWithZeroHour()
         let selectedDayEnd = selectedDate.addDay(1)?.getDateWithZeroHour() ?? selectedDate
         
-        for (_, segmentGroup) in allSegmentsWithSteps.enumerated() {
-            var filteredGroup: [SegmentWithSteps] = []
+        for itemGroup in allTimelineItems {
+            var filteredGroup: [TimelineItem] = []
             
-            for segmentWithSteps in segmentGroup {
-                let segment = segmentWithSteps.segment
-                
-                // Check if this is a booked activity (has additionalData)
-                if segment.segmentType == .bookedActivity {
-                    // For booked activities, check the segment's start date (already copied from additionalData)
+            for item in itemGroup {
+                switch item {
+                case .bookedActivitySegment(let segment):
+                    // Check if booked activity falls on selected day
                     if let segmentStartDate = segment.startDate,
                        let activityDate = Date.fromString(segmentStartDate, format: "yyyy-MM-dd HH:mm:ss") {
-                        
                         if activityDate >= selectedDayStart && activityDate < selectedDayEnd {
-                            filteredGroup.append(segmentWithSteps)
+                            filteredGroup.append(item)
                         }
                     }
-                } else {
-                    // For itineraries, filter steps that match the selected day
-                    let filteredSteps = segmentWithSteps.steps.filter { step in
+                    
+                case .activityStep(let step):
+                    // Check if activity step falls on selected day
+                    if let stepStartDate = step.startDateTimes,
+                       let stepDate = Date.fromString(stepStartDate, format: "yyyy-MM-dd HH:mm:ss") {
+                        if stepDate >= selectedDayStart && stepDate < selectedDayEnd {
+                            filteredGroup.append(item)
+                        }
+                    }
+                    
+                case .poiSteps(let steps):
+                    // Filter POI steps that match the selected day
+                    let filteredSteps = steps.filter { step in
                         guard let stepStartDate = step.startDateTimes,
                               let stepDate = Date.fromString(stepStartDate, format: "yyyy-MM-dd HH:mm:ss") else {
                             return true
@@ -172,54 +180,28 @@ public class TRPTimelineItineraryViewModel {
                     }
                     
                     if !filteredSteps.isEmpty {
-                        let newSegmentWithSteps = SegmentWithSteps(
-                            segment: segmentWithSteps.segment,
-                            steps: filteredSteps
-                        )
-                        filteredGroup.append(newSegmentWithSteps)
+                        filteredGroup.append(.poiSteps(filteredSteps))
                     }
                 }
             }
             
             if !filteredGroup.isEmpty {
-                filteredSegments.append(filteredGroup)
+                filtered.append(filteredGroup)
             }
         }
         
         // Sort each filtered group by start time
-        var sortedFilteredSegments: [[SegmentWithSteps]] = []
-        for (_, var group) in filteredSegments.enumerated() {
-            group.sort { seg1, seg2 in
-                let date1 = getSegmentStartDate(seg1)
-                let date2 = getSegmentStartDate(seg2)
+        var sorted: [[TimelineItem]] = []
+        for var group in filtered {
+            group.sort { item1, item2 in
+                let date1 = getItemStartDate(item1)
+                let date2 = getItemStartDate(item2)
                 return date1 < date2
             }
-            sortedFilteredSegments.append(group)
+            sorted.append(group)
         }
         
-        segmentsWithSteps = sortedFilteredSegments.isEmpty ? allSegmentsWithSteps : sortedFilteredSegments
-    }
-    
-    // Helper to get segment start date for sorting
-    private func getSegmentStartDate(_ segmentWithSteps: SegmentWithSteps) -> Date {
-        let segment = segmentWithSteps.segment
-        
-        // For booked activities, use additionalData startDatetime
-        if segment.segmentType == .bookedActivity, let startDatetime = segment.additionalData?.startDatetime {
-            return Date.fromString(startDatetime, format: "yyyy-MM-dd HH:mm:ss") ?? Date()
-        }
-        
-        // For itineraries, use first step's start time or segment's start date
-        if let firstStep = segmentWithSteps.steps.first, let stepStart = firstStep.startDateTimes {
-            return Date.fromString(stepStart, format: "yyyy-MM-dd HH:mm:ss") ?? Date()
-        }
-        
-        // Fallback to segment start date
-        if let segmentStart = segment.startDate {
-            return Date.fromString(segmentStart, format: "yyyy-MM-dd HH:mm:ss") ?? Date()
-        }
-        
-        return Date()
+        filteredTimelineItems = sorted.isEmpty ? allTimelineItems : sorted
     }
     
     // MARK: - Public Methods
@@ -230,7 +212,7 @@ public class TRPTimelineItineraryViewModel {
     
     public func selectDay(at index: Int) {
         selectedDayIndex = index
-        filterSegmentsByDay(index)
+        filterItemsByDay(index)
     }
     
     public func getDays() -> [String] {
@@ -266,6 +248,24 @@ public class TRPTimelineItineraryViewModel {
         return days
     }
     
+    /// Get the trip dates as Date objects
+    public func getDayDates() -> [Date] {
+        guard let plans = timeline?.plans, !plans.isEmpty else { return [] }
+        
+        let startDate = plans.first?.getStartDate() ?? Date()
+        let endDate = plans.last?.getEndDate() ?? Date()
+        let numberOfDays = startDate.numberOfDaysBetween(endDate)
+        
+        var dates: [Date] = []
+        for dayIndex in 0..<numberOfDays {
+            if let currentDate = startDate.addDay(dayIndex) {
+                dates.append(currentDate)
+            }
+        }
+        
+        return dates
+    }
+    
     /// Get the trip date range (start and end dates)
     public func getTripDateRange() -> (start: Date, end: Date)? {
         guard let plans = timeline?.plans, !plans.isEmpty else { return nil }
@@ -276,40 +276,71 @@ public class TRPTimelineItineraryViewModel {
         return (start: startDate, end: endDate)
     }
     
+    /// Get all unique cities from the timeline
+    public func getCities() -> [TRPCity] {
+        var cities: [TRPCity] = []
+        var cityIds = Set<Int>()
+        
+        // Extract cities from booked segments
+        if let segments = timeline?.segments {
+            for segment in segments {
+                if let city = segment.city, !cityIds.contains(city.id) {
+                    cities.append(city)
+                    cityIds.insert(city.id)
+                }
+            }
+        }
+        
+        // Extract cities from plans
+        if let plans = timeline?.plans {
+            for plan in plans {
+                if let city = plan.city, !cityIds.contains(city.id) {
+                    cities.append(city)
+                    cityIds.insert(city.id)
+                }
+            }
+        }
+        
+        return cities
+    }
+    
     // MARK: - TableView Data Methods
     public func numberOfSections() -> Int {
-        return segmentsWithSteps.count
+        return filteredTimelineItems.count
     }
     
     public func numberOfRows(in section: Int) -> Int {
-        guard section < segmentsWithSteps.count else { return 0 }
+        guard section < filteredTimelineItems.count else { return 0 }
         
-        let sectionSegments = segmentsWithSteps[section]
+        let sectionItems = filteredTimelineItems[section]
         
-        // Each segment (bookedActivity or itinerary) is one row
-        // No add buttons between sections
-        return sectionSegments.count
+        // Each item (bookedActivity, activityStep, or poiSteps) is one row
+        return sectionItems.count
     }
     
     public func cellType(at indexPath: IndexPath) -> TRPTimelineCellType? {
-        guard indexPath.section < segmentsWithSteps.count else {
+        guard indexPath.section < filteredTimelineItems.count else {
             return nil
         }
         
-        let sectionSegments = segmentsWithSteps[indexPath.section]
+        let sectionItems = filteredTimelineItems[indexPath.section]
         
-        // Each row corresponds to one segment
-        guard indexPath.row < sectionSegments.count else {
+        // Each row corresponds to one timeline item
+        guard indexPath.row < sectionItems.count else {
             return nil
         }
         
-        let segmentWithSteps = sectionSegments[indexPath.row]
+        let item = sectionItems[indexPath.row]
         
-        if segmentWithSteps.segment.segmentType == .bookedActivity {
-            return .bookedActivity(segmentWithSteps.segment)
-        } else {
-            // itinerary type - return all steps as recommendations
-            return .recommendations(segmentWithSteps.steps)
+        switch item {
+        case .bookedActivitySegment(let segment):
+            return .bookedActivity(segment)
+            
+        case .activityStep(let step):
+            return .activityStep(step)
+            
+        case .poiSteps(let steps):
+            return .recommendations(steps)
         }
     }
     
@@ -340,12 +371,26 @@ public class TRPTimelineItineraryViewModel {
     }
     
     private func getCityName(for section: Int) -> String {
-        guard section < segmentsWithSteps.count,
-              let firstSegment = segmentsWithSteps[section].first,
-              let city = firstSegment.segment.city else {
+        guard section < filteredTimelineItems.count,
+              let firstItem = filteredTimelineItems[section].first else {
             return "Unknown"
         }
-        return city.name
+        
+        // Extract city from the timeline item
+        switch firstItem {
+        case .bookedActivitySegment(let segment):
+            return segment.city?.name ?? "Unknown"
+            
+        case .activityStep(let step):
+            // Activity steps might not have city info directly, try to get from POI
+            return step.poi?.locations.first?.name ?? "Unknown"
+            
+        case .poiSteps(let steps):
+            if let firstStep = steps.first, let location = firstStep.poi?.locations.first {
+                return location.name
+            }
+            return "Unknown"
+        }
     }
     
     /// Check if there are multiple different destinations in the timeline
@@ -353,11 +398,26 @@ public class TRPTimelineItineraryViewModel {
         var cityIds = Set<Int>()
         var cityNames = Set<String>()
         
-        for sectionSegments in segmentsWithSteps {
-            for segmentWithSteps in sectionSegments {
-                if let city = segmentWithSteps.segment.city {
-                    cityIds.insert(city.id)
-                    cityNames.insert(city.name)
+        for sectionItems in filteredTimelineItems {
+            for item in sectionItems {
+                switch item {
+                case .bookedActivitySegment(let segment):
+                    if let city = segment.city {
+                        cityIds.insert(city.id)
+                        cityNames.insert(city.name)
+                    }
+                    
+                case .activityStep(let step):
+                    if let location = step.poi?.locations.first {
+                        cityIds.insert(location.id)
+                        cityNames.insert(location.name)
+                    }
+                    
+                case .poiSteps(let steps):
+                    if let firstStep = steps.first, let location = firstStep.poi?.locations.first {
+                        cityIds.insert(location.id)
+                        cityNames.insert(location.name)
+                    }
                 }
                 
                 // If we found more than one city, we have multiple destinations
@@ -376,12 +436,24 @@ public class TRPTimelineItineraryViewModel {
     public func getPoisForSelectedDay() -> [TRPPoi] {
         var pois: [TRPPoi] = []
         
-        for sectionSegments in segmentsWithSteps {
-            for segmentWithSteps in sectionSegments {
-                for step in segmentWithSteps.steps {
+        for sectionItems in filteredTimelineItems {
+            for item in sectionItems {
+                switch item {
+                case .activityStep(let step):
                     if let poi = step.poi {
                         pois.append(poi)
                     }
+                    
+                case .poiSteps(let steps):
+                    for step in steps {
+                        if let poi = step.poi {
+                            pois.append(poi)
+                        }
+                    }
+                    
+                case .bookedActivitySegment:
+                    // Booked activities don't have POIs to show on map
+                    break
                 }
             }
         }
@@ -394,18 +466,30 @@ public class TRPTimelineItineraryViewModel {
     public func getSegmentsWithPoisForSelectedDay() -> [[TRPPoi]] {
         var segmentGroups: [[TRPPoi]] = []
         
-        for sectionSegments in segmentsWithSteps {
-            for segmentWithSteps in sectionSegments {
-                var poisInSegment: [TRPPoi] = []
-                
-                for step in segmentWithSteps.steps {
+        for sectionItems in filteredTimelineItems {
+            for item in sectionItems {
+                switch item {
+                case .activityStep(let step):
+                    // Activity steps are individual
                     if let poi = step.poi {
-                        poisInSegment.append(poi)
+                        segmentGroups.append([poi])
                     }
-                }
-                
-                if !poisInSegment.isEmpty {
-                    segmentGroups.append(poisInSegment)
+                    
+                case .poiSteps(let steps):
+                    // POI steps are grouped together
+                    var poisInGroup: [TRPPoi] = []
+                    for step in steps {
+                        if let poi = step.poi {
+                            poisInGroup.append(poi)
+                        }
+                    }
+                    if !poisInGroup.isEmpty {
+                        segmentGroups.append(poisInGroup)
+                    }
+                    
+                case .bookedActivitySegment:
+                    // Booked activities don't have POIs
+                    break
                 }
             }
         }
@@ -417,10 +501,9 @@ public class TRPTimelineItineraryViewModel {
     public func getBookedActivitiesForSelectedDay() -> [TRPTimelineSegment] {
         var bookedActivities: [TRPTimelineSegment] = []
         
-        for sectionSegments in segmentsWithSteps {
-            for segmentWithSteps in sectionSegments {
-                let segment = segmentWithSteps.segment
-                if segment.segmentType == .bookedActivity {
+        for sectionItems in filteredTimelineItems {
+            for item in sectionItems {
+                if case .bookedActivitySegment(let segment) = item {
                     bookedActivities.append(segment)
                 }
             }
@@ -431,12 +514,23 @@ public class TRPTimelineItineraryViewModel {
     
     /// Get POI by ID
     public func getPoi(byId id: String) -> TRPPoi? {
-        for sectionSegments in segmentsWithSteps {
-            for segmentWithSteps in sectionSegments {
-                for step in segmentWithSteps.steps {
+        for sectionItems in filteredTimelineItems {
+            for item in sectionItems {
+                switch item {
+                case .activityStep(let step):
                     if let poi = step.poi, poi.id == id {
                         return poi
                     }
+                    
+                case .poiSteps(let steps):
+                    for step in steps {
+                        if let poi = step.poi, poi.id == id {
+                            return poi
+                        }
+                    }
+                    
+                case .bookedActivitySegment:
+                    break
                 }
             }
         }
@@ -445,10 +539,9 @@ public class TRPTimelineItineraryViewModel {
     
     /// Get booked activity by activity ID
     public func getBookedActivity(byId activityId: String) -> TRPTimelineSegment? {
-        for sectionSegments in segmentsWithSteps {
-            for segmentWithSteps in sectionSegments {
-                let segment = segmentWithSteps.segment
-                if segment.segmentType == .bookedActivity,
+        for sectionItems in filteredTimelineItems {
+            for item in sectionItems {
+                if case .bookedActivitySegment(let segment) = item,
                    let additionalData = segment.additionalData,
                    additionalData.activityId == activityId {
                     return segment
@@ -460,12 +553,23 @@ public class TRPTimelineItineraryViewModel {
     
     /// Get step for a specific POI ID
     public func getStep(forPoiId id: String) -> TRPTimelineStep? {
-        for sectionSegments in segmentsWithSteps {
-            for segmentWithSteps in sectionSegments {
-                for step in segmentWithSteps.steps {
+        for sectionItems in filteredTimelineItems {
+            for item in sectionItems {
+                switch item {
+                case .activityStep(let step):
                     if let poi = step.poi, poi.id == id {
                         return step
                     }
+                    
+                case .poiSteps(let steps):
+                    for step in steps {
+                        if let poi = step.poi, poi.id == id {
+                            return step
+                        }
+                    }
+                    
+                case .bookedActivitySegment:
+                    break
                 }
             }
         }

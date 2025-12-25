@@ -45,6 +45,7 @@ public struct TRPPoi: Codable {
     public var closed = [Int]()
     public var distance: Float?
     public var safety = [String]()
+    public var locations = [TRPPoiLocation]()
     
     public let status: Bool
     

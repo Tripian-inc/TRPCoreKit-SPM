@@ -1,0 +1,99 @@
+//
+//  AddPlanLocalizationKeys.swift
+//  TRPCoreKit
+//
+//  Created by Cem Çaygöz on 23.12.2024.
+//  Copyright © 2024 Tripian Inc. All rights reserved.
+//
+
+import Foundation
+
+public struct AddPlanLocalizationKeys {
+    // MARK: - Main Screen
+    public static let addActivity = "addPlan.title.addActivity"
+    public static let addToDay = "addPlan.label.addToDay"
+    public static let city = "addPlan.label.city"
+    public static let selectCity = "addPlan.title.selectCity"
+    public static let startTime = "addPlan.label.startTime"
+    public static let endTime = "addPlan.label.endTime"
+    public static let select = "addPlan.button.select"
+    public static let clearSelection = "addPlan.button.clearSelection"
+    public static let continueButton = "addPlan.button.continue"
+    public static let cancel = "addPlan.button.cancel"
+    
+    // MARK: - Selection Mode
+    public static let howToAddPlans = "addPlan.label.howToAddPlans"
+    public static let smartRecommendations = "addPlan.mode.smartRecommendations"
+    public static let smartRecommendationsDescription = "addPlan.description.smartRecommendations"
+    public static let addManually = "addPlan.mode.addManually"
+    public static let addManuallyDescription = "addPlan.description.addManually"
+    
+    // MARK: - Time & Travelers
+    public static let selectStartingPoint = "addPlan.label.selectStartingPoint"
+    public static let selectDateAndTime = "addPlan.label.selectDateAndTime"
+    public static let selectTravelers = "addPlan.label.selectTravelers"
+    public static let travelers = "addPlan.label.travelers"
+    
+    // MARK: - POI Selection
+    public static let searchPOI = "addPlan.placeholder.searchPOI"
+    public static let nearMe = "addPlan.option.nearMe"
+    public static let cityCenter = "addPlan.label.cityCenter"
+    public static let savedActivities = "addPlan.section.savedActivities"
+    
+    // MARK: - Categories
+    public static let selectCategories = "addPlan.label.selectCategories"
+    public static let categoryGuidedTours = "addPlan.category.guidedTours"
+    public static let categoryTickets = "addPlan.category.tickets"
+    public static let categoryExcursions = "addPlan.category.excursions"
+    public static let categoryPOI = "addPlan.category.poi"
+    public static let categoryFood = "addPlan.category.food"
+    public static let categoryShows = "addPlan.category.shows"
+    public static let categoryTransport = "addPlan.category.transport"
+    
+    // MARK: - Default English Values
+    private static let defaultValues: [String: String] = [
+        addActivity: "Add Activity",
+        addToDay: "Add to Day",
+        city: "City",
+        selectCity: "Select City",
+        startTime: "Start Time",
+        endTime: "End Time",
+        select: "Select",
+        clearSelection: "Clear Selection",
+        continueButton: "Continue",
+        cancel: "Cancel",
+        howToAddPlans: "How do you want to add plans?",
+        smartRecommendations: "Smart Recommendations",
+        smartRecommendationsDescription: "Enhance your trip with smart recommendations based on your planning.",
+        addManually: "Add Manually",
+        addManuallyDescription: "Select a single activity directly from the catalog.",
+        selectStartingPoint: "Select a Starting Point",
+        selectDateAndTime: "Select Date and Time",
+        selectTravelers: "Select Travelers",
+        travelers: "Travelers",
+        searchPOI: "Search for a place",
+        nearMe: "Near me",
+        cityCenter: "City Center",
+        savedActivities: "Reserved and Saved Activities",
+        selectCategories: "Select the Categories You Want",
+        categoryGuidedTours: "Guided Tours\n& Free Tours",
+        categoryTickets: "Tickets",
+        categoryExcursions: "Multi-day\nExcursions",
+        categoryPOI: "Point of\nInterest",
+        categoryFood: "Food &\nDrinks",
+        categoryShows: "Shows",
+        categoryTransport: "Transport &\nTransfers"
+    ]
+    
+    // MARK: - Helper Methods
+    public static func localized(_ key: String) -> String {
+        let localizedValue = TRPLanguagesController.shared.getLanguageValue(for: key)
+        
+        // If the localization returns the key itself or is empty, use default English value
+        if localizedValue.isEmpty || localizedValue == key {
+            return defaultValues[key] ?? key
+        }
+        
+        return localizedValue
+    }
+}

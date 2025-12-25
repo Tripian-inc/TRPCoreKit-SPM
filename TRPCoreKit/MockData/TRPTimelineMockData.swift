@@ -15,7 +15,7 @@ public class TRPTimelineMockData {
         // Create mock city
         let city = createBarcelonaCity()
         
-        // Create 5-day plan with multiple daily plans
+        // Create 6-day plan with multiple daily plans (extends to next month)
         let plans = create5DayPlans(city: city)
         
         // Create timeline
@@ -63,13 +63,13 @@ public class TRPTimelineMockData {
         profile.excludePoiIds = []
         profile.excludeHashPois = []
         
-        // Segment 1: Main Barcelona Discovery (Full trip)
+        // Segment 1: Main Barcelona Discovery (Full trip - Extended to Jan 1st)
         let mainSegment = TRPTimelineSegment()
         mainSegment.available = true
         mainSegment.title = "Barcelona Discovery"
-        mainSegment.description = "5-day exploration of Barcelona"
+        mainSegment.description = "6-day exploration of Barcelona"
         mainSegment.startDate = "2025-12-07 09:00"
-        mainSegment.endDate = "2025-12-11 22:00"
+        mainSegment.endDate = "2026-01-01 22:00"
         mainSegment.coordinate = TRPLocation(lat: 41.3850639, lon: 2.1734034999999494)
         mainSegment.adults = 1
         mainSegment.children = 0
@@ -79,7 +79,7 @@ public class TRPTimelineMockData {
         mainSegment.doNotRecommend = []
         mainSegment.excludePoiIds = []
         mainSegment.includePoiIds = []
-        mainSegment.dayIds = [25459, 25460, 25461, 25462, 25463]
+        mainSegment.dayIds = [25459, 25460, 25461, 25462, 25463, 25464]
         mainSegment.considerWeather = false
         mainSegment.distinctPlan = true
         mainSegment.segmentType = .itinerary
@@ -272,7 +272,8 @@ public class TRPTimelineMockData {
             createDay2AlternativePlan(city: city), // Second plan for Day 2
             createDay3Plan(city: city),
             createDay4Plan(city: city),
-            createDay5Plan(city: city)
+            createDay5Plan(city: city),
+            createDay6EmptyPlan(city: city) // Empty plan for next month
         ]
     }
     
@@ -402,8 +403,9 @@ public class TRPTimelineMockData {
             createStep(id: 126406, poi: createCiutatComtal(), score: 86, order: 0,
                       startTime: "2025-12-09 09:00:00", endTime: "2025-12-09 10:00:00"),
             
-            createStep(id: 126407, poi: createCasaBatllo(), score: 99, order: 1,
-                      startTime: "2025-12-09 10:30:00", endTime: "2025-12-09 12:00:00"),
+            // ACTIVITY TYPE STEP - Will show as booking card
+            createActivityStep(id: 126421, poi: createSagradaFamiliaGuidedTour(), score: 98, order: 1,
+                              startTime: "2025-12-09 10:30:00", endTime: "2025-12-09 12:00:00"),
             
             createStep(id: 126408, poi: createBombaySpicy(), score: 59, order: 2,
                       startTime: "2025-12-09 13:00:00", endTime: "2025-12-09 14:00:00"),
@@ -411,8 +413,12 @@ public class TRPTimelineMockData {
             createStep(id: 126409, poi: createParkGuell(), score: 93, order: 3,
                       startTime: "2025-12-09 15:00:00", endTime: "2025-12-09 16:30:00"),
             
-            createStep(id: 126410, poi: createLaTaverna(), score: 85, order: 4,
-                      startTime: "2025-12-09 19:30:00", endTime: "2025-12-09 21:30:00")
+            // ANOTHER ACTIVITY TYPE STEP - Will also show as booking card
+            createActivityStep(id: 126422, poi: createFlamencoShow(), score: 92, order: 4,
+                              startTime: "2025-12-09 18:00:00", endTime: "2025-12-09 19:30:00"),
+            
+            createStep(id: 126410, poi: createLaTaverna(), score: 85, order: 5,
+                      startTime: "2025-12-09 20:00:00", endTime: "2025-12-09 22:00:00")
         ]
         
         return TRPTimelinePlan(
@@ -422,8 +428,8 @@ public class TRPTimelineMockData {
             steps: steps,
             available: true,
             tripType: 3,
-            name: "Day 3: Sagrada Familia & Markets",
-            description: "Visit iconic landmarks and local markets",
+            name: "Day 3: Activities & Culture",
+            description: "Experience guided tours and local culture",
             generatedStatus: 0,
             children: 0,
             pets: 0,
@@ -510,6 +516,28 @@ public class TRPTimelineMockData {
         )
     }
     
+    // MARK: - Day 6: Empty Plan for Next Month
+    private static func createDay6EmptyPlan(city: TRPCity) -> TRPTimelinePlan {
+        // Empty plan with no steps - for January 1st
+        return TRPTimelinePlan(
+            id: "25464",
+            startDate: "2026-01-01 09:00",
+            endDate: "2026-01-01 21:00",
+            steps: [], // No steps - empty plan
+            available: true,
+            tripType: 3,
+            name: "Day 6: Open Day",
+            description: "No plans scheduled for this day",
+            generatedStatus: 0,
+            children: 0,
+            pets: 0,
+            adults: 1,
+            city: city,
+            accommodation: nil,
+            destinationAccommodation: nil
+        )
+    }
+    
     private static func createStep(id: Int, poi: TRPPoi, score: Double, order: Int,
                                    startTime: String, endTime: String) -> TRPTimelineStep {
         return TRPTimelineStep(
@@ -528,13 +556,37 @@ public class TRPTimelineMockData {
         )
     }
     
+    /// Helper to create an activity type step (shown as booking card)
+    private static func createActivityStep(id: Int, poi: TRPPoi, score: Double, order: Int,
+                                          startTime: String, endTime: String) -> TRPTimelineStep {
+        return TRPTimelineStep(
+            id: id,
+            poi: poi,
+            score: score,
+            planId: "25459",
+            scoreDetails: [],
+            order: order,
+            startDateTimes: startTime,
+            endDateTimes: endTime,
+            stepType: "activity", // This makes it display as a booking card
+            attention: nil,
+            alternatives: [],
+            warningMessage: []
+        )
+    }
+    
     // MARK: - POI Creators
+    
+    /// Helper to add Barcelona location to POI
+    private static func addBarcelonaLocation(to poi: inout TRPPoi) {
+        poi.locations = [TRPPoiLocation(id: 109, name: "Barcelona", locationType: "city", country: "Spain", continent: "Europe")]
+    }
     
     private static func createCiutatComtal() -> TRPPoi {
         let image = TRPImage(url: "https://poi-pics.s3-eu-west-1.amazonaws.com/Place/109/540930/a0e51807320fa93a84480724727a75f7.jpg",
                             imageOwner: nil, width: nil, height: nil)
         
-        return TRPPoi(
+        var poi = TRPPoi(
             id: "540930",
             cityId: 109,
             name: "Ciutat Comtal",
@@ -565,13 +617,15 @@ public class TRPTimelineMockData {
             offers: [],
             additionalData: nil
         )
+        poi.locations = [TRPPoiLocation(id: 109, name: "Barcelona", locationType: "city", country: "Spain", continent: "Europe")]
+        return poi
     }
     
     private static func createCasaBatllo() -> TRPPoi {
         let image = TRPImage(url: "https://poi-pics.s3-eu-west-1.amazonaws.com/Place/109/540484/a7851827f89def28341f5e6b80938032.jpg",
                             imageOwner: nil, width: nil, height: nil)
         
-        return TRPPoi(
+        var poi = TRPPoi(
             id: "540484",
             cityId: 109,
             name: "Casa Batlló",
@@ -602,13 +656,15 @@ public class TRPTimelineMockData {
             offers: [],
             additionalData: nil
         )
+        addBarcelonaLocation(to: &poi)
+        return poi
     }
     
     private static func createLaPedrera() -> TRPPoi {
         let image = TRPImage(url: "https://poi-pics.s3-eu-west-1.amazonaws.com/Place/109/543194/72670f8390ba3d616c48f6a7b4574085.jpg",
                             imageOwner: nil, width: nil, height: nil)
         
-        return TRPPoi(
+        var poi = TRPPoi(
             id: "543194",
             cityId: 109,
             name: "La Pedrera - Casa Milà",
@@ -639,13 +695,15 @@ public class TRPTimelineMockData {
             offers: [],
             additionalData: nil
         )
+        addBarcelonaLocation(to: &poi)
+        return poi
     }
     
     private static func createTavernaElGlop() -> TRPPoi {
         let image = TRPImage(url: "https://poi-pics.s3-eu-west-1.amazonaws.com/Place/109/544238/8fd4f14ce6eb6dff074b3112b4d8c846.jpg",
                             imageOwner: nil, width: nil, height: nil)
         
-        return TRPPoi(
+        var poi = TRPPoi(
             id: "544238",
             cityId: 109,
             name: "Taverna El Glop",
@@ -676,13 +734,15 @@ public class TRPTimelineMockData {
             offers: [],
             additionalData: nil
         )
+        addBarcelonaLocation(to: &poi)
+        return poi
     }
     
     private static func createParkGuell() -> TRPPoi {
         let image = TRPImage(url: "https://poi-pics.s3-eu-west-1.amazonaws.com/Place/109/540770/9b8537cd5a0559b05f257b57d707982d.jpg",
                             imageOwner: nil, width: nil, height: nil)
         
-        return TRPPoi(
+        var poi = TRPPoi(
             id: "540770",
             cityId: 109,
             name: "Park Güell",
@@ -713,13 +773,15 @@ public class TRPTimelineMockData {
             offers: [],
             additionalData: nil
         )
+        addBarcelonaLocation(to: &poi)
+        return poi
     }
     
     private static func createPalauGuell() -> TRPPoi {
         let image = TRPImage(url: "https://poi-pics.s3-eu-west-1.amazonaws.com/Place/109/543512/f258dbead165a8fc65fc4832a10115fb.jpg",
                             imageOwner: nil, width: nil, height: nil)
         
-        return TRPPoi(
+        var poi = TRPPoi(
             id: "543512",
             cityId: 109,
             name: "Palau Güell",
@@ -750,13 +812,15 @@ public class TRPTimelineMockData {
             offers: [],
             additionalData: nil
         )
+        addBarcelonaLocation(to: &poi)
+        return poi
     }
     
     private static func createBombaySpicy() -> TRPPoi {
         let image = TRPImage(url: "https://poi-pics.s3-eu-west-1.amazonaws.com/Place/109/540640/1d90b758459a2ab9c931b8d9260593de.jpg",
                             imageOwner: nil, width: nil, height: nil)
         
-        return TRPPoi(
+        var poi = TRPPoi(
             id: "540640",
             cityId: 109,
             name: "Bombay Spicy",
@@ -787,13 +851,15 @@ public class TRPTimelineMockData {
             offers: [],
             additionalData: nil
         )
+        addBarcelonaLocation(to: &poi)
+        return poi
     }
     
     private static func createPlacaCatalunya() -> TRPPoi {
         let image = TRPImage(url: "https://poi-pics.s3-eu-west-1.amazonaws.com/Place/109/543441/f6b77e499f314d43026ce9f45ad63e25.jpg",
                             imageOwner: nil, width: nil, height: nil)
         
-        return TRPPoi(
+        var poi = TRPPoi(
             id: "543441",
             cityId: 109,
             name: "Plaça de Catalunya",
@@ -824,13 +890,15 @@ public class TRPTimelineMockData {
             offers: [],
             additionalData: nil
         )
+        addBarcelonaLocation(to: &poi)
+        return poi
     }
     
     private static func createLaTaverna() -> TRPPoi {
         let image = TRPImage(url: "https://poi-pics.s3-eu-west-1.amazonaws.com/Place/109/539846/338abac4fb316a086287ccc259edbeef.jpg",
                             imageOwner: nil, width: nil, height: nil)
         
-        return TRPPoi(
+        var poi = TRPPoi(
             id: "539846",
             cityId: 109,
             name: "La Taverna de Barcelona",
@@ -861,5 +929,87 @@ public class TRPTimelineMockData {
             offers: [],
             additionalData: nil
         )
+        addBarcelonaLocation(to: &poi)
+        return poi
+    }
+    
+    // MARK: - Activity POIs (for activity type steps)
+    
+    private static func createSagradaFamiliaGuidedTour() -> TRPPoi {
+        let image = TRPImage(url: "https://poi-pics.s3-eu-west-1.amazonaws.com/Place/109/539346/7ba7b60e8f64e66f1b75f3e6e1eb5a20.jpg",
+                            imageOwner: nil, width: nil, height: nil)
+        
+        var poi = TRPPoi(
+            id: "C_154506_15",
+            cityId: 109,
+            name: "Sagrada Familia Guided Tour with Skip-the-Line Access",
+            image: image,
+            gallery: [],
+            duration: 90,
+            price: 45,
+            rating: 4.8,
+            ratingCount: 51109,
+            description: "On this guided tour of the Sagrada Familia, explore Gaudí's masterpiece with an expert guide. Skip the long lines and discover the history, architecture, and symbolism of this iconic basilica. Learn about the construction that has been ongoing since 1882 and marvel at the stunning stained glass windows and intricate facades.",
+            webUrl: "https://tripian.com",
+            phone: nil,
+            hours: "Sun, Mon, Tue, Wed, Thu, Fri, Sat: 9:00 AM - 8:00 PM",
+            address: "C/ de Mallorca, 401, L'Eixample, 08013 Barcelona, Spain",
+            icon: "Activity",
+            coordinate: TRPLocation(lat: 41.4036299, lon: 2.1743558),
+            bookings: nil,
+            categories: [TRPPoiCategory(id: 1, name: "Activities", isCustom: false)],
+            tags: [],
+            mustTries: [],
+            cuisines: nil,
+            attention: "Skip-the-line access included. Tour starts on time - please arrive 10 minutes early.",
+            closed: [],
+            distance: nil,
+            safety: [],
+            status: true,
+            placeType: .poi,
+            offers: [],
+            additionalData: nil
+        )
+        addBarcelonaLocation(to: &poi)
+        return poi
+    }
+    
+    private static func createFlamencoShow() -> TRPPoi {
+        let image = TRPImage(url: "https://poi-pics.s3-eu-west-1.amazonaws.com/Activities/flamenco-barcelona.jpg",
+                            imageOwner: nil, width: nil, height: nil)
+        
+        var poi = TRPPoi(
+            id: "ACTIVITY_FLAMENCO_001",
+            cityId: 109,
+            name: "Authentic Flamenco Show with Tapas & Drinks",
+            image: image,
+            gallery: [],
+            duration: 90,
+            price: 35,
+            rating: 4.7,
+            ratingCount: 8542,
+            description: "Experience the passion of authentic Spanish flamenco in an intimate tablao setting. This 90-minute show features professional dancers, singers, and guitarists performing traditional and contemporary flamenco. Includes a selection of Spanish tapas and one drink (wine, beer, or soft drink). Located in the heart of Barcelona's Gothic Quarter.",
+            webUrl: "https://tripian.com",
+            phone: "+34 933 19 17 89",
+            hours: "Daily shows at 6:00 PM and 8:30 PM",
+            address: "Plaça Reial, 17, Ciutat Vella, 08002 Barcelona, Spain",
+            icon: "Activity",
+            coordinate: TRPLocation(lat: 41.3798, lon: 2.1755),
+            bookings: nil,
+            categories: [TRPPoiCategory(id: 1, name: "Activities", isCustom: false)],
+            tags: [],
+            mustTries: [],
+            cuisines: nil,
+            attention: "Reserved seating. Doors open 30 minutes before showtime. Smart casual dress code recommended.",
+            closed: [],
+            distance: nil,
+            safety: [],
+            status: true,
+            placeType: .poi,
+            offers: [],
+            additionalData: nil
+        )
+        addBarcelonaLocation(to: &poi)
+        return poi
     }
 }

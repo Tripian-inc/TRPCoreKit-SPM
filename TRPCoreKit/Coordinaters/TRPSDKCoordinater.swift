@@ -28,6 +28,11 @@ public class TRPSDKCoordinater {
     
     private var canBackFromMyTrip = true
     
+    // Timeline-related properties
+    private var timelineFromItineraryViewModel: TRPTimelineFromItineraryViewModel?
+    private var timelineModelRepository: TRPTimelineModelRepository?
+    private var timelineRepository: TRPTimelineRepository?
+    
     private var alertMessage: (title: String?, message: String)? {
         didSet {
             guard let message = alertMessage else {return}
@@ -59,6 +64,21 @@ public class TRPSDKCoordinater {
     
     private lazy var companionUseCases: TRPCompanionUseCases = {
         return TRPCompanionUseCases()
+    }()
+    
+    // Timeline use cases
+    private lazy var createTimelineUseCase: TRPCreateTimelineUseCase = {
+        let repo = timelineRepository ?? TRPTimelineRepository()
+        timelineRepository = repo
+        return TRPCreateTimelineUseCase(repository: repo)
+    }()
+    
+    private lazy var fetchTimelineCheckAllPlanUseCase: TRPTimelineCheckAllPlanUseCases = {
+        let timelineRepo = timelineRepository ?? TRPTimelineRepository()
+        let timelineModelRepo = timelineModelRepository ?? TRPTimelineModelRepository()
+        timelineRepository = timelineRepo
+        timelineModelRepository = timelineModelRepo
+        return TRPTimelineCheckAllPlanUseCases(timelineRepository: timelineRepo, timelineModelRepository: timelineModelRepo)
     }()
     
     private lazy var myTrip: MyTripVC = {
@@ -99,6 +119,45 @@ public class TRPSDKCoordinater {
     
     public func startWithEmailAndPassword(_ email: String, _ password: String) {
         startWithSplashVC(email: email, password: password)
+    }
+    
+    /// Start with TRPItineraryWithActivities model to create a timeline
+    /// This method creates a timeline from the itinerary model, waits for generation, and then opens the timeline mode
+    /// - Parameter itineraryModel: TRPItineraryWithActivities model containing timeline data
+    public func startWithItinerary(_ itineraryModel: TRPItineraryWithActivities) {
+        checkAllApiKey()
+        userProfile()
+        
+        // Start with splash screen for authentication first
+        let vc = SplashViewController()
+        vc.delegate = self
+        vc.uniqueId = itineraryModel.uniqueId
+        vc.start()
+        DispatchQueue.main.async {
+            self.navigationController.pushViewController(vc, animated: true)
+            self.setupSomeGeneralAppearances()
+            
+            // After authentication completes, create the timeline using view model
+            self.setupTimelineCreationViewModel(itineraryModel)
+        }
+    }
+    
+    /// Sets up the timeline creation view model and starts the creation process
+    private func setupTimelineCreationViewModel(_ itineraryModel: TRPItineraryWithActivities) {
+        // Create view model
+        let viewModel = TRPTimelineFromItineraryViewModel(itineraryModel: itineraryModel)
+        viewModel.delegate = self
+        
+        // Set up use cases
+        viewModel.createTimelineUseCase = createTimelineUseCase
+        viewModel.observeTimelineAllPlan = fetchTimelineCheckAllPlanUseCase
+        viewModel.fetchTimelineAllPlan = fetchTimelineCheckAllPlanUseCase
+        
+        // Store reference
+        timelineFromItineraryViewModel = viewModel
+        
+        // Start timeline creation
+        viewModel.createTimeline()
     }
     
     public func start() {
@@ -520,4 +579,27 @@ extension TRPSDKCoordinater {
         }
     }
     
+}
+
+// MARK: - Timeline Creation Delegate
+extension TRPSDKCoordinater: TRPTimelineFromItineraryViewModelDelegate {
+    
+    public func timelineGenerated(timeline: TRPTimeline) {
+        // Timeline is successfully generated, open timeline itinerary view
+        openTimelineItineraryViewController(timeline: timeline)
+    }
+    
+    /// Opens Timeline Itinerary View Controller with the generated timeline
+    private func openTimelineItineraryViewController(timeline: TRPTimeline) {
+        // Create view model with timeline
+        let viewModel = TRPTimelineItineraryViewModel(timeline: timeline)
+        
+        // Create view controller
+        let viewController = TRPTimelineItineraryVC(viewModel: viewModel)
+        
+        // Push onto navigation stack
+        DispatchQueue.main.async {
+            self.navigationController.pushViewController(viewController, animated: true)
+        }
+    }
 }
