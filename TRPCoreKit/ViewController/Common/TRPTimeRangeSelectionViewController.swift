@@ -371,20 +371,8 @@ class TRPTimeRangeSelectionViewController: UIViewController {
             print("[Error] TopViewController is nil")
             return
         }
-        
-        // Configure as pageSheet presentation
-        self.modalPresentationStyle = .pageSheet
-        
-        // Configure the sheet presentation for iOS 15+
-        if #available(iOS 15.0, *) {
-            if let sheet = self.sheetPresentationController {
-                sheet.detents = [.medium(), .large()]
-                sheet.prefersGrabberVisible = true
-                sheet.preferredCornerRadius = 20
-            }
-        }
-        
-        presentingViewController.present(self, animated: true, completion: nil)
+
+        presentingViewController.presentVCWithModal(self)
     }
     
     // MARK: - Helper Methods

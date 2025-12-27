@@ -257,7 +257,11 @@ extension TRPMapView {
     //Setup Map View
     func setupMapView() {
         let camera = CameraOptions(center: startLocation, zoom: startZoomLevel)
-        let options = MapInitOptions(cameraOptions: camera)
+        
+        // Use light style for white/light roads
+        let styleURI = StyleURI.streets
+        let options = MapInitOptions(cameraOptions: camera, styleURI: styleURI)
+        
         mapView = MapView(frame: self.bounds, mapInitOptions: options)
         
         guard let mapView = mapView else { return }
@@ -268,9 +272,10 @@ extension TRPMapView {
         mapView.location.options.puckType = .puck2D()
         mapView.location.options.puckBearingEnabled = true
         
-        // Hide Mapbox attribution and logo by moving them off screen
+        // Hide Mapbox attribution, logo, and scale bar by moving them off screen
         mapView.ornaments.options.logo.margins = CGPoint(x: -1000, y: -1000)
         mapView.ornaments.options.attributionButton.margins = CGPoint(x: -1000, y: -1000)
+        mapView.ornaments.options.scaleBar.visibility = .hidden
         
         // Setup delegates and gestures
         mapView.gestures.delegate = self

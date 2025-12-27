@@ -257,6 +257,8 @@ extension TRPTimelineMockCoordinator {
     public static func quickTest(from viewController: UIViewController) {
         if let navController = viewController.navigationController {
             _ = TRPTimelineMockCoordinator.createAndStart(in: navController)
+        } else if let navController = viewController as? UINavigationController {
+            _ = TRPTimelineMockCoordinator.createAndStart(in: navController)
         } else {
             _ = TRPTimelineMockCoordinator.createAndPresent(from: viewController)
         }

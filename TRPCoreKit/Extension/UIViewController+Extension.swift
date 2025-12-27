@@ -30,7 +30,11 @@ extension UIViewController {
         self.navigationController?.setToolbarHidden(false, animated: true)
     }
     
-    func presentVCWithModal(_ vc : UIViewController, onlyLarge: Bool = false) {
+    func presentVCWithModal(_ vc: UIViewController,
+                            onlyLarge: Bool = false,
+                            prefersGrabberVisible: Bool = true,
+                            prefersScrollingExpandsWhenScrolledToEdge: Bool = false,
+                            isDimmed: Bool = true) {
         vc.modalPresentationStyle = .pageSheet
         if #available(iOS 15.0, *) {
             if let sheet = vc.sheetPresentationController {
@@ -39,6 +43,9 @@ extension UIViewController {
                 } else {
                     sheet.detents = [.medium(), .large()]
                 }
+                sheet.prefersGrabberVisible = prefersGrabberVisible
+                sheet.prefersScrollingExpandsWhenScrolledToEdge = prefersScrollingExpandsWhenScrolledToEdge
+                sheet.largestUndimmedDetentIdentifier = isDimmed ? nil : .large
             }
         }
         present(vc, animated: true)

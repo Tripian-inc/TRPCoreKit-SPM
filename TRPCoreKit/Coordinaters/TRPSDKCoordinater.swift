@@ -468,7 +468,9 @@ extension TRPSDKCoordinater:  MyTripVCDelegate {
 //        tripCreateCoordinater.nexusNumberOfAdults = self.nexusNumberOfAdults
 //        tripCreateCoordinater.nexusNumberOfChildren = self.nexusNumberOfChildren
         tripCreateCoordinater.nexusDestinationId = destinationId
-        tripCreateCoordinater.start(city: city)
+//        tripCreateCoordinater.start(city: city)
+        
+        TRPTimelineMockCoordinator.quickTest(from: navigationController)
     }
     
     

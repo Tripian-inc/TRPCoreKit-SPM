@@ -325,8 +325,8 @@ public class AddPlanTimeAndTravelersVC: TRPBaseUIViewController {
     
     private func updateUI() {
         // Update starting point button
-        if let startingPoint = viewModel.getStartingPoint() {
-            startingPointButton.setTitle(startingPoint.name, for: .normal)
+        if let startingPointName = viewModel.getStartingPointName() {
+            startingPointButton.setTitle(startingPointName, for: .normal)
             startingPointClearButton.isHidden = false
         } else {
             startingPointButton.setTitle(AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.select), for: .normal)
@@ -359,22 +359,23 @@ public class AddPlanTimeAndTravelersVC: TRPBaseUIViewController {
         )
         let poiSelectionVC = AddPlanPOISelectionVC()
         poiSelectionVC.viewModel = poiSelectionViewModel
-        poiSelectionVC.onPOISelected = { [weak self] poi in
-            self?.handlePOISelected(poi)
+        poiSelectionVC.onLocationSelected = { [weak self] coordinate, name in
+            self?.handleLocationSelected(coordinate: coordinate, name: name)
         }
-        
+
         present(poiSelectionVC, animated: true)
     }
-    
+
     @objc private func clearStartingPoint() {
-        viewModel.setStartingPoint(nil)
+        viewModel.setStartingPoint(location: nil, name: nil)
         startingPointButton.setTitle(AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.select), for: .normal)
         startingPointClearButton.isHidden = true
+        containerVC?.updateContinueButtonState()
     }
-    
-    private func handlePOISelected(_ poi: TRPPoi) {
-        viewModel.setStartingPoint(poi)
-        startingPointButton.setTitle(poi.name, for: .normal)
+
+    private func handleLocationSelected(coordinate: TRPLocation, name: String) {
+        viewModel.setStartingPoint(location: coordinate, name: name)
+        startingPointButton.setTitle(name, for: .normal)
         startingPointClearButton.isHidden = false
         containerVC?.updateContinueButtonState()
     }

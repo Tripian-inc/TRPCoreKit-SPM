@@ -75,4 +75,12 @@ public class AddPlanSelectDayViewModel {
     public func getEndTime() -> Date? {
         return containerViewModel?.planData.endTime
     }
+    
+    public func getSelectedManualCategory() -> String? {
+        return containerViewModel?.planData.selectedCategories.first
+    }
+    
+    public func setSelectedManualCategory(_ categoryId: String?) {
+        containerViewModel?.planData.selectedCategories = categoryId != nil ? [categoryId!] : []
+    }
 }

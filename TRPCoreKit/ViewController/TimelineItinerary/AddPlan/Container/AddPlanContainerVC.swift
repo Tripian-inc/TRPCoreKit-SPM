@@ -12,6 +12,7 @@ import TRPFoundationKit
 public protocol AddPlanContainerVCDelegate: AnyObject {
     func addPlanContainerDidComplete(_ viewController: AddPlanContainerVC, data: AddPlanData)
     func addPlanContainerDidCancel(_ viewController: AddPlanContainerVC)
+    func addPlanContainerShouldShowActivityListing(_ viewController: AddPlanContainerVC, data: AddPlanData)
 }
 
 @objc(SPMAddPlanContainerVC)
@@ -24,30 +25,6 @@ public class AddPlanContainerVC: TRPBaseUIViewController {
     private var currentChildVC: UIViewController?
     
     // MARK: - UI Components - Sticky Header
-    private let backgroundView: UIView = {
-        let view = UIView()
-        view.backgroundColor = UIColor.black.withAlphaComponent(0.5)
-        view.translatesAutoresizingMaskIntoConstraints = false
-        return view
-    }()
-    
-    private let containerView: UIView = {
-        let view = UIView()
-        view.backgroundColor = .white
-        view.layer.cornerRadius = 20
-        view.layer.maskedCorners = [.layerMinXMinYCorner, .layerMaxXMinYCorner]
-        view.translatesAutoresizingMaskIntoConstraints = false
-        return view
-    }()
-    
-    private let handleView: UIView = {
-        let view = UIView()
-        view.translatesAutoresizingMaskIntoConstraints = false
-        view.backgroundColor = .white
-        view.layer.cornerRadius = 2.5
-        return view
-    }()
-    
     private let headerView: UIView = {
         let view = UIView()
         view.translatesAutoresizingMaskIntoConstraints = false
@@ -58,7 +35,7 @@ public class AddPlanContainerVC: TRPBaseUIViewController {
     private let backButton: UIButton = {
         let button = UIButton(type: .system)
         button.translatesAutoresizingMaskIntoConstraints = false
-        button.setImage(UIImage(systemName: "chevron.left"), for: .normal)
+        button.setImage(TRPImageController().getImage(inFramework: "ic_back", inApp: nil), for: .normal)
         button.tintColor = ColorSet.fg.uiColor
         return button
     }()
@@ -75,7 +52,7 @@ public class AddPlanContainerVC: TRPBaseUIViewController {
     private let closeButton: UIButton = {
         let button = UIButton(type: .system)
         button.translatesAutoresizingMaskIntoConstraints = false
-        button.setImage(UIImage(systemName: "xmark"), for: .normal)
+        button.setImage(TRPImageController().getImage(inFramework: "ic_close", inApp: nil), for: .normal)
         button.tintColor = ColorSet.fg.uiColor
         return button
     }()
@@ -100,33 +77,26 @@ public class AddPlanContainerVC: TRPBaseUIViewController {
         let stackView = UIStackView()
         stackView.translatesAutoresizingMaskIntoConstraints = false
         stackView.axis = .horizontal
-        stackView.spacing = 12
-        stackView.distribution = .fill
+        stackView.spacing = 8
+        stackView.distribution = .fillEqually
         stackView.alignment = .fill
         return stackView
     }()
     
-    private lazy var clearSelectionButton: UIButton = {
-        let button = UIButton(type: .system)
-        button.translatesAutoresizingMaskIntoConstraints = false
-        button.setTitle(AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.clearSelection), for: .normal)
-        button.setTitleColor(ColorSet.fg.uiColor, for: .normal)
-        button.titleLabel?.font = FontSet.montserratMedium.font(16)
-        button.heightAnchor.constraint(equalToConstant: 48).isActive = true
+    private lazy var clearSelectionButton: TRPButton = {
+        let button = TRPButton(
+            title: AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.clearSelection),
+            style: .secondary
+        )
         return button
     }()
-    
-    private lazy var continueButton: UIButton = {
-        let button = UIButton(type: .system)
-        button.translatesAutoresizingMaskIntoConstraints = false
-        button.setTitle(AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.continueButton), for: .normal)
-        button.setTitleColor(.white, for: .normal)
-        button.setTitleColor(.white, for: .disabled)
-        button.titleLabel?.font = FontSet.montserratSemiBold.font(16)
-        button.backgroundColor = ColorSet.primary.uiColor
-        button.layer.cornerRadius = 25
-        button.isEnabled = false // Start disabled
-        button.heightAnchor.constraint(equalToConstant: 48).isActive = true
+
+    private lazy var continueButton: TRPButton = {
+        let button = TRPButton(
+            title: AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.continueButton),
+            style: .primary
+        )
+        button.setEnabled(false) // Start disabled
         return button
     }()
     
@@ -139,64 +109,30 @@ public class AddPlanContainerVC: TRPBaseUIViewController {
     
     public override func setupViews() {
         super.setupViews()
-        
-        setupBackgroundView()
-        setupContainerView()
+        view.backgroundColor = .white
+
         setupHeader()
         setupFooter()  // Add footer to hierarchy first
         setupContentContainer()  // Then set up content container (which references footer)
         setupActions()
     }
-    
+
     // MARK: - Setup Methods
-    private func setupBackgroundView() {
-        view.backgroundColor = .clear
-        view.addSubview(backgroundView)
-        
-        NSLayoutConstraint.activate([
-            backgroundView.topAnchor.constraint(equalTo: view.topAnchor),
-            backgroundView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            backgroundView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            backgroundView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
-        ])
-        
-        let tapGesture = UITapGestureRecognizer(target: self, action: #selector(backgroundTapped))
-        backgroundView.addGestureRecognizer(tapGesture)
-    }
-    
-    private func setupContainerView() {
-        view.addSubview(containerView)
-        
-        NSLayoutConstraint.activate([
-            containerView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            containerView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            containerView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-            containerView.heightAnchor.constraint(equalTo: view.heightAnchor, multiplier: 0.9)
-        ])
-    }
-    
     private func setupHeader() {
-        containerView.addSubview(handleView)
-        containerView.addSubview(headerView)
+        view.addSubview(headerView)
         headerView.addSubview(backButton)
         headerView.addSubview(titleLabel)
         headerView.addSubview(closeButton)
-        
+
         NSLayoutConstraint.activate([
-            // Handle
-            handleView.topAnchor.constraint(equalTo: containerView.topAnchor, constant: 12),
-            handleView.centerXAnchor.constraint(equalTo: containerView.centerXAnchor),
-            handleView.widthAnchor.constraint(equalToConstant: 40),
-            handleView.heightAnchor.constraint(equalToConstant: 5),
-            
             // Header View
-            headerView.topAnchor.constraint(equalTo: handleView.bottomAnchor, constant: 16),
-            headerView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
-            headerView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
+            headerView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
+            headerView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            headerView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             headerView.heightAnchor.constraint(equalToConstant: 44),
             
             // Back Button
-            backButton.leadingAnchor.constraint(equalTo: headerView.leadingAnchor, constant: 24),
+            backButton.leadingAnchor.constraint(equalTo: headerView.leadingAnchor),
             backButton.centerYAnchor.constraint(equalTo: headerView.centerYAnchor),
             backButton.widthAnchor.constraint(equalToConstant: 24),
             backButton.heightAnchor.constraint(equalToConstant: 24),
@@ -208,7 +144,7 @@ public class AddPlanContainerVC: TRPBaseUIViewController {
             titleLabel.trailingAnchor.constraint(lessThanOrEqualTo: closeButton.leadingAnchor, constant: -8),
             
             // Close Button
-            closeButton.trailingAnchor.constraint(equalTo: headerView.trailingAnchor, constant: -24),
+            closeButton.trailingAnchor.constraint(equalTo: headerView.trailingAnchor),
             closeButton.centerYAnchor.constraint(equalTo: headerView.centerYAnchor),
             closeButton.widthAnchor.constraint(equalToConstant: 18),
             closeButton.heightAnchor.constraint(equalToConstant: 18)
@@ -216,34 +152,34 @@ public class AddPlanContainerVC: TRPBaseUIViewController {
     }
     
     private func setupContentContainer() {
-        containerView.addSubview(contentContainerView)
-        
+        view.addSubview(contentContainerView)
+
         NSLayoutConstraint.activate([
             contentContainerView.topAnchor.constraint(equalTo: headerView.bottomAnchor, constant: 20),
-            contentContainerView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
-            contentContainerView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
+            contentContainerView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
+            contentContainerView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
             contentContainerView.bottomAnchor.constraint(equalTo: footerView.topAnchor)
         ])
     }
-    
+
     private func setupFooter() {
-        containerView.addSubview(footerView)
+        view.addSubview(footerView)
         footerView.addSubview(buttonStackView)
-        
+
         // Add buttons to stack view
         buttonStackView.addArrangedSubview(clearSelectionButton)
         buttonStackView.addArrangedSubview(continueButton)
-        
+
         NSLayoutConstraint.activate([
             // Footer View
-            footerView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
-            footerView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
-            footerView.bottomAnchor.constraint(equalTo: containerView.safeAreaLayoutGuide.bottomAnchor),
+            footerView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
+            footerView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
+            footerView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor),
             footerView.heightAnchor.constraint(equalToConstant: 80),
-            
+
             // Stack View
-            buttonStackView.leadingAnchor.constraint(equalTo: footerView.leadingAnchor, constant: 24),
-            buttonStackView.trailingAnchor.constraint(equalTo: footerView.trailingAnchor, constant: -24),
+            buttonStackView.leadingAnchor.constraint(equalTo: footerView.leadingAnchor),
+            buttonStackView.trailingAnchor.constraint(equalTo: footerView.trailingAnchor),
             buttonStackView.centerYAnchor.constraint(equalTo: footerView.centerYAnchor)
         ])
     }
@@ -261,8 +197,7 @@ public class AddPlanContainerVC: TRPBaseUIViewController {
     }
     
     public func setContinueButtonEnabled(_ enabled: Bool) {
-        continueButton.isEnabled = enabled
-        continueButton.backgroundColor = enabled ? ColorSet.primary.uiColor : ColorSet.bgDisabled.uiColor
+        continueButton.setEnabled(enabled)
     }
     
     public func updateContinueButtonState() {
@@ -318,11 +253,7 @@ public class AddPlanContainerVC: TRPBaseUIViewController {
         delegate?.addPlanContainerDidCancel(self)
         dismiss(animated: true)
     }
-    
-    @objc private func backgroundTapped() {
-        closeButtonTapped()
-    }
-    
+
     @objc private func clearSelectionTapped() {
         // Notify current step to clear
         if let currentVC = currentChildVC as? AddPlanSelectDayVC {
@@ -342,6 +273,15 @@ public class AddPlanContainerVC: TRPBaseUIViewController {
         let currentStep = viewModel.getCurrentStep()
         
         if canContinue(currentStep: currentStep) {
+            // Check if manual mode with activities category selected
+            if currentStep == .selectDayAndCity &&
+               viewModel.planData.selectedMode == .manual &&
+               viewModel.planData.selectedCategories.first == "activities" {
+                // Show activity listing screen instead of next step
+                delegate?.addPlanContainerShouldShowActivityListing(self, data: viewModel.planData)
+                return
+            }
+            
             viewModel.goNextStep()
         }
     }
@@ -349,11 +289,16 @@ public class AddPlanContainerVC: TRPBaseUIViewController {
     private func canContinue(currentStep: AddPlanSteps) -> Bool {
         switch currentStep {
         case .selectDayAndCity:
-            return viewModel.planData.selectedDay != nil && 
-                   viewModel.planData.selectedCity != nil &&
-                   viewModel.planData.selectedMode != .none
+            let hasDayAndCity = viewModel.planData.selectedDay != nil && 
+                               viewModel.planData.selectedCity != nil &&
+                               viewModel.planData.selectedMode != .none
+            // If manual mode, also require category selection
+            if viewModel.planData.selectedMode == .manual {
+                return hasDayAndCity && !viewModel.planData.selectedCategories.isEmpty
+            }
+            return hasDayAndCity
         case .timeAndTravelers:
-            return viewModel.planData.startingPoint != nil &&
+            return viewModel.planData.startingPointLocation != nil &&
                    viewModel.planData.startTime != nil &&
                    viewModel.planData.endTime != nil &&
                    viewModel.planData.travelers > 0
@@ -376,7 +321,7 @@ public class AddPlanContainerVC: TRPBaseUIViewController {
         clearSelectionButton.isHidden = isFirstScreen
         
         // Update continue button title
-        continueButton.setTitle(viewModel.getButtonTitle(), for: .normal)
+        continueButton.updateTitle(viewModel.getButtonTitle())
         
         // Update continue button state based on current step validation
         let canProceed = canContinue(currentStep: currentStep)

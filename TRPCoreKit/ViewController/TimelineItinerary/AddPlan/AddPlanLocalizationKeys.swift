@@ -50,6 +50,19 @@ public struct AddPlanLocalizationKeys {
     public static let categoryShows = "addPlan.category.shows"
     public static let categoryTransport = "addPlan.category.transport"
     
+    // MARK: - Manual Mode Categories
+    public static let categoryActivities = "addPlan.category.manual.activities"
+    public static let categoryPlacesOfInterest = "addPlan.category.manual.placesOfInterest"
+    public static let categoryEatAndDrink = "addPlan.category.manual.eatAndDrink"
+    
+    // MARK: - Activity Listing
+    public static let categoryAll = "addPlan.category.all"
+    public static let searchActivity = "addPlan.search.activity"
+    public static let filters = "addPlan.button.filters"
+    public static let sortBy = "addPlan.button.sortBy"
+    public static let opinions = "addPlan.label.opinions"
+    public static let freeCancellation = "addPlan.label.freeCancellation"
+    
     // MARK: - Default English Values
     private static let defaultValues: [String: String] = [
         addActivity: "Add Activity",
@@ -82,7 +95,16 @@ public struct AddPlanLocalizationKeys {
         categoryPOI: "Point of\nInterest",
         categoryFood: "Food &\nDrinks",
         categoryShows: "Shows",
-        categoryTransport: "Transport &\nTransfers"
+        categoryTransport: "Transport &\nTransfers",
+        categoryActivities: "Activities",
+        categoryPlacesOfInterest: "Places of\nInterest",
+        categoryEatAndDrink: "Eat &\nDrink",
+        categoryAll: "All",
+        searchActivity: "Search for an activity",
+        filters: "Filters",
+        sortBy: "Sort by",
+        opinions: "opinions",
+        freeCancellation: "Free cancellation"
     ]
     
     // MARK: - Helper Methods

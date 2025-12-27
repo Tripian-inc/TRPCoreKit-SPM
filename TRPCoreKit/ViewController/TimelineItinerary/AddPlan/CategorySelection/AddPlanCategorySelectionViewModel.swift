@@ -25,6 +25,19 @@ public struct PlanCategory {
             PlanCategory(id: "transport", name: AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.categoryTransport), iconName: "airplane")
         ]
     }
+    
+    /// Get category names for filter list (used in activity listing screens)
+    /// Returns array of category names in the same order as allCategories()
+    /// Names are cleaned to remove line breaks for single-line display
+    public static func getCategoryNamesForFilter() -> [String] {
+        return allCategories().map { $0.name.replacingOccurrences(of: "\n", with: " ") }
+    }
+    
+    /// Get category IDs for filter list
+    /// Returns array of category IDs in the same order as allCategories()
+    public static func getCategoryIdsForFilter() -> [String] {
+        return allCategories().map { $0.id }
+    }
 }
 
 public class AddPlanCategorySelectionViewModel {

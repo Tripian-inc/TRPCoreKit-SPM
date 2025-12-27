@@ -52,7 +52,7 @@ public class TRPTimelineDayFilterView: UIView {
     
     // MARK: - Setup
     private func setupView() {
-        backgroundColor = .white
+        backgroundColor = .clear
         
         addSubview(collectionView)
         
@@ -189,7 +189,7 @@ class TRPTimelineDayCell: UICollectionViewCell {
             contentView.layer.borderColor = ColorSet.primary.uiColor.cgColor // Pink border
             label.textColor = ColorSet.primary.uiColor
         } else {
-            contentView.backgroundColor = UIColor.clear // Clear background
+            contentView.backgroundColor = UIColor.white // Clear background
             contentView.layer.borderColor = ColorSet.lineWeak.uiColor.cgColor
             label.textColor = ColorSet.lineWeak.uiColor
         }

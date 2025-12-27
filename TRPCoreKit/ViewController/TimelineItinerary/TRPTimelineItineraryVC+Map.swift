@@ -388,27 +388,45 @@ extension TRPTimelineItineraryVC: TRPMapViewDelegate {
         callOut.hidden()
     }
     
-    
-    public func mapView(clickedLocation: TRPLocation) {
-        // Handle map click
-    }
-    
     public func mapView(annotationPressed poiId: String, type: TRPAnnotationType) {
-        // Check if it's a POI
-        if let poi = viewModel.getPoi(byId: poiId) {
-            openCallOut(poi)
-            return
+        // Find the index of the item in currentTimelineItems
+        var itemIndex: Int? = nil
+        
+        for (index, item) in currentTimelineItems.enumerated() {
+            switch item {
+            case .poi(let poi):
+                if poi.id == poiId {
+                    itemIndex = index
+                    break
+                }
+            case .bookedActivity(let segment):
+                if let activityId = segment.additionalData?.activityId, activityId == poiId {
+                    itemIndex = index
+                    break
+                }
+            }
         }
         
-        // Check if it's a booked activity
-        if let bookedActivity = viewModel.getBookedActivity(byId: poiId) {
-            openCallOutForBookedActivity(bookedActivity)
-            return
+        // Expand the collection view and scroll to the item
+        if let index = itemIndex {
+            let indexPath = IndexPath(item: index, section: 0)
+            expandCollectionView {
+                // Scroll to the item after expansion animation completes
+                DispatchQueue.main.async {
+                    self.poiPreviewCollectionView.scrollToItem(at: indexPath, at: .centeredHorizontally, animated: true)
+                }
+            }
         }
+    }
+    
+    public func mapView(clickedLocation: TRPLocation) {
+        // Collapse collection view when map is clicked
+        collapseCollectionView()
     }
     
     public func mapView(_ mapView: TRPMapView, regionDidChangeAnimated animated: Bool) {
-        // Handle map region changes
+        // Collapse collection view when user moves the map
+        collapseCollectionView()
     }
 }
 
@@ -443,7 +461,7 @@ extension TRPTimelineItineraryVC {
     }
     
     /// Open callout for a booked activity
-    private func openCallOutForBookedActivity(_ segment: TRPTimelineSegment) {
+    internal func openCallOutForBookedActivity(_ segment: TRPTimelineSegment) {
         guard let additionalData = segment.additionalData else { return }
         
         // For booked activities, show title and description

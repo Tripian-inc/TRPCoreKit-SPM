@@ -8,6 +8,7 @@
 
 import UIKit
 import TRPFoundationKit
+import SDWebImage
 
 public protocol TRPTimelineItineraryVCDelegate: AnyObject {
     func timelineItineraryFilterPressed(_ viewController: TRPTimelineItineraryVC)
@@ -42,13 +43,6 @@ public class TRPTimelineItineraryVC: TRPBaseUIViewController {
         return bar
     }()
     
-    private lazy var tabView: TRPTimelineTabView = {
-        let view = TRPTimelineTabView()
-        view.translatesAutoresizingMaskIntoConstraints = false
-        view.delegate = self
-        return view
-    }()
-    
     private lazy var dayFilterView: TRPTimelineDayFilterView = {
         let view = TRPTimelineDayFilterView()
         view.translatesAutoresizingMaskIntoConstraints = false
@@ -71,13 +65,74 @@ public class TRPTimelineItineraryVC: TRPBaseUIViewController {
         return table
     }()
     
+    private lazy var mapFloatingButton: TRPFloatingActionButton = {
+        let button = TRPFloatingActionButton(
+            icon: TRPImageController().getImage(inFramework: "ic_map", inApp: nil),
+            backgroundColor: ColorSet.fg.uiColor
+        )
+        button.addTarget(self, action: #selector(mapFloatingButtonTapped), for: .touchUpInside)
+        return button
+    }()
+
+    private lazy var addPlanFloatingButton: TRPFloatingActionButton = {
+        let button = TRPFloatingActionButton(
+            icon: TRPImageController().getImage(inFramework: "ic_plus_bold", inApp: nil),
+            backgroundColor: ColorSet.primary.uiColor
+        )
+        button.addTarget(self, action: #selector(addPlanFloatingButtonTapped), for: .touchUpInside)
+        return button
+    }()
+    
+    // Map container view is now internal for map view controller
     internal lazy var mapContainerView: UIView = {
         let view = UIView()
         view.translatesAutoresizingMaskIntoConstraints = false
-        view.backgroundColor = .white
+        view.backgroundColor = .clear
         view.isHidden = true
         return view
     }()
+    
+    // Bottom POI preview cards
+    private lazy var poiPreviewContainerView: UIView = {
+        let view = UIView()
+        view.translatesAutoresizingMaskIntoConstraints = false
+        view.backgroundColor = .clear
+        view.isHidden = true
+        return view
+    }()
+    
+    internal lazy var poiPreviewCollectionView: UICollectionView = {
+        let layout = UICollectionViewFlowLayout()
+        layout.scrollDirection = .horizontal
+        layout.minimumLineSpacing = 8  // Gap between cells
+        layout.sectionInset = UIEdgeInsets(top: 0, left: 16, bottom: 0, right: 16)
+        
+        let collectionView = UICollectionView(frame: .zero, collectionViewLayout: layout)
+        collectionView.translatesAutoresizingMaskIntoConstraints = false
+        collectionView.backgroundColor = .clear
+        collectionView.showsHorizontalScrollIndicator = false
+        collectionView.delegate = self
+        collectionView.dataSource = self
+        return collectionView
+    }()
+    
+    private var poiPreviewBottomConstraint: NSLayoutConstraint?
+    private var addPlanButtonBottomConstraint: NSLayoutConstraint?
+    
+    // Enum to handle both POIs and Booked Activities
+    internal enum TimelineItem {
+        case poi(TRPPoi)
+        case bookedActivity(TRPTimelineSegment)
+    }
+    
+    internal var currentTimelineItems: [TimelineItem] = []
+    private var isShowingMap: Bool = false
+    
+    // Collection view state
+    private var isCollectionViewExpanded: Bool = false
+    private let collectionViewHeight: CGFloat = 120
+    private let collapsedOffset: CGFloat = 114  // Only 5% visible (6pt out of 120pt)
+    private let expandedOffset: CGFloat = -16   // Fully visible with margin
     
     // MARK: - Initialization
     public init(viewModel: TRPTimelineItineraryViewModel) {
@@ -105,19 +160,37 @@ public class TRPTimelineItineraryVC: TRPBaseUIViewController {
     public override func setupViews() {
         super.setupViews()
         setupCustomNavigationBar()
-        setupTabView()
         setupDayFilterView()
         setupTableView()
         setupMapView()
+        setupPOIPreviewCards()
+        setupFloatingButtons()
         setupCallOutController()
         registerCells()
+        
+        // Bring navigation bar and day filter to front so they appear above the map
+        view.bringSubviewToFront(customNavigationBar)
+        view.bringSubviewToFront(dayFilterView)
         
         // Load initial data
         reload()
     }
     
+    private func registerCells() {
+        tableView.register(TRPTimelineBookedActivityCell.self, forCellReuseIdentifier: TRPTimelineBookedActivityCell.reuseIdentifier)
+        tableView.register(TRPTimelineActivityStepCell.self, forCellReuseIdentifier: TRPTimelineActivityStepCell.reuseIdentifier)
+        tableView.register(TRPTimelineRecommendationsCell.self, forCellReuseIdentifier: TRPTimelineRecommendationsCell.reuseIdentifier)
+        tableView.register(TRPTimelineSectionHeaderView.self, forHeaderFooterViewReuseIdentifier: TRPTimelineSectionHeaderView.reuseIdentifier)
+        tableView.register(TRPTimelineSectionFooterView.self, forHeaderFooterViewReuseIdentifier: TRPTimelineSectionFooterView.reuseIdentifier)
+        
+        // POI preview cell for map view
+        poiPreviewCollectionView.register(TRPTimelineMapPOIPreviewCell.self, forCellWithReuseIdentifier: TRPTimelineMapPOIPreviewCell.reuseIdentifier)
+    }
+    
     // MARK: - Setup Methods
     private func setupCustomNavigationBar() {
+        guard customNavigationBar.superview == nil else { return }
+        
         view.addSubview(customNavigationBar)
         
         NSLayoutConstraint.activate([
@@ -128,29 +201,13 @@ public class TRPTimelineItineraryVC: TRPBaseUIViewController {
         ])
     }
     
-    private func setupTabView() {
-        view.addSubview(tabView)
-        
-        NSLayoutConstraint.activate([
-            tabView.topAnchor.constraint(equalTo: customNavigationBar.bottomAnchor),
-            tabView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            tabView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            tabView.heightAnchor.constraint(equalToConstant: 44)
-        ])
-        
-        // Configure tabs
-        let tabs = [
-            TRPTimelineTabItem(id: "list", title: "List"),
-            TRPTimelineTabItem(id: "map", title: "Map")
-        ]
-        tabView.configure(with: tabs, selectedIndex: 0)
-    }
-    
     private func setupDayFilterView() {
+        guard dayFilterView.superview == nil else { return }
+        
         view.addSubview(dayFilterView)
         
         NSLayoutConstraint.activate([
-            dayFilterView.topAnchor.constraint(equalTo: tabView.bottomAnchor, constant: 12),
+            dayFilterView.topAnchor.constraint(equalTo: customNavigationBar.bottomAnchor, constant: 12),
             dayFilterView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             dayFilterView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             dayFilterView.heightAnchor.constraint(equalToConstant: 50)
@@ -171,15 +228,53 @@ public class TRPTimelineItineraryVC: TRPBaseUIViewController {
     private func setupMapView() {
         view.addSubview(mapContainerView)
         
+        // Make map full screen (covers entire view)
         NSLayoutConstraint.activate([
-            mapContainerView.topAnchor.constraint(equalTo: dayFilterView.bottomAnchor, constant: 8),
+            mapContainerView.topAnchor.constraint(equalTo: view.topAnchor),
             mapContainerView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             mapContainerView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             mapContainerView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
         ])
+    }
+    
+    private func setupPOIPreviewCards() {
+        view.addSubview(poiPreviewContainerView)
+        poiPreviewContainerView.addSubview(poiPreviewCollectionView)
         
-        // Map will be initialized when tab is selected
-        mapContainerView.backgroundColor = .white
+        // Use bottom constraint to slide in/out
+        poiPreviewBottomConstraint = poiPreviewContainerView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: collapsedOffset)
+        
+        NSLayoutConstraint.activate([
+            // Container - fixed height, slides up/down via bottom constraint
+            poiPreviewContainerView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            poiPreviewContainerView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            poiPreviewContainerView.heightAnchor.constraint(equalToConstant: collectionViewHeight),
+            poiPreviewBottomConstraint!,
+            
+            // Collection View
+            poiPreviewCollectionView.topAnchor.constraint(equalTo: poiPreviewContainerView.topAnchor),
+            poiPreviewCollectionView.leadingAnchor.constraint(equalTo: poiPreviewContainerView.leadingAnchor),
+            poiPreviewCollectionView.trailingAnchor.constraint(equalTo: poiPreviewContainerView.trailingAnchor),
+            poiPreviewCollectionView.bottomAnchor.constraint(equalTo: poiPreviewContainerView.bottomAnchor)
+        ])
+    }
+    
+    private func setupFloatingButtons() {
+        view.addSubview(mapFloatingButton)
+        view.addSubview(addPlanFloatingButton)
+
+        // Use constraint for add plan button bottom that we can animate
+        addPlanButtonBottomConstraint = addPlanFloatingButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -24)
+
+        NSLayoutConstraint.activate([
+            // Map floating button - bottom right, above add plan button
+            mapFloatingButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -24),
+            mapFloatingButton.bottomAnchor.constraint(equalTo: addPlanFloatingButton.topAnchor, constant: -16),
+
+            // Add plan floating button - bottom right (constraint managed for animation)
+            addPlanFloatingButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -24),
+            addPlanButtonBottomConstraint!
+        ])
     }
     
     private func setupCallOutController() {
@@ -215,44 +310,130 @@ public class TRPTimelineItineraryVC: TRPBaseUIViewController {
         }
     }
     
-    private func registerCells() {
-        tableView.register(TRPTimelineBookedActivityCell.self, forCellReuseIdentifier: TRPTimelineBookedActivityCell.reuseIdentifier)
-        tableView.register(TRPTimelineActivityStepCell.self, forCellReuseIdentifier: TRPTimelineActivityStepCell.reuseIdentifier)
-        tableView.register(TRPTimelineRecommendationsCell.self, forCellReuseIdentifier: TRPTimelineRecommendationsCell.reuseIdentifier)
-        tableView.register(TRPTimelineSectionHeaderView.self, forHeaderFooterViewReuseIdentifier: TRPTimelineSectionHeaderView.reuseIdentifier)
-        tableView.register(TRPTimelineSectionFooterView.self, forHeaderFooterViewReuseIdentifier: TRPTimelineSectionFooterView.reuseIdentifier)
+    // MARK: - Actions
+    @objc private func mapFloatingButtonTapped() {
+        // Toggle between list and map views
+        toggleView()
     }
     
-    // MARK: - Actions
-    private func handleTabChange(tabId: String, index: Int) {
-        switch tabId {
-        case "list":
-            tableView.isHidden = false
-            mapContainerView.isHidden = true
-            dayFilterView.isHidden = false
+    @objc private func addPlanFloatingButtonTapped() {
+        // Launch add plan flow
+        showAddPlanFlow()
+    }
+    
+    private func toggleView() {
+        isShowingMap.toggle()
+        
+        if isShowingMap {
+            // Show map view
+            showMapView()
+        } else {
+            // Show list view
+            showListView()
+    }
+    }
+    
+    private func showMapView() {
+        // Hide list, show map
+        UIView.animate(withDuration: 0.3) {
+            self.tableView.isHidden = true
+            self.mapContainerView.isHidden = false
+            self.poiPreviewContainerView.isHidden = false
             
-        case "calendar":
-            // Calendar view - TODO: Implement
-            tableView.isHidden = true
-            mapContainerView.isHidden = true
-            dayFilterView.isHidden = false
+            // Make header transparent for map view
+            self.customNavigationBar.backgroundColor = .clear
+            self.dayFilterView.backgroundColor = .clear
             
-        case "map":
-            tableView.isHidden = true
-            mapContainerView.isHidden = false
-            dayFilterView.isHidden = false
-            
-            // Initialize map if not already done, or refresh if already initialized
+            // Update floating button icon to list
+            self.mapFloatingButton.updateIcon(TRPImageController().getImage(inFramework: "ic_list", inApp: nil))
+        }
+        
+        // Initialize map if needed
             if map == nil {
                 initializeMap()
-                // Data will be loaded automatically when map finishes loading
             } else {
-                // Map already exists, just refresh the data
                 refreshMap()
             }
             
-        default:
-            break
+        // Update POI preview cards
+        updatePOIPreviewCards()
+    }
+    
+    private func showListView() {
+        // Hide map, show list
+        UIView.animate(withDuration: 0.3) {
+            self.tableView.isHidden = false
+            self.mapContainerView.isHidden = true
+            self.poiPreviewContainerView.isHidden = true
+            
+            // Update floating button icon to map
+            self.mapFloatingButton.updateIcon(TRPImageController().getImage(inFramework: "ic_map", inApp: nil))
+        }
+    }
+    
+    private func updatePOIPreviewCards() {
+        // Get POIs from current day segments
+        let segments = viewModel.getSegmentsWithPoisForSelectedDay()
+        let pois = segments.flatMap { $0 }
+        
+        // Get booked activities from current day
+        let bookedActivities = viewModel.getBookedActivitiesForSelectedDay()
+        
+        // Combine POIs and booked activities in order
+        currentTimelineItems = []
+        
+        // Add booked activities first (they have specific times)
+        for activity in bookedActivities {
+            currentTimelineItems.append(.bookedActivity(activity))
+        }
+        
+        // Then add POIs
+        for poi in pois {
+            currentTimelineItems.append(.poi(poi))
+        }
+        
+        if currentTimelineItems.isEmpty {
+            // Hide completely if no items
+            poiPreviewBottomConstraint?.constant = -collectionViewHeight
+        } else {
+            // Start in collapsed state (half visible)
+            isCollectionViewExpanded = false
+            poiPreviewBottomConstraint?.constant = collapsedOffset
+            addPlanButtonBottomConstraint?.constant = -24
+        }
+        
+        poiPreviewCollectionView.reloadData()
+    }
+    
+    // MARK: - Collection View Expand/Collapse
+    internal func expandCollectionView(completion: (() -> Void)? = nil) {
+        guard !isCollectionViewExpanded else {
+            completion?()
+            return
+        }
+        isCollectionViewExpanded = true
+        
+        UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut, animations: {
+            // Slide collection view up to be fully visible
+            self.poiPreviewBottomConstraint?.constant = self.expandedOffset
+            // Move add plan button above collection view
+            self.addPlanButtonBottomConstraint?.constant = self.expandedOffset - self.collectionViewHeight - 24
+            self.view.layoutIfNeeded()
+        }, completion: { _ in
+            completion?()
+        })
+    }
+    
+    internal func collapseCollectionView() {
+        guard isCollectionViewExpanded else { return }
+        isCollectionViewExpanded = false
+        
+        UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut) {
+            // Slide collection view down to be half visible
+            self.poiPreviewBottomConstraint?.constant = self.collapsedOffset
+            // Move add plan button back to original position
+            self.addPlanButtonBottomConstraint?.constant = -24
+            self.view.layoutIfNeeded()
         }
     }
     
@@ -284,40 +465,6 @@ public class TRPTimelineItineraryVC: TRPBaseUIViewController {
     /// Get the current navigation bar title
     public func getNavigationTitle() -> String? {
         return customNavigationBar.getTitle()
-    }
-    
-    /// Configure custom tabs
-    /// - Parameters:
-    ///   - tabs: Array of tab items with unique IDs and titles
-    ///   - selectedIndex: Initially selected tab index (default: 0)
-    public func configureTabs(_ tabs: [TRPTimelineTabItem], selectedIndex: Int = 0) {
-        tabView.configure(with: tabs, selectedIndex: selectedIndex)
-    }
-    
-    /// Switch to a specific tab by index
-    /// - Parameters:
-    ///   - index: Tab index to select
-    ///   - animated: Whether to animate the transition (default: true)
-    public func selectTab(at index: Int, animated: Bool = true) {
-        tabView.selectTab(at: index, animated: animated)
-    }
-    
-    /// Switch to a specific tab by ID
-    /// - Parameters:
-    ///   - id: Tab ID to select
-    ///   - animated: Whether to animate the transition (default: true)
-    public func selectTab(byId id: String, animated: Bool = true) {
-        tabView.selectTab(byId: id, animated: animated)
-    }
-    
-    /// Get the currently selected tab index
-    public func getSelectedTabIndex() -> Int {
-        return tabView.getSelectedIndex()
-    }
-    
-    /// Get the currently selected tab ID
-    public func getSelectedTabId() -> String? {
-        return tabView.getSelectedTabId()
     }
     
     /// Debug helper to print timeline information
@@ -484,14 +631,14 @@ extension TRPTimelineItineraryVC: TRPTimelineDayFilterViewDelegate {
         viewModel.selectDay(at: dayIndex)
         tableView.reloadData()
         
-        // Refresh map if it's visible and initialized
-        if !mapContainerView.isHidden {
-            if let map = map {
-                // Map is already initialized, just refresh the data
+        // If map is showing, refresh it and update POI cards
+        if isShowingMap {
                 refreshMap()
-            } else {
-                // Map not initialized yet, initialize it now
-                initializeMap()
+            updatePOIPreviewCards()
+            
+            // Scroll collection view to the beginning
+            if !currentTimelineItems.isEmpty {
+                poiPreviewCollectionView.scrollToItem(at: IndexPath(item: 0, section: 0), at: .left, animated: true)
             }
         }
     }
@@ -569,14 +716,6 @@ extension TRPTimelineItineraryVC: TRPTimelineSectionFooterViewDelegate {
     
     func sectionFooterViewDidTapAdd(_ view: TRPTimelineSectionFooterView, section: Int) {
         delegate?.timelineItineraryAddButtonPressed(self, atSectionIndex: section)
-    }
-}
-
-// MARK: - TRPTimelineTabViewDelegate
-extension TRPTimelineItineraryVC: TRPTimelineTabViewDelegate {
-    
-    func timelineTabView(_ view: TRPTimelineTabView, didSelectTabAtIndex index: Int, tabId: String) {
-        handleTabChange(tabId: tabId, index: index)
     }
 }
 
@@ -704,13 +843,10 @@ extension TRPTimelineItineraryVC: TRPCalendarViewControllerDelegate {
             calculatedDistances.removeAll()
             tableView.reloadData()
             
-            // Refresh map if visible
-            if !mapContainerView.isHidden {
-                if let map = map {
+            // If map is showing, refresh it and update POI cards
+            if isShowingMap {
                     refreshMap()
-                } else {
-                    initializeMap()
-                }
+                updatePOIPreviewCards()
             }
         }
     }
@@ -724,10 +860,122 @@ extension TRPTimelineItineraryVC: TRPCalendarViewControllerDelegate {
     }
 }
 
+// MARK: - UICollectionViewDataSource & UICollectionViewDelegateFlowLayout
+extension TRPTimelineItineraryVC: UICollectionViewDataSource, UICollectionViewDelegateFlowLayout {
+    
+    public func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
+        return currentTimelineItems.count
+    }
+    
+    public func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
+        guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: TRPTimelineMapPOIPreviewCell.reuseIdentifier, for: indexPath) as? TRPTimelineMapPOIPreviewCell else {
+            return UICollectionViewCell()
+        }
+        
+        let item = currentTimelineItems[indexPath.item]
+        let orderNumber = indexPath.item + 1
+        
+        switch item {
+        case .poi(let poi):
+            cell.configure(with: poi, orderNumber: orderNumber)
+        case .bookedActivity(let segment):
+            cell.configure(with: segment, orderNumber: orderNumber)
+        }
+        
+        return cell
+    }
+    
+    public func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAt indexPath: IndexPath) -> CGSize {
+        return CGSize(width: 300, height: 104)
+    }
+    
+    public func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
+        // Expand the collection view when user taps on an item
+        expandCollectionView()
+        
+        let item = currentTimelineItems[indexPath.item]
+        
+        switch item {
+        case .poi(let poi):
+            // Center map on selected POI
+            if let mapView = map {
+                mapView.setCenter(poi.coordinate, zoomLevel: 15)
+            }
+            
+            // Show callout
+//            openCallOut(poi)
+            
+        case .bookedActivity(let segment):
+            // Center map on booked activity location
+            if let coordinate = segment.coordinate, let mapView = map {
+                mapView.setCenter(coordinate, zoomLevel: 15)
+            }
+            
+            // Show booked activity callout
+//            openCallOutForBookedActivity(segment)
+        }
+    }
+    
+    // MARK: - Callout Helper
+    private func openCallOut(_ poi: TRPPoi) {
+        var category = poi.getCategoryName()
+        var rating = poi.isRatingAvailable() ? poi.rating ?? 0 : 0
+        rating = rating.rounded()
+        
+        var rightButton: AddRemoveNavButtonStatus? = nil
+        if poi.placeType == .poi {
+            rightButton = .add
+        }
+        
+        let poiRating = poi.rating ?? 0
+        let poiPrice = poi.price ?? 0
+        
+        let callOutCell = CallOutCellModel(id: poi.id,
+                                           name: poi.name,
+                                           poiCategory: category,
+                                           starCount: Float(rating),
+                                           reviewCount: Int(poiRating),
+                                           price: poiPrice,
+                                           rightButton: rightButton)
+        
+        callOutController?.cellPressed = { [weak self] id, inRoute in
+            guard let self = self else { return }
+            self.callOutController?.hidden()
+            
+            if id == TRPPoi.ACCOMMODATION_ID { return }
+            
+            if poi.placeType == .poi {
+                if let step = self.viewModel.getStep(forPoiId: id) {
+                    self.delegate?.timelineItineraryDidSelectStep(self, step: step)
+                }
+            }
+        }
+        
+        callOutController?.action = { [weak self] status, id in
+            guard let self = self else { return }
+            self.callOutController?.hidden()
+        }
+        
+        callOutController?.show(model: callOutCell)
+        callOutController?.getCellImageView()?.image = nil
+        
+        // Load POI image
+        guard let image = poi.image?.url else { return }
+        guard let url = URL(string: image) else { return }
+        
+        SDWebImageManager.shared.loadImage(with: url, options: .lowPriority, context: nil, progress: nil) { [weak self] (downloadedImage, _, error, _, _, _) in
+            guard let self = self else { return }
+            if error != nil { return }
+            guard let image = downloadedImage else { return }
+            self.callOutController?.getCellImageView()?.image = image
+        }
+    }
+}
+
 // MARK: - Add Plan Flow
 extension TRPTimelineItineraryVC {
     
-    func showAddPlanFlow() {
+    public func showAddPlanFlow() {
         // Get available days and cities from view model
         let days = viewModel.getDayDates()
         let cities = viewModel.getCities()
@@ -763,17 +1011,15 @@ extension TRPTimelineItineraryVC {
         containerVC.addViewController(selectDayVC)
         containerVC.addViewController(timeAndTravelersVC)
         containerVC.addViewController(categoryVC)
-        
-        // Present modally
-        containerVC.modalPresentationStyle = .overFullScreen
-        containerVC.modalTransitionStyle = .crossDissolve
-        present(containerVC, animated: true)
+
+        // Present as bottom sheet modal
+        presentVCWithModal(containerVC, onlyLarge: true)
     }
 }
 
 // MARK: - AddPlanContainerVCDelegate
 extension TRPTimelineItineraryVC: AddPlanContainerVCDelegate {
-    
+
     public func addPlanContainerDidComplete(_ viewController: AddPlanContainerVC, data: AddPlanData) {
         print("📝 Plan creation completed:")
         print("  - Day: \(data.selectedDay?.description ?? "N/A")")
@@ -782,16 +1028,37 @@ extension TRPTimelineItineraryVC: AddPlanContainerVCDelegate {
         print("  - End Time: \(data.endTime?.description ?? "N/A")")
         print("  - Travelers: \(data.travelers)")
         print("  - Categories: \(data.selectedCategories.joined(separator: ", "))")
-        
+
         // TODO: Call create timeline segment API with the data
         // Example: createTimelineSegment(with: data)
-        
+
         // For now, notify delegate
         delegate?.timelineItineraryAddPlansPressed(self)
     }
-    
+
     public func addPlanContainerDidCancel(_ viewController: AddPlanContainerVC) {
         print("❌ Plan creation cancelled")
+    }
+    
+    public func addPlanContainerShouldShowActivityListing(_ viewController: AddPlanContainerVC, data: AddPlanData) {
+        // Dismiss the add plan container first
+        viewController.dismiss(animated: true) { [weak self] in
+            guard let self = self else { return }
+            
+            // Create activity listing ViewModel with the plan data
+            let activityListingViewModel = AddPlanActivityListingViewModel(planData: data)
+            let activityListingVC = AddPlanActivityListingVC()
+            activityListingVC.viewModel = activityListingViewModel
+            
+            // Create navigation controller for the activity listing
+            let navController = UINavigationController(rootViewController: activityListingVC)
+            navController.modalPresentationStyle = .fullScreen
+            
+            // Set title
+            activityListingVC.title = AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.categoryActivities)
+            
+            self.present(navController, animated: true)
+        }
     }
 }
 

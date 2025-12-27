@@ -14,7 +14,7 @@ public class AddPlanPOISelectionVC: TRPBaseUIViewController {
     
     // MARK: - Properties
     public var viewModel: AddPlanPOISelectionViewModel!
-    public var onPOISelected: ((TRPPoi) -> Void)?
+    public var onLocationSelected: ((TRPLocation, String) -> Void)?
     
     // MARK: - UI Components
     private lazy var searchBar: UISearchBar = {
@@ -198,8 +198,9 @@ public class AddPlanPOISelectionVC: TRPBaseUIViewController {
     }
     
     @objc private func cityCenterButtonTapped() {
-        if let cityCenterPOI = viewModel.getCityCenterPOI() {
-            onPOISelected?(cityCenterPOI)
+        if let coordinate = viewModel.getCityCenterLocation(),
+           let name = viewModel.getCityCenterDisplayName() {
+            onLocationSelected?(coordinate, name)
             dismiss(animated: true)
         }
     }
@@ -227,7 +228,7 @@ extension AddPlanPOISelectionVC: UITableViewDelegate {
     public func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         tableView.deselectRow(at: indexPath, animated: true)
         let poi = viewModel.getSavedPOIs()[indexPath.row]
-        onPOISelected?(poi)
+        onLocationSelected?(poi.coordinate, poi.name)
         dismiss(animated: true)
     }
     

@@ -294,6 +294,8 @@ extension TRPCreateTripCoordinater {
         navigation.modalPresentationStyle = .fullScreen
         createTripContainerNavigation = navigation
         navigationController.present(navigation, animated: true, completion: nil)
+        
+        TRPTimelineMockCoordinator.quickTest(from: navigation)
     }
 }
 
@@ -364,13 +366,7 @@ extension TRPCreateTripCoordinater: CreateTripTripInformationVCDelegate {
     
     public func createTripTripInformationVCOpenSelectCity(_ viewController: UIViewController) {
         let selectCity = getSelectCityVC()
-        selectCity.modalPresentationStyle = .pageSheet
-        if #available(iOS 15.0, *) {
-            if let sheet = selectCity.sheetPresentationController {
-                sheet.detents = [.large()]
-            }
-        }
-        viewController.present(selectCity, animated: true)
+        viewController.presentVCWithModal(selectCity, onlyLarge: true)
     }
     
     public func createTripTripInformationVCOpenDate(_ viewController: UIViewController, isArrival: Bool, arrivalDate: CreateTripDateModel?, departureDate: CreateTripDateModel?) {
@@ -475,37 +471,19 @@ extension TRPCreateTripCoordinater: CreateTripStayShareVCDelegate {
     
     public func createTripStayShareVCOpenSelectHotel(_ viewController: UIViewController) {
         let selectCity = getSelectAddressVC()
-        selectCity.modalPresentationStyle = .pageSheet
-        if #available(iOS 15.0, *) {
-            if let sheet = selectCity.sheetPresentationController {
-                sheet.detents = [.large()]
-            }
-        }
-        viewController.present(selectCity, animated: true)
+        viewController.presentVCWithModal(selectCity, onlyLarge: true)
     }
     
     public func createTripStayShareVCOpenSelectCompanion(_ viewController: UIViewController, selectedCompanions: [TRPCompanion]) {
         let addCompanion = getSelectTravelCompanionVC(viewController, selectedCompanios: selectedCompanions)
-        addCompanion.modalPresentationStyle = .pageSheet
-        if #available(iOS 15.0, *) {
-            if let sheet = addCompanion.sheetPresentationController {
-                sheet.detents = [.medium(), .large()]
-            }
-        }
-        viewController.present(addCompanion, animated: true)
-        
+        viewController.presentVCWithModal(addCompanion)
+
     }
     
     public func createTripStayShareVCOpenCreateCompanion(_ viewController: UIViewController) {
         let addCompanion = getAddTravelCompanionVC()
-        addCompanion.modalPresentationStyle = .pageSheet
-        if #available(iOS 15.0, *) {
-            if let sheet = addCompanion.sheetPresentationController {
-                sheet.detents = [.large()]
-            }
-        }
-        viewController.present(addCompanion, animated: true)
-        
+        viewController.presentVCWithModal(addCompanion, onlyLarge: true)
+
     }
     public func createTripStayShareVCCompanionRemoved(_ companion: TRPCompanion) {
         self.selectedCompanion.remove(element: companion)
@@ -531,19 +509,13 @@ extension TRPCreateTripCoordinater: CreateTripPickedInformationVCDelegate {
     
     
     func createTripPickedInformationVCDelegateOpenSelectAnswer(_ viewController: UIViewController, question: SelectableQuestionModelNew) {
-        
+
         let selectRestaurantPreferVC = UIStoryboard.makeCreateTripSelectRestaurantPreferViewController() as CreateTripSelectRestaurantPreferVC
-        selectRestaurantPreferVC.modalPresentationStyle = .pageSheet
-        if #available(iOS 15.0, *) {
-            if let sheet = selectRestaurantPreferVC.sheetPresentationController {
-                sheet.detents = [.medium(), .large()]
-            }
-        }
         let viewModel = CreateTripSelectRestaurantPreferViewModel()
         viewModel.selectableQuestion = question
         selectRestaurantPreferVC.delegate = self
         selectRestaurantPreferVC.viewModel = viewModel
-        viewController.present(selectRestaurantPreferVC, animated: true)
+        viewController.presentVCWithModal(selectRestaurantPreferVC)
     }
     
 }
@@ -814,16 +786,10 @@ extension TRPCreateTripCoordinater: CompanionDetailVCDelegate {
         }
         viewModel.delegate = viewController
         viewController.delegate = self
-        
+
         viewModel.start()
-        
-        viewController.modalPresentationStyle = .pageSheet
-        if #available(iOS 15.0, *) {
-            if let sheet = viewController.sheetPresentationController {
-                sheet.detents = [.large()]
-            }
-        }
-        parentVC.present(viewController, animated: true)
+
+        parentVC.presentVCWithModal(viewController, onlyLarge: true)
     }
 }
 

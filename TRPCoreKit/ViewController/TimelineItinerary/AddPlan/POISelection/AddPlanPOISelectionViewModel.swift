@@ -7,6 +7,7 @@
 //
 
 import Foundation
+import TRPFoundationKit
 
 public class AddPlanPOISelectionViewModel {
     
@@ -36,7 +37,15 @@ public class AddPlanPOISelectionViewModel {
     public func getCityCenterPOI() -> TRPPoi? {
         return cityCenterPOI
     }
-    
+
+    public func getCityCenterLocation() -> TRPLocation? {
+        return cityCenterPOI?.coordinate
+    }
+
+    public func getCityCenterDisplayName() -> String? {
+        return cityCenterPOI?.name
+    }
+
     public func searchPOIs(with searchText: String) {
         if searchText.isEmpty {
             filteredPOIs = allPOIs

@@ -7,6 +7,7 @@
 //
 
 import Foundation
+import TRPFoundationKit
 
 public class AddPlanTimeAndTravelersViewModel {
     
@@ -20,8 +21,10 @@ public class AddPlanTimeAndTravelersViewModel {
         // TODO: Initialize savedPOIs from timeline data or trip data
         
         // Set default starting point to city center if none is selected
-        if containerViewModel.planData.startingPoint == nil {
-            containerViewModel.planData.startingPoint = createCityCenterPOI()
+        if containerViewModel.planData.startingPointLocation == nil {
+            let cityCenterLocation = createCityCenterLocation()
+            containerViewModel.planData.startingPointLocation = cityCenterLocation
+            containerViewModel.planData.startingPointName = getCityCenterDisplayName()
         }
     }
     
@@ -62,12 +65,17 @@ public class AddPlanTimeAndTravelersViewModel {
         }
     }
     
-    public func getStartingPoint() -> TRPPoi? {
-        return containerViewModel?.planData.startingPoint
+    public func getStartingPointLocation() -> TRPLocation? {
+        return containerViewModel?.planData.startingPointLocation
     }
     
-    public func setStartingPoint(_ poi: TRPPoi?) {
-        containerViewModel?.planData.startingPoint = poi
+    public func getStartingPointName() -> String? {
+        return containerViewModel?.planData.startingPointName
+    }
+    
+    public func setStartingPoint(location: TRPLocation?, name: String?) {
+        containerViewModel?.planData.startingPointLocation = location
+        containerViewModel?.planData.startingPointName = name
     }
     
     public func getSavedPOIs() -> [TRPPoi] {
@@ -77,27 +85,36 @@ public class AddPlanTimeAndTravelersViewModel {
     public func getCityName() -> String? {
         return containerViewModel?.planData.selectedCity?.name
     }
-    
-    public func getCityCenterPOI() -> TRPPoi? {
-        return createCityCenterPOI()
-    }
-    
+
     public func clearSelection() {
         // Reset to city center instead of nil
-        containerViewModel?.planData.startingPoint = createCityCenterPOI()
+        containerViewModel?.planData.startingPointLocation = createCityCenterLocation()
+        containerViewModel?.planData.startingPointName = getCityCenterDisplayName()
         containerViewModel?.planData.startTime = nil
         containerViewModel?.planData.endTime = nil
         containerViewModel?.planData.travelers = 0
     }
     
     // MARK: - Private Methods
-    private func createCityCenterPOI() -> TRPPoi? {
+    private func createCityCenterLocation() -> TRPLocation? {
         guard let city = containerViewModel?.planData.selectedCity else { return nil }
+        return city.coordinate
+    }
+    
+    private func getCityCenterDisplayName() -> String? {
+        guard let city = containerViewModel?.planData.selectedCity else { return nil }
+        return "\(city.name) - \(AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.cityCenter))"
+    }
+    
+    // Keep this method for backwards compatibility if needed elsewhere
+    public func getCityCenterPOI() -> TRPPoi? {
+        guard let city = containerViewModel?.planData.selectedCity else { return nil }
+        guard let location = createCityCenterLocation() else { return nil }
         
         let cityCenter = TRPPoi(
             id: "city_center_\(city.id)",
             cityId: city.id,
-            name: "\(city.name) - \(AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.cityCenter))",
+            name: getCityCenterDisplayName() ?? "City Center",
             image: nil,
             gallery: nil,
             duration: nil,
@@ -110,7 +127,7 @@ public class AddPlanTimeAndTravelersViewModel {
             hours: nil,
             address: city.name,
             icon: "city_center",
-            coordinate: city.coordinate,
+            coordinate: location,
             bookings: nil,
             categories: [],
             tags: [],

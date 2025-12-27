@@ -20,6 +20,21 @@ class TRPTimelineCustomNavigationBar: UIView {
     private let backButton: UIButton = {
         let button = UIButton(type: .system)
         button.translatesAutoresizingMaskIntoConstraints = false
+        
+        // Create circular white background for better visibility
+        let backgroundView = UIView()
+        backgroundView.translatesAutoresizingMaskIntoConstraints = false
+        backgroundView.backgroundColor = .clear
+        backgroundView.isUserInteractionEnabled = false
+        button.insertSubview(backgroundView, at: 0)
+        
+        NSLayoutConstraint.activate([
+            backgroundView.centerXAnchor.constraint(equalTo: button.centerXAnchor),
+            backgroundView.centerYAnchor.constraint(equalTo: button.centerYAnchor),
+            backgroundView.widthAnchor.constraint(equalToConstant: 44),
+            backgroundView.heightAnchor.constraint(equalToConstant: 44)
+        ])
+        
         let backIcon = TRPImageController().getImage(inFramework: "ic_back", inApp: nil)
         button.setImage(backIcon, for: .normal)
         button.tintColor = ColorSet.fg.uiColor
@@ -32,7 +47,7 @@ class TRPTimelineCustomNavigationBar: UIView {
         label.translatesAutoresizingMaskIntoConstraints = false
         label.font = FontSet.montserratSemiBold.font(16)
         label.textColor = ColorSet.fg.uiColor
-        label.textAlignment = .left
+        label.textAlignment = .center
         label.text = "Destinos"
         return label
     }()
@@ -50,10 +65,16 @@ class TRPTimelineCustomNavigationBar: UIView {
     
     // MARK: - Setup
     private func setupView() {
-        backgroundColor = .white
+        backgroundColor = .clear  // Start with white for list view
         
         addSubview(backButton)
         addSubview(titleLabel)
+        
+        // Add shadow to title for better readability (will be useful in map mode)
+        titleLabel.layer.shadowColor = UIColor.black.cgColor
+        titleLabel.layer.shadowOffset = CGSize(width: 0, height: 1)
+        titleLabel.layer.shadowRadius = 2
+        titleLabel.layer.shadowOpacity = 0
         
         NSLayoutConstraint.activate([
             // Back Button
@@ -63,9 +84,9 @@ class TRPTimelineCustomNavigationBar: UIView {
             backButton.heightAnchor.constraint(equalToConstant: 44),
             
             // Title Label
-            titleLabel.leadingAnchor.constraint(equalTo: backButton.trailingAnchor, constant: 12),
+            titleLabel.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 16),
             titleLabel.centerYAnchor.constraint(equalTo: centerYAnchor),
-            titleLabel.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor, constant: -16),
+            titleLabel.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -16),
         ])
         
         backButton.addTarget(self, action: #selector(backButtonTapped), for: .touchUpInside)

@@ -7,6 +7,7 @@
 //
 
 import Foundation
+import TRPFoundationKit
 
 public protocol AddPlanContainerViewModelDelegate: AnyObject {
     func stepChanged()
@@ -17,7 +18,8 @@ public struct AddPlanData {
     public var selectedDay: Date?
     public var selectedCity: TRPCity?
     public var selectedMode: AddPlanMode = .none
-    public var startingPoint: TRPPoi?
+    public var startingPointLocation: TRPLocation? // Latitude/longitude coordinates
+    public var startingPointName: String? // Display name for the starting point
     public var startTime: Date?
     public var endTime: Date?
     public var travelers: Int = 0
