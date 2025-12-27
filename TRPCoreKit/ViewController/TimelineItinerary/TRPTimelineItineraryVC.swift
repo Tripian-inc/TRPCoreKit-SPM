@@ -601,12 +601,17 @@ extension TRPTimelineItineraryVC: TRPTimelineDayFilterViewDelegate {
         calculatedDistances.removeAll()
         viewModel.selectDay(at: dayIndex)
         tableView.reloadData()
-        
+
+        // Scroll table view to top to show section header
+        if viewModel.numberOfSections() > 0 {
+            tableView.setContentOffset(CGPoint(x: 0, y: -tableView.contentInset.top), animated: true)
+        }
+
         // If map is showing, refresh it and update POI cards
         if isShowingMap {
                 refreshMap()
             updatePOIPreviewCards()
-            
+
             // Scroll collection view to the beginning
             if !currentTimelineItems.isEmpty {
                 poiPreviewCollectionView.scrollToItem(at: IndexPath(item: 0, section: 0), at: .left, animated: true)
@@ -671,15 +676,7 @@ extension TRPTimelineItineraryVC: TRPTimelineActivityStepCellDelegate {
 
 // MARK: - TRPTimelineSectionHeaderViewDelegate
 extension TRPTimelineItineraryVC: TRPTimelineSectionHeaderViewDelegate {
-    
-    func sectionHeaderViewDidTapFilter(_ view: TRPTimelineSectionHeaderView) {
-        delegate?.timelineItineraryFilterPressed(self)
-    }
-    
-    func sectionHeaderViewDidTapAddPlans(_ view: TRPTimelineSectionHeaderView) {
-        // Launch add plan flow
-        showAddPlanFlow()
-    }
+    // No delegate methods needed - FAB handles adding plans
 }
 
 // MARK: - TRPTimelineSectionFooterViewDelegate
@@ -809,11 +806,16 @@ extension TRPTimelineItineraryVC: TRPCalendarViewControllerDelegate {
             // Update the selected day in the view model and UI
             viewModel.selectDay(at: dayIndex)
             dayFilterView.configure(with: viewModel.getDays(), selectedDay: dayIndex)
-            
+
             // Clear cache and reload table
             calculatedDistances.removeAll()
             tableView.reloadData()
-            
+
+            // Scroll table view to top to show section header
+            if viewModel.numberOfSections() > 0 {
+                tableView.setContentOffset(CGPoint(x: 0, y: -tableView.contentInset.top), animated: true)
+            }
+
             // If map is showing, refresh it and update POI cards
             if isShowingMap {
                     refreshMap()

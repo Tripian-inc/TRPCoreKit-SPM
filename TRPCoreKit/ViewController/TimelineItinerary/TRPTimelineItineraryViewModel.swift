@@ -30,8 +30,6 @@ private enum TimelineItem {
 
 public struct TRPTimelineSectionHeaderData {
     let cityName: String
-    let showFilterButton: Bool
-    let showAddPlansButton: Bool
     let isFirstSection: Bool
     let shouldShowHeader: Bool // Show header for this section
     let hasMultipleDestinations: Bool // Whether timeline has multiple destinations
@@ -174,11 +172,11 @@ public class TRPTimelineItineraryViewModel {
                     let filteredSteps = steps.filter { step in
                         guard let stepStartDate = step.startDateTimes,
                               let stepDate = Date.fromString(stepStartDate, format: "yyyy-MM-dd HH:mm:ss") else {
-                            return true
+                            return false
                         }
                         return stepDate >= selectedDayStart && stepDate < selectedDayEnd
                     }
-                    
+
                     if !filteredSteps.isEmpty {
                         filteredGroup.append(.poiSteps(filteredSteps))
                     }
@@ -200,8 +198,8 @@ public class TRPTimelineItineraryViewModel {
             }
             sorted.append(group)
         }
-        
-        filteredTimelineItems = sorted.isEmpty ? allTimelineItems : sorted
+
+        filteredTimelineItems = sorted
     }
     
     // MARK: - Public Methods
@@ -350,20 +348,18 @@ public class TRPTimelineItineraryViewModel {
         let hasMultipleDests = hasMultipleDestinations()
         
         // Determine if we should show the header:
-        // 1. Always show for first section (needs filter and add plans buttons)
+        // 1. Always show for first section (for context)
         // 2. If multiple destinations exist, show header only when city CHANGES from previous section
         var shouldShowHeader = isFirstSection
-        
+
         if hasMultipleDests && !isFirstSection {
             // Check if this section's city is different from the previous section's city
             let previousCityName = getCityName(for: section - 1)
             shouldShowHeader = (cityName != previousCityName)
         }
-        
+
         return TRPTimelineSectionHeaderData(
             cityName: cityName,
-            showFilterButton: isFirstSection,
-            showAddPlansButton: isFirstSection,
             isFirstSection: isFirstSection,
             shouldShowHeader: shouldShowHeader,
             hasMultipleDestinations: hasMultipleDests

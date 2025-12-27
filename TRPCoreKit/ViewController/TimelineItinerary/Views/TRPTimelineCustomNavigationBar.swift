@@ -45,10 +45,10 @@ class TRPTimelineCustomNavigationBar: UIView {
     private let titleLabel: UILabel = {
         let label = UILabel()
         label.translatesAutoresizingMaskIntoConstraints = false
-        label.font = FontSet.montserratSemiBold.font(16)
-        label.textColor = ColorSet.fg.uiColor
+        label.font = FontSet.montserratSemiBold.font(18)
+        label.textColor = ColorSet.primaryText.uiColor
         label.textAlignment = .center
-        label.text = "Destinos"
+        label.text = TimelineLocalizationKeys.localized(TimelineLocalizationKeys.navigationTitle)
         return label
     }()
     
