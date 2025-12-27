@@ -10,7 +10,6 @@ import Foundation
 import UIKit
 import MapboxDirections
 import TRPFoundationKit
-import SDWebImage
 
 // MARK: - Map Setup and Management
 extension TRPTimelineItineraryVC {
@@ -382,12 +381,12 @@ extension TRPTimelineItineraryVC: TRPMapViewDelegate {
         // Load map data after map is ready
         loadMapData()
     }
-    
+
     public func mapViewCloseAnnotation(_ mapView: TRPMapView) {
-        guard let callOut = callOutController else {return}
-        callOut.hidden()
+        // Collapse collection view when annotation is closed
+        collapseCollectionView()
     }
-    
+
     public func mapView(annotationPressed poiId: String, type: TRPAnnotationType) {
         // Find the index of the item in currentTimelineItems
         var itemIndex: Int? = nil
@@ -458,104 +457,6 @@ extension TRPTimelineItineraryVC {
     public func centerMap(on location: TRPLocation, zoomLevel: Double = 14) {
         guard let map = map else { return }
         map.setCenter(location, zoomLevel: zoomLevel)
-    }
-    
-    /// Open callout for a booked activity
-    internal func openCallOutForBookedActivity(_ segment: TRPTimelineSegment) {
-        guard let additionalData = segment.additionalData else { return }
-        
-        // For booked activities, show title and description
-        let callOutCell = CallOutCellModel(id: additionalData.activityId ?? "",
-                                           name: additionalData.title ?? segment.title ?? "Booked Activity",
-                                           poiCategory: "Booked Activity",
-                                           starCount: 0,
-                                           reviewCount: 0,
-                                           price: 0,
-                                           rightButton: nil) // No add/remove button for booked activities
-        
-        callOutController?.cellPressed = { [weak self] id, inRoute in
-            guard let self = self else { return }
-            self.callOutController?.hidden()
-            
-            // Handle booked activity selection
-            self.delegate?.timelineItineraryDidSelectBookedActivity(self, segment: segment)
-        }
-        
-        callOutController?.action = { [weak self] status, id in
-            guard let self = self else { return }
-            self.callOutController?.hidden()
-            // No add/remove actions for booked activities
-        }
-        
-        callOutController?.show(model: callOutCell)
-    }
-    
-    /// Open callout for a POI
-    private func openCallOut(_ poi: TRPPoi) {
-        var category = poi.getCategoryName()
-        var rating = poi.isRatingAvailable() ? poi.rating ?? 0 : 0
-        rating = rating.rounded()
-        
-        var rightButton: AddRemoveNavButtonStatus? = nil
-        // For timeline, we might not need add/remove functionality
-        // But keeping it for consistency with TRPTripModeVC
-        if poi.placeType == .poi {
-            rightButton = .add // Default to add, can be customized based on your logic
-        }
-        
-        let poiRating = poi.rating ?? 0
-        let poiPrice = poi.price ?? 0
-        
-        let callOutCell = CallOutCellModel(id: poi.id,
-                                           name: poi.name,
-                                           poiCategory: category,
-                                           starCount: Float(rating),
-                                           reviewCount: Int(poiRating),
-                                           price: poiPrice,
-                                           rightButton: rightButton)
-        
-        callOutController?.cellPressed = { [weak self] id, inRoute in
-            guard let self = self else { return }
-            self.callOutController?.hidden()
-            
-            if id == TRPPoi.ACCOMMODATION_ID { return }
-            
-            if poi.placeType == .poi {
-                // Get the step associated with this POI
-                if let step = self.viewModel.getStep(forPoiId: id) {
-                    self.delegate?.timelineItineraryDidSelectStep(self, step: step)
-                }
-            }
-        }
-        
-        callOutController?.action = { [weak self] status, id in
-            guard let self = self else { return }
-            self.callOutController?.hidden()
-            
-            // Handle add/remove actions if needed
-            // This can be customized based on your requirements
-            if status == .add {
-            } else if status == .remove {
-            }
-        }
-        
-        callOutController?.show(model: callOutCell)
-        callOutController?.getCellImageView()?.image = nil
-        
-        // Load POI image
-        guard let image = poi.image?.url else { return }
-        guard let url = URL(string: image) else { return }
-        
-        SDWebImageManager.shared.loadImage(with: url, options: .lowPriority, context: nil, progress: nil) { [weak self] (downloadedImage, _, error, _, _, _) in
-            guard let self = self else { return }
-            if error != nil {
-                return
-            }
-            guard let image = downloadedImage else {
-                return
-            }
-            self.callOutController?.getCellImageView()?.image = image
-        }
     }
 }
 

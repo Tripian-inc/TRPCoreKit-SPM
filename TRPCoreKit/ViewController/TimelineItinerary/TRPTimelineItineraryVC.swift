@@ -8,7 +8,6 @@
 
 import UIKit
 import TRPFoundationKit
-import SDWebImage
 
 public protocol TRPTimelineItineraryVCDelegate: AnyObject {
     func timelineItineraryFilterPressed(_ viewController: TRPTimelineItineraryVC)
@@ -26,7 +25,6 @@ public class TRPTimelineItineraryVC: TRPBaseUIViewController {
     internal var viewModel: TRPTimelineItineraryViewModel!
     public weak var delegate: TRPTimelineItineraryVCDelegate?
     internal var map: TRPMapView?
-    internal var callOutController: TRPCallOutController?
     internal var hasLoadedInitialMapData: Bool = false
     
     // Cache for route calculations - keyed by route coordinates
@@ -165,7 +163,6 @@ public class TRPTimelineItineraryVC: TRPBaseUIViewController {
         setupMapView()
         setupPOIPreviewCards()
         setupFloatingButtons()
-        setupCallOutController()
         registerCells()
         
         // Bring navigation bar and day filter to front so they appear above the map
@@ -277,39 +274,6 @@ public class TRPTimelineItineraryVC: TRPBaseUIViewController {
         ])
     }
     
-    private func setupCallOutController() {
-        let addImage = TRPImageController().getImage(inFramework: "add_btn", inApp: TRPAppearanceSettings.Common.addButtonImage)
-        let removeImage = TRPImageController().getImage(inFramework: "remove_btn", inApp: TRPAppearanceSettings.Common.removeButtonImage)
-        let navImage = TRPImageController().getImage(inFramework: "navigation_btn", inApp: TRPAppearanceSettings.Common.navigationButtonImage)
-        
-        let bottomSpace: CGFloat = 62
-        
-        callOutController = TRPCallOutController(inView: self.view,
-                                                 addBtnImage: addImage,
-                                                 removeBtnImage: removeImage,
-                                                 navigationBtnImage: navImage,
-                                                 bottomSpace: bottomSpace)
-        
-        callOutController?.cellPressed = { [weak self] id, inRoute in
-            guard let self = self else { return }
-            self.callOutController?.hidden()
-            
-            // Get POI and show detail
-            if let poi = self.viewModel.getPoi(byId: id) {
-                // For now, we'll just log. You can extend the delegate to handle POI details
-                // print("POI clicked: \(poi.name)")
-            }
-        }
-        
-        callOutController?.action = { [weak self] status, id in
-            guard let self = self else { return }
-            self.callOutController?.hidden()
-            
-            // Handle add/remove actions
-            // This can be extended based on your requirements
-        }
-    }
-    
     // MARK: - Actions
     @objc private func mapFloatingButtonTapped() {
         // Toggle between list and map views
@@ -365,10 +329,17 @@ public class TRPTimelineItineraryVC: TRPBaseUIViewController {
             self.tableView.isHidden = false
             self.mapContainerView.isHidden = true
             self.poiPreviewContainerView.isHidden = true
-            
+
+            // Reset FAB positions to original
+            self.addPlanButtonBottomConstraint?.constant = -24
+            self.view.layoutIfNeeded()
+
             // Update floating button icon to map
             self.mapFloatingButton.updateIcon(TRPImageController().getImage(inFramework: "ic_map", inApp: nil))
         }
+
+        // Reset collection view state
+        isCollectionViewExpanded = false
     }
     
     private func updatePOIPreviewCards() {
@@ -901,73 +872,12 @@ extension TRPTimelineItineraryVC: UICollectionViewDataSource, UICollectionViewDe
             if let mapView = map {
                 mapView.setCenter(poi.coordinate, zoomLevel: 15)
             }
-            
-            // Show callout
-//            openCallOut(poi)
-            
+
         case .bookedActivity(let segment):
             // Center map on booked activity location
             if let coordinate = segment.coordinate, let mapView = map {
                 mapView.setCenter(coordinate, zoomLevel: 15)
             }
-            
-            // Show booked activity callout
-//            openCallOutForBookedActivity(segment)
-        }
-    }
-    
-    // MARK: - Callout Helper
-    private func openCallOut(_ poi: TRPPoi) {
-        var category = poi.getCategoryName()
-        var rating = poi.isRatingAvailable() ? poi.rating ?? 0 : 0
-        rating = rating.rounded()
-        
-        var rightButton: AddRemoveNavButtonStatus? = nil
-        if poi.placeType == .poi {
-            rightButton = .add
-        }
-        
-        let poiRating = poi.rating ?? 0
-        let poiPrice = poi.price ?? 0
-        
-        let callOutCell = CallOutCellModel(id: poi.id,
-                                           name: poi.name,
-                                           poiCategory: category,
-                                           starCount: Float(rating),
-                                           reviewCount: Int(poiRating),
-                                           price: poiPrice,
-                                           rightButton: rightButton)
-        
-        callOutController?.cellPressed = { [weak self] id, inRoute in
-            guard let self = self else { return }
-            self.callOutController?.hidden()
-            
-            if id == TRPPoi.ACCOMMODATION_ID { return }
-            
-            if poi.placeType == .poi {
-                if let step = self.viewModel.getStep(forPoiId: id) {
-                    self.delegate?.timelineItineraryDidSelectStep(self, step: step)
-                }
-            }
-        }
-        
-        callOutController?.action = { [weak self] status, id in
-            guard let self = self else { return }
-            self.callOutController?.hidden()
-        }
-        
-        callOutController?.show(model: callOutCell)
-        callOutController?.getCellImageView()?.image = nil
-        
-        // Load POI image
-        guard let image = poi.image?.url else { return }
-        guard let url = URL(string: image) else { return }
-        
-        SDWebImageManager.shared.loadImage(with: url, options: .lowPriority, context: nil, progress: nil) { [weak self] (downloadedImage, _, error, _, _, _) in
-            guard let self = self else { return }
-            if error != nil { return }
-            guard let image = downloadedImage else { return }
-            self.callOutController?.getCellImageView()?.image = image
         }
     }
 }
