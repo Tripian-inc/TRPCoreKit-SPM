@@ -278,17 +278,25 @@ class TRPTimelineBookedActivityCell: UITableViewCell {
     }
     
     private func formatTime(from dateString: String) -> String {
-        guard let date = Date.fromString(dateString, format: "yyyy-MM-dd HH:mm:ss") else {
+        // Try format with seconds first, then without seconds
+        let date = Date.fromString(dateString, format: "yyyy-MM-dd HH:mm:ss")
+                   ?? Date.fromString(dateString, format: "yyyy-MM-dd HH:mm")
+
+        guard let validDate = date else {
             return ""
         }
-        return date.toString(format: "HH:mm") ?? ""
+        return validDate.toString(format: "HH:mm") ?? ""
     }
-    
+
     private func formatDate(from dateString: String) -> String {
-        guard let date = Date.fromString(dateString, format: "yyyy-MM-dd HH:mm:ss") else {
+        // Try format with seconds first, then without seconds
+        let date = Date.fromString(dateString, format: "yyyy-MM-dd HH:mm:ss")
+                   ?? Date.fromString(dateString, format: "yyyy-MM-dd HH:mm")
+
+        guard let validDate = date else {
             return ""
         }
-        return date.toString(format: "dd/MM/yyyy HH:mm") ?? ""
+        return validDate.toString(format: "dd/MM/yyyy HH:mm") ?? ""
     }
 }
 
