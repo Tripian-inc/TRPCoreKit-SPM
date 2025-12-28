@@ -139,6 +139,11 @@ public class MyTripVC: TRPBaseUIViewController {
         }
     }
     
+    override func closeButtonPressed() {
+        super.closeButtonPressed()
+        self.delegate?.myTripVCDismissButtonPressed()
+    }
+    
 }
 
 //NavigationBarButtonItems

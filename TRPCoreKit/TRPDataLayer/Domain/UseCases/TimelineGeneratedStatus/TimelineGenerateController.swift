@@ -33,18 +33,20 @@ class TimelineGenerateController {
             }
             switch result {
             case .success(let trip):
-                guard let plans = trip.plans else {
-                    completion?(.failure(GeneralError.customMessageKey("trips.myTrips.itinerary.offers.payment.error.somethingWentWrong")))
+                // If there are no plans (only booked/reserved activities), consider it as successfully generated
+                guard let plans = trip.plans, !plans.isEmpty else {
+                    completion?(.success(trip))
                     return
                 }
+
                 let generated = plans.map({$0.generatedStatus})
-                
+
                 if generated.contains(0) {
                     DispatchQueue.global().asyncAfter(deadline: .now() + self.dailyPlanGeneraterInterval) { [weak self] in
                         self?.fetchTimeline(hash: hash, completion: completion)
                     }
                 }
-                
+
                 guard let firstStatus = generated.first else { return }
                 if firstStatus > 0 {
                     completion?(.success(trip))

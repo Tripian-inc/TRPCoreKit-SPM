@@ -29,10 +29,15 @@ public final class TRPTimelineCheckAllPlanUseCases {
     }
     
     private func checkFirstSegmentStatus(timeline: TRPTimeline) {
-    
+
         if firstSegmentGenerated.value == true {return}
-        
-        guard let plans = timeline.plans else { return}
+
+        // If there are no plans (only booked/reserved activities), consider it as generated
+        guard let plans = timeline.plans, !plans.isEmpty else {
+            firstSegmentGenerated.value = true
+            return
+        }
+
         for plan in plans {
             if plan.generatedStatus != 0 {
                 self.generatedStatus = plan.generatedStatus
@@ -43,10 +48,15 @@ public final class TRPTimelineCheckAllPlanUseCases {
     }
     
     private func checkAllSegmentStatus(timeline: TRPTimeline) {
-    
+
         if allSegmentGenerated.value == true {return}
-        
-        guard let plans = timeline.plans else { return}
+
+        // If there are no plans (only booked/reserved activities), consider it as generated
+        guard let plans = timeline.plans, !plans.isEmpty else {
+            allSegmentGenerated.value = true
+            return
+        }
+
         var notGenerated = false
         for plan in plans {
             if plan.generatedStatus == 0 {

@@ -136,6 +136,7 @@ public class TRPTimelineItineraryVC: TRPBaseUIViewController {
     public init(viewModel: TRPTimelineItineraryViewModel) {
         self.viewModel = viewModel
         super.init(nibName: nil, bundle: nil)
+        self.viewModel.delegate = self
     }
     
     required init?(coder aDecoder: NSCoder) {
@@ -164,19 +165,18 @@ public class TRPTimelineItineraryVC: TRPBaseUIViewController {
         setupPOIPreviewCards()
         setupFloatingButtons()
         registerCells()
-        
+
         // Bring navigation bar and day filter to front so they appear above the map
         view.bringSubviewToFront(customNavigationBar)
         view.bringSubviewToFront(dayFilterView)
-        
-        // Load initial data
-        reload()
     }
+
     
     private func registerCells() {
         tableView.register(TRPTimelineBookedActivityCell.self, forCellReuseIdentifier: TRPTimelineBookedActivityCell.reuseIdentifier)
         tableView.register(TRPTimelineActivityStepCell.self, forCellReuseIdentifier: TRPTimelineActivityStepCell.reuseIdentifier)
         tableView.register(TRPTimelineRecommendationsCell.self, forCellReuseIdentifier: TRPTimelineRecommendationsCell.reuseIdentifier)
+        tableView.register(TRPTimelineEmptyStateCell.self, forCellReuseIdentifier: TRPTimelineEmptyStateCell.reuseIdentifier)
         tableView.register(TRPTimelineSectionHeaderView.self, forHeaderFooterViewReuseIdentifier: TRPTimelineSectionHeaderView.reuseIdentifier)
         tableView.register(TRPTimelineSectionFooterView.self, forHeaderFooterViewReuseIdentifier: TRPTimelineSectionFooterView.reuseIdentifier)
         
@@ -443,11 +443,11 @@ public class TRPTimelineItineraryVC: TRPBaseUIViewController {
 
 // MARK: - UITableViewDataSource
 extension TRPTimelineItineraryVC: UITableViewDataSource {
-    
+
     public func numberOfSections(in tableView: UITableView) -> Int {
         return viewModel.numberOfSections()
     }
-    
+
     public func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         return viewModel.numberOfRows(in: section)
     }
@@ -465,7 +465,15 @@ extension TRPTimelineItineraryVC: UITableViewDataSource {
             cell.configure(with: segment)
             cell.delegate = self
             return cell
-            
+
+        case .reservedActivity(let segment):
+            guard let cell = tableView.dequeueReusableCell(withIdentifier: TRPTimelineBookedActivityCell.reuseIdentifier, for: indexPath) as? TRPTimelineBookedActivityCell else {
+                return UITableViewCell()
+            }
+            cell.configure(with: segment)
+            cell.delegate = self
+            return cell
+
         case .activityStep(let step):
             // Activity steps use the same booking cell as booked activities
             guard let cell = tableView.dequeueReusableCell(withIdentifier: TRPTimelineActivityStepCell.reuseIdentifier, for: indexPath) as? TRPTimelineActivityStepCell else {
@@ -489,6 +497,14 @@ extension TRPTimelineItineraryVC: UITableViewDataSource {
                 }
             }
             
+            return cell
+            
+        case .emptyState:
+            guard let cell = tableView.dequeueReusableCell(withIdentifier: TRPTimelineEmptyStateCell.reuseIdentifier, for: indexPath) as? TRPTimelineEmptyStateCell else {
+                return UITableViewCell()
+            }
+            cell.configure()
+            cell.delegate = self
             return cell
         }
     }
@@ -539,6 +555,14 @@ extension TRPTimelineItineraryVC: UITableViewDelegate {
     }
     
     public func tableView(_ tableView: UITableView, viewForFooterInSection section: Int) -> UIView? {
+        // Don't show footer for empty state
+        if viewModel.numberOfSections() == 1,
+           viewModel.numberOfRows(in: section) == 1,
+           let cellType = viewModel.cellType(at: IndexPath(row: 0, section: section)),
+           case .emptyState = cellType {
+            return nil
+        }
+        
         // Don't show footer after the last section
         guard section < viewModel.numberOfSections() - 1 else {
             return nil
@@ -554,6 +578,14 @@ extension TRPTimelineItineraryVC: UITableViewDelegate {
     }
     
     public func tableView(_ tableView: UITableView, heightForFooterInSection section: Int) -> CGFloat {
+        // Don't show footer for empty state
+        if viewModel.numberOfSections() == 1,
+           viewModel.numberOfRows(in: section) == 1,
+           let cellType = viewModel.cellType(at: IndexPath(row: 0, section: section)),
+           case .emptyState = cellType {
+            return 0
+        }
+        
         // Don't show footer after the last section
         guard section < viewModel.numberOfSections() - 1 else {
             return 0
@@ -563,6 +595,14 @@ extension TRPTimelineItineraryVC: UITableViewDelegate {
     }
     
     public func tableView(_ tableView: UITableView, estimatedHeightForFooterInSection section: Int) -> CGFloat {
+        // Don't show footer for empty state
+        if viewModel.numberOfSections() == 1,
+           viewModel.numberOfRows(in: section) == 1,
+           let cellType = viewModel.cellType(at: IndexPath(row: 0, section: section)),
+           case .emptyState = cellType {
+            return 0
+        }
+        
         // Don't show footer after the last section
         guard section < viewModel.numberOfSections() - 1 else {
             return 0
@@ -581,13 +621,20 @@ extension TRPTimelineItineraryVC: UITableViewDelegate {
         switch cellType {
         case .bookedActivity(let segment):
             delegate?.timelineItineraryDidSelectBookedActivity(self, segment: segment)
-            
+
+        case .reservedActivity(let segment):
+            delegate?.timelineItineraryDidSelectBookedActivity(self, segment: segment)
+
         case .activityStep(let step):
             // Treat activity step selection similar to regular step selection
             delegate?.timelineItineraryDidSelectStep(self, step: step)
-            
+
         case .recommendations:
             // Recommendations cell handles selection internally
+            break
+            
+        case .emptyState:
+            // Empty state cell handles selection internally via button
             break
         }
     }
@@ -687,6 +734,15 @@ extension TRPTimelineItineraryVC: TRPTimelineSectionFooterViewDelegate {
     }
 }
 
+// MARK: - TRPTimelineEmptyStateCellDelegate
+extension TRPTimelineItineraryVC: TRPTimelineEmptyStateCellDelegate {
+    
+    func emptyStateCellDidTapAddPlan(_ cell: TRPTimelineEmptyStateCell) {
+        // Launch add plan flow
+        showAddPlanFlow()
+    }
+}
+
 // MARK: - TRPTimelineRecommendationsCellDelegate
 extension TRPTimelineItineraryVC: TRPTimelineRecommendationsCellDelegate {
     
@@ -779,9 +835,11 @@ extension TRPTimelineItineraryVC: TRPTimelineRecommendationsCellDelegate {
 extension TRPTimelineItineraryVC: TRPTimelineCustomNavigationBarDelegate {
     
     func customNavigationBarDidTapBack(_ navigationBar: TRPTimelineCustomNavigationBar) {
-        // Handle back button tap
-        if let navigationController = navigationController {
-            navigationController.popViewController(animated: true)
+        // Close SDK when back button is tapped
+        // Since this is the root screen after splash, dismiss the entire navigation controller
+        if let navController = navigationController {
+            // Dismiss the navigation controller to close SDK
+            navController.dismiss(animated: true, completion: nil)
         } else {
             dismiss(animated: true, completion: nil)
         }
@@ -956,21 +1014,30 @@ extension TRPTimelineItineraryVC: AddPlanContainerVCDelegate {
         // Dismiss the add plan container first
         viewController.dismiss(animated: true) { [weak self] in
             guard let self = self else { return }
-            
+
             // Create activity listing ViewModel with the plan data
             let activityListingViewModel = AddPlanActivityListingViewModel(planData: data)
             let activityListingVC = AddPlanActivityListingVC()
             activityListingVC.viewModel = activityListingViewModel
-            
+
             // Create navigation controller for the activity listing
             let navController = UINavigationController(rootViewController: activityListingVC)
             navController.modalPresentationStyle = .fullScreen
-            
+
             // Set title
             activityListingVC.title = AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.categoryActivities)
-            
+
             self.present(navController, animated: true)
         }
+    }
+}
+
+// MARK: - TRPTimelineItineraryViewModelDelegate
+extension TRPTimelineItineraryVC: TRPTimelineItineraryViewModelDelegate {
+
+    public func timelineItineraryViewModel(didUpdateTimeline: Bool) {
+        guard didUpdateTimeline else { return }
+        reload()
     }
 }
 

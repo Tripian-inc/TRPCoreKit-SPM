@@ -27,11 +27,15 @@ public class TRPSDKCoordinater {
     private var userProfileAnswers = [Int]()
     
     private var canBackFromMyTrip = true
-    
+
     // Timeline-related properties
     private var timelineFromItineraryViewModel: TRPTimelineFromItineraryViewModel?
     private var timelineModelRepository: TRPTimelineModelRepository?
     private var timelineRepository: TRPTimelineRepository?
+
+    // Store itinerary data for opening after splash completes
+    private var pendingItineraryModel: TRPItineraryWithActivities?
+    private var pendingTripHash: String?
     
     private var alertMessage: (title: String?, message: String)? {
         didSet {
@@ -122,40 +126,72 @@ public class TRPSDKCoordinater {
     }
     
     /// Start with TRPItineraryWithActivities model to create a timeline
-    /// This method creates a timeline from the itinerary model, waits for generation, and then opens the timeline mode
-    /// - Parameter itineraryModel: TRPItineraryWithActivities model containing timeline data
-    public func startWithItinerary(_ itineraryModel: TRPItineraryWithActivities) {
+    /// Opens splash screen first to handle translations and login, then opens timeline itinerary screen
+    /// - Parameters:
+    ///   - itineraryModel: TRPItineraryWithActivities model containing timeline data
+    ///   - tripHash: Optional trip hash. If provided, fetches existing timeline instead of creating new one
+    public func startWithItinerary(_ itineraryModel: TRPItineraryWithActivities, tripHash: String? = nil) {
         checkAllApiKey()
         userProfile()
-        
-        // Start with splash screen for authentication first
-        let vc = SplashViewController()
-        vc.delegate = self
-        vc.uniqueId = itineraryModel.uniqueId
-        vc.start()
-        DispatchQueue.main.async {
-            self.navigationController.pushViewController(vc, animated: true)
-            self.setupSomeGeneralAppearances()
-            
-            // After authentication completes, create the timeline using view model
-            self.setupTimelineCreationViewModel(itineraryModel)
+
+        // Store itinerary data to be used after splash completes
+        pendingItineraryModel = itineraryModel
+        pendingTripHash = tripHash
+
+        // Start with splash screen to handle translations and login
+        startWithSplashVC(uniqueId: itineraryModel.uniqueId)
+    }
+
+    /// Opens timeline with existing trip hash (fetch existing timeline)
+    /// - Parameters:
+    ///   - tripHash: The trip hash for the existing timeline
+    ///   - itineraryModel: The itinerary model containing additional data like favouriteItems
+    private func openTimelineWithTripHash(_ tripHash: String, itineraryModel: TRPItineraryWithActivities) {
+        // Show loading
+        showTripianLoader(true)
+
+        // Fetch timeline using repository
+        let repo = timelineRepository ?? TRPTimelineRepository()
+        repo.fetchTimeline(tripHash: tripHash) { [weak self] result in
+            guard let self = self else { return }
+
+            DispatchQueue.main.async {
+                // Hide loading
+                self.showTripianLoader(false)
+
+                switch result {
+                case .success(let timeline):
+                    // Merge itinerary model data with fetched timeline
+                    self.openTimelineItineraryViewControllerWithItineraryData(timeline: timeline, itineraryModel: itineraryModel)
+
+                case .failure(let error):
+                    // Show error alert
+                    let alert = UIAlertController(
+                        title: "Error",
+                        message: "Failed to load timeline. Please try again.",
+                        preferredStyle: .alert
+                    )
+                    alert.addAction(UIAlertAction(title: "OK", style: .default))
+                    self.navigationController.present(alert, animated: true)
+                }
+            }
         }
     }
-    
+
     /// Sets up the timeline creation view model and starts the creation process
     private func setupTimelineCreationViewModel(_ itineraryModel: TRPItineraryWithActivities) {
         // Create view model
         let viewModel = TRPTimelineFromItineraryViewModel(itineraryModel: itineraryModel)
         viewModel.delegate = self
-        
+
         // Set up use cases
         viewModel.createTimelineUseCase = createTimelineUseCase
         viewModel.observeTimelineAllPlan = fetchTimelineCheckAllPlanUseCase
         viewModel.fetchTimelineAllPlan = fetchTimelineCheckAllPlanUseCase
-        
+
         // Store reference
         timelineFromItineraryViewModel = viewModel
-        
+
         // Start timeline creation
         viewModel.createTimeline()
     }
@@ -259,13 +295,33 @@ public class TRPSDKCoordinater {
 
 extension TRPSDKCoordinater: SplashViewControllerDelegate {
     func datasFetchCompleted() {
-        start()
+        // Check if we have pending itinerary model to open
+        if let itineraryModel = pendingItineraryModel {
+            // Remove splash from navigation stack (it's the current top VC)
+            // Use setViewControllers to replace splash with timeline in one operation
+            let viewModel = TRPTimelineItineraryViewModel(itineraryModel: itineraryModel, tripHash: pendingTripHash)
+            let viewController = TRPTimelineItineraryVC(viewModel: viewModel)
+
+            // Replace splash with timeline
+            navigationController.setViewControllers([viewController], animated: true)
+
+            // Clear pending data
+            pendingItineraryModel = nil
+            pendingTripHash = nil
+        } else {
+            // Normal flow: open MyTrips screen
+            start()
+        }
     }
-    
+
     func datasFetchFailed() {
         navigationController.dismiss(animated: true)
+
+        // Clear pending data on failure
+        pendingItineraryModel = nil
+        pendingTripHash = nil
     }
-    
+
 }
 
 //extension TRPSDKCoordinater: ExperienceDetailViewControllerDelegate, ExperienceAvailabilityViewControllerDelegate {
@@ -468,9 +524,8 @@ extension TRPSDKCoordinater:  MyTripVCDelegate {
 //        tripCreateCoordinater.nexusNumberOfAdults = self.nexusNumberOfAdults
 //        tripCreateCoordinater.nexusNumberOfChildren = self.nexusNumberOfChildren
         tripCreateCoordinater.nexusDestinationId = destinationId
-//        tripCreateCoordinater.start(city: city)
-        
-        TRPTimelineMockCoordinator.quickTest(from: navigationController)
+        //TRPTimelineMockCoordinator.quickTest(from: navigationController)
+        tripCreateCoordinater.start(city: city)
     }
     
     
@@ -585,20 +640,64 @@ extension TRPSDKCoordinater {
 
 // MARK: - Timeline Creation Delegate
 extension TRPSDKCoordinater: TRPTimelineFromItineraryViewModelDelegate {
-    
+
     public func timelineGenerated(timeline: TRPTimeline) {
-        // Timeline is successfully generated, open timeline itinerary view
-        openTimelineItineraryViewController(timeline: timeline)
+        DispatchQueue.main.async {
+            // Hide loading
+            self.showTripianLoader(false)
+
+            // Open timeline itinerary view with generated timeline
+            self.openTimelineItineraryViewController(timeline: timeline)
+        }
     }
-    
-    /// Opens Timeline Itinerary View Controller with the generated timeline
+
+    /// Opens Timeline Itinerary View Controller with the generated timeline (without itinerary data merge)
     private func openTimelineItineraryViewController(timeline: TRPTimeline) {
         // Create view model with timeline
         let viewModel = TRPTimelineItineraryViewModel(timeline: timeline)
-        
+
         // Create view controller
         let viewController = TRPTimelineItineraryVC(viewModel: viewModel)
-        
+
+        // Push onto navigation stack
+        DispatchQueue.main.async {
+            self.navigationController.pushViewController(viewController, animated: true)
+        }
+    }
+
+    /// Opens Timeline Itinerary View Controller with fetched timeline and itinerary model data
+    /// - Parameters:
+    ///   - timeline: Fetched timeline from server
+    ///   - itineraryModel: Itinerary model containing additional data (favouriteItems, etc.)
+    private func openTimelineItineraryViewControllerWithItineraryData(timeline: TRPTimeline, itineraryModel: TRPItineraryWithActivities) {
+
+        // Merge itinerary model data into timeline
+        var updatedTimeline = timeline
+        updatedTimeline.favouriteItems = itineraryModel.favouriteItems
+
+        // Convert tripItems to segments and add to timeline
+        if let tripItems = itineraryModel.tripItems, !tripItems.isEmpty {
+            // Create timeline profile from bookings to get segments
+            let profileFromBookings = itineraryModel.createTimelineProfileFromBookings()
+
+            // Merge the segments from bookings into the timeline
+            if !profileFromBookings.segments.isEmpty {
+                updatedTimeline.segments = profileFromBookings.segments
+            }
+        }
+
+        // Also add favouriteItems to tripProfile if it exists
+        if var tripProfile = updatedTimeline.tripProfile {
+            tripProfile.favouriteItems = itineraryModel.favouriteItems
+            updatedTimeline.tripProfile = tripProfile
+        }
+
+        // Create view model with merged timeline
+        let viewModel = TRPTimelineItineraryViewModel(timeline: updatedTimeline)
+
+        // Create view controller
+        let viewController = TRPTimelineItineraryVC(viewModel: viewModel)
+
         // Push onto navigation stack
         DispatchQueue.main.async {
             self.navigationController.pushViewController(viewController, animated: true)

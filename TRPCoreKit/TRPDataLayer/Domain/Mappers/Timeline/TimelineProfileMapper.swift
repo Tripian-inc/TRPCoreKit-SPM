@@ -88,6 +88,10 @@ final class TimelineProfileMapper {
             _segment = segment as! TRPCreateEditTimelineSegmentProfile
         }
         let restKitSegment = TRPTimelineSegmentSettings()
+
+        // Set segment type
+        restKitSegment.segmentType = _segment.segmentType.rawValue
+
         restKitSegment.cityId = _segment.city?.id
         restKitSegment.title = _segment.title
         restKitSegment.description = _segment.description
@@ -104,7 +108,12 @@ final class TimelineProfileMapper {
         restKitSegment.considerWeather = _segment.considerWeather
         restKitSegment.available = _segment.available
         restKitSegment.distinctPlan = _segment.distinctPlan
-        
+
+        // Set additional data for booked/reserved activities
+        if let additionalData = _segment.additionalData {
+            restKitSegment.additionalData = mapAdditionalData(from: additionalData)
+        }
+
         if let accommondation = _segment.accommodation {
             let restKitAccommondation = Accommondation(refId: accommondation.referanceId,
                                                        name: accommondation.name,
@@ -112,7 +121,7 @@ final class TimelineProfileMapper {
                                                        coordinate: accommondation.coordinate)
             restKitSegment.accommodationAdress = restKitAccommondation
         }
-        
+
         if let accommondation = _segment.destinationAccommodation {
             let restKitAccommondation = Accommondation(refId: accommondation.referanceId,
                                                        name: accommondation.name,
@@ -120,7 +129,23 @@ final class TimelineProfileMapper {
                                                        coordinate: accommondation.coordinate)
             restKitSegment.destinationAccommodationAdress = restKitAccommondation
         }
-        
+
         return restKitSegment
+    }
+
+    private func mapAdditionalData(from data: TRPSegmentActivityItem) -> TRPTimelineSegmentAdditionalData {
+        var additionalData = TRPTimelineSegmentAdditionalData()
+        additionalData.activityId = data.activityId
+        additionalData.bookingId = data.bookingId
+        additionalData.title = data.title
+        additionalData.imageUrl = data.imageUrl
+        additionalData.description = data.description
+        additionalData.startDatetime = data.startDatetime
+        additionalData.endDatetime = data.endDatetime
+        additionalData.coordinate = data.coordinate
+        additionalData.cancellation = data.cancellation
+        // Note: TRPRestKit model doesn't have adultCount/childCount
+        // These are stored in the segment itself, not in additionalData
+        return additionalData
     }
 }

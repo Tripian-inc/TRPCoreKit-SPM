@@ -294,8 +294,6 @@ extension TRPCreateTripCoordinater {
         navigation.modalPresentationStyle = .fullScreen
         createTripContainerNavigation = navigation
         navigationController.present(navigation, animated: true, completion: nil)
-        
-        TRPTimelineMockCoordinator.quickTest(from: navigation)
     }
 }
 
@@ -387,7 +385,6 @@ extension TRPCreateTripCoordinater: CreateTripTripInformationVCDelegate {
 //        selectDateVC.viewModel = viewModel
 //        selectDateVC.delegate = self
 //        viewController.present(selectDateVC, animated: true)
-        TRPTimelineMockCoordinator.quickTest(from: viewController)
 //        let calendarVC = TRPCalendarViewController(
 //            allowsMultipleSelection: false,  // Enable range selection
 //            minimumDate: Date().addDay(-5000),           // Optional minimum date

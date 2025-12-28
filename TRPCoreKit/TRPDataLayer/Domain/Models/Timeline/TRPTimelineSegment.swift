@@ -10,6 +10,7 @@ import TRPFoundationKit
 
 public enum TRPTimelineSegmentType: String, Codable {
     case bookedActivity = "booked_activity"
+    case reservedActivity = "reserved_activity"
     case itinerary = "itinerary"
 }
 

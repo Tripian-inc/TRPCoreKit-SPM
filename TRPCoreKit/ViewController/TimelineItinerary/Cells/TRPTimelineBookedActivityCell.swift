@@ -71,13 +71,13 @@ class TRPTimelineBookedActivityCell: UITableViewCell {
     private let confirmedBadge: UILabel = {
         let label = UILabel()
         label.translatesAutoresizingMaskIntoConstraints = false
-        label.text = "Confirmada"
         label.font = FontSet.montserratMedium.font(12)
         label.textColor = ColorSet.fgGreen.uiColor
         label.backgroundColor = ColorSet.bgGreen.uiColor
         label.textAlignment = .center
         label.layer.cornerRadius = 4
         label.clipsToBounds = true
+        // Text will be set dynamically in configure
         return label
     }()
     
@@ -224,9 +224,22 @@ class TRPTimelineBookedActivityCell: UITableViewCell {
         guard let additionalData = segment.additionalData else {
             return
         }
-        
+
         // Use additionalData for all information
         titleLabel.text = additionalData.title ?? segment.title ?? ""
+
+        // Configure badge based on segment type
+        if segment.segmentType == .reservedActivity {
+            // Reserved activity - show "Reservation" badge
+            confirmedBadge.text = "Reservation"
+            confirmedBadge.textColor = ColorSet.fgOrange.uiColor
+            confirmedBadge.backgroundColor = ColorSet.bgOrange.uiColor
+        } else {
+            // Booked activity - show "Confirmed" badge
+            confirmedBadge.text = "Confirmada"
+            confirmedBadge.textColor = ColorSet.fgGreen.uiColor
+            confirmedBadge.backgroundColor = ColorSet.bgGreen.uiColor
+        }
         
         // Configure time from additionalData
         if let startDatetime = additionalData.startDatetime,

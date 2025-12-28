@@ -7,6 +7,7 @@
 //
 
 import TRPRestKit
+import TRPFoundationKit
 
 final class TimelineSegmentMapper {
     
@@ -15,6 +16,15 @@ final class TimelineSegmentMapper {
     /// - Returns: A mapped TRPTimelineSegmentProfile
     func map(_ restModel: TRPTimelineSegmentModel) -> TRPTimelineSegment {
         let profile = TRPTimelineSegment()
+
+        // Map segment type
+        if let segmentTypeString = restModel.segmentType,
+           let segmentType = TRPTimelineSegmentType(rawValue: segmentTypeString) {
+            profile.segmentType = segmentType
+        } else {
+            profile.segmentType = .itinerary // Default value
+        }
+
         profile.available = restModel.available
         profile.title = restModel.title
         profile.description = restModel.description
@@ -34,19 +44,40 @@ final class TimelineSegmentMapper {
         profile.dayIds = restModel.dayIds
         profile.considerWeather = restModel.considerWeather
         profile.distinctPlan = restModel.distinctPlan
-        
+
+        // Map additional data for booked/reserved activities
+        if let additionalData = restModel.additionalData {
+            profile.additionalData = mapAdditionalData(from: additionalData)
+        }
+
         if let accommondation = restModel.accommodation {
             profile.accommodation = AccommondationMapper().map(accommondation)
         }
-        
+
         if let destinationAccommodation = restModel.destinationAccommodation {
             profile.destinationAccommodation = AccommondationMapper().map(destinationAccommodation)
         }
         return profile
     }
-    
+
     func map(_ restModels: [TRPTimelineSegmentModel], planId: Int? = nil) -> [TRPTimelineSegment] {
         return restModels.compactMap { map($0) }
     }
-    
+
+    private func mapAdditionalData(from data: TRPTimelineSegmentAdditionalData) -> TRPSegmentActivityItem {
+        return TRPSegmentActivityItem(
+            activityId: data.activityId,
+            bookingId: data.bookingId,
+            title: data.title,
+            imageUrl: data.imageUrl,
+            description: data.description,
+            startDatetime: data.startDatetime,
+            endDatetime: data.endDatetime,
+            coordinate: data.coordinate ?? TRPLocation(lat: 0, lon: 0),
+            cancellation: data.cancellation,
+            adultCount: 1, // Default value - actual count is in segment.adults
+            childCount: 0  // Default value - actual count is in segment.children
+        )
+    }
+
 }

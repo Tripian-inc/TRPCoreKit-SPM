@@ -22,12 +22,15 @@ public class TRPTimelineProfile: Codable {
     public var excludePoiIds: [Int]?
     public var excludeHashPois: [String]?
     public var considerWeather: Bool = false
-    public var segments: [TRPTimelineSegment] = [TRPTimelineSegment()]
-    
+    public var segments: [TRPTimelineSegment] = []
+
     public var userAnswerIds: [Int]?
-    
+
     public var accommodation: TRPAccommodation?
     public var destinationAccommodation: TRPAccommodation?
+
+    /// Favourite items - used only in CoreKit for itinerary planning, not sent to server
+    public var favouriteItems: [TRPSegmentFavoriteItem]?
     
     private(set) var oldestStartDate: Date?
     private(set) var maxEndDate: Date?

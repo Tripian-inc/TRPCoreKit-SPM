@@ -10,18 +10,22 @@ import Foundation
 import TRPFoundationKit
 
 public struct TRPTimeline: Codable {
-    
+
     public var id: Int
-    
+
     public var tripHash: String
-    
+
     public var tripProfile: TRPTimelineProfile?
-    
+
     public var city: TRPCity
 
     public var plans: [TRPTimelinePlan]?
-    
+
     public var segments: [TRPTimelineSegment]?
+
+    /// Favourite items - used only in CoreKit for itinerary planning, not sent to/from server
+    /// This field is populated from TRPItineraryWithActivities when available
+    public var favouriteItems: [TRPSegmentFavoriteItem]?
     
     /// Tripdeki tüm poileri döndürür.
     /// - Returns: All pois of trip that are unique
