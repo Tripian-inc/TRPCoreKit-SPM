@@ -152,6 +152,10 @@ public class TRPTimelineCoordinator: CoordinatorProtocol {
             // All segments generation completed
             DispatchQueue.main.async {
                 self.hideLoadingIndicator()
+
+                // Notify delegate about timeline creation
+                TRPCoreKit.shared.delegate?.trpCoreKitDidCreateTimeline(tripHash: tripHash)
+
                 self.openTimelineViewControllerWithHash(tripHash: tripHash)
             }
         }

@@ -13,6 +13,7 @@ import TRPRestKit
 public struct TRPTourProduct: Codable {
 
     public let id: String
+    public let productId: String
     public let cityId: Int
     public let name: String
     public let image: TRPImage?
@@ -29,7 +30,7 @@ public struct TRPTourProduct: Codable {
     public var address: String?
     public let icon: String
 
-    public let coordinate: TRPLocation
+    public let coordinate: TRPLocation?
     public var categories = [TRPPoiCategory]()
     public var tags = [String]()
     public var distance: Float?

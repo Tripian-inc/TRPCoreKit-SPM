@@ -41,6 +41,14 @@ public class TRPTimelineItineraryVC: TRPBaseUIViewController {
         return bar
     }()
     
+    private lazy var savedPlansButton: TRPTimelineSavedPlansButton = {
+        let button = TRPTimelineSavedPlansButton()
+        button.translatesAutoresizingMaskIntoConstraints = false
+        button.delegate = self
+        button.isHidden = true // Hidden by default, shown if favorite items exist
+        return button
+    }()
+    
     private lazy var dayFilterView: TRPTimelineDayFilterView = {
         let view = TRPTimelineDayFilterView()
         view.translatesAutoresizingMaskIntoConstraints = false
@@ -148,6 +156,9 @@ public class TRPTimelineItineraryVC: TRPBaseUIViewController {
         super.viewDidLoad()
         // Hide the default navigation bar
         navigationController?.setNavigationBarHidden(true, animated: false)
+        
+        // Update saved plans button visibility after view is loaded
+        updateSavedPlansButton()
     }
     
     public override func viewWillAppear(_ animated: Bool) {
@@ -159,6 +170,7 @@ public class TRPTimelineItineraryVC: TRPBaseUIViewController {
     public override func setupViews() {
         super.setupViews()
         setupCustomNavigationBar()
+        setupSavedPlansButton()
         setupDayFilterView()
         setupTableView()
         setupMapView()
@@ -168,6 +180,7 @@ public class TRPTimelineItineraryVC: TRPBaseUIViewController {
 
         // Bring navigation bar and day filter to front so they appear above the map
         view.bringSubviewToFront(customNavigationBar)
+        view.bringSubviewToFront(savedPlansButton)
         view.bringSubviewToFront(dayFilterView)
     }
 
@@ -198,17 +211,53 @@ public class TRPTimelineItineraryVC: TRPBaseUIViewController {
         ])
     }
     
+    private func setupSavedPlansButton() {
+        guard savedPlansButton.superview == nil else { return }
+        
+        view.addSubview(savedPlansButton)
+        
+        NSLayoutConstraint.activate([
+            savedPlansButton.topAnchor.constraint(equalTo: customNavigationBar.bottomAnchor, constant: 12),
+            savedPlansButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 24),
+            savedPlansButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -24),
+            savedPlansButton.heightAnchor.constraint(equalToConstant: 72)
+        ])
+    }
+    
+    private var dayFilterViewTopConstraint: NSLayoutConstraint?
+    
     private func setupDayFilterView() {
         guard dayFilterView.superview == nil else { return }
         
         view.addSubview(dayFilterView)
         
+        // Initial constraint: below navigation bar (since button is hidden by default)
+        dayFilterViewTopConstraint = dayFilterView.topAnchor.constraint(equalTo: customNavigationBar.bottomAnchor, constant: 12)
+        
         NSLayoutConstraint.activate([
-            dayFilterView.topAnchor.constraint(equalTo: customNavigationBar.bottomAnchor, constant: 12),
+            dayFilterViewTopConstraint!,
             dayFilterView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             dayFilterView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             dayFilterView.heightAnchor.constraint(equalToConstant: 50)
         ])
+    }
+    
+    private func updateDayFilterViewConstraints() {
+        // Update day filter view position based on saved plans button visibility
+        let newConstraint: NSLayoutConstraint
+        
+        if savedPlansButton.isHidden {
+            // Button is hidden: attach to navigation bar
+            newConstraint = dayFilterView.topAnchor.constraint(equalTo: customNavigationBar.bottomAnchor, constant: 12)
+        } else {
+            // Button is visible: attach to button
+            newConstraint = dayFilterView.topAnchor.constraint(equalTo: savedPlansButton.bottomAnchor, constant: 12)
+        }
+        
+        // Deactivate old constraint and activate new one
+        dayFilterViewTopConstraint?.isActive = false
+        dayFilterViewTopConstraint = newConstraint
+        dayFilterViewTopConstraint?.isActive = true
     }
     
     private func setupTableView() {
@@ -414,7 +463,24 @@ public class TRPTimelineItineraryVC: TRPBaseUIViewController {
         routeCache.removeAll()
         calculatedDistances.removeAll()
         dayFilterView.configure(with: viewModel.getDays(), selectedDay: viewModel.selectedDayIndex)
+        
+        // Update saved plans button visibility and count
+        updateSavedPlansButton()
+        
         tableView.reloadData()
+    }
+    
+    private func updateSavedPlansButton() {
+        let hasFavorites = viewModel.hasFavoriteItems()
+        savedPlansButton.isHidden = !hasFavorites
+        
+        if hasFavorites {
+            let favoriteCount = viewModel.getFavoriteItemsCount()
+            savedPlansButton.configure(savedPlansCount: favoriteCount)
+        }
+        
+        // Update day filter view constraints based on button visibility
+        updateDayFilterViewConstraints()
     }
     
     /// Update timeline data
@@ -487,7 +553,9 @@ extension TRPTimelineItineraryVC: UITableViewDataSource {
             guard let cell = tableView.dequeueReusableCell(withIdentifier: TRPTimelineRecommendationsCell.reuseIdentifier, for: indexPath) as? TRPTimelineRecommendationsCell else {
                 return UITableViewCell()
             }
-            cell.configure(with: steps)
+            // Get collapse state from ViewModel
+            let isExpanded = viewModel.getSectionCollapseState(for: indexPath.section)
+            cell.configure(with: steps, isExpanded: isExpanded)
             cell.delegate = self
             
             // Apply any pre-calculated distances
@@ -746,11 +814,17 @@ extension TRPTimelineItineraryVC: TRPTimelineEmptyStateCellDelegate {
 // MARK: - TRPTimelineRecommendationsCellDelegate
 extension TRPTimelineItineraryVC: TRPTimelineRecommendationsCellDelegate {
     
-    func recommendationsCellDidTapEdit(_ cell: TRPTimelineRecommendationsCell) {
-        // Handle edit recommendations
+    func recommendationsCellDidTapClose(_ cell: TRPTimelineRecommendationsCell) {
+        // Handle close recommendations
     }
     
     func recommendationsCellDidTapToggle(_ cell: TRPTimelineRecommendationsCell, isExpanded: Bool) {
+        // Get cell's section to save state
+        if let indexPath = tableView.indexPath(for: cell) {
+            // Save collapse state in ViewModel
+            viewModel.setSectionCollapseState(for: indexPath.section, isExpanded: isExpanded)
+        }
+
         // Handle expand/collapse - table will auto-adjust
         tableView.beginUpdates()
         tableView.endUpdates()
@@ -992,6 +1066,7 @@ extension TRPTimelineItineraryVC: AddPlanContainerVCDelegate {
 
     public func addPlanContainerDidComplete(_ viewController: AddPlanContainerVC, data: AddPlanData) {
         print("📝 Plan creation completed:")
+        print("  - Mode: \(data.selectedMode)")
         print("  - Day: \(data.selectedDay?.description ?? "N/A")")
         print("  - City: \(data.selectedCity?.name ?? "N/A")")
         print("  - Start Time: \(data.startTime?.description ?? "N/A")")
@@ -999,11 +1074,16 @@ extension TRPTimelineItineraryVC: AddPlanContainerVCDelegate {
         print("  - Travelers: \(data.travelers)")
         print("  - Categories: \(data.selectedCategories.joined(separator: ", "))")
 
-        // TODO: Call create timeline segment API with the data
-        // Example: createTimelineSegment(with: data)
+        // Check if Smart Recommendations mode
+        guard data.selectedMode == .smartRecommendations else {
+            // For manual mode, just dismiss (existing behavior)
+            print("ℹ️ Manual mode selected - dismissing")
+            viewController.dismiss(animated: true)
+            return
+        }
 
-        // For now, notify delegate
-        delegate?.timelineItineraryAddPlansPressed(self)
+        // Create segment for Smart Recommendations
+        createSmartRecommendationSegment(from: data, containerVC: viewController)
     }
 
     public func addPlanContainerDidCancel(_ viewController: AddPlanContainerVC) {
@@ -1029,6 +1109,16 @@ extension TRPTimelineItineraryVC: AddPlanContainerVCDelegate {
         // Present from the AddPlanContainerVC instead of dismissing it first
         viewController.present(navController, animated: true)
     }
+
+    // MARK: - Smart Recommendations Segment Creation
+
+    private func createSmartRecommendationSegment(from data: AddPlanData, containerVC: AddPlanContainerVC) {
+        // Delegate segment creation to ViewModel
+        viewModel.createSmartRecommendationSegment(from: data)
+
+        // Dismiss AddPlan modal after initiating segment creation
+        containerVC.dismiss(animated: true)
+    }
 }
 
 // MARK: - TRPTimelineItineraryViewModelDelegate
@@ -1037,6 +1127,16 @@ extension TRPTimelineItineraryVC: TRPTimelineItineraryViewModelDelegate {
     public func timelineItineraryViewModel(didUpdateTimeline: Bool) {
         guard didUpdateTimeline else { return }
         reload()
+    }
+}
+
+// MARK: - TRPTimelineSavedPlansButtonDelegate
+extension TRPTimelineItineraryVC: TRPTimelineSavedPlansButtonDelegate {
+    
+    func savedPlansButtonDidTap(_ button: TRPTimelineSavedPlansButton) {
+        // TODO: Open saved/favorite plans list
+        // For now, just launch add plan flow
+        showAddPlanFlow()
     }
 }
 

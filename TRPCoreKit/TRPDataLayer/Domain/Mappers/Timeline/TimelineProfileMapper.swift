@@ -109,6 +109,12 @@ final class TimelineProfileMapper {
         restKitSegment.available = _segment.available
         restKitSegment.distinctPlan = _segment.distinctPlan
 
+        // Smart Recommendations properties
+        restKitSegment.activityFreeText = _segment.activityFreeText
+        restKitSegment.activityIds = _segment.activityIds
+        restKitSegment.smartRecommendation = _segment.smartRecommendation
+        restKitSegment.excludedActivityIds = _segment.excludedActivityIds
+
         // Set additional data for booked/reserved activities
         if let additionalData = _segment.additionalData {
             restKitSegment.additionalData = mapAdditionalData(from: additionalData)

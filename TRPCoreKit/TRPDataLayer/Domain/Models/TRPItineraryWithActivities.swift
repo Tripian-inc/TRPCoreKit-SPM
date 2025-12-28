@@ -216,9 +216,8 @@ extension TRPItineraryWithActivities {
         // Set additional data (this is CRITICAL for booked activities)
         segment.additionalData = tripItem
 
-        // Don't set segment.city here - it will be populated from timeline API response (plan.city)
-        // destinationItems only contains city name and coordinates, not cityId
-        // The correct city with valid ID will come from the timeline plans response
+        // City will be populated from timeline.plans using index-based mapping
+        // tripProfile.segments[i] corresponds to plans[i]
         segment.city = nil
 
         return segment

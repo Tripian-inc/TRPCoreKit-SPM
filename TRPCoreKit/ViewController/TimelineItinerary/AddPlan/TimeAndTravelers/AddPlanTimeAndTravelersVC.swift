@@ -444,13 +444,18 @@ public class AddPlanTimeAndTravelersVC: TRPBaseUIViewController {
         alert.view.addSubview(timePicker)
         
         let selectAction = UIAlertAction(title: "Seleccionar", style: .default) { [weak self] _ in
+            guard let self = self else { return }
+
+            // Combine selected day's date with picked time
+            let combinedDateTime = self.combineDate(self.viewModel.getSelectedDay(), withTime: timePicker.date)
+
             if type == .start {
-                self?.viewModel.setStartTime(timePicker.date)
+                self.viewModel.setStartTime(combinedDateTime)
             } else {
-                self?.viewModel.setEndTime(timePicker.date)
+                self.viewModel.setEndTime(combinedDateTime)
             }
-            self?.updateUI()
-            self?.containerVC?.updateContinueButtonState()
+            self.updateUI()
+            self.containerVC?.updateContinueButtonState()
         }
         
         let cancelAction = UIAlertAction(title: "Cancelar", style: .cancel)
@@ -460,7 +465,32 @@ public class AddPlanTimeAndTravelersVC: TRPBaseUIViewController {
         
         present(alert, animated: true)
     }
-    
+
+    /// Combines the date component from selectedDay with the time component from timePicker
+    private func combineDate(_ selectedDay: Date?, withTime time: Date) -> Date {
+        guard let selectedDay = selectedDay else {
+            return time
+        }
+
+        let calendar = Calendar.current
+
+        // Get date components from selected day
+        let dateComponents = calendar.dateComponents([.year, .month, .day], from: selectedDay)
+
+        // Get time components from time picker
+        let timeComponents = calendar.dateComponents([.hour, .minute], from: time)
+
+        // Combine them
+        var combined = DateComponents()
+        combined.year = dateComponents.year
+        combined.month = dateComponents.month
+        combined.day = dateComponents.day
+        combined.hour = timeComponents.hour
+        combined.minute = timeComponents.minute
+
+        return calendar.date(from: combined) ?? time
+    }
+
     // MARK: - Public Methods
     public func clearSelection() {
         viewModel.clearSelection()

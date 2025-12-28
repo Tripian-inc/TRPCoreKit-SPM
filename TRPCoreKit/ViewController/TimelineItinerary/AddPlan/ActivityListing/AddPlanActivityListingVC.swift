@@ -14,7 +14,8 @@ public class AddPlanActivityListingVC: TRPBaseUIViewController {
     
     // MARK: - Properties
     public var viewModel: AddPlanActivityListingViewModel!
-    
+    private var isLoadingMore = false
+
     // MARK: - Lifecycle
     public override func viewDidLoad() {
         super.viewDidLoad()
@@ -56,34 +57,11 @@ public class AddPlanActivityListingVC: TRPBaseUIViewController {
     }
     
     // MARK: - UI Components
-    private lazy var searchBar: UISearchBar = {
-        let searchBar = UISearchBar()
+    private lazy var searchBar: TRPSearchBar = {
+        let searchBar = TRPSearchBar()
         searchBar.translatesAutoresizingMaskIntoConstraints = false
         searchBar.placeholder = AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.searchActivity)
-        searchBar.backgroundImage = UIImage()
-        searchBar.backgroundColor = .clear
-        searchBar.searchBarStyle = .minimal
         searchBar.delegate = self
-        
-        // Customize search text field
-        if let textField = searchBar.value(forKey: "searchField") as? UITextField {
-            textField.backgroundColor = .white
-            textField.layer.cornerRadius = 24 // Rounded capsule shape
-            textField.layer.borderWidth = 0.5
-            textField.layer.borderColor = ColorSet.lineWeak.uiColor.cgColor // #CFCFCF
-            textField.textColor = ColorSet.primaryText.uiColor // #333333
-            textField.font = FontSet.montserratRegular.font(16)
-            
-            // Placeholder text styling
-            textField.attributedPlaceholder = NSAttributedString(
-                string: AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.searchActivity),
-                attributes: [
-                    .foregroundColor: ColorSet.fgWeak.uiColor,
-                    .font: FontSet.montserratRegular.font(16)
-                ]
-            )
-        }
-        
         return searchBar
     }()
     
@@ -91,45 +69,51 @@ public class AddPlanActivityListingVC: TRPBaseUIViewController {
         let button = UIButton(type: .system)
         button.translatesAutoresizingMaskIntoConstraints = false
         button.setTitle(AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.filters), for: .normal)
-        button.setTitleColor(ColorSet.primaryText.uiColor, for: .normal) // #333333
+        button.setTitleColor(ColorSet.primaryText.uiColor, for: .normal)
         button.titleLabel?.font = FontSet.montserratMedium.font(14)
         button.backgroundColor = .white
         button.layer.cornerRadius = 20
         button.layer.borderWidth = 0.5
-        button.layer.borderColor = ColorSet.lineWeak.uiColor.cgColor // #CFCFCF
-        button.contentEdgeInsets = UIEdgeInsets(top: 6, left: 16, bottom: 6, right: 16)
-        
+        button.layer.borderColor = ColorSet.lineWeak.uiColor.cgColor
+        button.contentEdgeInsets = UIEdgeInsets(top: 6, left: 12, bottom: 6, right: 12)
+
         // Add filter icon
-        let config = UIImage.SymbolConfiguration(pointSize: 16, weight: .medium)
-        let image = UIImage(systemName: "line.3.horizontal.decrease.circle", withConfiguration: config)
+        let image = TRPImageController().getImage(inFramework: "ic_filter_activity", inApp: nil)
         button.setImage(image, for: .normal)
-        button.tintColor = ColorSet.fgWeak.uiColor // #666666
+        button.tintColor = ColorSet.fgWeak.uiColor
         button.imageEdgeInsets = UIEdgeInsets(top: 0, left: -8, bottom: 0, right: 8)
-        
+
         return button
     }()
-    
+
     private lazy var sortButton: UIButton = {
         let button = UIButton(type: .system)
         button.translatesAutoresizingMaskIntoConstraints = false
         button.setTitle(AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.sortBy), for: .normal)
-        button.setTitleColor(ColorSet.primaryText.uiColor, for: .normal) // #333333
+        button.setTitleColor(ColorSet.primaryText.uiColor, for: .normal)
         button.titleLabel?.font = FontSet.montserratMedium.font(14)
         button.backgroundColor = .white
         button.layer.cornerRadius = 20
         button.layer.borderWidth = 0.5
-        button.layer.borderColor = ColorSet.lineWeak.uiColor.cgColor // #CFCFCF
-        button.contentEdgeInsets = UIEdgeInsets(top: 6, left: 24, bottom: 6, right: 24)
-        
+        button.layer.borderColor = ColorSet.lineWeak.uiColor.cgColor
+        button.contentEdgeInsets = UIEdgeInsets(top: 6, left: 12, bottom: 6, right: 12)
+
         // Add sort icon
-        let config = UIImage.SymbolConfiguration(pointSize: 10, weight: .medium)
-        let image = UIImage(systemName: "arrow.up.arrow.down", withConfiguration: config)
+        let image = TRPImageController().getImage(inFramework: "ic_order_activity", inApp: nil)
         button.setImage(image, for: .normal)
-        button.tintColor = ColorSet.fgWeak.uiColor // #666666
-        button.semanticContentAttribute = .forceRightToLeft
+        button.tintColor = ColorSet.fgWeak.uiColor
         button.imageEdgeInsets = UIEdgeInsets(top: 0, left: 8, bottom: 0, right: -8)
-        
+
         return button
+    }()
+
+    private lazy var filterSortStackView: UIStackView = {
+        let stackView = UIStackView(arrangedSubviews: [filterButton, sortButton])
+        stackView.translatesAutoresizingMaskIntoConstraints = false
+        stackView.axis = .horizontal
+        stackView.spacing = 16
+        stackView.distribution = .fillEqually
+        return stackView
     }()
     
     private lazy var categoryCollectionView: UICollectionView = {
@@ -195,36 +179,26 @@ public class AddPlanActivityListingVC: TRPBaseUIViewController {
         view.backgroundColor = .white
         
         view.addSubview(searchBar)
-        view.addSubview(filterButton)
-        view.addSubview(sortButton)
+        view.addSubview(filterSortStackView)
         view.addSubview(categoryCollectionView)
         view.addSubview(activityCountLabel)
         view.addSubview(infoButton)
         view.addSubview(tableView)
-        
-        // Customize search bar icon after view is added
-        DispatchQueue.main.async { [weak self] in
-            self?.customizeSearchBarIcon()
-        }
-        
+
         NSLayoutConstraint.activate([
             // Search Bar
             searchBar.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 8),
             searchBar.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
             searchBar.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
-            searchBar.heightAnchor.constraint(equalToConstant: 48),
-            
-            // Filter and Sort Buttons
-            filterButton.topAnchor.constraint(equalTo: searchBar.bottomAnchor, constant: 16),
-            filterButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
-            filterButton.heightAnchor.constraint(equalToConstant: 40),
-            
-            sortButton.topAnchor.constraint(equalTo: searchBar.bottomAnchor, constant: 16),
-            sortButton.leadingAnchor.constraint(equalTo: filterButton.trailingAnchor, constant: 16),
-            sortButton.heightAnchor.constraint(equalToConstant: 40),
+
+            // Filter and Sort Stack View
+            filterSortStackView.topAnchor.constraint(equalTo: searchBar.bottomAnchor, constant: 16),
+            filterSortStackView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
+            filterSortStackView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
+            filterSortStackView.heightAnchor.constraint(equalToConstant: 40),
             
             // Category Collection View
-            categoryCollectionView.topAnchor.constraint(equalTo: filterButton.bottomAnchor, constant: 16),
+            categoryCollectionView.topAnchor.constraint(equalTo: filterSortStackView.bottomAnchor, constant: 16),
             categoryCollectionView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             categoryCollectionView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             categoryCollectionView.heightAnchor.constraint(equalToConstant: 88),
@@ -236,6 +210,8 @@ public class AddPlanActivityListingVC: TRPBaseUIViewController {
             // Info Button
             infoButton.centerYAnchor.constraint(equalTo: activityCountLabel.centerYAnchor),
             infoButton.leadingAnchor.constraint(equalTo: activityCountLabel.trailingAnchor, constant: 4),
+            infoButton.heightAnchor.constraint(equalToConstant: 16),
+            infoButton.widthAnchor.constraint(equalToConstant: 16),
             
             // Table View
             tableView.topAnchor.constraint(equalTo: activityCountLabel.bottomAnchor, constant: 16),
@@ -243,14 +219,6 @@ public class AddPlanActivityListingVC: TRPBaseUIViewController {
             tableView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
             tableView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor)
         ])
-    }
-    
-    private func customizeSearchBarIcon() {
-        if let textField = searchBar.value(forKey: "searchField") as? UITextField {
-            if let leftView = textField.leftView as? UIImageView {
-                leftView.tintColor = ColorSet.primaryText.uiColor // #333333
-            }
-        }
     }
 }
 
@@ -275,16 +243,21 @@ extension AddPlanActivityListingVC: UICollectionViewDataSource, UICollectionView
     }
     
     public func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAt indexPath: IndexPath) -> CGSize {
-        let categoryNames = viewModel.getCategoryNames()
-        let title = categoryNames[indexPath.item]
+//        let categoryNames = viewModel.getCategoryNames()
+//        let title = categoryNames[indexPath.item]
         // Calculate width based on title (matching Figma design)
-        let width: CGFloat = title.contains("\n") ? 88 : (title == "All" || title == "Otros" ? 64 : 72)
-        return CGSize(width: width, height: 72)
+//        let width: CGFloat = title.contains("\n") ? 88 : (title == "All" || title == "Otros" ? 64 : 72)
+        return CGSize(width: 80, height: 72)
     }
     
     public func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         viewModel.selectCategory(at: indexPath.item)
         collectionView.reloadData()
+
+        // Scroll table to top when category changes
+        if tableView.numberOfRows(inSection: 0) > 0 {
+            tableView.scrollToRow(at: IndexPath(row: 0, section: 0), at: .top, animated: true)
+        }
     }
 }
 
@@ -309,7 +282,11 @@ extension AddPlanActivityListingVC: UITableViewDataSource, UITableViewDelegate {
 
     public func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         tableView.deselectRow(at: indexPath, animated: true)
-        // TODO: Handle tour selection
+
+        // Notify delegate about activity detail request
+        if let tour = viewModel.getTourAt(index: indexPath.row) {
+            TRPCoreKit.shared.delegate?.trpCoreKitDidRequestActivityDetail(activityId: tour.productId)
+        }
     }
 
     public func scrollViewDidScroll(_ scrollView: UIScrollView) {
@@ -323,22 +300,32 @@ extension AddPlanActivityListingVC: UITableViewDataSource, UITableViewDelegate {
         // Check if scrolled near bottom (trigger when 100 points from bottom)
         let threshold: CGFloat = 100
         if offsetY + frameHeight >= contentHeight - threshold {
-            // Load more tours if available
-            if viewModel.hasMoreTours() {
+            // Load more tours if available and not already loading
+            if viewModel.hasMoreTours() && !isLoadingMore {
+                isLoadingMore = true
+                tableView.tableFooterView = loadingFooterView
                 viewModel.loadMoreTours()
             }
         }
     }
 }
 
-// MARK: - UISearchBarDelegate
-extension AddPlanActivityListingVC: UISearchBarDelegate {
-    
-    public func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
-        viewModel.updateSearchText(searchText)
+// MARK: - TRPSearchBarDelegate
+extension AddPlanActivityListingVC: TRPSearchBarDelegate {
+
+    public func searchBar(_ searchBar: TRPSearchBar, textDidChange text: String) {
+        viewModel.updateSearchText(text)
     }
 
-    public func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {
+    public func searchBarDidBeginEditing(_ searchBar: TRPSearchBar) {
+        // Optional: Handle when user starts editing
+    }
+
+    public func searchBarDidEndEditing(_ searchBar: TRPSearchBar) {
+        // Optional: Handle when user ends editing
+    }
+
+    public func searchBarSearchButtonClicked(_ searchBar: TRPSearchBar) {
         searchBar.resignFirstResponder()
     }
 }
@@ -349,27 +336,36 @@ extension AddPlanActivityListingVC: AddPlanActivityListingViewModelDelegate {
     public func activitiesDidLoad() {
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
+
+            // Reset loading state
+            self.isLoadingMore = false
+
             self.tableView.reloadData()
 
             let count = self.viewModel.getActivityCount()
-            let activityText = count == 1 ? "actividad" : "actividades"
+            let activityText = count == 1
+                ? AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.activity)
+                : AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.activities)
             self.activityCountLabel.text = "\(count) \(activityText)"
 
-            // Update footer based on pagination state
+            // Update footer - only remove if no more tours
             self.updateTableFooter()
         }
     }
 
     private func updateTableFooter() {
-        if viewModel.hasMoreTours() {
-            tableView.tableFooterView = loadingFooterView
-        } else {
+        // Only show footer if there's no more data
+        if !viewModel.hasMoreTours() {
             tableView.tableFooterView = nil
         }
     }
 
     public func activitiesDidFail(error: Error) {
-        DispatchQueue.main.async {
+        DispatchQueue.main.async { [weak self] in
+            // Reset loading state on error
+            self?.isLoadingMore = false
+            self?.tableView.tableFooterView = nil
+
             EvrAlertView.showAlert(contentText: error.localizedDescription, type: .error)
         }
     }
@@ -427,29 +423,28 @@ private class CategoryFilterCell: UICollectionViewCell {
             titleLabel.topAnchor.constraint(equalTo: iconImageView.bottomAnchor, constant: 8),
             titleLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
             titleLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
-            titleLabel.bottomAnchor.constraint(equalTo: contentView.bottomAnchor)
+            titleLabel.bottomAnchor.constraint(greaterThanOrEqualTo: contentView.bottomAnchor)
         ])
     }
     
     func configure(title: String, iconName: String?, isSelected: Bool) {
         titleLabel.text = title
-        
-        // Set icon (use SF Symbol if iconName provided)
+
+        // Set icon (use custom icon from framework with template rendering mode)
         if let iconName = iconName {
-            iconImageView.image = UIImage(systemName: iconName)
+            let image = TRPImageController().getImage(inFramework: iconName, inApp: nil)
+            iconImageView.image = image?.withRenderingMode(.alwaysTemplate)
         }
-        
-        // Update colors and font based on selection state (matching Figma design)
+
+        // Update colors and font based on selection state
         if isSelected {
-            iconImageView.tintColor = ColorSet.primary.uiColor // #EA0558
-            titleLabel.textColor = ColorSet.primary.uiColor // #EA0558
+            iconImageView.tintColor = ColorSet.primary.uiColor
+            titleLabel.textColor = ColorSet.primary.uiColor
             titleLabel.font = FontSet.montserratRegular.font(12)
-            contentView.backgroundColor = .white
         } else {
-            iconImageView.tintColor = ColorSet.fgWeak.uiColor // #666666
-            titleLabel.textColor = ColorSet.fgWeak.uiColor // #666666
+            iconImageView.tintColor = ColorSet.fgWeak.uiColor
+            titleLabel.textColor = ColorSet.fgWeak.uiColor
             titleLabel.font = FontSet.montserratLight.font(12)
-            contentView.backgroundColor = .white
         }
     }
 }

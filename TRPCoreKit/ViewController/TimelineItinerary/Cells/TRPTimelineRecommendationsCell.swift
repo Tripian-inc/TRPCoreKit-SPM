@@ -11,7 +11,7 @@ import SDWebImage
 import TRPFoundationKit
 
 protocol TRPTimelineRecommendationsCellDelegate: AnyObject {
-    func recommendationsCellDidTapEdit(_ cell: TRPTimelineRecommendationsCell)
+    func recommendationsCellDidTapClose(_ cell: TRPTimelineRecommendationsCell)
     func recommendationsCellDidTapToggle(_ cell: TRPTimelineRecommendationsCell, isExpanded: Bool)
     func recommendationsCellDidSelectStep(_ cell: TRPTimelineRecommendationsCell, step: TRPTimelineStep)
     func recommendationsCellDidTapThumbsUp(_ cell: TRPTimelineRecommendationsCell, step: TRPTimelineStep)
@@ -59,21 +59,20 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
     private let chevronButton: UIButton = {
         let button = UIButton(type: .system)
         button.translatesAutoresizingMaskIntoConstraints = false
-        button.setImage(TRPImageController().getImage(inFramework: "ic_chevron_down", inApp: nil), for: .normal)
+        button.setImage(TRPImageController().getImage(inFramework: "ic_recom_arrow", inApp: nil), for: .normal)
         button.tintColor = ColorSet.fgWeaker.uiColor
         return button
     }()
-    
-    private let editButton: UIButton = {
+
+    private let closeButton: UIButton = {
         let button = UIButton(type: .system)
         button.translatesAutoresizingMaskIntoConstraints = false
-        button.setTitle("Edit", for: .normal)
-        button.titleLabel?.font = FontSet.montserratMedium.font(14)
-        button.setTitleColor(ColorSet.primary.uiColor, for: .normal)
+        button.setImage(TRPImageController().getImage(inFramework: "ic_close", inApp: nil), for: .normal)
+        button.tintColor = ColorSet.fg.uiColor
+        button.backgroundColor = .white
         button.layer.borderWidth = 1
-        button.layer.borderColor = ColorSet.primary.uiColor.cgColor
-        button.layer.cornerRadius = 8
-        button.contentEdgeInsets = UIEdgeInsets(top: 8, left: 16, bottom: 8, right: 16)
+        button.layer.borderColor = ColorSet.neutral200.uiColor.cgColor
+        button.layer.cornerRadius = 20
         return button
     }()
     
@@ -112,7 +111,7 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
         
         headerView.addSubview(titleLabel)
         headerView.addSubview(chevronButton)
-        headerView.addSubview(editButton)
+        headerView.addSubview(closeButton)
         
         // Create both bottom constraints but only activate one at a time
         stackToContainerBottomConstraint = recommendationsStackView.bottomAnchor.constraint(equalTo: containerView.bottomAnchor, constant: -16)
@@ -140,11 +139,12 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
             chevronButton.centerYAnchor.constraint(equalTo: headerView.centerYAnchor),
             chevronButton.widthAnchor.constraint(equalToConstant: 16),
             chevronButton.heightAnchor.constraint(equalToConstant: 16),
-            
-            // Edit Button
-            editButton.trailingAnchor.constraint(equalTo: headerView.trailingAnchor),
-            editButton.centerYAnchor.constraint(equalTo: headerView.centerYAnchor),
-            editButton.heightAnchor.constraint(equalToConstant: 36),
+
+            // Close Button
+            closeButton.trailingAnchor.constraint(equalTo: headerView.trailingAnchor),
+            closeButton.centerYAnchor.constraint(equalTo: headerView.centerYAnchor),
+            closeButton.widthAnchor.constraint(equalToConstant: 40),
+            closeButton.heightAnchor.constraint(equalToConstant: 40),
             
             // Recommendations Stack
             recommendationsStackView.topAnchor.constraint(equalTo: headerView.bottomAnchor, constant: 12),
@@ -161,15 +161,15 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
     private func setupActions() {
         let chevronTap = UITapGestureRecognizer(target: self, action: #selector(toggleTapped))
         headerView.addGestureRecognizer(chevronTap)
-        
-        editButton.addTarget(self, action: #selector(editTapped), for: .touchUpInside)
+
+        closeButton.addTarget(self, action: #selector(closeTapped), for: .touchUpInside)
     }
     
     // MARK: - Actions
     @objc private func toggleTapped() {
         isExpanded.toggle()
-        updateChevron()
-        
+        updateChevron(animated: true) // Animated rotation
+
         // Switch constraints before animation
         if isExpanded {
             // Expanding: container bottom connects to stack
@@ -180,7 +180,7 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
             stackToContainerBottomConstraint?.isActive = false
             headerToContainerBottomConstraint?.isActive = true
         }
-        
+
         // Animate the collapse/expand
         UIView.animate(withDuration: 0.3, delay: 0, usingSpringWithDamping: 0.8, initialSpringVelocity: 0.5, options: .curveEaseInOut) {
             self.recommendationsStackView.alpha = self.isExpanded ? 1.0 : 0.0
@@ -188,24 +188,31 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
         } completion: { _ in
             self.recommendationsStackView.isHidden = !self.isExpanded
         }
-        
+
         delegate?.recommendationsCellDidTapToggle(self, isExpanded: isExpanded)
     }
     
-    @objc private func editTapped() {
-        delegate?.recommendationsCellDidTapEdit(self)
+    @objc private func closeTapped() {
+        delegate?.recommendationsCellDidTapClose(self)
     }
     
     // MARK: - Updates
-    private func updateChevron() {
-        let chevronImage = isExpanded ? "chevron.down" : "chevron.right"
-        chevronButton.setImage(UIImage(systemName: chevronImage), for: .normal)
+    private func updateChevron(animated: Bool = false) {
+        let rotation: CGFloat = isExpanded ? 0 : .pi // 0° for expanded (down), 180° for collapsed (up)
+
+        if animated {
+            UIView.animate(withDuration: 0.3, delay: 0, usingSpringWithDamping: 0.8, initialSpringVelocity: 0.5) {
+                self.chevronButton.transform = CGAffineTransform(rotationAngle: rotation)
+            }
+        } else {
+            chevronButton.transform = CGAffineTransform(rotationAngle: rotation)
+        }
     }
     
     // MARK: - Configuration
-    func configure(with steps: [TRPTimelineStep]) {
+    func configure(with steps: [TRPTimelineStep], isExpanded: Bool = true) {
         self.steps = steps
-        self.isExpanded = true
+        self.isExpanded = isExpanded
         
         // Clear existing views and distance views
         recommendationsStackView.arrangedSubviews.forEach { $0.removeFromSuperview() }
@@ -233,14 +240,19 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
         }
         
         updateChevron()
-        
-        // Reset to expanded state
-        recommendationsStackView.isHidden = false
-        recommendationsStackView.alpha = 1.0
-        
-        // Ensure expanded constraints are active
-        headerToContainerBottomConstraint?.isActive = false
-        stackToContainerBottomConstraint?.isActive = true
+
+        // Set UI based on collapse state
+        recommendationsStackView.isHidden = !isExpanded
+        recommendationsStackView.alpha = isExpanded ? 1.0 : 0.0
+
+        // Update constraints based on state
+        if isExpanded {
+            headerToContainerBottomConstraint?.isActive = false
+            stackToContainerBottomConstraint?.isActive = true
+        } else {
+            stackToContainerBottomConstraint?.isActive = false
+            headerToContainerBottomConstraint?.isActive = true
+        }
     }
     
     private func createRecommendationView(for step: TRPTimelineStep) -> UIView {

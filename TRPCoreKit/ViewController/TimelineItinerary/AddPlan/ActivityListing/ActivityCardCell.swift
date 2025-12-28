@@ -52,7 +52,7 @@ class ActivityCardCell: UITableViewCell {
 
     private let starImageView: UIImageView = {
         let imageView = UIImageView()
-        imageView.image = UIImage(systemName: "star.fill")
+        imageView.image = TRPImageController().getImage(inFramework: "ic_rating_star", inApp: nil)
         imageView.tintColor = ColorSet.primary.uiColor
         imageView.contentMode = .scaleAspectFit
         imageView.translatesAutoresizingMaskIntoConstraints = false
@@ -69,7 +69,7 @@ class ActivityCardCell: UITableViewCell {
 
     private let durationIconImageView: UIImageView = {
         let imageView = UIImageView()
-        imageView.image = UIImage(systemName: "clock")
+        imageView.image = TRPImageController().getImage(inFramework: "ic_duration", inApp: nil)
         imageView.tintColor = ColorSet.fgWeak.uiColor
         imageView.contentMode = .scaleAspectFit
         imageView.translatesAutoresizingMaskIntoConstraints = false

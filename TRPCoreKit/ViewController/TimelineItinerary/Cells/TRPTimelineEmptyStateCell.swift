@@ -121,7 +121,7 @@ class TRPTimelineEmptyStateCell: UITableViewCell {
     }
     
     // MARK: - Configuration
-    func configure(title: String? = nil, description: String? = nil, buttonTitle: String? = nil) {
+    func configure() {
         // Set icon
         if let icon = TRPImageController().getImage(inFramework: "ic_empty_state", inApp: nil) {
             iconImageView.image = icon
@@ -130,14 +130,14 @@ class TRPTimelineEmptyStateCell: UITableViewCell {
             iconImageView.image = UIImage(systemName: "calendar.badge.plus")
         }
         
-        // Set title (default if not provided)
-        titleLabel.text = title ?? "No plans for this day"
+        // Set title
+        titleLabel.text = "No plans for this day"
         
-        // Set description (default if not provided)
-        descriptionLabel.text = description ?? "Add activities and places to make the most of your day"
+        // Set description
+        descriptionLabel.text = "Add activities and places to make the most of your day"
         
-        // Set button title (default if not provided)
-        addPlanButton.setTitle(buttonTitle ?? "Add Plan", for: .normal)
+        // Set button title
+        addPlanButton.setTitle("Add Plan", for: .normal)
     }
     
     // MARK: - Actions

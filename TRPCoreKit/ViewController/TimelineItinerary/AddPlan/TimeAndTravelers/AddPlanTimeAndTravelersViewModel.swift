@@ -32,10 +32,14 @@ public class AddPlanTimeAndTravelersViewModel {
     }
     
     // MARK: - Public Methods
+    public func getSelectedDay() -> Date? {
+        return containerViewModel?.planData.selectedDay
+    }
+
     public func getStartTime() -> Date? {
         return containerViewModel?.planData.startTime
     }
-    
+
     public func getEndTime() -> Date? {
         return containerViewModel?.planData.endTime
     }

@@ -31,13 +31,14 @@ final class TourMapper {
             gallery = images.filter { $0.isCover != true || images.count == 1 }
                 .map { mapTourImage($0) }
         }
+        
+        var coordinate: TRPLocation?
 
         // Get coordinate from first location
-        guard let firstLocation = restModel.locations?.first else {
+        if let firstLocation = restModel.locations?.first {
             // If no location, we can't create a tour product
-            return nil
+            coordinate = TRPLocation(lat: firstLocation.lat ?? 0, lon: firstLocation.lon ?? 0)
         }
-        let coordinate = TRPLocation(lat: firstLocation.lat ?? 0, lon: firstLocation.lon ?? 0)
 
         // Convert duration from Double (minutes) to Int
         let duration = restModel.duration != nil ? Int(restModel.duration!) : nil
@@ -65,6 +66,7 @@ final class TourMapper {
         let icon = "tour"
 
         let tour = TRPTourProduct(id: restModel.id,
+                                  productId: restModel.productId,
                                   cityId: restModel.cityId,
                                   name: restModel.title,
                                   image: mainImage,

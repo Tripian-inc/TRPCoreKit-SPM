@@ -41,7 +41,13 @@ public class TRPTimelineSegment: Codable {
     public var customSettings: Bool = false
     public var accommodation: TRPAccommodation?
     public var destinationAccommodation: TRPAccommodation?
-    
+
+    // Smart Recommendations properties
+    public var activityFreeText: String?
+    public var activityIds: [String]?
+    public var smartRecommendation: Bool?
+    public var excludedActivityIds: [String]?
+
     public var additionalData: TRPSegmentActivityItem?
     
     public init() {
@@ -112,5 +118,11 @@ extension TRPCreateEditTimelineSegmentProfile {
         self.customSettings        = base.customSettings
         self.accommodation        = base.accommodation
         self.destinationAccommodation        = base.destinationAccommodation
+
+        // Smart Recommendations properties
+        self.activityFreeText      = base.activityFreeText
+        self.activityIds           = base.activityIds
+        self.smartRecommendation   = base.smartRecommendation
+        self.excludedActivityIds   = base.excludedActivityIds
     }
 }

@@ -62,6 +62,15 @@ public struct AddPlanLocalizationKeys {
     public static let sortBy = "addPlan.button.sortBy"
     public static let opinions = "addPlan.label.opinions"
     public static let freeCancellation = "addPlan.label.freeCancellation"
+    public static let activity = "addPlan.label.activity"
+    public static let activities = "addPlan.label.activities"
+    
+    // MARK: - Empty State
+    public static let addSavedPlansToItinerary = "addPlan.emptyState.addSavedPlansToItinerary"
+
+    // MARK: - Error Messages
+    public static let errorMissingData = "trips.myTrips.timelineitinerary.addPlan.error.missingData"
+    public static let errorCreateFailed = "trips.myTrips.timelineitinerary.addPlan.error.createFailed"
     
     // MARK: - Default English Values
     private static let defaultValues: [String: String] = [
@@ -104,7 +113,12 @@ public struct AddPlanLocalizationKeys {
         filters: "Filters",
         sortBy: "Sort by",
         opinions: "opinions",
-        freeCancellation: "Free cancellation"
+        freeCancellation: "Free cancellation",
+        activity: "activity",
+        activities: "activities",
+        addSavedPlansToItinerary: "Add your saved plans to the itinerary",
+        errorMissingData: "Missing required information. Please complete all fields.",
+        errorCreateFailed: "Failed to create smart recommendation. Please try again."
     ]
     
     // MARK: - Helper Methods
