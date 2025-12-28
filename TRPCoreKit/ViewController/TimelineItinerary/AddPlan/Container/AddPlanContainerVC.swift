@@ -126,9 +126,9 @@ public class AddPlanContainerVC: TRPBaseUIViewController {
 
         NSLayoutConstraint.activate([
             // Header View
-            headerView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
-            headerView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            headerView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            headerView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 16),
+            headerView.leadingAnchor.constraint(equalTo: view.leadingAnchor,constant: 16),
+            headerView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
             headerView.heightAnchor.constraint(equalToConstant: 44),
             
             // Back Button
@@ -140,8 +140,8 @@ public class AddPlanContainerVC: TRPBaseUIViewController {
             // Title
             titleLabel.centerXAnchor.constraint(equalTo: headerView.centerXAnchor),
             titleLabel.centerYAnchor.constraint(equalTo: headerView.centerYAnchor),
-            titleLabel.leadingAnchor.constraint(greaterThanOrEqualTo: backButton.trailingAnchor, constant: 8),
-            titleLabel.trailingAnchor.constraint(lessThanOrEqualTo: closeButton.leadingAnchor, constant: -8),
+            titleLabel.leadingAnchor.constraint(greaterThanOrEqualTo: backButton.trailingAnchor, constant: 4),
+            titleLabel.trailingAnchor.constraint(lessThanOrEqualTo: closeButton.leadingAnchor, constant: -4),
             
             // Close Button
             closeButton.trailingAnchor.constraint(equalTo: headerView.trailingAnchor),
@@ -155,9 +155,9 @@ public class AddPlanContainerVC: TRPBaseUIViewController {
         view.addSubview(contentContainerView)
 
         NSLayoutConstraint.activate([
-            contentContainerView.topAnchor.constraint(equalTo: headerView.bottomAnchor, constant: 20),
-            contentContainerView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
-            contentContainerView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
+            contentContainerView.topAnchor.constraint(equalTo: headerView.bottomAnchor),
+            contentContainerView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            contentContainerView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             contentContainerView.bottomAnchor.constraint(equalTo: footerView.topAnchor)
         ])
     }
@@ -271,7 +271,7 @@ public class AddPlanContainerVC: TRPBaseUIViewController {
     @objc private func continueButtonTapped() {
         // Validate current step before continuing
         let currentStep = viewModel.getCurrentStep()
-        
+
         if canContinue(currentStep: currentStep) {
             // Check if manual mode with activities category selected
             if currentStep == .selectDayAndCity &&
@@ -281,7 +281,7 @@ public class AddPlanContainerVC: TRPBaseUIViewController {
                 delegate?.addPlanContainerShouldShowActivityListing(self, data: viewModel.planData)
                 return
             }
-            
+
             viewModel.goNextStep()
         }
     }

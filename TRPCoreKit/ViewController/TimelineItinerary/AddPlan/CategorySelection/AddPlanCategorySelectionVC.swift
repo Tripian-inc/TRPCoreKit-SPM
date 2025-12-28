@@ -85,8 +85,8 @@ public class AddPlanCategorySelectionVC: TRPBaseUIViewController {
         ])
         
         let itemsPerRow = 3
-        let spacing: CGFloat = 12
-        let buttonHeight: CGFloat = 100
+        let spacing: CGFloat = 8
+        let buttonHeight: CGFloat = 96
         
         // Calculate button width based on screen width
         let screenWidth = UIScreen.main.bounds.width
@@ -161,22 +161,22 @@ public class AddPlanCategorySelectionVC: TRPBaseUIViewController {
         let button = UIButton(type: .custom)
         button.translatesAutoresizingMaskIntoConstraints = false
         button.backgroundColor = .white
-        button.layer.cornerRadius = 12
+        button.layer.cornerRadius = 8
         button.layer.borderWidth = 1
-        button.layer.borderColor = ColorSet.neutral200.uiColor.cgColor
+        button.layer.borderColor = ColorSet.lineWeak.uiColor.cgColor
         
         // Icon container
         let iconImageView = UIImageView()
         iconImageView.translatesAutoresizingMaskIntoConstraints = false
-        iconImageView.image = UIImage(systemName: category.iconName)
-        iconImageView.tintColor = ColorSet.fg.uiColor
+        iconImageView.image = TRPImageController().getImage(inFramework: category.iconName, inApp: nil)
+        iconImageView.tintColor = ColorSet.fgWeak.uiColor
         iconImageView.contentMode = .scaleAspectFit
         
         // Label
         let label = UILabel()
         label.translatesAutoresizingMaskIntoConstraints = false
         label.text = category.name
-        label.font = FontSet.montserratMedium.font(12)
+        label.font = FontSet.montserratLight.font(12)
         label.textColor = ColorSet.primaryText.uiColor
         label.textAlignment = .center
         label.numberOfLines = 2
@@ -187,13 +187,13 @@ public class AddPlanCategorySelectionVC: TRPBaseUIViewController {
         
         NSLayoutConstraint.activate([
             iconImageView.centerXAnchor.constraint(equalTo: button.centerXAnchor),
-            iconImageView.topAnchor.constraint(equalTo: button.topAnchor, constant: 16),
+            iconImageView.topAnchor.constraint(equalTo: button.topAnchor, constant: 12),
             iconImageView.widthAnchor.constraint(equalToConstant: 32),
             iconImageView.heightAnchor.constraint(equalToConstant: 32),
             
-            label.topAnchor.constraint(equalTo: iconImageView.bottomAnchor, constant: 8),
-            label.leadingAnchor.constraint(equalTo: button.leadingAnchor, constant: 4),
-            label.trailingAnchor.constraint(equalTo: button.trailingAnchor, constant: -4),
+            label.bottomAnchor.constraint(equalTo: button.bottomAnchor, constant: -12),
+            label.leadingAnchor.constraint(equalTo: button.leadingAnchor, constant: 10),
+            label.trailingAnchor.constraint(equalTo: button.trailingAnchor, constant: -10),
         ])
         
         button.addTarget(self, action: #selector(categoryButtonTapped(_:)), for: .touchUpInside)
@@ -207,7 +207,7 @@ public class AddPlanCategorySelectionVC: TRPBaseUIViewController {
     private func updateCategoryButtonStyle(_ button: UIButton, isSelected: Bool) {
         if isSelected {
             button.backgroundColor = .white
-            button.layer.borderColor = ColorSet.primary.uiColor.cgColor
+            button.layer.borderColor = ColorSet.fg.uiColor.cgColor
             button.layer.borderWidth = 2
         } else {
             button.backgroundColor = .white

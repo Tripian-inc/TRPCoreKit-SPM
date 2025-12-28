@@ -48,10 +48,12 @@ public struct TRPSegmentDestinationItem: Codable {
 
     public var title: String
     public var coordinate: String
+    public var cityId: Int?
 
-    public init(title: String, coordinate: String) {
+    public init(title: String, coordinate: String, cityId: Int? = nil) {
         self.title = title
         self.coordinate = coordinate
+        self.cityId = cityId
     }
 
 }
@@ -176,12 +178,10 @@ extension TRPItineraryWithActivities {
             timelineProfile.pets = 0
         }
 
-        // Convert destinations to city objects
-        let cities = destinationItems.compactMap { createCity(from: $0) }
-
         // Create segments only from tripItems (booking products)
+        // Note: City information will come from timeline API response (plans), not from destinationItems
         let segments = tripItems?.map { tripItem in
-            createTimelineSegment(from: tripItem, cities: cities)
+            createTimelineSegment(from: tripItem)
         }
 
         timelineProfile.segments = segments ?? []
@@ -189,22 +189,8 @@ extension TRPItineraryWithActivities {
         return timelineProfile
     }
 
-    /// Creates a TRPCity from a TRPSegmentDestinationItem
-    private func createCity(from destination: TRPSegmentDestinationItem) -> TRPCity? {
-        // Parse coordinate string (format: "lat,lon")
-        let components = destination.coordinate.split(separator: ",")
-        guard components.count == 2,
-              let lat = Double(components[0].trimmingCharacters(in: .whitespaces)),
-              let lon = Double(components[1].trimmingCharacters(in: .whitespaces)) else {
-            return nil
-        }
-
-        let location = TRPLocation(lat: lat, lon: lon)
-        return TRPCity(id: 0, name: destination.title, coordinate: location)
-    }
-
     /// Creates a TRPTimelineSegment from a TRPSegmentActivityItem
-    private func createTimelineSegment(from tripItem: TRPSegmentActivityItem, cities: [TRPCity]) -> TRPTimelineSegment {
+    private func createTimelineSegment(from tripItem: TRPSegmentActivityItem) -> TRPTimelineSegment {
         let segment = TRPTimelineSegment()
 
         // Set segment type
@@ -230,38 +216,13 @@ extension TRPItineraryWithActivities {
         // Set additional data (this is CRITICAL for booked activities)
         segment.additionalData = tripItem
 
-        // Find matching city based on coordinate proximity
-        segment.city = findClosestCity(for: tripItem.coordinate, in: cities)
+        // Don't set segment.city here - it will be populated from timeline API response (plan.city)
+        // destinationItems only contains city name and coordinates, not cityId
+        // The correct city with valid ID will come from the timeline plans response
+        segment.city = nil
 
         return segment
     }
-
-    /// Finds the closest city to the given coordinate
-    private func findClosestCity(for location: TRPLocation, in cities: [TRPCity]) -> TRPCity? {
-        guard !cities.isEmpty else { return nil }
-
-        // If only one city, return it
-        if cities.count == 1 {
-            return cities.first
-        }
-
-        // Find closest city by coordinate distance
-        let sortedCities = cities.sorted { city1, city2 in
-            let distance1 = calculateDistance(from: location, to: city1.coordinate)
-            let distance2 = calculateDistance(from: location, to: city2.coordinate)
-            return distance1 < distance2
-        }
-
-        return sortedCities.first
-    }
-
-    /// Calculates simple distance between two coordinates (not accurate, but good enough for city matching)
-    private func calculateDistance(from loc1: TRPLocation, to loc2: TRPLocation) -> Double {
-        let latDiff = loc1.lat - loc2.lat
-        let lonDiff = loc1.lon - loc2.lon
-        return sqrt(latDiff * latDiff + lonDiff * lonDiff)
-    }
-    
 }
 
 

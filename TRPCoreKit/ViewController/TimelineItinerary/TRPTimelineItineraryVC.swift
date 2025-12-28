@@ -1011,24 +1011,23 @@ extension TRPTimelineItineraryVC: AddPlanContainerVCDelegate {
     }
     
     public func addPlanContainerShouldShowActivityListing(_ viewController: AddPlanContainerVC, data: AddPlanData) {
-        // Dismiss the add plan container first
-        viewController.dismiss(animated: true) { [weak self] in
-            guard let self = self else { return }
+        // Don't dismiss the add plan container - present activity listing on top of it
+        // This allows user to go back to add plan screen
 
-            // Create activity listing ViewModel with the plan data
-            let activityListingViewModel = AddPlanActivityListingViewModel(planData: data)
-            let activityListingVC = AddPlanActivityListingVC()
-            activityListingVC.viewModel = activityListingViewModel
+        // Create activity listing ViewModel with the plan data
+        let activityListingViewModel = AddPlanActivityListingViewModel(planData: data)
+        let activityListingVC = AddPlanActivityListingVC()
+        activityListingVC.viewModel = activityListingViewModel
 
-            // Create navigation controller for the activity listing
-            let navController = UINavigationController(rootViewController: activityListingVC)
-            navController.modalPresentationStyle = .fullScreen
+        // Create navigation controller for the activity listing
+        let navController = UINavigationController(rootViewController: activityListingVC)
+        navController.modalPresentationStyle = .fullScreen
 
-            // Set title
-            activityListingVC.title = AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.categoryActivities)
+        // Set title
+        activityListingVC.title = AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.categoryActivities)
 
-            self.present(navController, animated: true)
-        }
+        // Present from the AddPlanContainerVC instead of dismissing it first
+        viewController.present(navController, animated: true)
     }
 }
 

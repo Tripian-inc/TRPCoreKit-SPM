@@ -19,12 +19,15 @@ public class AddPlanTimeAndTravelersViewModel {
     public init(containerViewModel: AddPlanContainerViewModel) {
         self.containerViewModel = containerViewModel
         // TODO: Initialize savedPOIs from timeline data or trip data
-        
+
         // Set default starting point to city center if none is selected
         if containerViewModel.planData.startingPointLocation == nil {
-            let cityCenterLocation = createCityCenterLocation()
-            containerViewModel.planData.startingPointLocation = cityCenterLocation
-            containerViewModel.planData.startingPointName = getCityCenterDisplayName()
+            setStartingPointToCityCenter()
+        }
+
+        // Set default traveler count to 1 if not already set
+        if containerViewModel.planData.travelers == 0 {
+            containerViewModel.planData.travelers = 1
         }
     }
     
@@ -38,7 +41,8 @@ public class AddPlanTimeAndTravelersViewModel {
     }
     
     public func getTravelerCount() -> Int {
-        return containerViewModel?.planData.travelers ?? 0
+        let count = containerViewModel?.planData.travelers ?? 1
+        return count > 0 ? count : 1
     }
     
     public func setStartTime(_ time: Date?) {
@@ -54,13 +58,13 @@ public class AddPlanTimeAndTravelersViewModel {
     }
     
     public func incrementTravelers() {
-        let current = containerViewModel?.planData.travelers ?? 0
+        let current = containerViewModel?.planData.travelers ?? 1
         containerViewModel?.planData.travelers = current + 1
     }
     
     public func decrementTravelers() {
-        let current = containerViewModel?.planData.travelers ?? 0
-        if current > 0 {
+        let current = containerViewModel?.planData.travelers ?? 1
+        if current > 1 {
             containerViewModel?.planData.travelers = current - 1
         }
     }
@@ -86,24 +90,54 @@ public class AddPlanTimeAndTravelersViewModel {
         return containerViewModel?.planData.selectedCity?.name
     }
 
+    public func getCityCenterDisplayName() -> String? {
+        guard let city = containerViewModel?.planData.selectedCity else { return nil }
+        return "\(city.name) - \(AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.cityCenter))"
+    }
+
+    public func setStartingPointToCityCenter() {
+        let cityCenterLocation = createCityCenterLocation()
+        let cityCenterName = getCityCenterDisplayName()
+        containerViewModel?.planData.startingPointLocation = cityCenterLocation
+        containerViewModel?.planData.startingPointName = cityCenterName
+    }
+
+    public func isStartingPointCityCenter() -> Bool {
+        guard let currentLocation = containerViewModel?.planData.startingPointLocation else {
+            return true // No starting point set, treat as city center
+        }
+
+        // Get all available cities from container
+        let availableCities = containerViewModel?.getAvailableCities() ?? []
+
+        // Check if current starting point matches any city's coordinate
+        for city in availableCities {
+            if areCoordinatesEqual(currentLocation, city.coordinate) {
+                return true
+            }
+        }
+
+        return false
+    }
+
+    private func areCoordinatesEqual(_ loc1: TRPLocation, _ loc2: TRPLocation) -> Bool {
+        // Compare with small tolerance for floating point precision
+        let tolerance = 0.0001
+        return abs(loc1.lat - loc2.lat) < tolerance && abs(loc1.lon - loc2.lon) < tolerance
+    }
+
     public func clearSelection() {
         // Reset to city center instead of nil
-        containerViewModel?.planData.startingPointLocation = createCityCenterLocation()
-        containerViewModel?.planData.startingPointName = getCityCenterDisplayName()
+        setStartingPointToCityCenter()
         containerViewModel?.planData.startTime = nil
         containerViewModel?.planData.endTime = nil
-        containerViewModel?.planData.travelers = 0
+        containerViewModel?.planData.travelers = 1
     }
     
     // MARK: - Private Methods
     private func createCityCenterLocation() -> TRPLocation? {
         guard let city = containerViewModel?.planData.selectedCity else { return nil }
         return city.coordinate
-    }
-    
-    private func getCityCenterDisplayName() -> String? {
-        guard let city = containerViewModel?.planData.selectedCity else { return nil }
-        return "\(city.name) - \(AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.cityCenter))"
     }
     
     // Keep this method for backwards compatibility if needed elsewhere

@@ -16,13 +16,13 @@ public struct PlanCategory {
     
     public static func allCategories() -> [PlanCategory] {
         return [
-            PlanCategory(id: "guided_tours", name: AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.categoryGuidedTours), iconName: "person.2.fill"),
-            PlanCategory(id: "tickets", name: AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.categoryTickets), iconName: "ticket.fill"),
-            PlanCategory(id: "excursions", name: AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.categoryExcursions), iconName: "bus.fill"),
-            PlanCategory(id: "poi", name: AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.categoryPOI), iconName: "mappin.and.ellipse"),
-            PlanCategory(id: "food", name: AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.categoryFood), iconName: "fork.knife"),
-            PlanCategory(id: "shows", name: AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.categoryShows), iconName: "theatermasks.fill"),
-            PlanCategory(id: "transport", name: AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.categoryTransport), iconName: "airplane")
+            PlanCategory(id: "guided_tours", name: AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.categoryGuidedTours), iconName: "ic_activities"),
+            PlanCategory(id: "tickets", name: AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.categoryTickets), iconName: "ic_cat_tickets"),
+            PlanCategory(id: "excursions", name: AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.categoryExcursions), iconName: "ic_cat_excursions"),
+            PlanCategory(id: "poi", name: AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.categoryPOI), iconName: "ic_cat_poi"),
+            PlanCategory(id: "food", name: AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.categoryFood), iconName: "ic_cat_food_drinks"),
+            PlanCategory(id: "shows", name: AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.categoryShows), iconName: "ic_cat_shows"),
+            PlanCategory(id: "transport", name: AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.categoryTransport), iconName: "ic_cat_transfers")
         ]
     }
     

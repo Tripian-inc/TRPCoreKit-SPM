@@ -55,6 +55,9 @@ public class TRPTimelineItineraryViewModel {
     public var selectedDayIndex: Int = 0
     private var startDate: Date?
 
+    // Track if initial data has been loaded (prevents showing empty state during loading)
+    private var hasLoadedData: Bool = false
+
     // Keep reference to use case to prevent deallocation during async operations
     private var checkAllPlanUseCase: TRPTimelineCheckAllPlanUseCases?
 
@@ -172,6 +175,9 @@ public class TRPTimelineItineraryViewModel {
         allTimelineItems = items.map { [$0] }
 
         filterItemsByDay(selectedDayIndex)
+
+        // Mark data as loaded
+        hasLoadedData = true
     }
     
     // Helper to get start date for timeline items
@@ -475,23 +481,43 @@ public class TRPTimelineItineraryViewModel {
     public func getCities() -> [TRPCity] {
         var cities: [TRPCity] = []
         var cityIds = Set<Int>()
-        
-        // Extract cities from booked segments
-        if let segments = timeline?.segments {
-            for segment in segments {
-                if let city = segment.city, !cityIds.contains(city.id) {
+        var cityNames = Set<String>() // Track city names to avoid duplicates
+
+        // 1. First priority: Use timeline.city (main city from API)
+        if let timelineCity = timeline?.city, timelineCity.id > 0 {
+            cities.append(timelineCity)
+            cityIds.insert(timelineCity.id)
+            cityNames.insert(timelineCity.name.lowercased())
+        }
+
+        // 2. Extract cities from plans (API data - most reliable)
+        if let plans = timeline?.plans {
+            for plan in plans {
+                if let city = plan.city, city.id > 0 {
+                    let normalizedName = city.name.lowercased()
+                    // Skip if same name already exists (prefer earlier sources)
+                    if cityNames.contains(normalizedName) {
+                        continue
+                    }
                     cities.append(city)
                     cityIds.insert(city.id)
+                    cityNames.insert(normalizedName)
                 }
             }
         }
-        
-        // Extract cities from plans
-        if let plans = timeline?.plans {
-            for plan in plans {
-                if let city = plan.city, !cityIds.contains(city.id) {
+
+        // 3. Extract cities from booked segments (might have mock/stale IDs)
+        if let segments = timeline?.segments {
+            for segment in segments {
+                if let city = segment.city, city.id > 0 {
+                    let normalizedName = city.name.lowercased()
+                    // Skip if same name already exists (prefer plan data)
+                    if cityNames.contains(normalizedName) {
+                        continue
+                    }
                     cities.append(city)
                     cityIds.insert(city.id)
+                    cityNames.insert(normalizedName)
                 }
             }
         }
@@ -501,6 +527,9 @@ public class TRPTimelineItineraryViewModel {
     
     // MARK: - TableView Data Methods
     public func numberOfSections() -> Int {
+        // Don't show anything (including empty state) until data has loaded
+        guard hasLoadedData else { return 0 }
+
         // If no items, return 1 section for empty state
         return filteredTimelineItems.isEmpty ? 1 : filteredTimelineItems.count
     }
@@ -939,10 +968,75 @@ public class TRPTimelineItineraryViewModel {
 
             if !profileFromBookings.segments.isEmpty {
                 updatedTimeline.segments = profileFromBookings.segments
+
+                // Populate segment.city from timeline data
+                populateCitiesInSegments(&updatedTimeline)
             }
         }
 
         return updatedTimeline
+    }
+
+    /// Populates city information in segments using timeline's plan cities
+    private func populateCitiesInSegments(_ timeline: inout TRPTimeline) {
+        guard let segments = timeline.segments else { return }
+
+        // Collect all cities from plans and timeline.city
+        var availableCities: [TRPCity] = []
+
+        // Add timeline.city first
+        if timeline.city.id > 0 {
+            availableCities.append(timeline.city)
+        }
+
+        // Add cities from plans
+        if let plans = timeline.plans {
+            for plan in plans {
+                if let city = plan.city, city.id > 0 {
+                    // Avoid duplicates
+                    if !availableCities.contains(where: { $0.id == city.id }) {
+                        availableCities.append(city)
+                    }
+                }
+            }
+        }
+
+
+        // Assign city to each segment based on coordinate proximity
+        for segment in segments {
+            guard segment.city == nil else { continue }
+            guard let coordinate = segment.coordinate else { continue }
+
+            if let closestCity = findClosestCity(to: coordinate, in: availableCities) {
+                segment.city = closestCity
+            }
+        }
+    }
+
+    /// Finds the closest city to given coordinates
+    private func findClosestCity(to coordinate: TRPLocation, in cities: [TRPCity]) -> TRPCity? {
+        guard !cities.isEmpty else { return nil }
+
+        // If only one city, return it
+        if cities.count == 1 {
+            return cities.first
+        }
+
+        // Find closest by coordinate distance
+        let sortedCities = cities.sorted { city1, city2 in
+            let distance1 = calculateDistance(from: coordinate, to: city1.coordinate)
+            let distance2 = calculateDistance(from: coordinate, to: city2.coordinate)
+            return distance1 < distance2
+        }
+
+        return sortedCities.first
+    }
+
+    /// Calculates simple Euclidean distance between two coordinates
+    private func calculateDistance(from loc1: TRPLocation, to loc2: TRPLocation) -> Double {
+        let latDiff = loc1.lat - loc2.lat
+        let lonDiff = loc1.lon - loc2.lon
+        return sqrt(latDiff * latDiff + lonDiff * lonDiff)
     }
 }
 

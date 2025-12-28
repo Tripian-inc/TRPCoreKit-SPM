@@ -195,16 +195,9 @@ public class AddPlanActivityListingViewModel {
         // Build keywords combining search text and category name
         let keywords = buildKeywords()
 
-        // Use user location if available
-        if let userLocation = planData.startingPointLocation {
-            tourUseCases?.executeSearchTour(text: keywords, categories: [], userLocation: userLocation) { [weak self] result, pagination in
-                self?.handleSearchResult(result: result, pagination: pagination)
-            }
-        } else {
-            // Use city-based search
-            tourUseCases?.executeSearchTour(text: keywords, categories: []) { [weak self] result, pagination in
-                self?.handleSearchResult(result: result, pagination: pagination)
-            }
+        // Use city-based search only (no coordinates needed)
+        tourUseCases?.executeSearchTour(text: keywords, categories: []) { [weak self] result, pagination in
+            self?.handleSearchResult(result: result, pagination: pagination)
         }
     }
 

@@ -48,7 +48,7 @@ public class AddPlanContainerViewModel {
         self.availableDays = days
         self.availableCities = cities
         self.selectedDayIndex = selectedDayIndex
-        
+
         // Pre-select day and city
         if selectedDayIndex < days.count {
             self.planData.selectedDay = days[selectedDayIndex]

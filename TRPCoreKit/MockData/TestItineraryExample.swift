@@ -178,12 +178,14 @@ public class TestItineraryExample {
         // Create destination items (Barcelona and Madrid)
         let barcelonaDestination = TRPSegmentDestinationItem(
             title: "Barcelona",
-            coordinate: "41.3850639,2.1734034999999494"
+            coordinate: "41.3850639,2.1734034999999494",
+            cityId: 109
         )
 
         let madridDestination = TRPSegmentDestinationItem(
             title: "Madrid",
-            coordinate: "40.4167754,-3.7037902"
+            coordinate: "40.4167754,-3.7037902",
+            cityId: 45
         )
 
         // Create 2 booked activities
@@ -278,7 +280,8 @@ public class TestItineraryExample {
         // Create destination item
         let destination = TRPSegmentDestinationItem(
             title: "Barcelona",
-            coordinate: "41.3850639,2.1734034999999494"
+            coordinate: "41.3850639,2.1734034999999494",
+            cityId: 109
         )
 
         // Create 3 booked activities

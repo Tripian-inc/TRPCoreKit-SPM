@@ -22,7 +22,7 @@ public class AddPlanSelectDayVC: TRPBaseUIViewController {
         let label = UILabel()
         label.translatesAutoresizingMaskIntoConstraints = false
         label.text = AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.addToDay)
-        label.font = FontSet.montserratMedium.font(14)
+        label.font = FontSet.montserratLight.font(12)
         label.textColor = ColorSet.primaryText.uiColor
         return label
     }()
@@ -38,7 +38,7 @@ public class AddPlanSelectDayVC: TRPBaseUIViewController {
         let label = UILabel()
         label.translatesAutoresizingMaskIntoConstraints = false
         label.text = AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.city)
-        label.font = FontSet.montserratMedium.font(14)
+        label.font = FontSet.montserratLight.font(12)
         label.textColor = ColorSet.primaryText.uiColor
         return label
     }()
@@ -49,7 +49,7 @@ public class AddPlanSelectDayVC: TRPBaseUIViewController {
         button.backgroundColor = ColorSet.neutral100.uiColor
         button.layer.cornerRadius = 8
         button.contentHorizontalAlignment = .left
-        button.titleLabel?.font = FontSet.montserratRegular.font(16)
+        button.titleLabel?.font = FontSet.montserratMedium.font(14)
         button.setTitleColor(ColorSet.primaryText.uiColor, for: .normal)
         button.contentEdgeInsets = UIEdgeInsets(top: 12, left: 16, bottom: 12, right: 40)
         button.addTarget(self, action: #selector(cityButtonTapped), for: .touchUpInside)
@@ -105,7 +105,7 @@ public class AddPlanSelectDayVC: TRPBaseUIViewController {
         view.backgroundColor = .white
         view.layer.cornerRadius = 12
         view.layer.borderWidth = 1
-        view.layer.borderColor = ColorSet.neutral200.uiColor.cgColor
+        view.layer.borderColor = ColorSet.lineWeak.uiColor.cgColor
         
         let iconView = UIImageView()
         iconView.translatesAutoresizingMaskIntoConstraints = false
@@ -134,7 +134,7 @@ public class AddPlanSelectDayVC: TRPBaseUIViewController {
         
         NSLayoutConstraint.activate([
             iconView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
-            iconView.topAnchor.constraint(equalTo: view.topAnchor, constant: 16),
+            iconView.topAnchor.constraint(equalTo: view.topAnchor, constant: 18),
             iconView.widthAnchor.constraint(equalToConstant: 52),
             iconView.heightAnchor.constraint(equalToConstant: 52),
             
@@ -208,7 +208,7 @@ public class AddPlanSelectDayVC: TRPBaseUIViewController {
         let button = UIButton(type: .custom)
         button.translatesAutoresizingMaskIntoConstraints = false
         button.backgroundColor = .white
-        button.layer.cornerRadius = 12
+        button.layer.cornerRadius = 8
         button.layer.borderWidth = 1
         button.layer.borderColor = ColorSet.neutral200.uiColor.cgColor
         button.tag = id.hashValue // Use hash for tag
