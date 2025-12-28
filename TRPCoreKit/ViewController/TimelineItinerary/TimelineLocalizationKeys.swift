@@ -12,9 +12,23 @@ public struct TimelineLocalizationKeys {
     // MARK: - Navigation
     public static let navigationTitle = "timeline.navigation.title"
 
+    // MARK: - Booked Activity Cell
+    public static let reservation = "timeline.bookedActivity.reservation"
+    public static let confirmed = "timeline.bookedActivity.confirmed"
+    public static let freeCancellation = "timeline.bookedActivity.freeCancellation"
+    public static let adults = "timeline.bookedActivity.adults"
+    public static let child = "timeline.bookedActivity.child"
+    public static let children = "timeline.bookedActivity.children"
+
     // MARK: - Default English Values
     private static let defaultValues: [String: String] = [
-        navigationTitle: "Plan Your Itinerary"
+        navigationTitle: "Plan Your Itinerary",
+        reservation: "Reservation",
+        confirmed: "Confirmed",
+        freeCancellation: "Free cancellation",
+        adults: "Adults",
+        child: "Child",
+        children: "Children"
     ]
 
     // MARK: - Helper Methods

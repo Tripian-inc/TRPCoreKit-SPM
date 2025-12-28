@@ -57,8 +57,8 @@ public class AddPlanActivityListingViewModel {
     
     public func getCategoryIconName(at index: Int) -> String? {
         if index == 0 {
-            // "All" category - use grid icon (matching Figma design)
-            return "square.grid.2x2"
+            // "All" category
+            return "ic_all_categories"
         }
         let categories = PlanCategory.allCategories()
         let categoryIndex = index - 1 // Subtract 1 because "All" is at index 0
@@ -262,14 +262,10 @@ public class AddPlanActivityListingViewModel {
     }
 
     private func filterTours() {
+        // API already filters by category (via keywords), so no need to filter client-side
+        // Only apply text search filter if needed
         filteredTours = allTours
 
-        // Apply category filter if needed
-        if let categoryId = getSelectedCategoryId() {
-            filteredTours = filteredTours.getToursWithCategories([categoryId])
-        }
-
-        // Apply text search filter if needed
         if !searchText.isEmpty {
             filteredTours = filteredTours.filter { tour in
                 tour.name.localizedCaseInsensitiveContains(searchText)

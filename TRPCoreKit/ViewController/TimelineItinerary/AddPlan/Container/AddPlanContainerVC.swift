@@ -208,12 +208,9 @@ public class AddPlanContainerVC: TRPBaseUIViewController {
     
     private func showViewController(at index: Int) {
         guard index < viewControllers.count else {
-            print("⚠️ No VC at index \(index), total VCs: \(viewControllers.count)")
             return
         }
-        
-        print("📱 Showing VC at index \(index)")
-        
+
         // Remove current child VC
         if let currentVC = currentChildVC {
             currentVC.willMove(toParent: nil)
@@ -339,7 +336,6 @@ extension AddPlanContainerVC: AddPlanContainerViewModelDelegate {
     }
     
     public func planCompleted(data: AddPlanData) {
-        print("✅ Plan completed!")
         delegate?.addPlanContainerDidComplete(self, data: data)
         dismiss(animated: true)
     }

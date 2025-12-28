@@ -1065,19 +1065,9 @@ extension TRPTimelineItineraryVC {
 extension TRPTimelineItineraryVC: AddPlanContainerVCDelegate {
 
     public func addPlanContainerDidComplete(_ viewController: AddPlanContainerVC, data: AddPlanData) {
-        print("📝 Plan creation completed:")
-        print("  - Mode: \(data.selectedMode)")
-        print("  - Day: \(data.selectedDay?.description ?? "N/A")")
-        print("  - City: \(data.selectedCity?.name ?? "N/A")")
-        print("  - Start Time: \(data.startTime?.description ?? "N/A")")
-        print("  - End Time: \(data.endTime?.description ?? "N/A")")
-        print("  - Travelers: \(data.travelers)")
-        print("  - Categories: \(data.selectedCategories.joined(separator: ", "))")
-
         // Check if Smart Recommendations mode
         guard data.selectedMode == .smartRecommendations else {
             // For manual mode, just dismiss (existing behavior)
-            print("ℹ️ Manual mode selected - dismissing")
             viewController.dismiss(animated: true)
             return
         }
@@ -1087,7 +1077,7 @@ extension TRPTimelineItineraryVC: AddPlanContainerVCDelegate {
     }
 
     public func addPlanContainerDidCancel(_ viewController: AddPlanContainerVC) {
-        print("❌ Plan creation cancelled")
+        // Dismissed without completing
     }
     
     public func addPlanContainerShouldShowActivityListing(_ viewController: AddPlanContainerVC, data: AddPlanData) {

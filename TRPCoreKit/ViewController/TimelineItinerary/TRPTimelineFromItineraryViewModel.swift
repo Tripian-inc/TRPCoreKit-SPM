@@ -65,7 +65,6 @@ public class TRPTimelineFromItineraryViewModel {
             checkTimelineIsGenerated(tripHash: tripHash, timeline: timeline)
             
         case .failure(let error):
-            print("[Error] Timeline creation failed: \(error.localizedDescription)")
             delegate?.viewModel(showPreloader: false)
             delegate?.viewModel(error: error)
         }
@@ -92,6 +91,8 @@ public class TRPTimelineFromItineraryViewModel {
                 }
                 return
             }
+            
+            TRPCoreKit.shared.delegate?.trpCoreKitDidCreateTimeline(tripHash: tripHash)
             
             // Timeline is generated successfully
             // Get the updated timeline from the observer (contains generated plans)

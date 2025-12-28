@@ -68,11 +68,9 @@ final class TimelineProfileMapper {
         setting.children = profile.children
         setting.pets = profile.pets
         setting.considerWeather = profile.considerWeather
-        
+
         setting.segments = getTimelineSegments(from: profile.segments)
-        
-        
-        print(setting)
+
         return setting
     }
     

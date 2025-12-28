@@ -81,23 +81,6 @@ class TRPTimelineBookedActivityCell: UITableViewCell {
         return label
     }()
     
-    private let dateIcon: UIImageView = {
-        let imageView = UIImageView()
-        imageView.translatesAutoresizingMaskIntoConstraints = false
-        imageView.image = TRPImageController().getImage(inFramework: "ic_calendar", inApp: nil)
-        imageView.tintColor = ColorSet.fgWeak.uiColor
-        imageView.contentMode = .scaleAspectFit
-        return imageView
-    }()
-    
-    private let dateLabel: UILabel = {
-        let label = UILabel()
-        label.translatesAutoresizingMaskIntoConstraints = false
-        label.font = FontSet.montserratLight.font(14)
-        label.textColor = ColorSet.fg.uiColor
-        return label
-    }()
-    
     private let personIcon: UIImageView = {
         let imageView = UIImageView()
         imageView.translatesAutoresizingMaskIntoConstraints = false
@@ -118,7 +101,6 @@ class TRPTimelineBookedActivityCell: UITableViewCell {
     private let cancellationLabel: UILabel = {
         let label = UILabel()
         label.translatesAutoresizingMaskIntoConstraints = false
-        label.text = "Cancelación gratuita"
         label.font = FontSet.montserratMedium.font(14)
         label.textColor = ColorSet.greenAdvantage.uiColor
         return label
@@ -146,8 +128,6 @@ class TRPTimelineBookedActivityCell: UITableViewCell {
         containerView.addSubview(activityImageView)
         containerView.addSubview(titleLabel)
         containerView.addSubview(confirmedBadge)
-        containerView.addSubview(dateIcon)
-        containerView.addSubview(dateLabel)
         containerView.addSubview(personIcon)
         containerView.addSubview(personLabel)
         containerView.addSubview(cancellationLabel)
@@ -183,8 +163,8 @@ class TRPTimelineBookedActivityCell: UITableViewCell {
             
             // Title Label
             titleLabel.topAnchor.constraint(equalTo: containerView.topAnchor),
-            titleLabel.leadingAnchor.constraint(equalTo: activityImageView.trailingAnchor, constant: 12),
-            titleLabel.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -12),
+            titleLabel.leadingAnchor.constraint(equalTo: activityImageView.trailingAnchor, constant: 16),
+            titleLabel.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -16),
             
             // Confirmed Badge
             confirmedBadge.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 4),
@@ -192,18 +172,8 @@ class TRPTimelineBookedActivityCell: UITableViewCell {
             confirmedBadge.widthAnchor.constraint(equalToConstant: 90),
             confirmedBadge.heightAnchor.constraint(equalToConstant: 24),
             
-            // Date Icon
-            dateIcon.topAnchor.constraint(equalTo: confirmedBadge.bottomAnchor, constant: 6),
-            dateIcon.leadingAnchor.constraint(equalTo: confirmedBadge.leadingAnchor),
-            dateIcon.widthAnchor.constraint(equalToConstant: 16),
-            dateIcon.heightAnchor.constraint(equalToConstant: 16),
-            
-            // Date Label
-            dateLabel.centerYAnchor.constraint(equalTo: dateIcon.centerYAnchor),
-            dateLabel.leadingAnchor.constraint(equalTo: dateIcon.trailingAnchor, constant: 6),
-            
             // Person Icon
-            personIcon.topAnchor.constraint(equalTo: dateIcon.bottomAnchor, constant: 8),
+            personIcon.topAnchor.constraint(equalTo: confirmedBadge.bottomAnchor, constant: 8),
             personIcon.leadingAnchor.constraint(equalTo: confirmedBadge.leadingAnchor),
             personIcon.widthAnchor.constraint(equalToConstant: 16),
             personIcon.heightAnchor.constraint(equalToConstant: 16),
@@ -231,12 +201,12 @@ class TRPTimelineBookedActivityCell: UITableViewCell {
         // Configure badge based on segment type
         if segment.segmentType == .reservedActivity {
             // Reserved activity - show "Reservation" badge
-            confirmedBadge.text = "Reservation"
+            confirmedBadge.text = TimelineLocalizationKeys.localized(TimelineLocalizationKeys.reservation)
             confirmedBadge.textColor = ColorSet.fgOrange.uiColor
             confirmedBadge.backgroundColor = ColorSet.bgOrange.uiColor
         } else {
             // Booked activity - show "Confirmed" badge
-            confirmedBadge.text = "Confirmada"
+            confirmedBadge.text = TimelineLocalizationKeys.localized(TimelineLocalizationKeys.confirmed)
             confirmedBadge.textColor = ColorSet.fgGreen.uiColor
             confirmedBadge.backgroundColor = ColorSet.bgGreen.uiColor
         }
@@ -249,18 +219,19 @@ class TRPTimelineBookedActivityCell: UITableViewCell {
             timeLabel.text = "\(startTime) - \(endTime)"
         }
         
-        // Configure date from additionalData
-        if let startDatetime = additionalData.startDatetime {
-            dateLabel.text = formatDate(from: startDatetime)
-        }
-        
         // Configure person count from additionalData
         let adults = additionalData.adultCount
-        let children = additionalData.childCount
-        if children > 0 {
-            personLabel.text = "\(adults) Adultos, \(children) niño"
+        let childrenCount = additionalData.childCount
+
+        let adultsText = TimelineLocalizationKeys.localized(TimelineLocalizationKeys.adults)
+
+        if childrenCount > 0 {
+            let childText = childrenCount == 1
+                ? TimelineLocalizationKeys.localized(TimelineLocalizationKeys.child)
+                : TimelineLocalizationKeys.localized(TimelineLocalizationKeys.children)
+            personLabel.text = "\(adults) \(adultsText), \(childrenCount) \(childText)"
         } else {
-            personLabel.text = "\(adults) Adultos"
+            personLabel.text = "\(adults) \(adultsText)"
         }
         
         // Configure image from additionalData
@@ -273,7 +244,9 @@ class TRPTimelineBookedActivityCell: UITableViewCell {
             cancellationLabel.text = cancellation
             cancellationLabel.isHidden = false
         } else {
-            cancellationLabel.isHidden = true
+            // Show default free cancellation text
+            cancellationLabel.text = TimelineLocalizationKeys.localized(TimelineLocalizationKeys.freeCancellation)
+            cancellationLabel.isHidden = false
         }
     }
     

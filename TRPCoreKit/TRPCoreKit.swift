@@ -85,8 +85,6 @@ public class TRPCoreKit {
         // Initialize TRPClient (RestKit)
         let baseUrl = environment.baseUrlCreater
         TRPClient.start(baseUrl: baseUrl, apiKey: apiKey, language: language)
-
-        print("🚀 [TRPCoreKit] SDK initialized - Environment: \(environment.displayName), Language: \(language)")
     }
 
     /// Initialize TRPCoreKit SDK with custom base URL (for advanced use cases)
@@ -109,8 +107,6 @@ public class TRPCoreKit {
         // Initialize TRPClient (RestKit)
         let url = BaseUrlCreater(baseUrl: baseUrl, basePath: basePath)
         TRPClient.start(baseUrl: url, apiKey: apiKey, language: language)
-
-        print("🚀 [TRPCoreKit] SDK initialized - Custom URL: \(baseUrl)/\(basePath), Language: \(language)")
     }
 
     // MARK: - Start SDK
@@ -133,8 +129,6 @@ public class TRPCoreKit {
 
         coordinator.startForGuest(uniqueId: uniqueId)
         viewController.present(tripianNav, animated: true)
-
-        print("🚀 [TRPCoreKit] SDK started for guest user: \(uniqueId)")
     }
 
     /// Start SDK with email
@@ -155,8 +149,6 @@ public class TRPCoreKit {
 
         coordinator.startWithEmail(email)
         viewController.present(tripianNav, animated: true)
-
-        print("🚀 [TRPCoreKit] SDK started with email: \(email)")
     }
 
     /// Start SDK with email and password
@@ -179,8 +171,6 @@ public class TRPCoreKit {
 
         coordinator.startWithEmailAndPassword(email, password)
         viewController.present(tripianNav, animated: true)
-
-        print("🚀 [TRPCoreKit] SDK started with email and password")
     }
 
     /// Start SDK with itinerary model (creates or fetches timeline)
@@ -203,12 +193,6 @@ public class TRPCoreKit {
 
         coordinator.startWithItinerary(itinerary, tripHash: tripHash)
         viewController.present(tripianNav, animated: true)
-
-        if let tripHash = tripHash {
-            print("🚀 [TRPCoreKit] SDK started with itinerary and tripHash: \(tripHash)")
-        } else {
-            print("🚀 [TRPCoreKit] SDK started with itinerary (will create new timeline)")
-        }
     }
 
     /// Dismiss SDK
@@ -216,6 +200,5 @@ public class TRPCoreKit {
     public static func dismiss(animated: Bool = true) {
         shared.sdkCoordinator?.remove()
         shared.sdkCoordinator = nil
-        print("🚀 [TRPCoreKit] SDK dismissed")
     }
 }

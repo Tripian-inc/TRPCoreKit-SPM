@@ -194,7 +194,6 @@ public class AddPlanPOISelectionVC: TRPBaseUIViewController {
     
     @objc private func nearMeButtonTapped() {
         // TODO: Get user's current location and use as starting point
-        print("Near me tapped")
     }
     
     @objc private func cityCenterButtonTapped() {
