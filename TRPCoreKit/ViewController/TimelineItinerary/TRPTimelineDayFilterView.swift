@@ -10,7 +10,6 @@ import UIKit
 
 public protocol TRPTimelineDayFilterViewDelegate: AnyObject {
     func dayFilterViewDidSelectDay(_ view: TRPTimelineDayFilterView, dayIndex: Int)
-    func dayFilterViewDidTapFilter(_ view: TRPTimelineDayFilterView)
 }
 
 public class TRPTimelineDayFilterView: UIView {
@@ -70,7 +69,7 @@ public class TRPTimelineDayFilterView: UIView {
         self.days = days
         self.selectedDayIndex = selectedDay
         collectionView.reloadData()
-        
+
         // Scroll to selected day if needed
         if selectedDay < days.count {
             let indexPath = IndexPath(item: selectedDay, section: 0)
@@ -78,6 +77,25 @@ public class TRPTimelineDayFilterView: UIView {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
                 self?.collectionView.scrollToItem(at: indexPath, at: .centeredHorizontally, animated: false)
             }
+        }
+    }
+
+    public func configure(with dates: [Date], selectedDay: Int) {
+        let formattedDays = formatDays(dates)
+        configure(with: formattedDays, selectedDay: selectedDay)
+    }
+
+    // MARK: - Private Methods
+    private func formatDays(_ days: [Date]) -> [String] {
+        let dateFormatter = DateFormatter()
+        dateFormatter.locale = Locale.current
+
+        return days.map { date in
+            dateFormatter.dateFormat = "EEEE"
+            let dayName = dateFormatter.string(from: date).capitalized
+            dateFormatter.dateFormat = "dd/MM"
+            let dayDate = dateFormatter.string(from: date)
+            return "\(dayName) \(dayDate)"
         }
     }
 }

@@ -116,4 +116,17 @@ final class TourMapper {
         }
         return TRPTourPagination(total: total, limit: limit, offset: offset)
     }
+
+    // Map TRPTourScheduleModel to TRPTourSchedule
+    func mapSchedule(_ scheduleModel: TRPTourScheduleModel) -> TRPTourSchedule {
+        let slots = (scheduleModel.slots ?? []).compactMap { slotModel -> TRPTourScheduleSlot? in
+            guard let time = slotModel.time else { return nil }
+            return TRPTourScheduleSlot(time: time)
+        }
+
+        return TRPTourSchedule(
+            title: scheduleModel.title ?? "",
+            slots: slots
+        )
+    }
 }

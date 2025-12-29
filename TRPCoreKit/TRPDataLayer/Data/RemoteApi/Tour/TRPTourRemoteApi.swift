@@ -38,6 +38,9 @@ public class TRPTourRemoteApi: TourRemoteApi {
             request.radius = Double(distance)
         }
 
+        // Map date
+        request.date = parameters.date
+
         // Map pagination
         request.limit = parameters.limit ?? 30
         request.offset = parameters.offset ?? 0
@@ -94,6 +97,9 @@ public class TRPTourRemoteApi: TourRemoteApi {
             request.radius = Double(distance)
         }
 
+        // Map date
+        request.date = parameters.date
+
         // Map pagination
         request.limit = parameters.limit ?? 30
         request.offset = parameters.offset ?? 0
@@ -118,12 +124,32 @@ public class TRPTourRemoteApi: TourRemoteApi {
     }
 
 
+    public func getTourSchedule(productId: String,
+                                date: String,
+                                currency: String,
+                                lang: String,
+                                completion: @escaping (Result<TRPTourSchedule, Error>) -> Void) {
 
+        let request = TRPTourScheduleRequestModel(
+            productId: productId,
+            date: date,
+            currency: currency,
+            lang: lang
+        )
 
+        TRPRestKit().getTourSchedule(request: request) { (result, error) in
+            if let error = error {
+                completion(.failure(error))
+                return
+            }
 
-    public func fetchTours(url: String, completion: @escaping (TourResultsValue) -> Void) {
-        // URL-based pagination for tours
-        // Note: This may need a different approach depending on how TRPRestKit handles pagination URLs for tours
-        completion((.failure(GeneralError.customMessage("URL-based tour pagination not yet implemented")), nil))
+            if let schedule = result as? TRPTourScheduleModel {
+                let mapper = TourMapper()
+                let converted = mapper.mapSchedule(schedule)
+                completion(.success(converted))
+            } else {
+                completion(.failure(GeneralError.customMessage("Couldn't convert tour schedule data")))
+            }
+        }
     }
 }

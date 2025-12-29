@@ -10,6 +10,7 @@ import Foundation
 
 public struct AddPlanLocalizationKeys {
     // MARK: - Main Screen
+    public static let addPlan = "addPlan.title.addPlan"
     public static let addActivity = "addPlan.title.addActivity"
     public static let addToDay = "addPlan.label.addToDay"
     public static let city = "addPlan.label.city"
@@ -74,6 +75,7 @@ public struct AddPlanLocalizationKeys {
     
     // MARK: - Default English Values
     private static let defaultValues: [String: String] = [
+        addPlan: "Add Plan",
         addActivity: "Add Activity",
         addToDay: "Add to Day",
         city: "City",

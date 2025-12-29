@@ -10,9 +10,16 @@ import UIKit
 import SDWebImage
 import TRPFoundationKit
 
+protocol ActivityCardCellDelegate: AnyObject {
+    func activityCardCellDidTapAdd(_ cell: ActivityCardCell, tour: TRPTourProduct)
+}
+
 class ActivityCardCell: UITableViewCell {
 
     static let reuseIdentifier = "ActivityCardCell"
+
+    weak var delegate: ActivityCardCellDelegate?
+    private var tour: TRPTourProduct?
 
     // MARK: - UI Components
 
@@ -188,6 +195,8 @@ class ActivityCardCell: UITableViewCell {
         cardContainerView.addSubview(addButton)
         cardContainerView.addSubview(separatorView)
 
+        addButton.addTarget(self, action: #selector(addButtonTapped), for: .touchUpInside)
+
         NSLayoutConstraint.activate([
             // Card container
             cardContainerView.topAnchor.constraint(equalTo: contentView.topAnchor),
@@ -271,9 +280,17 @@ class ActivityCardCell: UITableViewCell {
         ])
     }
 
+    // MARK: - Actions
+
+    @objc private func addButtonTapped() {
+        guard let tour = tour else { return }
+        delegate?.activityCardCellDidTapAdd(self, tour: tour)
+    }
+
     // MARK: - Configuration
 
     func configure(with tour: TRPTourProduct) {
+        self.tour = tour
         titleLabel.text = tour.name
 
         // Set rating

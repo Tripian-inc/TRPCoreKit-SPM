@@ -30,11 +30,13 @@ public protocol TourRepository {
                     parameters: TourParameters,
                     completion: @escaping (TourResultsValue)-> Void)
 
-
-    func fetchTours(url: String,
-                    completion: @escaping (TourResultsValue)-> Void)
-
     func addTours(contentsOf: [TRPTourProduct])
+
+    func getTourSchedule(productId: String,
+                        date: String,
+                        currency: String,
+                        lang: String,
+                        completion: @escaping (Result<TRPTourSchedule, Error>) -> Void)
 }
 
 
@@ -45,6 +47,7 @@ public struct TourParameters: Hashable {
     public var distance: Float?
     public var limit: Int?
     public var offset: Int?
+    public var date: String? // Format: "yyyy-MM-dd"
 
     public init(search: String? = nil) {
         self.search = search

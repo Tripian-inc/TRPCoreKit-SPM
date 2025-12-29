@@ -273,6 +273,8 @@ extension AddPlanActivityListingVC: UITableViewDataSource, UITableViewDelegate {
             return UITableViewCell()
         }
 
+        cell.delegate = self
+
         if let tour = viewModel.getTourAt(index: indexPath.row) {
             cell.configure(with: tour)
         }
@@ -446,5 +448,22 @@ private class CategoryFilterCell: UICollectionViewCell {
             titleLabel.textColor = ColorSet.fgWeak.uiColor
             titleLabel.font = FontSet.montserratLight.font(12)
         }
+    }
+}
+
+// MARK: - ActivityCardCellDelegate
+extension AddPlanActivityListingVC: ActivityCardCellDelegate {
+
+    func activityCardCellDidTapAdd(_ cell: ActivityCardCell, tour: TRPTourProduct) {
+        // Create time selection screen
+        let timeSelectionVC = AddPlanTimeSelectionVC(tour: tour, planData: viewModel.planData)
+
+        timeSelectionVC.onTimeSelected = { [weak self] selectedDate, selectedTimeSlot in
+            // TODO: Handle time selection - will be implemented when API is integrated
+            print("Selected date: \(selectedDate), time: \(selectedTimeSlot.time)")
+        }
+
+        // Present as bottom sheet using base extension
+        presentVCWithModal(timeSelectionVC, onlyLarge: true, prefersGrabberVisible: false)
     }
 }

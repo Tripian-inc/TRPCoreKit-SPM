@@ -259,34 +259,17 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
         let containerView = UIView()
         containerView.translatesAutoresizingMaskIntoConstraints = false
         containerView.backgroundColor = .clear
-        
+
         // Check if this is an activity step
         let isActivity = step.stepType == "activity"
-        
-        // Time label (styled differently for activities)
-        let timeLabel = UILabel()
-        timeLabel.translatesAutoresizingMaskIntoConstraints = false
-        timeLabel.font = FontSet.montserratMedium.font(14)
-        timeLabel.textAlignment = .center
-        timeLabel.layer.cornerRadius = 16
-        timeLabel.clipsToBounds = true
-        
-        if isActivity {
-            // Activity style: green background
-            timeLabel.textColor = ColorSet.fgGreen.uiColor
-            timeLabel.backgroundColor = ColorSet.bgGreen.uiColor
-            timeLabel.layer.borderColor = ColorSet.green250.uiColor.cgColor
-            timeLabel.layer.borderWidth = 2
-        } else {
-            // POI style: white background
-            timeLabel.textColor = ColorSet.fg.uiColor
-            timeLabel.backgroundColor = .white
-            timeLabel.layer.borderColor = ColorSet.neutral200.uiColor.cgColor
-            timeLabel.layer.borderWidth = 1
-        }
-        
+
+        // Time badge view
+        let timeBadgeView = TRPTimelineTimeBadgeView()
+        timeBadgeView.translatesAutoresizingMaskIntoConstraints = false
+
         if let startTime = step.getStartTime(), let endTime = step.getEndTime() {
-            timeLabel.text = "\(startTime) - \(endTime)"
+            let style: TRPTimelineTimeBadgeStyle = isActivity ? .activity : .poi
+            timeBadgeView.configure(order: step.order, startTime: startTime, endTime: endTime, style: style)
         }
         
         // Vertical line
@@ -402,7 +385,7 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
         feedbackStack.addArrangedSubview(thumbsUpButton)
         
         // Add all subviews
-        containerView.addSubview(timeLabel)
+        containerView.addSubview(timeBadgeView)
         containerView.addSubview(verticalLineView)
         containerView.addSubview(contentContainer)
         contentContainer.addSubview(poiImageView)
@@ -410,21 +393,20 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
         contentContainer.addSubview(titleLabel)
         contentContainer.addSubview(ratingStack)
         contentContainer.addSubview(feedbackStack)
-        
+
         // Constraints
         NSLayoutConstraint.activate([
-            timeLabel.topAnchor.constraint(equalTo: containerView.topAnchor),
-            timeLabel.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
-            timeLabel.widthAnchor.constraint(equalToConstant: 120),
-            timeLabel.heightAnchor.constraint(equalToConstant: 32),
-            
-            verticalLineView.topAnchor.constraint(equalTo: timeLabel.bottomAnchor),
-            verticalLineView.leadingAnchor.constraint(equalTo: timeLabel.leadingAnchor, constant: 25),
+            timeBadgeView.topAnchor.constraint(equalTo: containerView.topAnchor),
+            timeBadgeView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
+//            timeBadgeView.widthAnchor.constraint(equalToConstant: 130),
+
+            verticalLineView.topAnchor.constraint(equalTo: timeBadgeView.bottomAnchor),
+            verticalLineView.leadingAnchor.constraint(equalTo: timeBadgeView.leadingAnchor, constant: 25),
             verticalLineView.widthAnchor.constraint(equalToConstant: 0.5),
             verticalLineView.bottomAnchor.constraint(equalTo: contentContainer.topAnchor),
-            
-            contentContainer.topAnchor.constraint(equalTo: timeLabel.bottomAnchor, constant: 24),
-            contentContainer.leadingAnchor.constraint(equalTo: timeLabel.leadingAnchor),
+
+            contentContainer.topAnchor.constraint(equalTo: timeBadgeView.bottomAnchor, constant: 24),
+            contentContainer.leadingAnchor.constraint(equalTo: timeBadgeView.leadingAnchor),
             contentContainer.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
             contentContainer.bottomAnchor.constraint(equalTo: containerView.bottomAnchor),
             

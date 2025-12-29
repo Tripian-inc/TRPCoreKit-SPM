@@ -21,7 +21,9 @@ public protocol TourRemoteApi {
                     parameters: TourParameters,
                     completion: @escaping (TourResultsValue)-> Void)
 
-
-    func fetchTours(url: String,
-                    completion: @escaping (TourResultsValue) -> Void)
+    func getTourSchedule(productId: String,
+                        date: String,
+                        currency: String,
+                        lang: String,
+                        completion: @escaping (Result<TRPTourSchedule, Error>) -> Void)
 }

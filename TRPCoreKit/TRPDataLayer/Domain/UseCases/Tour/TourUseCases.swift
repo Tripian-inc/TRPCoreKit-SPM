@@ -13,6 +13,7 @@ public protocol SearchTourUseCase {
 
     func executeSearchTour(text: String,
                            categories: [String],
+                           date: String?,
                            completion: ((Result<[TRPTourProduct], Error>, TRPTourPagination?)-> Void)?
                           )
 

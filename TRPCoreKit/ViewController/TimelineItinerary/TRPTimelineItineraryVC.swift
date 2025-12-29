@@ -545,7 +545,7 @@ extension TRPTimelineItineraryVC: UITableViewDataSource {
             guard let cell = tableView.dequeueReusableCell(withIdentifier: TRPTimelineActivityStepCell.reuseIdentifier, for: indexPath) as? TRPTimelineActivityStepCell else {
                 return UITableViewCell()
             }
-            cell.configure(with: step)
+            cell.configure(with: step, order: step.order)
             cell.delegate = self
             return cell
             

@@ -376,28 +376,14 @@ public class AddPlanSelectDayVC: TRPBaseUIViewController {
     // MARK: - Setup
     private func configureDayFilterView() {
         let days = viewModel.getAvailableDays()
-        let dayStrings = formatDays(days)
-        
+
         // Determine selected day index
         if let selectedDay = viewModel.getSelectedDay(),
            let index = days.firstIndex(where: { Calendar.current.isDate($0, inSameDayAs: selectedDay) }) {
             selectedDayIndex = index
         }
-        
-        dayFilterView.configure(with: dayStrings, selectedDay: selectedDayIndex)
-    }
-    
-    private func formatDays(_ days: [Date]) -> [String] {
-        let dateFormatter = DateFormatter()
-        dateFormatter.locale = Locale.current
-        
-        return days.map { date in
-            dateFormatter.dateFormat = "EEEE"
-            let dayName = dateFormatter.string(from: date).capitalized
-            dateFormatter.dateFormat = "dd/MM"
-            let dayDate = dateFormatter.string(from: date)
-            return "\(dayName) \(dayDate)"
-        }
+
+        dayFilterView.configure(with: days, selectedDay: selectedDayIndex)
     }
     
     private func updateCityButton() {
@@ -546,10 +532,5 @@ extension AddPlanSelectDayVC: TRPTimelineDayFilterViewDelegate {
         if dayIndex < days.count {
             viewModel.selectDay(days[dayIndex])
         }
-    }
-    
-    public func dayFilterViewDidTapFilter(_ view: TRPTimelineDayFilterView) {
-        // Optional: Handle filter button tap if needed
-        // Could be used to show a calendar picker or additional filters
     }
 }

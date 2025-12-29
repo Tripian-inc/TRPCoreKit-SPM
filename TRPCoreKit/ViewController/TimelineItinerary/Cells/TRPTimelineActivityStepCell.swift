@@ -27,19 +27,11 @@ class TRPTimelineActivityStepCell: UITableViewCell {
         view.clipsToBounds = true
         return view
     }()
-    
-    private let timeLabel: UILabel = {
-        let label = UILabel()
-        label.translatesAutoresizingMaskIntoConstraints = false
-        label.font = FontSet.montserratMedium.font(14)
-        label.textColor = ColorSet.fgGreen.uiColor
-        label.textAlignment = .center
-        label.backgroundColor = ColorSet.bgGreen.uiColor
-        label.layer.cornerRadius = 16
-        label.layer.borderColor = ColorSet.green250.uiColor.cgColor
-        label.layer.borderWidth = 2
-        label.clipsToBounds = true
-        return label
+
+    private let timeBadgeView: TRPTimelineTimeBadgeView = {
+        let view = TRPTimelineTimeBadgeView()
+        view.translatesAutoresizingMaskIntoConstraints = false
+        return view
     }()
     
     private let verticalLineView: UIView = {
@@ -113,37 +105,36 @@ class TRPTimelineActivityStepCell: UITableViewCell {
     private func setupCell() {
         selectionStyle = .none
         backgroundColor = .clear
-        
-        contentView.addSubview(timeLabel)
+
+        contentView.addSubview(timeBadgeView)
         contentView.addSubview(verticalLineView)
         contentView.addSubview(containerView)
-        
+
         containerView.addSubview(activityImageView)
         containerView.addSubview(titleLabel)
         containerView.addSubview(activityBadge)
         containerView.addSubview(ratingStack)
         containerView.addSubview(descriptionLabel)
-        
+
         setupConstraints()
     }
     
     private func setupConstraints() {
         NSLayoutConstraint.activate([
-            // Time Label
-            timeLabel.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 16),
-            timeLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
-            timeLabel.widthAnchor.constraint(equalToConstant: 120),
-            timeLabel.heightAnchor.constraint(equalToConstant: 32),
-            
+            // Time Badge View
+            timeBadgeView.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 16),
+            timeBadgeView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
+//            timeBadgeView.widthAnchor.constraint(equalToConstant: 130),
+
             // Vertical Line
-            verticalLineView.topAnchor.constraint(equalTo: timeLabel.bottomAnchor),
-            verticalLineView.leadingAnchor.constraint(equalTo: timeLabel.leadingAnchor, constant: 25),
+            verticalLineView.topAnchor.constraint(equalTo: timeBadgeView.bottomAnchor),
+            verticalLineView.leadingAnchor.constraint(equalTo: timeBadgeView.leadingAnchor, constant: 25),
             verticalLineView.widthAnchor.constraint(equalToConstant: 0.5),
             verticalLineView.bottomAnchor.constraint(equalTo: containerView.topAnchor),
-            
+
             // Container View
-            containerView.topAnchor.constraint(equalTo: timeLabel.bottomAnchor, constant: 24),
-            containerView.leadingAnchor.constraint(equalTo: timeLabel.leadingAnchor),
+            containerView.topAnchor.constraint(equalTo: timeBadgeView.bottomAnchor, constant: 24),
+            containerView.leadingAnchor.constraint(equalTo: timeBadgeView.leadingAnchor),
             containerView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
             containerView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -16),
             
@@ -178,18 +169,18 @@ class TRPTimelineActivityStepCell: UITableViewCell {
     }
     
     // MARK: - Configuration
-    func configure(with step: TRPTimelineStep) {
+    func configure(with step: TRPTimelineStep, order: Int) {
         guard let poi = step.poi else {
             return
         }
-        
+
+        // Configure time badge
+        if let startTime = step.getStartTime(), let endTime = step.getEndTime() {
+            timeBadgeView.configure(order: order, startTime: startTime, endTime: endTime, style: .activity)
+        }
+
         // Configure title
         titleLabel.text = poi.name
-        
-        // Configure time from step
-        if let startTime = step.getStartTime(), let endTime = step.getEndTime() {
-            timeLabel.text = "\(startTime) - \(endTime)"
-        }
         
         // Configure rating if available
         ratingStack.arrangedSubviews.forEach { $0.removeFromSuperview() }

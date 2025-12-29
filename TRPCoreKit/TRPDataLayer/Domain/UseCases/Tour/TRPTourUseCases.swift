@@ -23,25 +23,27 @@ final public class TRPTourUseCases {
 }
 
 extension TRPTourUseCases: SearchTourUseCase {
-    
+
     public func executeSearchTour(text: String,
                                   categories: [String],
+                                  date: String? = nil,
                                   completion: ((Result<[TRPTourProduct], Error>, TRPTourPagination?)-> Void)?
     ) {
-        
+
         guard let cityId = cityId else {
             completion?(.failure(GeneralError.customMessage("City id is null")), nil)
             return
         }
-        
-        
+
+
         let onComplete = completion ?? { result, pagination in }
-        
+
         var params = TourParameters(search: text)
         params.tourCategories = categories.isEmpty ? nil : categories
-        
+        params.date = date
+
         tourRepository.fetchTours(cityId: cityId, parameters: params) { result, pagination in
-            
+
             switch result {
             case .success(let result):
                 onComplete(.success(result), pagination)
@@ -94,28 +96,6 @@ extension TRPTourUseCases: FetchTourUseCase {
 
         if ReachabilityUseCases.shared.isOnline {
             tourRepository.fetchTours(cityId: cityId, parameters: params) { result, pagination in
-                switch result {
-                case .success(let result):
-                    onComplete(.success(result), pagination)
-                case .failure(let error):
-                    onComplete(.failure(error), pagination)
-                }
-            }
-        } else {
-            onComplete(.failure(GeneralError.customMessage("Tours require online connection")), nil)
-        }
-    }
-}
-
-extension TRPTourUseCases: FetchTourNextUrlUseCase {
-
-    public func executeFetchTour(url: String,
-                                  completion: ((Result<[TRPTourProduct], Error>, TRPTourPagination?) -> Void)?) {
-
-        let onComplete = completion ?? { result, pagination in }
-
-        if ReachabilityUseCases.shared.isOnline {
-            tourRepository.fetchTours(url: url) { result, pagination in
                 switch result {
                 case .success(let result):
                     onComplete(.success(result), pagination)

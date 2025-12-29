@@ -195,8 +195,16 @@ public class AddPlanActivityListingViewModel {
         // Build keywords combining search text and category name
         let keywords = buildKeywords()
 
-        // Use city-based search only (no coordinates needed)
-        tourUseCases?.executeSearchTour(text: keywords, categories: []) { [weak self] result, pagination in
+        // Format selected date as "yyyy-MM-dd"
+        var dateString: String?
+        if let selectedDay = planData.selectedDay {
+            let dateFormatter = DateFormatter()
+            dateFormatter.dateFormat = "yyyy-MM-dd"
+            dateString = dateFormatter.string(from: selectedDay)
+        }
+
+        // Use city-based search with date parameter
+        tourUseCases?.executeSearchTour(text: keywords, categories: [], date: dateString) { [weak self] result, pagination in
             self?.handleSearchResult(result: result, pagination: pagination)
         }
     }

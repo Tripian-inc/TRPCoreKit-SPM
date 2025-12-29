@@ -92,24 +92,20 @@ final public class TRPTourRepository: TourRepository {
         }
     }
 
-
-    public func fetchTours(url: String,
-                           completion: @escaping (TourResultsValue) -> Void) {
-
-        remoteApi.fetchTours(url: url) { [weak self] result in
-            switch result.0 {
-            case .success(let apiTours):
-                guard let strongSelf = self else {return}
-                strongSelf.tours.append(contentsOf: apiTours)
-                completion((.success(apiTours.unique()), result.1))
-            case .failure(let error):
-                completion((.failure(error), result.1))
-            }
-        }
-    }
-
     public func addTours(contentsOf: [TRPTourProduct]) {
         tours.append(contentsOf: contentsOf)
+    }
+
+    public func getTourSchedule(productId: String,
+                                date: String,
+                                currency: String,
+                                lang: String,
+                                completion: @escaping (Result<TRPTourSchedule, Error>) -> Void) {
+        remoteApi.getTourSchedule(productId: productId,
+                                 date: date,
+                                 currency: currency,
+                                 lang: lang,
+                                 completion: completion)
     }
 }
 
