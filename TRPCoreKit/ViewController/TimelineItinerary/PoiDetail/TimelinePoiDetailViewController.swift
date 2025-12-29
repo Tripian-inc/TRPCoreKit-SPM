@@ -234,6 +234,7 @@ public class TimelinePoiDetailViewController: UIViewController {
         layout.scrollDirection = .horizontal
         layout.minimumLineSpacing = 12
         layout.minimumInteritemSpacing = 0
+        layout.estimatedItemSize = CGSize(width: 280, height: 260)
 
         let cv = UICollectionView(frame: .zero, collectionViewLayout: layout)
         cv.translatesAutoresizingMaskIntoConstraints = false
@@ -980,8 +981,8 @@ extension TimelinePoiDetailViewController: UICollectionViewDelegateFlowLayout {
             let width = collectionView.bounds.width
             return CGSize(width: width, height: width) // 1:1 ratio
         } else if collectionView == activitiesCollectionView {
-            let width: CGFloat = 280 // Fixed width for product cards
-            let height: CGFloat = 200 // Fixed height for product cards
+            let width: CGFloat = 280
+            let height: CGFloat = 280 // Increased for dynamic content
             return CGSize(width: width, height: height)
         }
         return .zero
@@ -1225,6 +1226,7 @@ private class ProductCardCell: UICollectionViewCell {
         label.font = FontSet.montserratBold.font(16)
         label.textColor = ColorSet.fg.uiColor
         label.textAlignment = .right
+        label.numberOfLines = 0
         return label
     }()
 
@@ -1245,7 +1247,7 @@ private class ProductCardCell: UICollectionViewCell {
     private let ratingLabel: UILabel = {
         let label = UILabel()
         label.translatesAutoresizingMaskIntoConstraints = false
-        label.font = FontSet.montserratMedium.font(14)
+        label.font = FontSet.montserratBold.font(14)
         label.textColor = ColorSet.fg.uiColor
         return label
     }()
@@ -1267,6 +1269,15 @@ private class ProductCardCell: UICollectionViewCell {
         return label
     }()
 
+    private lazy var detailsStackView: UIStackView = {
+        let stack = UIStackView()
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        stack.axis = .vertical
+        stack.spacing = 4
+        stack.alignment = .leading
+        return stack
+    }()
+
     override init(frame: CGRect) {
         super.init(frame: frame)
         setupUI()
@@ -1279,17 +1290,25 @@ private class ProductCardCell: UICollectionViewCell {
     private func setupUI() {
         contentView.backgroundColor = .white
 
-        contentView.addSubview(imageView)
-        contentView.addSubview(titleLabel)
-        contentView.addSubview(ratingContainerView)
-        contentView.addSubview(durationLabel)
-        contentView.addSubview(freeCancellationLabel)
-        contentView.addSubview(priceLabel)
-
+        // Add rating subviews
         ratingContainerView.addSubview(ratingLabel)
         ratingContainerView.addSubview(starImageView)
 
+        // Add to details stack
+        detailsStackView.addArrangedSubview(ratingContainerView)
+        detailsStackView.addArrangedSubview(durationLabel)
+        detailsStackView.addArrangedSubview(freeCancellationLabel)
+
+        // Add to content view
+        contentView.addSubview(imageView)
+        contentView.addSubview(titleLabel)
+        contentView.addSubview(detailsStackView)
+        contentView.addSubview(priceLabel)
+
         NSLayoutConstraint.activate([
+            // Cell width
+            contentView.widthAnchor.constraint(equalToConstant: 280),
+
             // Image
             imageView.topAnchor.constraint(equalTo: contentView.topAnchor),
             imageView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
@@ -1298,12 +1317,15 @@ private class ProductCardCell: UICollectionViewCell {
 
             // Title
             titleLabel.topAnchor.constraint(equalTo: imageView.bottomAnchor, constant: 8),
-            titleLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
-            titleLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
+            titleLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 8),
+            titleLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -8),
+
+            // Details Stack (rating, duration, free cancellation)
+            detailsStackView.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 4),
+            detailsStackView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 8),
+            detailsStackView.trailingAnchor.constraint(lessThanOrEqualTo: contentView.trailingAnchor, constant: -8),
 
             // Rating Container
-            ratingContainerView.topAnchor.constraint(equalTo: titleLabel.bottomAnchor),
-            ratingContainerView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
             ratingContainerView.heightAnchor.constraint(equalToConstant: 18),
 
             // Rating Label - Star sıralaması: RatingLabel - Star
@@ -1317,20 +1339,11 @@ private class ProductCardCell: UICollectionViewCell {
             starImageView.widthAnchor.constraint(equalToConstant: 14),
             starImageView.heightAnchor.constraint(equalToConstant: 14),
 
-            // Duration Label
-            durationLabel.topAnchor.constraint(equalTo: ratingContainerView.bottomAnchor, constant: 4),
-            durationLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
-            durationLabel.trailingAnchor.constraint(lessThanOrEqualTo: contentView.trailingAnchor),
-
-            // Free Cancellation Label
-            freeCancellationLabel.topAnchor.constraint(equalTo: durationLabel.bottomAnchor, constant: 4),
-            freeCancellationLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, ),
-            freeCancellationLabel.trailingAnchor.constraint(lessThanOrEqualTo: contentView.trailingAnchor),
-
             // Price - Sağ alt köşe
-            priceLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
-            priceLabel.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
-            priceLabel.leadingAnchor.constraint(greaterThanOrEqualTo: contentView.leadingAnchor)
+            priceLabel.topAnchor.constraint(greaterThanOrEqualTo: detailsStackView.bottomAnchor, constant: 8),
+            priceLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -8),
+            priceLabel.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -8),
+            priceLabel.leadingAnchor.constraint(greaterThanOrEqualTo: contentView.leadingAnchor, constant: 8)
         ])
     }
 
@@ -1386,13 +1399,14 @@ private class ProductCardCell: UICollectionViewCell {
                                         value: ColorSet.fg.uiColor,
                                         range: NSRange(location: 0, length: fromText.count))
 
-            // Price -> Bold 16, fg
+            // Price (with space) -> Bold 16, fg
+            let priceRange = NSRange(location: fromText.count, length: fullText.count - fromText.count)
             attributedString.addAttribute(.font,
                                         value: FontSet.montserratBold.font(16),
-                                        range: NSRange(location: fromText.count, length: priceText.count + 1))
+                                        range: priceRange)
             attributedString.addAttribute(.foregroundColor,
                                         value: ColorSet.fg.uiColor,
-                                        range: NSRange(location: fromText.count, length: priceText.count + 1))
+                                        range: priceRange)
 
             priceLabel.attributedText = attributedString
         } else if let priceDescription = product.priceDescription {
@@ -1408,13 +1422,14 @@ private class ProductCardCell: UICollectionViewCell {
                                         value: ColorSet.fg.uiColor,
                                         range: NSRange(location: 0, length: fromText.count))
 
-            // Price -> Bold 16, fg
+            // Price (with space) -> Bold 16, fg
+            let priceRange = NSRange(location: fromText.count, length: fullText.count - fromText.count)
             attributedString.addAttribute(.font,
                                         value: FontSet.montserratBold.font(16),
-                                        range: NSRange(location: fromText.count, length: priceDescription.count + 1))
+                                        range: priceRange)
             attributedString.addAttribute(.foregroundColor,
                                         value: ColorSet.fg.uiColor,
-                                        range: NSRange(location: fromText.count, length: priceDescription.count + 1))
+                                        range: priceRange)
 
             priceLabel.attributedText = attributedString
         } else {
@@ -1505,6 +1520,7 @@ private class ProductsSectionView: UIView {
 
     private let headerView: UIView
     private let collectionView: UICollectionView
+    private var collectionHeightConstraint: NSLayoutConstraint!
 
     init(headerView: UIView, collectionView: UICollectionView) {
         self.headerView = headerView
@@ -1512,6 +1528,7 @@ private class ProductsSectionView: UIView {
 
         super.init(frame: .zero)
         setupView()
+        observeCollectionViewContentSize()
     }
 
     required init?(coder: NSCoder) {
@@ -1524,6 +1541,9 @@ private class ProductsSectionView: UIView {
         addSubview(headerView)
         addSubview(collectionView)
 
+        // Create dynamic height constraint
+        collectionHeightConstraint = collectionView.heightAnchor.constraint(equalToConstant: 280)
+
         NSLayoutConstraint.activate([
             // Header
             headerView.topAnchor.constraint(equalTo: topAnchor, constant: 24),
@@ -1534,9 +1554,25 @@ private class ProductsSectionView: UIView {
             collectionView.topAnchor.constraint(equalTo: headerView.bottomAnchor, constant: 12),
             collectionView.leadingAnchor.constraint(equalTo: leadingAnchor),
             collectionView.trailingAnchor.constraint(equalTo: trailingAnchor),
-            collectionView.heightAnchor.constraint(equalToConstant: 220),
+            collectionHeightConstraint,
             collectionView.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -24)
         ])
+    }
+
+    private func observeCollectionViewContentSize() {
+        collectionView.addObserver(self, forKeyPath: "contentSize", options: .new, context: nil)
+    }
+
+    override func observeValue(forKeyPath keyPath: String?, of object: Any?, change: [NSKeyValueChangeKey : Any]?, context: UnsafeMutableRawPointer?) {
+        if keyPath == "contentSize" {
+            if let newSize = change?[.newKey] as? CGSize {
+                collectionHeightConstraint.constant = newSize.height
+            }
+        }
+    }
+
+    deinit {
+        collectionView.removeObserver(self, forKeyPath: "contentSize")
     }
 }
 
