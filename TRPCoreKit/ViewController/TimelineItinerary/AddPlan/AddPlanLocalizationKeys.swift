@@ -21,6 +21,10 @@ public struct AddPlanLocalizationKeys {
     public static let clearSelection = "addPlan.button.clearSelection"
     public static let continueButton = "addPlan.button.continue"
     public static let cancel = "addPlan.button.cancel"
+    public static let confirm = "addPlan.button.confirm"
+
+    // MARK: - Time Range Selection
+    public static let timeTitle = "addPlan.title.time"
     
     // MARK: - Selection Mode
     public static let howToAddPlans = "addPlan.label.howToAddPlans"
@@ -86,6 +90,8 @@ public struct AddPlanLocalizationKeys {
         clearSelection: "Clear Selection",
         continueButton: "Continue",
         cancel: "Cancel",
+        confirm: "Confirm",
+        timeTitle: "Time",
         howToAddPlans: "How do you want to add plans?",
         smartRecommendations: "Smart Recommendations",
         smartRecommendationsDescription: "Enhance your trip with smart recommendations based on your planning.",

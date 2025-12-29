@@ -58,6 +58,13 @@ public class TRPTimelineItineraryViewModel {
     // Track if initial data has been loaded (prevents showing empty state during loading)
     private var hasLoadedData: Bool = false
 
+    // MARK: - Public Methods
+
+    /// Get the trip hash from timeline
+    public func getTripHash() -> String? {
+        return timeline?.tripHash
+    }
+
     // Track collapse state for each section (section index -> isExpanded)
     private var sectionCollapseStates: [Int: Bool] = [:]
 
@@ -391,14 +398,15 @@ public class TRPTimelineItineraryViewModel {
     /// Generates a unique identifier for a segment to avoid duplicates
     /// Uses activityId or bookingId if available, otherwise creates from startDate + title
     private func getSegmentUniqueId(_ segment: TRPTimelineSegment) -> String {
-        // Priority 1: Use activityId from additionalData (most reliable for booked/reserved)
-        if let activityId = segment.additionalData?.activityId {
-            return "activity_\(activityId)"
-        }
-
-        // Priority 2: Use bookingId from additionalData
+        // Priority 1: Use bookingId from additionalData (unique per booking)
         if let bookingId = segment.additionalData?.bookingId {
             return "booking_\(bookingId)"
+        }
+
+        // Priority 2: Use activityId + startDate for reserved/booked activities
+        // Same activity can be at different times, so include startDate
+        if let activityId = segment.additionalData?.activityId, let startDate = segment.startDate {
+            return "activity_\(activityId)_\(startDate)"
         }
 
         // Priority 3: For itinerary segments, use startDate + title
@@ -580,10 +588,7 @@ public class TRPTimelineItineraryViewModel {
         // Use zero hour dates for accurate day counting
         let startDay = start.getDateWithZeroHour()
         let endDay = end.getDateWithZeroHour()
-        var numberOfDays = startDay.numberOfDaysBetween(endDay)
-
-        // Include the end day itself (+1)
-        numberOfDays += 1
+        let numberOfDays = startDay.numberOfDaysBetween(endDay)
 
         // Generate all days from min to max (inclusive)
         var dates: [Date] = []
@@ -1336,6 +1341,7 @@ public class TRPTimelineItineraryViewModel {
 
         // Basic properties
         profile.segmentType = .itinerary
+        profile.distinctPlan = true
         profile.smartRecommendation = true
         profile.city = city
         profile.adults = data.travelers
@@ -1435,7 +1441,7 @@ public class TRPTimelineItineraryViewModel {
     }
 
     /// Waits for segment generation to complete (polls timeline until generatedStatus != 0)
-    private func waitForSegmentGeneration(tripHash: String) {
+    public func waitForSegmentGeneration(tripHash: String) {
         let repository = TRPTimelineRepository()
         let modelRepository = TRPTimelineModelRepository()
 
@@ -1480,7 +1486,7 @@ public class TRPTimelineItineraryViewModel {
     }
 
     /// Refreshes the timeline after segment generation completes
-    private func refreshTimeline() {
+    public func refreshTimeline() {
         guard let timeline = timeline else { return }
 
         let tripHash = timeline.tripHash

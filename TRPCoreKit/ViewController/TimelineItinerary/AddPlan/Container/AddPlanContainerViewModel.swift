@@ -24,6 +24,8 @@ public struct AddPlanData {
     public var endTime: Date?
     public var travelers: Int = 0
     public var selectedCategories: [String] = []
+    public var tripHash: String? // Timeline trip hash for segment creation
+    public var availableDays: [Date] = [] // Available days from timeline/itinerary
 }
 
 public enum AddPlanMode {
@@ -54,6 +56,7 @@ public class AddPlanContainerViewModel {
             self.planData.selectedDay = days[selectedDayIndex]
         }
         self.planData.selectedCity = cities.first
+        self.planData.availableDays = days
     }
     
     // MARK: - Public Methods

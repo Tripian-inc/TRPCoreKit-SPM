@@ -354,10 +354,10 @@ extension TRPTimelineItineraryVC {
         
         // Remove all segment-based routes
         // We'll try to remove routes for up to 10 segments (should be more than enough)
-        for segmentIndex in 0..<10 {
-            let segmentId = "timeline_segment_\(segmentIndex)"
-            map.removeRoute(segmentId: segmentId)
-        }
+//        for segmentIndex in 0..<10 {
+//            let segmentId = "timeline_segment_\(segmentIndex)"
+//            map.removeRoute(segmentId: segmentId)
+//        }
     }
     
     internal func refreshMap() {

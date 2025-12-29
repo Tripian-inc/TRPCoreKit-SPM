@@ -13,6 +13,7 @@ public protocol AddPlanContainerVCDelegate: AnyObject {
     func addPlanContainerDidComplete(_ viewController: AddPlanContainerVC, data: AddPlanData)
     func addPlanContainerDidCancel(_ viewController: AddPlanContainerVC)
     func addPlanContainerShouldShowActivityListing(_ viewController: AddPlanContainerVC, data: AddPlanData)
+    func addPlanContainerSegmentCreated(_ viewController: AddPlanContainerVC)
 }
 
 @objc(SPMAddPlanContainerVC)

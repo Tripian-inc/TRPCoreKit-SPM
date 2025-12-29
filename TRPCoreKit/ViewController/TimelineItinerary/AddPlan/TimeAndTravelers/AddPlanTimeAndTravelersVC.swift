@@ -403,11 +403,26 @@ public class AddPlanTimeAndTravelersVC: TRPBaseUIViewController {
     }
     
     @objc private func startTimeButtonTapped() {
-        showTimePicker(for: .start)
+        showTimeRangeSelection(focusField: .from)
     }
-    
+
     @objc private func endTimeButtonTapped() {
-        showTimePicker(for: .end)
+        showTimeRangeSelection(focusField: .until)
+    }
+
+    private func showTimeRangeSelection(focusField: TRPTimeRangeSelectionViewController.EditingField) {
+        let timeRangeVC = TRPTimeRangeSelectionViewController()
+        timeRangeVC.delegate = self
+
+        // Set initial focus based on which button was tapped
+        timeRangeVC.setInitialFocus(focusField)
+
+        // Set initial times if already selected
+        if let startTime = viewModel.getStartTime(), let endTime = viewModel.getEndTime() {
+            timeRangeVC.setInitialTimes(from: startTime, to: endTime)
+        }
+
+        timeRangeVC.show(from: self)
     }
     
     @objc private func decrementTapped() {
@@ -422,50 +437,6 @@ public class AddPlanTimeAndTravelersVC: TRPBaseUIViewController {
         containerVC?.updateContinueButtonState()
     }
     
-    private enum TimeType {
-        case start
-        case end
-    }
-    
-    private func showTimePicker(for type: TimeType) {
-        let title = type == .start ? 
-            AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.startTime) : 
-            AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.endTime)
-        let alert = UIAlertController(title: title,
-                                     message: "\n\n\n\n\n\n\n\n",
-                                     preferredStyle: .actionSheet)
-        
-        let timePicker = UIDatePicker()
-        timePicker.datePickerMode = .time
-        timePicker.preferredDatePickerStyle = .wheels
-        timePicker.locale = Locale(identifier: "es_ES")
-        timePicker.frame = CGRect(x: 0, y: 50, width: alert.view.bounds.width - 20, height: 200)
-        
-        alert.view.addSubview(timePicker)
-        
-        let selectAction = UIAlertAction(title: "Seleccionar", style: .default) { [weak self] _ in
-            guard let self = self else { return }
-
-            // Combine selected day's date with picked time
-            let combinedDateTime = self.combineDate(self.viewModel.getSelectedDay(), withTime: timePicker.date)
-
-            if type == .start {
-                self.viewModel.setStartTime(combinedDateTime)
-            } else {
-                self.viewModel.setEndTime(combinedDateTime)
-            }
-            self.updateUI()
-            self.containerVC?.updateContinueButtonState()
-        }
-        
-        let cancelAction = UIAlertAction(title: "Cancelar", style: .cancel)
-        
-        alert.addAction(selectAction)
-        alert.addAction(cancelAction)
-        
-        present(alert, animated: true)
-    }
-
     /// Combines the date component from selectedDay with the time component from timePicker
     private func combineDate(_ selectedDay: Date?, withTime time: Date) -> Date {
         guard let selectedDay = selectedDay else {
@@ -500,5 +471,24 @@ public class AddPlanTimeAndTravelersVC: TRPBaseUIViewController {
         startTimeButton.setTitle(selectText, for: .normal)
         endTimeButton.setTitle(selectText, for: .normal)
         updateUI()
+    }
+}
+
+// MARK: - TRPTimeRangeSelectionDelegate
+extension AddPlanTimeAndTravelersVC: TRPTimeRangeSelectionDelegate {
+
+    func timeRangeSelected(fromTime: String, toTime: String) {
+        // String version - not used, we use Date version
+    }
+
+    func timeRangeSelected(fromDate: Date, toDate: Date) {
+        // Combine selected day's date with picked times
+        let combinedStartTime = combineDate(viewModel.getSelectedDay(), withTime: fromDate)
+        let combinedEndTime = combineDate(viewModel.getSelectedDay(), withTime: toDate)
+
+        viewModel.setStartTime(combinedStartTime)
+        viewModel.setEndTime(combinedEndTime)
+        updateUI()
+        containerVC?.updateContinueButtonState()
     }
 }

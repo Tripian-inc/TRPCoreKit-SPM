@@ -8,13 +8,16 @@
 
 import UIKit
 
-public class AddPlanTimeSelectionVC: UIViewController {
+public class AddPlanTimeSelectionVC: TRPBaseUIViewController {
 
     // MARK: - Properties
     private var viewModel: AddPlanTimeSelectionViewModel!
 
     // Callback when time selection is completed
     public var onTimeSelected: ((Date, TimeSlot) -> Void)?
+
+    // Callback when segment creation completes successfully
+    public var onSegmentCreated: (() -> Void)?
 
     // MARK: - UI Components
     private let customNavigationBar: TRPTimelineCustomNavigationBar = {
@@ -164,8 +167,11 @@ public class AddPlanTimeSelectionVC: UIViewController {
             return
         }
 
+        // Call existing callback (for compatibility)
         onTimeSelected?(selectedDate, selectedTimeSlot)
-        dismiss(animated: true)
+
+        // Create reserved_activity segment via ViewModel
+        viewModel.createReservedActivitySegment()
     }
 
     // MARK: - Helpers
@@ -241,9 +247,18 @@ extension AddPlanTimeSelectionVC: AddPlanTimeSelectionViewModelDelegate {
         if show {
             loadingIndicator.startAnimating()
             collectionView.alpha = 0.5
+            continueButton.setEnabled(false)
         } else {
             loadingIndicator.stopAnimating()
             collectionView.alpha = 1.0
+            continueButton.setEnabled(viewModel.canContinue())
+        }
+    }
+
+    public func segmentCreationDidSucceed() {
+        // Dismiss and trigger timeline refresh
+        dismiss(animated: true) { [weak self] in
+            self?.onSegmentCreated?()
         }
     }
 }

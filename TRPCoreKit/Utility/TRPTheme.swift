@@ -290,6 +290,7 @@ public enum ColorSet {
     case fgBlue
     case borderActive
     case mainDark
+    case fgTertiary
     
     public var uiColor: UIColor {
         switch self {
@@ -333,6 +334,8 @@ public enum ColorSet {
             return UIColor(red: 5, green: 90, blue: 128)
         case .mainDark:
             return UIColor(red: 36, green: 35, blue: 35)
+        case .fgTertiary:
+            return UIColor(red: 234, green: 5, blue: 88)
         }
     }
     

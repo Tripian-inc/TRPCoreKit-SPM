@@ -12,19 +12,18 @@ import TRPRestKit
 
 public typealias TimeSlot = TRPTourScheduleSlot
 
-public protocol AddPlanTimeSelectionViewModelDelegate: AnyObject {
+public protocol AddPlanTimeSelectionViewModelDelegate: ViewModelDelegate {
     func timeSlotsDidLoad()
-    func timeSlotsDidFail(error: Error)
-    func showLoading(_ show: Bool)
+    func segmentCreationDidSucceed()
 }
 
 public class AddPlanTimeSelectionViewModel {
 
     // MARK: - Properties
-    public weak var delegate: AddPlanTimeSelectionViewModelDelegate?
+    public var delegate: AddPlanTimeSelectionViewModelDelegate?
 
-    private let tour: TRPTourProduct
-    private let planData: AddPlanData
+    internal let tour: TRPTourProduct
+    internal let planData: AddPlanData
     private let tourRepository: TourRepository
 
     private var allTimeSlots: [Date: [TimeSlot]] = [:] // Date -> TimeSlots
@@ -41,19 +40,9 @@ public class AddPlanTimeSelectionViewModel {
 
     // MARK: - Public Methods
 
-    /// Get available days for this activity
+    /// Get available days for this activity (from timeline/itinerary)
     public func getAvailableDays() -> [Date] {
-        // For now, return plan data days
-        // Later, we'll get this from API response
-        guard let startDay = planData.selectedDay else { return [] }
-
-        var days: [Date] = []
-        for i in 0..<7 {
-            if let day = startDay.addDay(i) {
-                days.append(day)
-            }
-        }
-        return days
+        return planData.availableDays
     }
 
     /// Get selected day index
@@ -106,11 +95,11 @@ public class AddPlanTimeSelectionViewModel {
     /// Fetch available time slots from API
     public func fetchTimeSlots() {
         guard let selectedDate = selectedDate else {
-            delegate?.timeSlotsDidFail(error: NSError(domain: "AddPlanTimeSelection", code: -1, userInfo: [NSLocalizedDescriptionKey: "No date selected"]))
+            delegate?.viewModel(error: NSError(domain: "AddPlanTimeSelection", code: -1, userInfo: [NSLocalizedDescriptionKey: "No date selected"]))
             return
         }
 
-        delegate?.showLoading(true)
+        delegate?.viewModel(showPreloader: true)
 
         // Format date as "yyyy-MM-dd"
         let dateFormatter = DateFormatter()
@@ -120,13 +109,13 @@ public class AddPlanTimeSelectionViewModel {
         // Get currency and language from settings or use defaults
         let currency = "USD"
         let lang = TRPClient.getLanguage()
-        
+
         // Call API
         tourRepository.getTourSchedule(productId: tour.id, date: dateString, currency: currency, lang: lang) { [weak self] result in
             guard let self = self else { return }
 
             DispatchQueue.main.async {
-                self.delegate?.showLoading(false)
+                self.delegate?.viewModel(showPreloader: false)
 
                 switch result {
                 case .success(let schedule):
@@ -135,11 +124,148 @@ public class AddPlanTimeSelectionViewModel {
                     self.delegate?.timeSlotsDidLoad()
 
                 case .failure(let error):
-                    self.delegate?.timeSlotsDidFail(error: error)
+                    self.delegate?.viewModel(error: error)
+                }
+            }
+        }
+    }
+
+    /// Create reserved activity segment
+    public func createReservedActivitySegment() {
+        // 1. Validate required data
+        guard let tripHash = planData.tripHash else {
+            delegate?.viewModel(error: NSError(domain: "AddPlanTimeSelection", code: -1, userInfo: [NSLocalizedDescriptionKey: "Timeline not found. Please try again."]))
+            return
+        }
+
+        guard let tourCoordinate = tour.coordinate else {
+            delegate?.viewModel(error: NSError(domain: "AddPlanTimeSelection", code: -2, userInfo: [NSLocalizedDescriptionKey: "Activity location not available."]))
+            return
+        }
+
+        guard let selectedDate = selectedDate,
+              let selectedTimeSlot = selectedTimeSlot else {
+            delegate?.viewModel(error: NSError(domain: "AddPlanTimeSelection", code: -3, userInfo: [NSLocalizedDescriptionKey: "Please select a time slot."]))
+            return
+        }
+
+        // 2. Calculate start and end times
+        let (startDateString, endDateString, startDatetimeString, endDatetimeString) = calculateSegmentTimes(
+            selectedDate: selectedDate,
+            selectedTimeSlot: selectedTimeSlot
+        )
+
+        // 3. Create TRPSegmentActivityItem (additionalData)
+        let activityItem = TRPSegmentActivityItem(
+            activityId: tour.productId,
+            bookingId: nil,  // Not sent for reserved activities
+            title: tour.name,
+            imageUrl: tour.image?.url,
+            description: tour.description,
+            startDatetime: startDatetimeString,
+            endDatetime: endDatetimeString,
+            coordinate: tourCoordinate,
+            cancellation: nil,  // Not sent for reserved activities
+            adultCount: planData.travelers,
+            childCount: 0
+        )
+
+        // 4. Create TRPCreateEditTimelineSegmentProfile
+        let profile = TRPCreateEditTimelineSegmentProfile(tripHash: tripHash)
+        profile.segmentType = .reservedActivity
+        profile.available = false
+        profile.distinctPlan = true
+        profile.title = tour.name
+        profile.description = tour.description
+        profile.startDate = startDateString
+        profile.endDate = endDateString
+        profile.coordinate = tourCoordinate
+        profile.city = planData.selectedCity
+        profile.adults = planData.travelers
+        profile.children = 0
+        profile.pets = 0
+        profile.additionalData = activityItem
+
+        // 5. Show loading
+        delegate?.viewModel(showPreloader: true)
+
+        // 6. Create segment via repository
+        let repository = TRPTimelineRepository()
+        repository.createEditTimelineSegment(profile: profile) { [weak self] result in
+            guard let self = self else { return }
+
+            DispatchQueue.main.async {
+                self.delegate?.viewModel(showPreloader: false)
+
+                switch result {
+                case .success(let success):
+                    if success {
+                        print("✅ [AddPlanTimeSelectionViewModel] Reserved activity segment created successfully")
+                        self.delegate?.segmentCreationDidSucceed()
+                    } else {
+                        let error = NSError(domain: "AddPlanTimeSelection", code: -4, userInfo: [NSLocalizedDescriptionKey: "Failed to create reservation. Please try again."])
+                        self.delegate?.viewModel(error: error)
+                    }
+
+                case .failure(let error):
+                    print("❌ [AddPlanTimeSelectionViewModel] Segment creation failed: \(error.localizedDescription)")
+                    self.delegate?.viewModel(error: error)
                 }
             }
         }
     }
 
     // MARK: - Private Methods
+
+    private func calculateSegmentTimes(
+        selectedDate: Date,
+        selectedTimeSlot: TimeSlot
+    ) -> (startDateString: String, endDateString: String, startDatetimeString: String, endDatetimeString: String) {
+
+        // Parse time slot (format: "HH:mm" or "HH:mm:ss")
+        let timeComponents = selectedTimeSlot.time.split(separator: ":")
+        guard timeComponents.count >= 2,
+              let hour = Int(timeComponents[0]),
+              let minute = Int(timeComponents[1]) else {
+            // Fallback to noon if parsing fails
+            return calculateTimesWithDefaults(selectedDate: selectedDate, hour: 12, minute: 0)
+        }
+
+        return calculateTimesWithDefaults(selectedDate: selectedDate, hour: hour, minute: minute)
+    }
+
+    private func calculateTimesWithDefaults(selectedDate: Date, hour: Int, minute: Int) -> (String, String, String, String) {
+        // Create start time
+        var startComponents = Calendar.current.dateComponents([.year, .month, .day], from: selectedDate)
+        startComponents.hour = hour
+        startComponents.minute = minute
+        startComponents.second = 0
+
+        guard let startDate = Calendar.current.date(from: startComponents) else {
+            // Fallback to selected date if components fail
+            return formatDates(start: selectedDate, end: selectedDate.addingTimeInterval(3600))
+        }
+
+        // Calculate end time (start + duration or +1 hour)
+        let durationMinutes = tour.duration ?? 60
+        let endDate = startDate.addingTimeInterval(TimeInterval(durationMinutes * 60))
+
+        return formatDates(start: startDate, end: endDate)
+    }
+
+    private func formatDates(start: Date, end: Date) -> (String, String, String, String) {
+        let dateFormatter = DateFormatter()
+
+        // Format for segment dates (yyyy-MM-dd HH:mm)
+        dateFormatter.dateFormat = "yyyy-MM-dd HH:mm"
+        let startDateString = dateFormatter.string(from: start)
+        let endDateString = dateFormatter.string(from: end)
+
+        // Format for additionalData datetimes (yyyy-MM-dd HH:mm:ss)
+        dateFormatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
+        let startDatetimeString = dateFormatter.string(from: start)
+        let endDatetimeString = dateFormatter.string(from: end)
+
+        return (startDateString, endDateString, startDatetimeString, endDatetimeString)
+    }
 }

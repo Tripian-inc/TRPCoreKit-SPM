@@ -83,7 +83,7 @@ public class TRPTimelineItineraryVC: TRPBaseUIViewController {
     private lazy var addPlanFloatingButton: TRPFloatingActionButton = {
         let button = TRPFloatingActionButton(
             icon: TRPImageController().getImage(inFramework: "ic_plus_bold", inApp: nil),
-            backgroundColor: ColorSet.primary.uiColor
+            backgroundColor: ColorSet.fgPink.uiColor
         )
         button.addTarget(self, action: #selector(addPlanFloatingButtonTapped), for: .touchUpInside)
         return button
@@ -831,7 +831,15 @@ extension TRPTimelineItineraryVC: TRPTimelineRecommendationsCellDelegate {
     }
     
     func recommendationsCellDidSelectStep(_ cell: TRPTimelineRecommendationsCell, step: TRPTimelineStep) {
-        delegate?.timelineItineraryDidSelectStep(self, step: step)
+        // Open new POI detail view controller
+        guard step.poi != nil else {
+            print("⚠️ [TRPTimelineItineraryVC] Could not open POI detail - POI is nil")
+            return
+        }
+
+        let viewModel = TimelinePoiDetailViewModel(step: step)
+        let detailVC = TimelinePoiDetailViewController(viewModel: viewModel)
+        navigationController?.pushViewController(detailVC, animated: true)
     }
     
     func recommendationsCellDidTapThumbsUp(_ cell: TRPTimelineRecommendationsCell, step: TRPTimelineStep) {
@@ -1029,7 +1037,10 @@ extension TRPTimelineItineraryVC {
         let containerViewModel = AddPlanContainerViewModel(days: days,
                                                            cities: cities,
                                                            selectedDayIndex: selectedDayIndex)
-        
+
+        // Inject tripHash into planData
+        containerViewModel.planData.tripHash = viewModel.getTripHash()
+
         // Create container VC
         let containerVC = AddPlanContainerVC()
         containerVC.viewModel = containerViewModel
@@ -1089,6 +1100,13 @@ extension TRPTimelineItineraryVC: AddPlanContainerVCDelegate {
         let activityListingVC = AddPlanActivityListingVC()
         activityListingVC.viewModel = activityListingViewModel
 
+        // Set segment creation callback
+        activityListingVC.onSegmentCreated = { [weak self, weak viewController] in
+            guard let self = self, let viewController = viewController else { return }
+            // Trigger container delegate
+            self.addPlanContainerSegmentCreated(viewController)
+        }
+
         // Create navigation controller for the activity listing
         let navController = UINavigationController(rootViewController: activityListingVC)
         navController.modalPresentationStyle = .fullScreen
@@ -1098,6 +1116,23 @@ extension TRPTimelineItineraryVC: AddPlanContainerVCDelegate {
 
         // Present from the AddPlanContainerVC instead of dismissing it first
         viewController.present(navController, animated: true)
+    }
+
+    public func addPlanContainerSegmentCreated(_ viewController: AddPlanContainerVC) {
+        // Dismiss all modals from self (TRPTimelineItineraryVC)
+        // This will dismiss AddPlanContainerVC and all modals presented on top of it
+        dismiss(animated: true) { [weak self] in
+            guard let self = self else { return }
+            // Refresh timeline after segment creation
+            self.refreshTimeline()
+        }
+    }
+
+    private func refreshTimeline() {
+        guard let tripHash = viewModel.getTripHash() else { return }
+
+        // Wait for segment generation to complete, then refresh timeline
+        viewModel.waitForSegmentGeneration(tripHash: tripHash)
     }
 
     // MARK: - Smart Recommendations Segment Creation

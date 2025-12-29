@@ -162,8 +162,8 @@ public class TRPMapView: UIView {
     public func cleanAllAnnotations() {
         addedAnnotations.removeAll()
         clearViewAnnotation()
-        addedRoutes.keys.forEach { removeRoute(segmentId: $0) }
-        addedRoutes.removeAll()
+//        addedRoutes.keys.forEach { removeRoute(segmentId: $0) }
+//        addedRoutes.removeAll()
     }
     
     public func cleanAnnotationList(for segmentId: String) {
@@ -174,7 +174,7 @@ public class TRPMapView: UIView {
             addAnnotationToMap(annos)
         }
         
-        removeRoute(segmentId: segmentId)
+//        removeRoute(segmentId: segmentId)
     }
 
     public func clearViewAnnotation()  {
@@ -411,9 +411,9 @@ extension TRPMapView {
             return
         }
         
-        if let style {
-            drawRouteDottedLine(route, tag: style.rawValue, color: style.getColor())
-        }
+//        if let style {
+//            drawRouteDottedLine(route, tag: style.rawValue, color: style.getColor())
+//        }
         if let segmentId {
             var routes = [route]
             if let addedRoute = addedRoutes[segmentId] {
@@ -425,7 +425,7 @@ extension TRPMapView {
             if routes.count > 1 {
                 
             }
-            drawRouteDottedLine(route, tag: segmentId + "_line", color: ColorSet.getMapColor(segmentOrder))
+//            drawRouteDottedLine(route, tag: segmentId + "_line", color: ColorSet.getMapColor(segmentOrder))
         }
         
         let referenceCamera = CameraOptions(zoom: zoomLevel, bearing: 0)
@@ -447,52 +447,52 @@ extension TRPMapView {
         }
     }
     
-    public func removeRoute(segmentId: String) {
-        let id = segmentId + "_line"
-        let layersUsingSource = mapView?.mapboxMap.allLayerIdentifiers
-            .filter { $0.id == id }
-            .map { $0.id } ?? []
-        // Remove top-most first to avoid dependency complaints
-        for id in layersUsingSource.reversed() {
-            do { try mapView?.mapboxMap?.removeLayer(withId: id) }
-            catch { print("Could not remove layer \(id): \(error)") }
-        }
-        if isMapSourceExist(id: id) {
-            try? mapView?.mapboxMap.removeSource(withId: id)
-            //            try? mapView?.mapboxMap?.removeLayer(withId: id)
-        }
-    }
+//    public func removeRoute(segmentId: String) {
+//        let id = segmentId + "_line"
+//        let layersUsingSource = mapView?.mapboxMap.allLayerIdentifiers
+//            .filter { $0.id == id }
+//            .map { $0.id } ?? []
+//        // Remove top-most first to avoid dependency complaints
+//        for id in layersUsingSource.reversed() {
+//            do { try mapView?.mapboxMap?.removeLayer(withId: id) }
+//            catch { print("Could not remove layer \(id): \(error)") }
+//        }
+//        if isMapSourceExist(id: id) {
+//            try? mapView?.mapboxMap.removeSource(withId: id)
+//            //            try? mapView?.mapboxMap?.removeLayer(withId: id)
+//        }
+//    }
     
     private func isMapSourceExist(id: String) -> Bool {
         return (mapView?.mapboxMap.sourceExists(withId: id)) ?? false
     }
     
-    private func drawRouteDottedLine(_ route: Route, tag: String, color: UIColor = UIColor.blue) {
-        
-        guard let mapView = mapView else { return }
-        guard route.legs.count > 0 else {return}
-        guard let routeCoordinates = route.shape?.coordinates, routeCoordinates.count > 0 else {return}
-        
-        let lineString = LineString(routeCoordinates.compactMap({$0}))
-        let geoJsonObject: GeoJSONObject = .feature(Feature(geometry: lineString))
-        if isMapSourceExist(id: tag) {
-            mapView.mapboxMap.updateGeoJSONSource(withId: tag, geoJSON: geoJsonObject)
-        } else {
-            
-            var source = GeoJSONSource(id: tag)
-            source.data = .feature(Feature(geometry: lineString))
-            try? mapView.mapboxMap.addSource(source)
-            
-            var layer = LineLayer(id: tag, source: source.id)
-            layer.lineJoin = .constant(.round)
-            layer.lineCap = .constant(.round)
-            layer.lineColor = .constant(StyleColor(color))
-            layer.lineWidth = .constant(4)
-            layer.lineDasharray = .constant([1, 2.0])
-            try? mapView.mapboxMap.addLayer(layer)
-        }
-        
-    }
+//    private func drawRouteDottedLine(_ route: Route, tag: String, color: UIColor = UIColor.blue) {
+//        
+//        guard let mapView = mapView else { return }
+//        guard route.legs.count > 0 else {return}
+//        guard let routeCoordinates = route.shape?.coordinates, routeCoordinates.count > 0 else {return}
+//        
+//        let lineString = LineString(routeCoordinates.compactMap({$0}))
+//        let geoJsonObject: GeoJSONObject = .feature(Feature(geometry: lineString))
+//        if isMapSourceExist(id: tag) {
+//            mapView.mapboxMap.updateGeoJSONSource(withId: tag, geoJSON: geoJsonObject)
+//        } else {
+//            
+//            var source = GeoJSONSource(id: tag)
+//            source.data = .feature(Feature(geometry: lineString))
+//            try? mapView.mapboxMap.addSource(source)
+//            
+//            var layer = LineLayer(id: tag, source: source.id)
+//            layer.lineJoin = .constant(.round)
+//            layer.lineCap = .constant(.round)
+//            layer.lineColor = .constant(StyleColor(color))
+//            layer.lineWidth = .constant(4)
+//            layer.lineDasharray = .constant([1, 2.0])
+//            try? mapView.mapboxMap.addLayer(layer)
+//        }
+//        
+//    }
 }
 
 

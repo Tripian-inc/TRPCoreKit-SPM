@@ -16,6 +16,9 @@ public class AddPlanActivityListingVC: TRPBaseUIViewController {
     public var viewModel: AddPlanActivityListingViewModel!
     private var isLoadingMore = false
 
+    // Callback when segment is created successfully
+    public var onSegmentCreated: (() -> Void)?
+
     // MARK: - Lifecycle
     public override func viewDidLoad() {
         super.viewDidLoad()
@@ -459,8 +462,13 @@ extension AddPlanActivityListingVC: ActivityCardCellDelegate {
         let timeSelectionVC = AddPlanTimeSelectionVC(tour: tour, planData: viewModel.planData)
 
         timeSelectionVC.onTimeSelected = { [weak self] selectedDate, selectedTimeSlot in
-            // TODO: Handle time selection - will be implemented when API is integrated
             print("Selected date: \(selectedDate), time: \(selectedTimeSlot.time)")
+        }
+
+        // Set segment creation callback
+        timeSelectionVC.onSegmentCreated = { [weak self] in
+            // Trigger parent callback
+            self?.onSegmentCreated?()
         }
 
         // Present as bottom sheet using base extension
