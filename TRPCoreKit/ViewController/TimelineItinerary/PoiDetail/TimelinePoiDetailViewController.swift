@@ -25,11 +25,13 @@ public class TimelinePoiDetailViewController: UIViewController {
     private var productsSectionView: ProductsSectionView!
     private var keyDataSectionView: KeyDataSectionView!
     private var addressSectionView: AddressSectionView!
+    private var featuresSectionView: FeaturesSectionView!
 
     // Separators
     private var separator1: UIView!
     private var separator2: UIView!
     private var separator3: UIView!
+    private var separator4: UIView!
 
     // MARK: - UI Components
     private lazy var scrollView: UIScrollView = {
@@ -38,6 +40,7 @@ public class TimelinePoiDetailViewController: UIViewController {
         scroll.showsVerticalScrollIndicator = true
         scroll.backgroundColor = .white
         scroll.contentInsetAdjustmentBehavior = .never
+        scroll.contentInset = UIEdgeInsets(top: 0, left: 0, bottom: 80, right: 0)
         return scroll
     }()
 
@@ -424,14 +427,14 @@ public class TimelinePoiDetailViewController: UIViewController {
         return stack
     }()
 
-    private lazy var locationTitleLabel: UILabel = {
-        let label = UILabel()
-        label.translatesAutoresizingMaskIntoConstraints = false
-        label.text = PoiDetailLocalizationKeys.localized(PoiDetailLocalizationKeys.whereItStarts)
-        label.font = FontSet.montserratSemiBold.font(16)
-        label.textColor = ColorSet.fg.uiColor
-        return label
-    }()
+//    private lazy var locationTitleLabel: UILabel = {
+//        let label = UILabel()
+//        label.translatesAutoresizingMaskIntoConstraints = false
+//        label.text = PoiDetailLocalizationKeys.localized(PoiDetailLocalizationKeys.whereItStarts)
+//        label.font = FontSet.montserratSemiBold.font(16)
+//        label.textColor = ColorSet.fg.uiColor
+//        return label
+//    }()
 
     private lazy var locationValueLabel: UILabel = {
         let label = UILabel()
@@ -450,7 +453,7 @@ public class TimelinePoiDetailViewController: UIViewController {
         // Create attributed title
         let title = PoiDetailLocalizationKeys.localized(PoiDetailLocalizationKeys.viewMap)
         let attributedTitle = NSMutableAttributedString(string: title)
-        attributedTitle.addAttribute(.font, value: FontSet.montserratSemiBold.font(14), range: NSRange(location: 0, length: title.count))
+        attributedTitle.addAttribute(.font, value: FontSet.montserratMedium.font(16), range: NSRange(location: 0, length: title.count))
         attributedTitle.addAttribute(.foregroundColor, value: ColorSet.fgTertiary.uiColor, range: NSRange(location: 0, length: title.count))
 
         button.setAttributedTitle(attributedTitle, for: .normal)
@@ -463,8 +466,20 @@ public class TimelinePoiDetailViewController: UIViewController {
             button.imageEdgeInsets = UIEdgeInsets(top: 0, left: 16, bottom: 0, right: 0)
         }
 
+        button.contentHorizontalAlignment = .trailing
         button.isHidden = true
         return button
+    }()
+
+    // Features Section
+    private lazy var featuresHeaderLabel: UILabel = {
+        let label = UILabel()
+        label.translatesAutoresizingMaskIntoConstraints = false
+        label.text = PoiDetailLocalizationKeys.localized(PoiDetailLocalizationKeys.features)
+        label.font = FontSet.montserratSemiBold.font(18)
+        label.textColor = ColorSet.fg.uiColor
+        label.isHidden = true
+        return label
     }()
 
     // MARK: - Initialization
@@ -540,10 +555,16 @@ public class TimelinePoiDetailViewController: UIViewController {
             viewMapButton: viewMapButton
         )
 
+        featuresSectionView = FeaturesSectionView(
+            headerLabel: featuresHeaderLabel,
+            tags: viewModel.getFeatures()
+        )
+
         // Create separators
         separator1 = createSeparator()
         separator2 = createSeparator()
         separator3 = createSeparator()
+        separator4 = createSeparator()
 
         // Add sections to stack
         contentStackView.addArrangedSubview(basicInfoSectionView)
@@ -553,6 +574,8 @@ public class TimelinePoiDetailViewController: UIViewController {
         contentStackView.addArrangedSubview(keyDataSectionView)
         contentStackView.addArrangedSubview(separator3)
         contentStackView.addArrangedSubview(addressSectionView)
+        contentStackView.addArrangedSubview(separator4)
+        contentStackView.addArrangedSubview(featuresSectionView)
 
         // Setup subcomponents
         setupRatingContainer()
@@ -628,7 +651,6 @@ public class TimelinePoiDetailViewController: UIViewController {
     private func setupLocationStack() {
         locationStackView.addArrangedSubview(locationIconView)
         locationStackView.addArrangedSubview(locationContentStack)
-        locationContentStack.addArrangedSubview(locationTitleLabel)
         locationContentStack.addArrangedSubview(locationValueLabel)
 
         NSLayoutConstraint.activate([
@@ -803,6 +825,15 @@ public class TimelinePoiDetailViewController: UIViewController {
             }
         }
 
+        // Configure Features Section
+        let hasFeatures = viewModel.hasFeatures()
+        featuresSectionView.isHidden = !hasFeatures
+
+        if hasFeatures {
+            featuresHeaderLabel.isHidden = false
+            featuresSectionView.updateTags(viewModel.getFeatures())
+        }
+
         // Control separator visibility
         // separator1: before products section
         separator1.isHidden = productsSectionView.isHidden
@@ -812,6 +843,9 @@ public class TimelinePoiDetailViewController: UIViewController {
 
         // separator3: before address section
         separator3.isHidden = addressSectionView.isHidden
+
+        // separator4: before features section
+        separator4.isHidden = featuresSectionView.isHidden
 
         // Note: UIStackView automatically handles layout when arrangedSubviews are hidden
     }
@@ -1068,14 +1102,14 @@ private class CustomPageControl: UIView {
     }
 
     var currentPageIndicatorTintColor: UIColor = .white
-    var pageIndicatorTintColor: UIColor = UIColor.white.withAlphaComponent(0.5)
+    var pageIndicatorTintColor: UIColor = UIColor.white
 
     private var indicators: [UIView] = []
     private let stackView: UIStackView = {
         let stack = UIStackView()
         stack.translatesAutoresizingMaskIntoConstraints = false
         stack.axis = .horizontal
-        stack.spacing = 6
+        stack.spacing = 8
         stack.alignment = .center
         stack.distribution = .fill
         return stack
@@ -1111,13 +1145,13 @@ private class CustomPageControl: UIView {
         for index in 0..<numberOfPages {
             let indicator = UIView()
             indicator.translatesAutoresizingMaskIntoConstraints = false
-            indicator.layer.cornerRadius = 3
+            indicator.layer.cornerRadius = 5
             indicator.clipsToBounds = true
 
             // Set initial size (small dot)
             NSLayoutConstraint.activate([
-                indicator.widthAnchor.constraint(equalToConstant: 6),
-                indicator.heightAnchor.constraint(equalToConstant: 6)
+                indicator.widthAnchor.constraint(equalToConstant: 8),
+                indicator.heightAnchor.constraint(equalToConstant: 8)
             ])
 
             indicator.backgroundColor = index == currentPage ? currentPageIndicatorTintColor : pageIndicatorTintColor
@@ -1145,15 +1179,15 @@ private class CustomPageControl: UIView {
                     // Pill shape (wide)
                     indicator.backgroundColor = self.currentPageIndicatorTintColor
                     NSLayoutConstraint.activate([
-                        indicator.widthAnchor.constraint(equalToConstant: 24),
-                        indicator.heightAnchor.constraint(equalToConstant: 6)
+                        indicator.widthAnchor.constraint(equalToConstant: 14),
+                        indicator.heightAnchor.constraint(equalToConstant: 8)
                     ])
                 } else {
                     // Small dot
                     indicator.backgroundColor = self.pageIndicatorTintColor
                     NSLayoutConstraint.activate([
-                        indicator.widthAnchor.constraint(equalToConstant: 6),
-                        indicator.heightAnchor.constraint(equalToConstant: 6)
+                        indicator.widthAnchor.constraint(equalToConstant: 8),
+                        indicator.heightAnchor.constraint(equalToConstant: 8)
                     ])
                 }
 
@@ -1188,8 +1222,9 @@ private class ProductCardCell: UICollectionViewCell {
     private let priceLabel: UILabel = {
         let label = UILabel()
         label.translatesAutoresizingMaskIntoConstraints = false
-        label.font = FontSet.montserratBold.font(18)
+        label.font = FontSet.montserratBold.font(16)
         label.textColor = ColorSet.fg.uiColor
+        label.textAlignment = .right
         return label
     }()
 
@@ -1215,6 +1250,23 @@ private class ProductCardCell: UICollectionViewCell {
         return label
     }()
 
+    private let durationLabel: UILabel = {
+        let label = UILabel()
+        label.translatesAutoresizingMaskIntoConstraints = false
+        label.font = FontSet.montserratRegular.font(12)
+        label.textColor = ColorSet.fgWeak.uiColor
+        return label
+    }()
+
+    private let freeCancellationLabel: UILabel = {
+        let label = UILabel()
+        label.translatesAutoresizingMaskIntoConstraints = false
+        label.font = FontSet.montserratRegular.font(12)
+        label.textColor = ColorSet.greenAdvantage.uiColor
+        label.text = PoiDetailLocalizationKeys.localized(PoiDetailLocalizationKeys.freeCancellation)
+        return label
+    }()
+
     override init(frame: CGRect) {
         super.init(frame: frame)
         setupUI()
@@ -1226,53 +1278,59 @@ private class ProductCardCell: UICollectionViewCell {
 
     private func setupUI() {
         contentView.backgroundColor = .white
-        contentView.layer.cornerRadius = 12
-        contentView.layer.shadowColor = UIColor.black.cgColor
-        contentView.layer.shadowOffset = CGSize(width: 0, height: 2)
-        contentView.layer.shadowRadius = 4
-        contentView.layer.shadowOpacity = 0.1
 
         contentView.addSubview(imageView)
         contentView.addSubview(titleLabel)
-        contentView.addSubview(priceLabel)
         contentView.addSubview(ratingContainerView)
+        contentView.addSubview(durationLabel)
+        contentView.addSubview(freeCancellationLabel)
+        contentView.addSubview(priceLabel)
 
-        ratingContainerView.addSubview(starImageView)
         ratingContainerView.addSubview(ratingLabel)
+        ratingContainerView.addSubview(starImageView)
 
         NSLayoutConstraint.activate([
             // Image
-            imageView.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 8),
-            imageView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 8),
-            imageView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -8),
-            imageView.heightAnchor.constraint(equalToConstant: 100),
+            imageView.topAnchor.constraint(equalTo: contentView.topAnchor),
+            imageView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
+            imageView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
+            imageView.heightAnchor.constraint(equalToConstant: 152),
 
             // Title
             titleLabel.topAnchor.constraint(equalTo: imageView.bottomAnchor, constant: 8),
-            titleLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 8),
-            titleLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -8),
+            titleLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
+            titleLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
 
             // Rating Container
-            ratingContainerView.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 4),
-            ratingContainerView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 8),
-            ratingContainerView.heightAnchor.constraint(equalToConstant: 20),
+            ratingContainerView.topAnchor.constraint(equalTo: titleLabel.bottomAnchor),
+            ratingContainerView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
+            ratingContainerView.heightAnchor.constraint(equalToConstant: 18),
+
+            // Rating Label - Star sıralaması: RatingLabel - Star
+            ratingLabel.leadingAnchor.constraint(equalTo: ratingContainerView.leadingAnchor),
+            ratingLabel.centerYAnchor.constraint(equalTo: ratingContainerView.centerYAnchor),
 
             // Star Image
-            starImageView.leadingAnchor.constraint(equalTo: ratingContainerView.leadingAnchor),
+            starImageView.leadingAnchor.constraint(equalTo: ratingLabel.trailingAnchor, constant: 4),
             starImageView.centerYAnchor.constraint(equalTo: ratingContainerView.centerYAnchor),
+            starImageView.trailingAnchor.constraint(equalTo: ratingContainerView.trailingAnchor),
             starImageView.widthAnchor.constraint(equalToConstant: 14),
             starImageView.heightAnchor.constraint(equalToConstant: 14),
 
-            // Rating Label
-            ratingLabel.leadingAnchor.constraint(equalTo: starImageView.trailingAnchor, constant: 4),
-            ratingLabel.trailingAnchor.constraint(equalTo: ratingContainerView.trailingAnchor),
-            ratingLabel.centerYAnchor.constraint(equalTo: ratingContainerView.centerYAnchor),
+            // Duration Label
+            durationLabel.topAnchor.constraint(equalTo: ratingContainerView.bottomAnchor, constant: 4),
+            durationLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
+            durationLabel.trailingAnchor.constraint(lessThanOrEqualTo: contentView.trailingAnchor),
 
-            // Price
-            priceLabel.topAnchor.constraint(equalTo: ratingContainerView.bottomAnchor, constant: 4),
-            priceLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 8),
-            priceLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -8),
-            priceLabel.bottomAnchor.constraint(lessThanOrEqualTo: contentView.bottomAnchor, constant: -8)
+            // Free Cancellation Label
+            freeCancellationLabel.topAnchor.constraint(equalTo: durationLabel.bottomAnchor, constant: 4),
+            freeCancellationLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, ),
+            freeCancellationLabel.trailingAnchor.constraint(lessThanOrEqualTo: contentView.trailingAnchor),
+
+            // Price - Sağ alt köşe
+            priceLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
+            priceLabel.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
+            priceLabel.leadingAnchor.constraint(greaterThanOrEqualTo: contentView.leadingAnchor)
         ])
     }
 
@@ -1299,11 +1357,66 @@ private class ProductCardCell: UICollectionViewCell {
             ratingContainerView.isHidden = true
         }
 
-        // Configure Price
+        // Configure Duration
+        if let duration = product.duration, !duration.isEmpty {
+            durationLabel.text = duration
+            durationLabel.isHidden = false
+        } else {
+            durationLabel.isHidden = true
+        }
+
+        // Configure Free Cancellation
+        let hasNonRefundable = product.info.contains { $0.lowercased() == "non_refundable" }
+        freeCancellationLabel.isHidden = hasNonRefundable
+
+        // Configure Price with "From:" prefix
+        let fromText = PoiDetailLocalizationKeys.localized(PoiDetailLocalizationKeys.from)
+
         if let price = product.price, let currency = product.currency {
-            priceLabel.text = "\(currency) \(String(format: "%.2f", price))"
+            let priceText = "\(currency) \(String(format: "%.2f", price))"
+            let fullText = "\(fromText) \(priceText)"
+
+            let attributedString = NSMutableAttributedString(string: fullText)
+
+            // "From:" -> Medium 14, fg
+            attributedString.addAttribute(.font,
+                                        value: FontSet.montserratMedium.font(14),
+                                        range: NSRange(location: 0, length: fromText.count))
+            attributedString.addAttribute(.foregroundColor,
+                                        value: ColorSet.fg.uiColor,
+                                        range: NSRange(location: 0, length: fromText.count))
+
+            // Price -> Bold 16, fg
+            attributedString.addAttribute(.font,
+                                        value: FontSet.montserratBold.font(16),
+                                        range: NSRange(location: fromText.count, length: priceText.count + 1))
+            attributedString.addAttribute(.foregroundColor,
+                                        value: ColorSet.fg.uiColor,
+                                        range: NSRange(location: fromText.count, length: priceText.count + 1))
+
+            priceLabel.attributedText = attributedString
         } else if let priceDescription = product.priceDescription {
-            priceLabel.text = priceDescription
+            let fullText = "\(fromText) \(priceDescription)"
+
+            let attributedString = NSMutableAttributedString(string: fullText)
+
+            // "From:" -> Medium 14, fg
+            attributedString.addAttribute(.font,
+                                        value: FontSet.montserratMedium.font(14),
+                                        range: NSRange(location: 0, length: fromText.count))
+            attributedString.addAttribute(.foregroundColor,
+                                        value: ColorSet.fg.uiColor,
+                                        range: NSRange(location: 0, length: fromText.count))
+
+            // Price -> Bold 16, fg
+            attributedString.addAttribute(.font,
+                                        value: FontSet.montserratBold.font(16),
+                                        range: NSRange(location: fromText.count, length: priceDescription.count + 1))
+            attributedString.addAttribute(.foregroundColor,
+                                        value: ColorSet.fg.uiColor,
+                                        range: NSRange(location: fromText.count, length: priceDescription.count + 1))
+
+            priceLabel.attributedText = attributedString
         } else {
             priceLabel.text = ""
         }
@@ -1534,5 +1647,155 @@ private class AddressSectionView: UIView {
             // Map Container height (when visible)
             mapContainer.heightAnchor.constraint(equalToConstant: 220)
         ])
+    }
+}
+
+// MARK: - FeaturesSectionView
+private class FeaturesSectionView: UIView {
+
+    private let headerLabel: UILabel
+    private let tagsCollectionView: UICollectionView
+    private var tags: [String] = []
+    private var collectionHeightConstraint: NSLayoutConstraint!
+
+    init(headerLabel: UILabel, tags: [String]) {
+        self.headerLabel = headerLabel
+        self.tags = tags
+
+        let layout = TagsFlowLayout()
+        layout.estimatedItemSize = UICollectionViewFlowLayout.automaticSize
+        layout.minimumLineSpacing = 16
+        layout.minimumInteritemSpacing = 16
+
+        self.tagsCollectionView = UICollectionView(frame: .zero, collectionViewLayout: layout)
+
+        super.init(frame: .zero)
+        setupView()
+    }
+
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    private func setupView() {
+        translatesAutoresizingMaskIntoConstraints = false
+
+        tagsCollectionView.translatesAutoresizingMaskIntoConstraints = false
+        tagsCollectionView.backgroundColor = .clear
+        tagsCollectionView.isScrollEnabled = false
+        tagsCollectionView.dataSource = self
+        tagsCollectionView.register(TagCell.self, forCellWithReuseIdentifier: "TagCell")
+
+        addSubview(headerLabel)
+        addSubview(tagsCollectionView)
+
+        // Create height constraint for collection view
+        collectionHeightConstraint = tagsCollectionView.heightAnchor.constraint(equalToConstant: 100)
+
+        NSLayoutConstraint.activate([
+            // Header
+            headerLabel.topAnchor.constraint(equalTo: topAnchor, constant: 40),
+            headerLabel.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 16),
+            headerLabel.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -16),
+
+            // Tags CollectionView
+            tagsCollectionView.topAnchor.constraint(equalTo: headerLabel.bottomAnchor, constant: 24),
+            tagsCollectionView.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 16),
+            tagsCollectionView.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -16),
+            tagsCollectionView.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -24),
+            collectionHeightConstraint
+        ])
+    }
+
+    func updateTags(_ newTags: [String]) {
+        tags = newTags
+        tagsCollectionView.reloadData()
+
+        // Force layout and update height after reload
+        tagsCollectionView.layoutIfNeeded()
+
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            let contentHeight = self.tagsCollectionView.collectionViewLayout.collectionViewContentSize.height
+            self.collectionHeightConstraint.constant = contentHeight
+            self.layoutIfNeeded()
+        }
+    }
+}
+
+// MARK: - FeaturesSectionView CollectionView DataSource
+extension FeaturesSectionView: UICollectionViewDataSource {
+    func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
+        return tags.count
+    }
+
+    func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
+        let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "TagCell", for: indexPath) as! TagCell
+        cell.configure(with: tags[indexPath.item])
+        return cell
+    }
+}
+
+// MARK: - TagCell
+private class TagCell: UICollectionViewCell {
+
+    private let label: UILabel = {
+        let label = UILabel()
+        label.translatesAutoresizingMaskIntoConstraints = false
+        label.font = FontSet.montserratMedium.font(12)
+        label.textColor = ColorSet.fgGray.uiColor
+        label.textAlignment = .center
+        return label
+    }()
+
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        setupUI()
+    }
+
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    private func setupUI() {
+        contentView.backgroundColor = ColorSet.neutral200.uiColor
+        contentView.layer.cornerRadius = 4
+        contentView.layer.masksToBounds = true
+
+        contentView.addSubview(label)
+
+        NSLayoutConstraint.activate([
+            label.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 6),
+            label.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 8),
+            label.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -8),
+            label.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -6)
+        ])
+    }
+
+    func configure(with tag: String) {
+        label.text = tag
+    }
+}
+
+// MARK: - TagsFlowLayout
+private class TagsFlowLayout: UICollectionViewFlowLayout {
+    override func layoutAttributesForElements(in rect: CGRect) -> [UICollectionViewLayoutAttributes]? {
+        guard let attributes = super.layoutAttributesForElements(in: rect) else { return nil }
+
+        var leftMargin = sectionInset.left
+        var maxY: CGFloat = -1.0
+
+        for layoutAttribute in attributes {
+            if layoutAttribute.frame.origin.y >= maxY {
+                leftMargin = sectionInset.left
+            }
+
+            layoutAttribute.frame.origin.x = leftMargin
+
+            leftMargin += layoutAttribute.frame.width + minimumInteritemSpacing
+            maxY = max(layoutAttribute.frame.maxY, maxY)
+        }
+
+        return attributes
     }
 }

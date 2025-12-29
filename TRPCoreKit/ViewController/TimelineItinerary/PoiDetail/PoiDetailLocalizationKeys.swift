@@ -13,6 +13,8 @@ public struct PoiDetailLocalizationKeys {
     public static let activities = "poiDetail.section.activities"
     public static let seeMore = "poiDetail.button.seeMore"
     public static let readFullDescription = "poiDetail.button.readFullDescription"
+    public static let freeCancellation = "poiDetail.label.freeCancellation"
+    public static let from = "poiDetail.label.from"
 
     // MARK: - Key Data Section
     public static let keyData = "poiDetail.section.keyData"
@@ -25,6 +27,9 @@ public struct PoiDetailLocalizationKeys {
     public static let whereItStarts = "poiDetail.label.whereItStarts"
     public static let viewMap = "poiDetail.button.viewMap"
 
+    // MARK: - Features Section
+    public static let features = "poiDetail.section.features"
+
     // MARK: - Map Action Sheet
     public static let openIn = "poiDetail.actionSheet.openIn"
     public static let cancel = "poiDetail.button.cancel"
@@ -34,6 +39,8 @@ public struct PoiDetailLocalizationKeys {
         activities: "Activities",
         seeMore: "See more",
         readFullDescription: "Read full description",
+        freeCancellation: "Free cancellation",
+        from: "From:",
         keyData: "Key Data",
         phone: "Phone",
         openingHours: "Opening Hours",
@@ -41,6 +48,7 @@ public struct PoiDetailLocalizationKeys {
         meetingPoint: "Meeting Point",
         whereItStarts: "Where it starts",
         viewMap: "View map",
+        features: "Features",
         openIn: "Open in",
         cancel: "Cancel"
     ]

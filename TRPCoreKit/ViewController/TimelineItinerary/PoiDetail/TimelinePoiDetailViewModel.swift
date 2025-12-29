@@ -188,13 +188,21 @@ public class TimelinePoiDetailViewModel {
         return poi.address != nil
     }
 
+    public func hasFeatures() -> Bool {
+        return !poi.tags.isEmpty
+    }
+
+    public func getFeatures() -> [String] {
+        return poi.tags
+    }
+
     public func hasProducts() -> Bool {
         guard let bookings = poi.bookings else { return false }
 
         // Check if any booking with provider ID 15 (Civitatis) has products
         return bookings.contains { booking in
-            guard booking.providerId == 15,
-                  let products = booking.products,
+//            guard booking.providerId == 15,
+                  guard let products = booking.products,
                   !products.isEmpty else { return false }
             return true
         }
@@ -206,7 +214,8 @@ public class TimelinePoiDetailViewModel {
         // Get products only from provider ID 15 (Civitatis)
         var civittatisProducts: [TRPBookingProduct] = []
         bookings.forEach { booking in
-            if booking.providerId == 15, let products = booking.products {
+//            if booking.providerId == 15, let products = booking.products {
+            if let products = booking.products {
                 civittatisProducts.append(contentsOf: products)
             }
         }
