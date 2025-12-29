@@ -130,8 +130,8 @@ extension TRPTimelineItineraryVC {
             drawRoutesForSegments(segments)
         } else {
             // No segments with multiple POIs, just center on all POIs
-            if let firstPoi = allPois.first {
-                map.setCenter(firstPoi.coordinate, zoomLevel: allPois.count == 1 ? 14 : 12)
+            if let firstPoi = allPois.first, let coordinate = firstPoi.coordinate {
+                map.setCenter(coordinate, zoomLevel: allPois.count == 1 ? 14 : 12)
             }
             removeAllRoutesFromMap()
         }
@@ -150,22 +150,24 @@ extension TRPTimelineItineraryVC {
         
         for (segmentIndex, pois) in segments.enumerated() {
             var annotations = [TRPPointAnnotation]()
-            
+
             for (poiIndex, poi) in pois.enumerated() {
+                guard let coordinate = poi.coordinate else { continue }
+
                 var annotation = TRPPointAnnotation()
-                annotation.imageName = TRPAppearanceSettings.MapAnnotations.getIcon(tag: poi.icon, type: .route)
+//                annotation.imageName = TRPAppearanceSettings.MapAnnotations.getIcon(tag: poi.icon, type: .route)
                 annotation.order = poiIndex + 1 // Order within segment (1-based for display)
-                annotation.lat = poi.coordinate.lat
-                annotation.lon = poi.coordinate.lon
+                annotation.lat = coordinate.lat
+                annotation.lon = coordinate.lon
                 annotation.poiId = poi.id
                 annotation.isOffer = !poi.offers.isEmpty
                 annotations.append(annotation)
             }
-            
+
             let segmentId = "timeline_segment_\(segmentIndex)_annotations"
             // annotationOrder determines the background color of the order badge
             map.addViewAnnotations(annotations, segmentId: segmentId, annotationOrder: segmentIndex)
-            
+
         }
     }
     
@@ -197,26 +199,29 @@ extension TRPTimelineItineraryVC {
     
     private func addPoiAnnotations(_ pois: [TRPPoi]) {
         guard let map = map else { return }
-        
+
         var annotations = [TRPPointAnnotation]()
-        
+
         for (index, poi) in pois.enumerated() {
+            guard let coordinate = poi.coordinate else { continue }
+
             var annotation = TRPPointAnnotation()
-            annotation.imageName = TRPAppearanceSettings.MapAnnotations.getIcon(tag: poi.icon, type: .route)
+//            annotation.imageName = TRPAppearanceSettings.MapAnnotations.getIcon(tag: poi.icon, type: .route)
             annotation.order = index
-            annotation.lat = poi.coordinate.lat
-            annotation.lon = poi.coordinate.lon
+            annotation.lat = coordinate.lat
+            annotation.lon = coordinate.lon
             annotation.poiId = poi.id
             annotation.isOffer = !poi.offers.isEmpty
             annotations.append(annotation)
         }
-        
+
         map.addViewAnnotations(annotations, segmentId: "timeline_pois", annotationOrder: 0)
     }
     
     private func drawRouteForPois(_ pois: [TRPPoi]) {
-        let locations = pois.map { $0.coordinate }
-        
+        let locations = pois.compactMap { $0.coordinate }
+        guard locations.count > 1 else { return }
+
         
         viewModel.calculateRoute(for: locations) { [weak self] route, error in
             guard let self = self else { return }
@@ -287,8 +292,9 @@ extension TRPTimelineItineraryVC {
         // Draw route for each segment
         for (segmentIndex, pois) in segments.enumerated() {
             guard pois.count > 1 else { continue }
-            
-            let locations = pois.map { $0.coordinate }
+
+            let locations = pois.compactMap { $0.coordinate }
+            guard locations.count > 1 else { continue }
             let segmentId = "timeline_segment_\(segmentIndex)"
             
             viewModel.calculateRoute(for: locations) { [weak self] route, error in
@@ -448,8 +454,8 @@ extension TRPTimelineItineraryVC {
         
         if pois.count > 1 {
             drawRouteForPois(pois)
-        } else if let poi = pois.first {
-            map.setCenter(poi.coordinate, zoomLevel: 14)
+        } else if let poi = pois.first, let coordinate = poi.coordinate {
+            map.setCenter(coordinate, zoomLevel: 14)
         }
     }
     

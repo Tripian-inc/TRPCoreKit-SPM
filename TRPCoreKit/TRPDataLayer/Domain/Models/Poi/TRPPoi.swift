@@ -33,9 +33,9 @@ public struct TRPPoi: Codable {
     public var phone: String?
     public var hours: String?
     public var address: String?
-    public let icon: String
-    
-    public let coordinate: TRPLocation
+    public let icon: String?
+
+    public let coordinate: TRPLocation?
     public var bookings: [TRPBooking]?
     public var categories = [TRPPoiCategory]()
     public var tags = [String]()

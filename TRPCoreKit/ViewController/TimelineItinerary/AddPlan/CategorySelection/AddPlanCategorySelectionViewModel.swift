@@ -16,13 +16,13 @@ public struct PlanCategory {
     
     public static func allCategories() -> [PlanCategory] {
         return [
-            PlanCategory(id: "guided_tours", name: AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.categoryGuidedTours), iconName: "ic_activities"),
+            PlanCategory(id: "guided tours, free tours", name: AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.categoryGuidedTours), iconName: "ic_activities"),
             PlanCategory(id: "tickets", name: AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.categoryTickets), iconName: "ic_cat_tickets"),
-            PlanCategory(id: "excursions", name: AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.categoryExcursions), iconName: "ic_cat_excursions"),
-            PlanCategory(id: "poi", name: AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.categoryPOI), iconName: "ic_cat_poi"),
-            PlanCategory(id: "food", name: AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.categoryFood), iconName: "ic_cat_food_drinks"),
-            PlanCategory(id: "shows", name: AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.categoryShows), iconName: "ic_cat_shows"),
-            PlanCategory(id: "transport", name: AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.categoryTransport), iconName: "ic_cat_transfers")
+            PlanCategory(id: "day trip", name: AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.categoryExcursions), iconName: "ic_cat_excursions"),
+            PlanCategory(id: "things to do", name: AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.categoryPOI), iconName: "ic_cat_poi"),
+            PlanCategory(id: "food, tasting tour", name: AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.categoryFood), iconName: "ic_cat_food_drinks"),
+            PlanCategory(id: "show", name: AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.categoryShows), iconName: "ic_cat_shows"),
+            PlanCategory(id: "transfer service, transportation", name: AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.categoryTransport), iconName: "ic_cat_transfers")
         ]
     }
     

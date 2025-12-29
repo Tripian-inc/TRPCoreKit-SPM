@@ -1011,8 +1011,8 @@ extension TRPTimelineItineraryVC: UICollectionViewDataSource, UICollectionViewDe
         switch item {
         case .poi(let poi):
             // Center map on selected POI
-            if let mapView = map {
-                mapView.setCenter(poi.coordinate, zoomLevel: 15)
+            if let mapView = map, let coordinate = poi.coordinate {
+                mapView.setCenter(coordinate, zoomLevel: 15)
             }
 
         case .bookedActivity(let segment):

@@ -25,6 +25,9 @@ public class TRPTourRemoteApi: TourRemoteApi {
         // Set provider ID
         request.providerId = 15
 
+        // Always require instant availability
+        request.instantAvailability = 1
+
         // Map search text to keywords
         request.keywords = parameters.search
 
@@ -42,7 +45,7 @@ public class TRPTourRemoteApi: TourRemoteApi {
         request.date = parameters.date
 
         // Map pagination
-        request.limit = parameters.limit ?? 30
+        request.limit = parameters.limit ?? 10
         request.offset = parameters.offset ?? 0
 
         TRPRestKit().searchTours(request: request) { (result, error) in
@@ -80,6 +83,9 @@ public class TRPTourRemoteApi: TourRemoteApi {
         // Set provider ID
         request.providerId = 15
 
+        // Always require instant availability
+        request.instantAvailability = 1
+
         // Set location coordinates
         request.lat = coordinate.lat
         request.lng = coordinate.lon
@@ -101,7 +107,7 @@ public class TRPTourRemoteApi: TourRemoteApi {
         request.date = parameters.date
 
         // Map pagination
-        request.limit = parameters.limit ?? 30
+        request.limit = parameters.limit ?? 10
         request.offset = parameters.offset ?? 0
 
         TRPRestKit().searchTours(request: request) { (result, error) in

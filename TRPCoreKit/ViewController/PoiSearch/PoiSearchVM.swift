@@ -129,8 +129,10 @@ class PoiSearchVM {
             return PoiWithLocation(poi: place, distance: nil)
         }
         if isUserInCity {
-            let distance = CLLocation(latitude: place.coordinate.lat, longitude: place.coordinate.lon).distance(from: CLLocation(latitude: userLocation.lat, longitude: userLocation.lon))
-            return PoiWithLocation(poi: place, distance: distance)
+            if let coordinate = place.coordinate {
+                let distance = CLLocation(latitude: coordinate.lat, longitude: coordinate.lon).distance(from: CLLocation(latitude: userLocation.lat, longitude: userLocation.lon))
+                return PoiWithLocation(poi: place, distance: distance)
+            }
         }
         return PoiWithLocation(poi: place, distance: nil)
     }

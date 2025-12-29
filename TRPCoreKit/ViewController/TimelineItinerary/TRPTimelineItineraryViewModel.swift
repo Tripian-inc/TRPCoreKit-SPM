@@ -198,14 +198,23 @@ public class TRPTimelineItineraryViewModel {
             }
         }
         
-        // 2. Process plan steps (group all steps together including activities)
+        // 2. Process plan steps (include all steps in recommendations)
         if let plans = timeline.plans {
-            for plan in plans {
-                // Group all steps together (both POI and activity types)
+            print("🔍 [ViewModel] Timeline has \(plans.count) plans")
+            for (planIndex, plan) in plans.enumerated() {
+                // Debug: Log plan details
+                print("🔍 [ViewModel] Plan[\(planIndex)] - id: \(plan.id ?? "nil"), steps: \(plan.steps.count)")
+                for (index, step) in plan.steps.enumerated() {
+                    print("  [\(index)] stepType: \(step.stepType ?? "nil"), poi: \(step.poi?.name ?? "nil") (id: \(step.poi?.id ?? "nil")), stepId: \(step.id)")
+                }
+
+                // Add all steps together (POI and activity) for recommendations cell
                 if !plan.steps.isEmpty {
                     items.append(.poiSteps(plan.steps))
                 }
             }
+        } else {
+            print("⚠️ [ViewModel] No plans found in timeline!")
         }
 
         // 3. Sort all items by start time first
@@ -356,20 +365,26 @@ public class TRPTimelineItineraryViewModel {
                     }
 
                 case .poiSteps(let steps):
-                    // Filter POI steps that match the selected day
+                    // Filter steps that match the selected day
+                    print("🔍 [ViewModel] Filtering \(steps.count) steps for selected day")
                     let filteredSteps = steps.filter { step in
                         guard let stepStartDate = step.startDateTimes else {
+                            print("  ❌ Step \(step.id) (\(step.stepType ?? "nil")) has no startDateTimes - FILTERED OUT")
                             return false
                         }
                         // Try both formats: with and without seconds
                         let stepDate = Date.fromString(stepStartDate, format: "yyyy-MM-dd HH:mm") ??
                                       Date.fromString(stepStartDate, format: "yyyy-MM-dd HH:mm:ss")
                         guard let date = stepDate else {
+                            print("  ❌ Step \(step.id) (\(step.stepType ?? "nil")) has invalid date format: \(stepStartDate) - FILTERED OUT")
                             return false
                         }
-                        return date >= selectedDayStart && date < selectedDayEnd
+                        let matchesDay = date >= selectedDayStart && date < selectedDayEnd
+                        print("  \(matchesDay ? "✅" : "❌") Step \(step.id) (\(step.stepType ?? "nil")) - date: \(stepStartDate) - \(matchesDay ? "INCLUDED" : "FILTERED OUT")")
+                        return matchesDay
                     }
 
+                    print("🔍 [ViewModel] Filtered result: \(filteredSteps.count)/\(steps.count) steps included")
                     if !filteredSteps.isEmpty {
                         filteredGroup.append(.poiSteps(filteredSteps))
                     }

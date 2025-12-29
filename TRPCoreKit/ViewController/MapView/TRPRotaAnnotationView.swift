@@ -36,7 +36,7 @@ class TRPRotaAnnotationView: UIView {
         viewDidLoaded = true
         layer.cornerRadius = bounds.width / 2
         layer.backgroundColor = UIColor.clear.cgColor
-        addImageView(named: imageName)
+//        addImageView(named: imageName)
         
         // Only add order label if order is not -1
         if let orderValue = self.order, orderValue >= 0 {
@@ -63,25 +63,25 @@ class TRPRotaAnnotationView: UIView {
 //        cirleShape.add(animation, forKey: "ClickAnim")
 //    }
     
-    private func addImageView(named: String){
-        let img = TRPImageController().getImage(inFramework: named, inApp: nil) ?? UIImage()
-        let imgView = UIImageView(image: img)
-        
-        if isOffer {
-            let bgImage = UIImageView(image: UIImage(named: "offer_bg_annotation")!)
-            self.addSubview(bgImage)
-            self.addSubview(imgView)
-            self.frame = bgImage.frame
-            imgView.center = bgImage.center
-        }else {
-            self.addSubview(imgView)
-            self.frame = imgView.frame
-        }
-//        addSubview(imgView)
-        imgView.translatesAutoresizingMaskIntoConstraints = false
-        imgView.centerXAnchor.constraint(equalTo: centerXAnchor).isActive = true
-        imgView.centerYAnchor.constraint(equalTo: centerYAnchor).isActive = true
-    }
+//    private func addImageView(named: String){
+//        let img = TRPImageController().getImage(inFramework: named, inApp: nil) ?? UIImage()
+//        let imgView = UIImageView(image: img)
+//        
+//        if isOffer {
+//            let bgImage = UIImageView(image: UIImage(named: "offer_bg_annotation")!)
+//            self.addSubview(bgImage)
+//            self.addSubview(imgView)
+//            self.frame = bgImage.frame
+//            imgView.center = bgImage.center
+//        }else {
+//            self.addSubview(imgView)
+//            self.frame = imgView.frame
+//        }
+////        addSubview(imgView)
+//        imgView.translatesAutoresizingMaskIntoConstraints = false
+//        imgView.centerXAnchor.constraint(equalTo: centerXAnchor).isActive = true
+//        imgView.centerYAnchor.constraint(equalTo: centerYAnchor).isActive = true
+//    }
     
     private func addBGView() {
         bgView.frame = CGRect(x: 0, y: 0, width: self.frame.width, height: self.frame.height)
@@ -92,7 +92,7 @@ class TRPRotaAnnotationView: UIView {
     }
     
     private func addLabel(text: String) {
-        let circleRadius = 10.0
+        let circleRadius = 20
         let circlePath = UIBezierPath(arcCenter: CGPoint(x: circleRadius/2,
                                                          y: circleRadius/2),
                                       radius: CGFloat(circleRadius),
@@ -109,7 +109,7 @@ class TRPRotaAnnotationView: UIView {
                              height: CGFloat(circleRadius * 2))
         label.text = text
         label.textColor = UIColor.white
-        label.font = UIFont.systemFont(ofSize: 11, weight: .semibold)
+        label.font = FontSet.montserratSemiBold.font(18)
         label.adjustsFontSizeToFitWidth = true
         label.textAlignment = .center
         

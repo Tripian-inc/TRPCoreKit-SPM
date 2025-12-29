@@ -416,17 +416,17 @@ extension TRPTripModeViewModel {
         
         return plan.steps.map { step -> Waypoint in
             let poi = step.poi
-            let coordinate = CLLocationCoordinate2D(latitude: poi.coordinate.lat, longitude: poi.coordinate.lon)
+            let coordinate = CLLocationCoordinate2D(latitude: poi.coordinate?.lat ?? 0, longitude: poi.coordinate?.lon ?? 0)
             return Waypoint(coordinate: coordinate, name: poi.name)
         }
     }
     
     public func calculateRouteForRotutinPoi(_ pois: [TRPPoi]) {
-        let latLon = pois.map { (poi) -> TRPLocation in
-            return poi.coordinate
-        }
-        if latLon.count < 2 {return}
-        fetchRouteFromMapBoxServer(pois: latLon)
+//        let latLon = pois.map { (poi) -> TRPLocation in
+//            return poi.coordinate
+//        }
+//        if latLon.count < 2 {return}
+//        fetchRouteFromMapBoxServer(pois: latLon)
     }
  
     

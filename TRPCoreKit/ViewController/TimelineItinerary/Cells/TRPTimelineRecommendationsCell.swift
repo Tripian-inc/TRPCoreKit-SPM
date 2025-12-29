@@ -213,11 +213,17 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
     func configure(with steps: [TRPTimelineStep], isExpanded: Bool = true) {
         self.steps = steps
         self.isExpanded = isExpanded
-        
+
+        // Debug: Log all steps
+        print("🔍 [RecommendationsCell] Configuring with \(steps.count) steps:")
+        for (index, step) in steps.enumerated() {
+            print("  [\(index)] stepType: \(step.stepType ?? "nil"), poi: \(step.poi?.name ?? "nil"), id: \(step.id)")
+        }
+
         // Clear existing views and distance views
         recommendationsStackView.arrangedSubviews.forEach { $0.removeFromSuperview() }
         distanceViews.removeAll()
-        
+
         // Add recommendation views for each step with distance info between them
         for (index, step) in steps.enumerated() {
             let recommendationView = createRecommendationView(for: step)
@@ -230,10 +236,10 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
                 recommendationsStackView.addArrangedSubview(distanceView)
                 
                 // Request route calculation if both POIs have coordinates
-                if let fromPoi = step.poi, let toPoi = steps[index + 1].poi {
-                    delegate?.recommendationsCellNeedsRouteCalculation(self, 
-                                                                       from: fromPoi.coordinate, 
-                                                                       to: toPoi.coordinate, 
+                if let fromCoordinate = step.poi?.coordinate, let toCoordinate = steps[index + 1].poi?.coordinate {
+                    delegate?.recommendationsCellNeedsRouteCalculation(self,
+                                                                       from: fromCoordinate,
+                                                                       to: toCoordinate,
                                                                        index: index)
                 }
             }

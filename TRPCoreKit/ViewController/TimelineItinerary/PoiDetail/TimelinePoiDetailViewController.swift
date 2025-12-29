@@ -854,8 +854,8 @@ public class TimelinePoiDetailViewController: UIViewController {
     private func setupMapView() {
         // Remove existing map if any
         mapView?.removeFromSuperview()
-
-        let coordinate = viewModel.getCoordinate()
+        
+        guard let coordinate = viewModel.getCoordinate() else { return }
         let center = CLLocationCoordinate2D(latitude: coordinate.lat, longitude: coordinate.lon)
         let camera = CameraOptions(center: center, zoom: 15)
         let options = MapInitOptions(cameraOptions: camera)
@@ -910,7 +910,7 @@ public class TimelinePoiDetailViewController: UIViewController {
     }
 
     @objc private func viewMapTapped() {
-        let coordinate = viewModel.getCoordinate()
+        guard let coordinate = viewModel.getCoordinate() else { return }
         let poiName = viewModel.poi.name
 
         // Create MKPlacemark with coordinate

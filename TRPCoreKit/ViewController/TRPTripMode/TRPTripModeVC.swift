@@ -271,19 +271,19 @@ public class TRPTripModeVC: TRPBaseUIViewController {
     public func drawRoute(poi: TRPPoi) {
         guard let map = map, let user = TRPUserLocationController.shared.userLatestLocation else {return}
         map.showUserLocation = true
-        viewModel.fetchRoutes(locations: [user, poi.coordinate]) {[weak self] (route, waypoints, error) in
-            guard let strongSelf = self else {return}
-            if let error = error {
-                strongSelf.viewModel(error: error)
-                return
-            }
-            if let route = route {
-                map.drawRoute(route, style: TRPMapView.DrawRouteStyle.runtime)
-                map.addPointsForAlternative([strongSelf.placeToMapFeature(poi)], styleAnnotation: TRPMapView.StyleAnnotatoin.runTimeRoutePoi)
-                //Fixme: - Close ile return etmeli.
-                strongSelf.showReadableRouteTime(route.expectedTravelTime, distance: route.distance)
-            }
-        }
+//        viewModel.fetchRoutes(locations: [user, poi.coordinate]) {[weak self] (route, waypoints, error) in
+//            guard let strongSelf = self else {return}
+//            if let error = error {
+//                strongSelf.viewModel(error: error)
+//                return
+//            }
+//            if let route = route {
+//                map.drawRoute(route, style: TRPMapView.DrawRouteStyle.runtime)
+//                map.addPointsForAlternative([strongSelf.placeToMapFeature(poi)], styleAnnotation: TRPMapView.StyleAnnotatoin.runTimeRoutePoi)
+//                //Fixme: - Close ile return etmeli.
+//                strongSelf.showReadableRouteTime(route.expectedTravelTime, distance: route.distance)
+//            }
+//        }
     }
     
     private func showReadableRouteTime(_ time:TimeInterval, distance: CLLocationDistance) {
@@ -770,10 +770,10 @@ extension TRPTripModeVC {
     
     fileprivate func placeToMapFeature(_ place: TRPPoi)-> TRPPointAnnotationFeature{
         var iconType = place.icon
-        if !place.offers.isEmpty {
-            iconType += "WithOffer"
-        }
-        return TRPPointAnnotationFeature(id: place.id, name: place.name, lat: place.coordinate.lat, lon: place.coordinate.lon, iconType: iconType)
+//        if !place.offers.isEmpty {
+//            iconType += "WithOffer"
+//        }
+        return TRPPointAnnotationFeature(id: place.id, name: place.name, lat: place.coordinate?.lat ?? 0, lon: place.coordinate?.lon ?? 0, iconType: iconType ?? "")
     }
 }
 
@@ -856,13 +856,13 @@ extension TRPTripModeVC: TRPTripModeViewModelDelegate {
 //            if !element.offers.isEmpty {
 //                iconTag += "WithOffer"
 //            }
-            if element.isBookingAvailable(providerId: 7) {
-                iconTag += "WithTour"
-            }
+//            if element.isBookingAvailable(providerId: 7) {
+//                iconTag += "WithTour"
+//            }
             if element.isCustomPoi() {
                 iconTag = "NexusTourStep"
             }
-            customAno.imageName = TRPAppearanceSettings.MapAnnotations.getIcon(tag: iconTag, type: .route)
+//            customAno.imageName = TRPAppearanceSettings.MapAnnotations.getIcon(tag: iconTag, type: .route)
             //Hotel adresi varsa tespit eder.
             if viewModel.isHotelInTrip() {
                 if index == 0 {
@@ -872,12 +872,12 @@ extension TRPTripModeVC: TRPTripModeViewModelDelegate {
                 }
             }
             customAno.order = element.placeType == .hotel ? nil : index
-            customAno.lat = element.coordinate.lat
-            customAno.lon = element.coordinate.lon
+//            customAno.lat = element.coordinate.lat
+//            customAno.lon = element.coordinate.lon
             customAno.poiId = element.id
             customAno.isOffer = !element.offers.isEmpty
             newAnnotations.append(customAno)
-            poiData.append(element.coordinate)
+//            poiData.append(element.coordinate)
         }
         map.addViewAnnotations(newAnnotations)
         

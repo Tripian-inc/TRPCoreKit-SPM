@@ -160,17 +160,17 @@ public class ListOfRoutingPoisViewModel {
  
     
     func createUberInfo(indexPath:IndexPath) -> UberModel? {
-        if(indexPath.row + 1 <= steps.count){
-            let pick = steps[indexPath.row].poi
-            let drop = steps[indexPath.row + 1].poi
-            
-            return UberModel(pickupLocation: pick.coordinate,
-                      pickupName: pick.name,
-                      pickupAddress: pick.address ?? "",
-                      dropoffLocation: drop.coordinate,
-                      dropOffName: drop.name,
-                      dropOffAddress: drop.address ?? "")
-        }
+//        if(indexPath.row + 1 <= steps.count){
+//            let pick = steps[indexPath.row].poi
+//            let drop = steps[indexPath.row + 1].poi
+//            
+//            return UberModel(pickupLocation: pick.coordinate,
+//                      pickupName: pick.name,
+//                      pickupAddress: pick.address ?? "",
+//                      dropoffLocation: drop.coordinate,
+//                      dropOffName: drop.name,
+//                      dropOffAddress: drop.address ?? "")
+//        }
         return nil
     }
     

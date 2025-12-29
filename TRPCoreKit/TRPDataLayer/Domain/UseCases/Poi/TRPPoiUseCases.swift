@@ -279,10 +279,11 @@ extension TRPPoiUseCases: FetchBoundsPoisUseCase {
                     }
                     
                     let locationFilter = filteredData.filter { pois in
-                        if northEast.lat > pois.coordinate.lat &&
-                            pois.coordinate.lat > southWest.lat &&
-                            northEast.lon > pois.coordinate.lon &&
-                            pois.coordinate.lon > southWest.lon {
+                        guard let coordinate = pois.coordinate else { return false }
+                        if northEast.lat > coordinate.lat &&
+                            coordinate.lat > southWest.lat &&
+                            northEast.lon > coordinate.lon &&
+                            coordinate.lon > southWest.lon {
                             return true
                         }
                         return false

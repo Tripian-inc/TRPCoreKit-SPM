@@ -284,16 +284,16 @@ extension PoiDetailViewModel {
     }
     
     public func navigateToPoi() {
-        
-        
+        guard let coordinate = place.coordinate else { return }
+
         if UIApplication.shared.canOpenURL(URL(string:"comgooglemaps://")!){
-            let url = "comgooglemaps://?daddr=\(place.coordinate.lat),\(place.coordinate.lon)&directionsmode=driving&zoom=14&views=traffic"
+            let url = "comgooglemaps://?daddr=\(coordinate.lat),\(coordinate.lon)&directionsmode=driving&zoom=14&views=traffic"
             if let mapsUrl = URL(string: url) {
                 UIApplication.shared.open(mapsUrl, options: [:])
             }
         } else {
-            let latitude: CLLocationDegrees = place.coordinate.lat
-            let longitude: CLLocationDegrees = place.coordinate.lon
+            let latitude: CLLocationDegrees = coordinate.lat
+            let longitude: CLLocationDegrees = coordinate.lon
             let regionDistance:CLLocationDistance = 10000
             let coordinates = CLLocationCoordinate2DMake(latitude, longitude)
             let regionSpan = MKCoordinateRegion(center: coordinates, latitudinalMeters: regionDistance, longitudinalMeters: regionDistance)
@@ -430,8 +430,10 @@ extension PoiDetailViewModel {
             tempCells.append(cellModel)
         }
         
-        let mapModel = PoiDetailCellContent(data: place.coordinate, type: .map)
-        tempCells.append(mapModel)
+        if let coordinate = place.coordinate {
+            let mapModel = PoiDetailCellContent(data: coordinate, type: .map)
+            tempCells.append(mapModel)
+        }
         
 //        let gyg = getBooking(providerId: 4)
 //        if  !gyg.isEmpty {

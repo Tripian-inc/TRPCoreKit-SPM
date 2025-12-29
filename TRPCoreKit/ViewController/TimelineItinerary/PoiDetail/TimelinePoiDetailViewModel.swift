@@ -176,11 +176,11 @@ public class TimelinePoiDetailViewModel {
         return poi.address
     }
 
-    public func getCoordinate() -> TRPLocation {
+    public func getCoordinate() -> TRPLocation? {
         return poi.coordinate
     }
 
-    public func getPoiIcon() -> String {
+    public func getPoiIcon() -> String? {
         return poi.icon
     }
 

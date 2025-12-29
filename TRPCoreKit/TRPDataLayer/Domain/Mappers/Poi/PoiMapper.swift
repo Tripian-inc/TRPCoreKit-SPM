@@ -13,17 +13,21 @@ import TRPFoundationKit
 final class PoiMapper {
     
     func map(_ restModel: TRPPoiInfoModel) -> TRPPoi? {
-        
+
         let mainImage = ImageMapper().map(restModel.image)
-        
+
         let gallery = ImageMapper().map(restModel.gallery ?? [])
-        
-        let coordinate: TRPLocation = TRPLocation(lat: restModel.coordinate.lat, lon: restModel.coordinate.lon)
-        
+
+        // Coordinate is now optional
+        var coordinate: TRPLocation? = nil
+        if let coord = restModel.coordinate {
+            coordinate = TRPLocation(lat: coord.lat, lon: coord.lon)
+        }
+
         let bookings: [TRPBooking]? = restModel.bookings != nil ? BookingMapper().map(restModel.bookings ?? []) : nil
-        
+
         let categoreies = PoiCategoryMapper().map(restModel.category)
-        
+
         let mustTaste = TasteMapper().map(restModel.mustTries)
         let offers = OfferMapper().map(restModel.offers)
         let additionalData = AdditionalDataMapper().map(restModel.additionalData)
@@ -51,7 +55,7 @@ final class PoiMapper {
                          mustTries: mustTaste,
                          cuisines: restModel.cuisines,
                          attention: restModel.attention,
-                         closed: restModel.closed,
+                         closed: restModel.closed ?? [],
                          distance: restModel.distance,
                          safety: restModel.safety,
                          status: restModel.status,

@@ -181,8 +181,10 @@ public class PlaceDetailVC: TRPBaseUIViewController {
             data.append(.button(ButtonCellModel(title: explaineText)))
         }
         
-        let location = TRPLocation(lat: viewModel.place.coordinate .lat, lon: viewModel.place.coordinate .lon)
-        data.append(.map(MapCellModel(location: location)))
+        if let coordinate = viewModel.place.coordinate {
+            let location = TRPLocation(lat: coordinate.lat, lon: coordinate.lon)
+            data.append(.map(MapCellModel(location: location)))
+        }
         
         tableView?.reloadData()
         

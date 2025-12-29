@@ -227,7 +227,9 @@ extension AddPlanPOISelectionVC: UITableViewDelegate {
     public func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         tableView.deselectRow(at: indexPath, animated: true)
         let poi = viewModel.getSavedPOIs()[indexPath.row]
-        onLocationSelected?(poi.coordinate, poi.name)
+        
+        guard let coordinate = poi.coordinate else { return }
+        onLocationSelected?(coordinate, poi.name)
         dismiss(animated: true)
     }
     
