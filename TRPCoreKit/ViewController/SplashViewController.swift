@@ -109,6 +109,10 @@ class SplashViewController: TRPBaseUIViewController {
     
     private func checkAllDatasFetched() {
         guard loginSuccess, languagesFetched else { return }
+
+        // Fetch cities in background after login success (non-blocking)
+        TRPCityCache.shared.fetchCitiesIfNeeded()
+
         delegate?.datasFetchCompleted()
         navigationController?.popViewController(animated: false)
     }

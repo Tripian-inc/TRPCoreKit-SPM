@@ -45,6 +45,10 @@ public protocol TRPCoreKitDelegate: AnyObject {
     /// - Parameter activityId: The unique identifier of the activity to display
     func trpCoreKitDidRequestActivityDetail(activityId: String)
 
+    /// Called when the SDK needs to open an activity reservation screen
+    /// - Parameter activityId: The unique identifier of the activity to reserve
+    func trpCoreKitDidRequestActivityReservation(activityId: String)
+
     /// Called when a timeline has been successfully created
     /// - Parameter tripHash: The trip hash of the newly created timeline
     func trpCoreKitDidCreateTimeline(tripHash: String)

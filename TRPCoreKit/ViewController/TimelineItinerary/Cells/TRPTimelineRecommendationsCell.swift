@@ -214,12 +214,6 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
         self.steps = steps
         self.isExpanded = isExpanded
 
-        // Debug: Log all steps
-        print("🔍 [RecommendationsCell] Configuring with \(steps.count) steps:")
-        for (index, step) in steps.enumerated() {
-            print("  [\(index)] stepType: \(step.stepType ?? "nil"), poi: \(step.poi?.name ?? "nil"), id: \(step.id)")
-        }
-
         // Clear existing views and distance views
         recommendationsStackView.arrangedSubviews.forEach { $0.removeFromSuperview() }
         distanceViews.removeAll()

@@ -675,14 +675,56 @@ extension TRPSDKCoordinater: TRPTimelineFromItineraryViewModelDelegate {
         var updatedTimeline = timeline
         updatedTimeline.favouriteItems = itineraryModel.favouriteItems
 
-        // Convert tripItems to segments and add to timeline
+        // Check for missing booked activities from itineraryModel.tripItems
+        // Timeline already has segments from API, only add missing ones
         if let tripItems = itineraryModel.tripItems, !tripItems.isEmpty {
-            // Create timeline profile from bookings to get segments
-            let profileFromBookings = itineraryModel.createTimelineProfileFromBookings()
+            // Collect existing activity IDs from timeline segments
+            var existingActivityIds = Set<String>()
 
-            // Merge the segments from bookings into the timeline
-            if !profileFromBookings.segments.isEmpty {
-                updatedTimeline.segments = profileFromBookings.segments
+            // Check timeline.segments
+            if let segments = timeline.segments {
+                for segment in segments {
+                    if let activityId = segment.additionalData?.activityId {
+                        existingActivityIds.insert(activityId)
+                    }
+                }
+            }
+
+            // Check timeline.tripProfile.segments
+            if let profileSegments = timeline.tripProfile?.segments {
+                for segment in profileSegments {
+                    if let activityId = segment.additionalData?.activityId {
+                        existingActivityIds.insert(activityId)
+                    }
+                }
+            }
+
+            // Find tripItems that are NOT in timeline
+            let missingTripItems = tripItems.filter { tripItem in
+                guard let activityId = tripItem.activityId else { return false }
+                return !existingActivityIds.contains(activityId)
+            }
+
+            // If there are missing tripItems, create segments for them and add
+            if !missingTripItems.isEmpty {
+                Log.i("TRPSDKCoordinator: Found \(missingTripItems.count) missing booked activities to add")
+
+                // Create segments for missing items
+                var missingSegments: [TRPTimelineSegment] = []
+                for tripItem in missingTripItems {
+                    let segment = createSegmentFromTripItem(tripItem)
+                    missingSegments.append(segment)
+                }
+
+                // Add missing segments to timeline
+                if var existingSegments = updatedTimeline.segments {
+                    existingSegments.append(contentsOf: missingSegments)
+                    updatedTimeline.segments = existingSegments
+                } else {
+                    updatedTimeline.segments = missingSegments
+                }
+
+                // TODO: Call API to add missing segments to server if needed
             }
         }
 
@@ -702,5 +744,36 @@ extension TRPSDKCoordinater: TRPTimelineFromItineraryViewModelDelegate {
         DispatchQueue.main.async {
             self.navigationController.pushViewController(viewController, animated: true)
         }
+    }
+
+    /// Creates a TRPTimelineSegment from a TRPSegmentActivityItem
+    private func createSegmentFromTripItem(_ tripItem: TRPSegmentActivityItem) -> TRPTimelineSegment {
+        let segment = TRPTimelineSegment()
+
+        // Set segment type
+        segment.segmentType = .bookedActivity
+
+        // Set basic properties
+        segment.title = tripItem.title
+        segment.description = tripItem.description
+        segment.available = false // Booking products are fixed activities
+        segment.distinctPlan = true
+
+        // Set dates
+        segment.startDate = tripItem.startDatetime
+        segment.endDate = tripItem.endDatetime
+
+        // Set coordinate
+        segment.coordinate = tripItem.coordinate
+
+        // Set traveler counts
+        segment.adults = tripItem.adultCount
+        segment.children = tripItem.childCount
+        segment.pets = 0
+
+        // Set additional data (this is CRITICAL for booked activities)
+        segment.additionalData = tripItem
+
+        return segment
     }
 }

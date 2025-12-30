@@ -36,12 +36,12 @@ public struct TRPTimelinePlan: Codable {
         return steps.compactMap({$0.poi})
     }
     
-    public func getStartDate() -> Date {
-        return Date.fromString(startDate, format: "yyyy-MM-dd HH:mm") ?? Date()
+    public func getStartDate() -> Date? {
+        return Date.fromString(startDate, format: "yyyy-MM-dd HH:mm")
     }
     
-    public func getEndDate() -> Date {
-        return Date.fromString(endDate, format: "yyyy-MM-dd HH:mm") ?? Date()
+    public func getEndDate() -> Date? {
+        return Date.fromString(endDate, format: "yyyy-MM-dd HH:mm")
     }
 }
 

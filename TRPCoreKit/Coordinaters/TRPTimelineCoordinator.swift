@@ -81,8 +81,6 @@ public class TRPTimelineCoordinator: CoordinatorProtocol {
     /// This will create a timeline and wait for generation to complete
     /// - Parameter profile: Timeline profile with trip details (dates, travelers, city, etc.)
     public func start(with profile: TRPTimelineProfile) {
-        print("📝 [TRPTimelineCoordinator] Creating new timeline with profile")
-
         // Store the profile to merge segments later
         self.originalProfile = profile
 
@@ -93,15 +91,13 @@ public class TRPTimelineCoordinator: CoordinatorProtocol {
     /// This will fetch the timeline and display it immediately
     /// - Parameter tripHash: The trip hash for the existing timeline
     public func start(tripHash: String) {
-        print("🔍 [TRPTimelineCoordinator] Fetching existing timeline with hash: \(tripHash)")
-
         self.currentTripHash = tripHash
         fetchTimeline(tripHash: tripHash)
     }
 
     /// Start with default implementation (for protocol conformance)
     public func start() {
-        print("⚠️ [TRPTimelineCoordinator] start() called without parameters. Use start(with:) or start(tripHash:) instead.")
+        // Use start(with:) or start(tripHash:) instead
     }
 
     // MARK: - Private Methods - Timeline Creation Flow
@@ -116,12 +112,10 @@ public class TRPTimelineCoordinator: CoordinatorProtocol {
             DispatchQueue.main.async {
                 switch result {
                 case .success(let timeline):
-                    print("✅ [TRPTimelineCoordinator] Timeline created successfully")
                     self.currentTripHash = timeline.tripHash
                     self.checkTimelineGenerationStatus(tripHash: timeline.tripHash)
 
                 case .failure(let error):
-                    print("❌ [TRPTimelineCoordinator] Timeline creation failed: \(error.localizedDescription)")
                     self.hideLoadingIndicator()
                     self.showError(message: "Failed to create timeline. Please try again.")
                 }
@@ -178,11 +172,9 @@ public class TRPTimelineCoordinator: CoordinatorProtocol {
 
                 switch result {
                 case .success(let timeline):
-                    print("✅ [TRPTimelineCoordinator] Timeline fetched successfully")
                     self.openTimelineViewController(with: timeline)
 
                 case .failure(let error):
-                    print("❌ [TRPTimelineCoordinator] Timeline fetch failed: \(error.localizedDescription)")
                     self.showError(message: "Failed to load timeline. Please try again.")
                 }
             }
@@ -192,36 +184,20 @@ public class TRPTimelineCoordinator: CoordinatorProtocol {
     // MARK: - Private Methods - View Controllers
 
     private func openTimelineViewController(with timeline: TRPTimeline) {
-        print("\n🎬 [TRPTimelineCoordinator] openTimelineViewController called")
-        print("   - Timeline has \(timeline.segments?.count ?? 0) segments")
-        print("   - Timeline has \(timeline.plans?.count ?? 0) plans")
-        print("   - Original profile is \(originalProfile == nil ? "nil" : "not nil")")
-
         // Merge segments and favourites from original profile if available
         var updatedTimeline = timeline
 
         if let profile = originalProfile {
-            print("🔄 [TRPTimelineCoordinator] Merging segments and favourites from original profile")
-            print("   - Profile has \(profile.segments.count) segments")
-
             // Merge segments from profile (segments is non-optional array)
             if !profile.segments.isEmpty {
                 updatedTimeline.segments = profile.segments
-                print("   ✅ Added \(profile.segments.count) segments from profile")
-            } else {
-                print("   ⚠️ Profile segments array is empty")
             }
 
             // Merge favourite items from profile (favouriteItems is optional)
             if let favouriteItems = profile.favouriteItems, !favouriteItems.isEmpty {
                 updatedTimeline.favouriteItems = favouriteItems
-                print("   ✅ Added \(favouriteItems.count) favourite items from profile")
             }
-        } else {
-            print("⚠️ [TRPTimelineCoordinator] No original profile to merge - segments will not be added")
         }
-
-        print("   - Updated timeline has \(updatedTimeline.segments?.count ?? 0) segments")
 
         let viewModel = TRPTimelineItineraryViewModel(timeline: updatedTimeline)
         let viewController = TRPTimelineItineraryVC(viewModel: viewModel)
@@ -244,11 +220,9 @@ public class TRPTimelineCoordinator: CoordinatorProtocol {
             DispatchQueue.main.async {
                 switch result {
                 case .success(let timeline):
-                    print("✅ [TRPTimelineCoordinator] Timeline fetched for display")
                     self.openTimelineViewController(with: timeline)
 
                 case .failure(let error):
-                    print("❌ [TRPTimelineCoordinator] Failed to fetch timeline for display: \(error.localizedDescription)")
                     self.showError(message: "Failed to load timeline. Please try again.")
                 }
             }
@@ -329,7 +303,6 @@ public class TRPTimelineCoordinator: CoordinatorProtocol {
     deinit {
         // Remove observers
         observeTimelineAllPlan?.allSegmentGenerated.removeObserver(self)
-        print("🧹 [TRPTimelineCoordinator] Deallocated")
     }
 }
 
@@ -337,48 +310,36 @@ public class TRPTimelineCoordinator: CoordinatorProtocol {
 extension TRPTimelineCoordinator: TRPTimelineItineraryVCDelegate {
 
     public func timelineItineraryFilterPressed(_ viewController: TRPTimelineItineraryVC) {
-        print("🔍 [TRPTimelineCoordinator] Filter pressed")
         // TODO: Implement filter functionality
     }
 
     public func timelineItineraryAddPlansPressed(_ viewController: TRPTimelineItineraryVC) {
-        print("➕ [TRPTimelineCoordinator] Add plans pressed")
         // TODO: Implement add plans functionality
         // This will likely open the AddPlanContainer flow
     }
 
     public func timelineItineraryDidSelectStep(_ viewController: TRPTimelineItineraryVC, step: TRPTimelineStep) {
         guard let poi = step.poi else { return }
-        print("📍 [TRPTimelineCoordinator] Selected POI: \(poi.name)")
-
         // TODO: Open POI detail view
         // Example: openPoiDetail(poi: poi, step: step)
     }
 
     public func timelineItineraryDidSelectBookedActivity(_ viewController: TRPTimelineItineraryVC, segment: TRPTimelineSegment) {
-        print("🎫 [TRPTimelineCoordinator] Selected booked activity: \(segment.title ?? "Unknown")")
-
         // TODO: Open booked activity detail view
     }
 
     public func timelineItineraryAddButtonPressed(_ viewController: TRPTimelineItineraryVC, atSectionIndex: Int) {
-        print("➕ [TRPTimelineCoordinator] Add button pressed at section: \(atSectionIndex)")
-
         // TODO: Open add plans flow for specific section
     }
 
     public func timelineItineraryThumbsUpPressed(_ viewController: TRPTimelineItineraryVC, step: TRPTimelineStep) {
         guard let poi = step.poi else { return }
-        print("👍 [TRPTimelineCoordinator] Thumbs up for: \(poi.name)")
-
         // TODO: Send thumbs up reaction to API
         // Example: sendReaction(step: step, type: .thumbsUp)
     }
 
     public func timelineItineraryThumbsDownPressed(_ viewController: TRPTimelineItineraryVC, step: TRPTimelineStep) {
         guard let poi = step.poi else { return }
-        print("👎 [TRPTimelineCoordinator] Thumbs down for: \(poi.name)")
-
         // TODO: Send thumbs down reaction to API and possibly show alternatives
         // Example: sendReaction(step: step, type: .thumbsDown)
     }
@@ -388,8 +349,6 @@ extension TRPTimelineCoordinator: TRPTimelineItineraryVCDelegate {
 extension TRPTimelineCoordinator: TRPTimelineCustomNavigationBarDelegate {
 
     func customNavigationBarDidTapBack(_ navigationBar: TRPTimelineCustomNavigationBar) {
-        print("⬅️ [TRPTimelineCoordinator] Back button tapped")
-
         timelineViewController?.dismiss(animated: true) { [weak self] in
             guard let self = self else { return }
             self.delegate?.timelineCoordinatorDidClose(self)

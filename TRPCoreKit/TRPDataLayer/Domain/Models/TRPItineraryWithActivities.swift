@@ -62,19 +62,34 @@ public struct TRPSegmentFavoriteItem: Codable {
 
     public var activityId: String?
     public var title: String
+    public var cityName: String
     public var photoUrl: String?
     public var description: String?
     public var activityUrl: String?
-    public var coordinate: String
+    public var coordinate: TRPLocation
     public var rating: Float?
     public var ratingCount: Int?
     public var cancellation: String?
+    public var duration: Double?
     public var price: TRPSegmentActivityPrice?
     public var locations: [String]?
 
-    public init(activityId: String?, title: String, photoUrl: String?, description: String?, activityUrl: String?, coordinate: String, rating: Float?, ratingCount: Int?, cancellation: String?, price: TRPSegmentActivityPrice?, locations: [String]?) {
+    public init(activityId: String?,
+                title: String,
+                cityName: String,
+                photoUrl: String?,
+                description: String?,
+                activityUrl: String?,
+                coordinate: TRPLocation,
+                rating: Float?,
+                ratingCount: Int?,
+                cancellation: String?,
+                duration: Double?,
+                price: TRPSegmentActivityPrice?,
+                locations: [String]?) {
         self.activityId = activityId
         self.title = title
+        self.cityName = cityName
         self.photoUrl = photoUrl
         self.description = description
         self.activityUrl = activityUrl
@@ -84,11 +99,13 @@ public struct TRPSegmentFavoriteItem: Codable {
         self.cancellation = cancellation
         self.price = price
         self.locations = locations
+        self.duration = duration
     }
 
     enum CodingKeys: String, CodingKey {
         case activityId
         case title
+        case cityName
         case photoUrl
         case description
         case activityUrl
@@ -98,6 +115,7 @@ public struct TRPSegmentFavoriteItem: Codable {
         case cancellation
         case price
         case locations
+        case duration
     }
 
 }
@@ -115,8 +133,9 @@ public struct TRPSegmentActivityItem: Codable {
     public var cancellation: String?
     public var adultCount: Int = 1
     public var childCount: Int = 0
+    public var bookingUrl: String?
 
-    public init(activityId: String?, bookingId: String?, title: String?, imageUrl: String?, description: String?, startDatetime: String?, endDatetime: String?, coordinate: TRPLocation, cancellation: String?, adultCount: Int, childCount: Int) {
+    public init(activityId: String?, bookingId: String?, title: String?, imageUrl: String?, description: String?, startDatetime: String?, endDatetime: String?, coordinate: TRPLocation, cancellation: String?, adultCount: Int, childCount: Int, bookingUrl: String? = nil) {
         self.activityId = activityId
         self.bookingId = bookingId
         self.title = title
@@ -128,6 +147,7 @@ public struct TRPSegmentActivityItem: Codable {
         self.cancellation = cancellation
         self.adultCount = adultCount
         self.childCount = childCount
+        self.bookingUrl = bookingUrl
     }
 
     enum CodingKeys: String, CodingKey {
@@ -142,6 +162,7 @@ public struct TRPSegmentActivityItem: Codable {
         case cancellation
         case adultCount
         case childCount
+        case bookingUrl
     }
 
 }

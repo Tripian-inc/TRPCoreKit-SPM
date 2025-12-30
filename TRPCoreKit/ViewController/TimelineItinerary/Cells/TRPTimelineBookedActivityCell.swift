@@ -11,14 +11,17 @@ import SDWebImage
 
 protocol TRPTimelineBookedActivityCellDelegate: AnyObject {
     func bookedActivityCellDidTapMoreOptions(_ cell: TRPTimelineBookedActivityCell)
+    func bookedActivityCellDidTapReservation(_ cell: TRPTimelineBookedActivityCell, segment: TRPTimelineSegment)
 }
 
 class TRPTimelineBookedActivityCell: UITableViewCell {
-    
+
     static let reuseIdentifier = "TRPTimelineBookedActivityCell"
-    
+
     weak var delegate: TRPTimelineBookedActivityCellDelegate?
-    
+
+    private var segment: TRPTimelineSegment?
+
     // MARK: - UI Components
     private let containerView: UIView = {
         let view = UIView()
@@ -105,7 +108,13 @@ class TRPTimelineBookedActivityCell: UITableViewCell {
         label.textColor = ColorSet.greenAdvantage.uiColor
         return label
     }()
-    
+
+    private lazy var reservationButton: TRPButton = {
+        let button = TRPButton(title: TimelineLocalizationKeys.localized(TimelineLocalizationKeys.reservation), style: .primary, height: 40)
+        button.addTarget(self, action: #selector(reservationButtonTapped), for: .touchUpInside)
+        return button
+    }()
+
     // MARK: - Initialization
     override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
         super.init(style: style, reuseIdentifier: reuseIdentifier)
@@ -131,7 +140,8 @@ class TRPTimelineBookedActivityCell: UITableViewCell {
         containerView.addSubview(personIcon)
         containerView.addSubview(personLabel)
         containerView.addSubview(cancellationLabel)
-        
+        containerView.addSubview(reservationButton)
+
         setupConstraints()
     }
     
@@ -185,12 +195,19 @@ class TRPTimelineBookedActivityCell: UITableViewCell {
             // Cancellation Label
             cancellationLabel.topAnchor.constraint(equalTo: personIcon.bottomAnchor, constant: 8),
             cancellationLabel.leadingAnchor.constraint(equalTo: confirmedBadge.leadingAnchor),
-            cancellationLabel.bottomAnchor.constraint(equalTo: containerView.bottomAnchor, constant: -12),
+
+            // Reservation Button
+            reservationButton.topAnchor.constraint(equalTo: cancellationLabel.bottomAnchor, constant: 12),
+            reservationButton.leadingAnchor.constraint(equalTo: activityImageView.trailingAnchor, constant: 12),
+            reservationButton.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
+            reservationButton.bottomAnchor.constraint(equalTo: containerView.bottomAnchor, constant: -12),
         ])
     }
     
     // MARK: - Configuration
     func configure(with segment: TRPTimelineSegment) {
+        self.segment = segment
+
         guard let additionalData = segment.additionalData else {
             return
         }
@@ -198,17 +215,19 @@ class TRPTimelineBookedActivityCell: UITableViewCell {
         // Use additionalData for all information
         titleLabel.text = additionalData.title ?? segment.title ?? ""
 
-        // Configure badge based on segment type
+        // Configure badge and button based on segment type
         if segment.segmentType == .reservedActivity {
-            // Reserved activity - show "Reservation" badge
+            // Reserved activity - show "Reservation" badge and button
             confirmedBadge.text = TimelineLocalizationKeys.localized(TimelineLocalizationKeys.reservation)
             confirmedBadge.textColor = ColorSet.fgOrange.uiColor
             confirmedBadge.backgroundColor = ColorSet.bgOrange.uiColor
+            reservationButton.isHidden = false
         } else {
-            // Booked activity - show "Confirmed" badge
+            // Booked activity - show "Confirmed" badge, hide button
             confirmedBadge.text = TimelineLocalizationKeys.localized(TimelineLocalizationKeys.confirmed)
             confirmedBadge.textColor = ColorSet.fgGreen.uiColor
             confirmedBadge.backgroundColor = ColorSet.bgGreen.uiColor
+            reservationButton.isHidden = true
         }
         
         // Configure time from additionalData
@@ -270,6 +289,12 @@ class TRPTimelineBookedActivityCell: UITableViewCell {
             return ""
         }
         return validDate.toString(format: "dd/MM/yyyy HH:mm") ?? ""
+    }
+
+    // MARK: - Actions
+    @objc private func reservationButtonTapped() {
+        guard let segment = segment else { return }
+        delegate?.bookedActivityCellDidTapReservation(self, segment: segment)
     }
 }
 

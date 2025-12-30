@@ -11,14 +11,17 @@ import SDWebImage
 
 protocol TRPTimelineActivityStepCellDelegate: AnyObject {
     func activityStepCellDidTapMoreOptions(_ cell: TRPTimelineActivityStepCell)
+    func activityStepCellDidTapReservation(_ cell: TRPTimelineActivityStepCell, step: TRPTimelineStep)
 }
 
 class TRPTimelineActivityStepCell: UITableViewCell {
-    
+
     static let reuseIdentifier = "TRPTimelineActivityStepCell"
-    
+
     weak var delegate: TRPTimelineActivityStepCellDelegate?
-    
+
+    private var step: TRPTimelineStep?
+
     // MARK: - UI Components
     private let containerView: UIView = {
         let view = UIView()
@@ -90,7 +93,13 @@ class TRPTimelineActivityStepCell: UITableViewCell {
         label.numberOfLines = 2
         return label
     }()
-    
+
+    private lazy var reservationButton: TRPButton = {
+        let button = TRPButton(title: TimelineLocalizationKeys.localized(TimelineLocalizationKeys.reservation), style: .primary, height: 40)
+        button.addTarget(self, action: #selector(reservationButtonTapped), for: .touchUpInside)
+        return button
+    }()
+
     // MARK: - Initialization
     override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
         super.init(style: style, reuseIdentifier: reuseIdentifier)
@@ -115,6 +124,7 @@ class TRPTimelineActivityStepCell: UITableViewCell {
         containerView.addSubview(activityBadge)
         containerView.addSubview(ratingStack)
         containerView.addSubview(descriptionLabel)
+        containerView.addSubview(reservationButton)
 
         setupConstraints()
     }
@@ -164,12 +174,19 @@ class TRPTimelineActivityStepCell: UITableViewCell {
             descriptionLabel.topAnchor.constraint(equalTo: ratingStack.bottomAnchor, constant: 4),
             descriptionLabel.leadingAnchor.constraint(equalTo: activityBadge.leadingAnchor),
             descriptionLabel.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -12),
-            descriptionLabel.bottomAnchor.constraint(lessThanOrEqualTo: containerView.bottomAnchor, constant: -12),
+
+            // Reservation Button
+            reservationButton.topAnchor.constraint(equalTo: descriptionLabel.bottomAnchor, constant: 12),
+            reservationButton.leadingAnchor.constraint(equalTo: activityImageView.trailingAnchor, constant: 12),
+            reservationButton.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
+            reservationButton.bottomAnchor.constraint(equalTo: containerView.bottomAnchor, constant: -12),
         ])
     }
     
     // MARK: - Configuration
     func configure(with step: TRPTimelineStep, order: Int) {
+        self.step = step
+
         guard let poi = step.poi else {
             return
         }
@@ -224,5 +241,11 @@ class TRPTimelineActivityStepCell: UITableViewCell {
         } else if let gallery = poi.gallery, let firstImage = gallery.compactMap({ $0 }).first {
             activityImageView.sd_setImage(with: URL(string: firstImage.url), placeholderImage: nil)
         }
+    }
+
+    // MARK: - Actions
+    @objc private func reservationButtonTapped() {
+        guard let step = step else { return }
+        delegate?.activityStepCellDidTapReservation(self, step: step)
     }
 }

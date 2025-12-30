@@ -61,8 +61,6 @@ public class TRPTimelineMockCoordinator {
 extension TRPTimelineMockCoordinator: TRPTimelineItineraryVCDelegate {
     
     public func timelineItineraryFilterPressed(_ viewController: TRPTimelineItineraryVC) {
-        print("🔍 [Mock Coordinator] Filter button pressed")
-        
         // Show an alert for demo purposes
         let alert = UIAlertController(
             title: "Filter",

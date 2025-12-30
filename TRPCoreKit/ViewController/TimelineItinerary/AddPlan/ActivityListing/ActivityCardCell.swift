@@ -349,6 +349,82 @@ class ActivityCardCell: UITableViewCell {
             activityImageView.backgroundColor = ColorSet.neutral100.uiColor
         }
     }
+
+    /// Configure cell with TRPSegmentFavoriteItem (for saved plans)
+    func configure(with favoriteItem: TRPSegmentFavoriteItem, tourProduct: TRPTourProduct) {
+        // Store tour product for delegate callback
+        self.tour = tourProduct
+
+        titleLabel.text = favoriteItem.title
+
+        // Set rating
+        if let rating = favoriteItem.rating, let ratingCount = favoriteItem.ratingCount, ratingCount > 0 {
+            ratingLabel.text = String(format: "%.1f", rating)
+            reviewCountLabel.text = "\(ratingCount.formattedWithSeparator()) " +
+                                   AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.opinions)
+            ratingLabel.isHidden = false
+            starImageView.isHidden = false
+            reviewCountLabel.isHidden = false
+        } else {
+            ratingLabel.isHidden = true
+            starImageView.isHidden = true
+            reviewCountLabel.isHidden = true
+        }
+
+        // Duration not available in TRPSegmentFavoriteItem
+        durationIconImageView.isHidden = true
+        durationLabel.isHidden = true
+
+        // Language not available
+        languageIconImageView.isHidden = true
+        languageLabel.isHidden = true
+
+        // Free cancellation - show only if NOT non_refundable
+        if let cancellation = favoriteItem.cancellation,
+           !cancellation.isEmpty,
+           cancellation.lowercased() != "non_refundable" {
+            // Show localized "Free cancellation" text
+            freeCancellationLabel.text = AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.freeCancellation)
+            freeCancellationLabel.isHidden = false
+        } else {
+            freeCancellationLabel.isHidden = true
+        }
+
+        // Set price with currency
+        if let price = favoriteItem.price {
+            let currencySymbol = getCurrencySymbol(for: price.currency)
+            priceLabel.text = "\(currencySymbol)\(String(format: "%.2f", price.value))"
+        } else {
+            priceLabel.text = ""
+        }
+
+        // Hide discount info
+        originalPriceLabel.isHidden = true
+        discountLabel.isHidden = true
+
+        // Hide separator for saved plans screen
+        separatorView.isHidden = true
+
+        // Set activity image using SDWebImage
+        if let imageUrl = favoriteItem.photoUrl, let url = URL(string: imageUrl) {
+            activityImageView.sd_setImage(with: url, placeholderImage: nil)
+        } else {
+            activityImageView.image = nil
+            activityImageView.backgroundColor = ColorSet.neutral100.uiColor
+        }
+    }
+
+    /// Get currency symbol for currency code
+    private func getCurrencySymbol(for currencyCode: String) -> String {
+        switch currencyCode.uppercased() {
+        case "USD": return "$"
+        case "EUR": return "€"
+        case "GBP": return "£"
+        case "JPY": return "¥"
+        case "TRY": return "₺"
+        default: return currencyCode + " "
+        }
+    }
 }
 
 // MARK: - Int Extension

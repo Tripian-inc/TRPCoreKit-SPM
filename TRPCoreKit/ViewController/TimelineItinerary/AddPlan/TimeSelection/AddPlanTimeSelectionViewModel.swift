@@ -200,7 +200,6 @@ public class AddPlanTimeSelectionViewModel {
                 switch result {
                 case .success(let success):
                     if success {
-                        print("✅ [AddPlanTimeSelectionViewModel] Reserved activity segment created successfully")
                         self.delegate?.segmentCreationDidSucceed()
                     } else {
                         let error = NSError(domain: "AddPlanTimeSelection", code: -4, userInfo: [NSLocalizedDescriptionKey: "Failed to create reservation. Please try again."])
@@ -208,7 +207,6 @@ public class AddPlanTimeSelectionViewModel {
                     }
 
                 case .failure(let error):
-                    print("❌ [AddPlanTimeSelectionViewModel] Segment creation failed: \(error.localizedDescription)")
                     self.delegate?.viewModel(error: error)
                 }
             }

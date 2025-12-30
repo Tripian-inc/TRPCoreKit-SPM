@@ -73,6 +73,9 @@ public struct AddPlanLocalizationKeys {
     // MARK: - Empty State
     public static let addSavedPlansToItinerary = "addPlan.emptyState.addSavedPlansToItinerary"
 
+    // MARK: - Saved Plans Screen
+    public static let savedPlans = "addPlan.title.savedPlans"
+
     // MARK: - Error Messages
     public static let errorMissingData = "trips.myTrips.timelineitinerary.addPlan.error.missingData"
     public static let errorCreateFailed = "trips.myTrips.timelineitinerary.addPlan.error.createFailed"
@@ -125,6 +128,7 @@ public struct AddPlanLocalizationKeys {
         activity: "activity",
         activities: "activities",
         addSavedPlansToItinerary: "Add your saved plans to the itinerary",
+        savedPlans: "Saved Plans",
         errorMissingData: "Missing required information. Please complete all fields.",
         errorCreateFailed: "Failed to create smart recommendation. Please try again."
     ]

@@ -717,9 +717,14 @@ extension TRPTimelineItineraryVC: TRPTimelineDayFilterViewDelegate {
         viewModel.selectDay(at: dayIndex)
         tableView.reloadData()
 
-        // Scroll table view to top to show section header
-        if viewModel.numberOfSections() > 0 {
-            tableView.setContentOffset(CGPoint(x: 0, y: -tableView.contentInset.top), animated: true)
+        // Scroll table view to top after reload
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            if self.viewModel.numberOfSections() > 0 && self.viewModel.numberOfRows(in: 0) > 0 {
+                self.tableView.scrollToRow(at: IndexPath(row: 0, section: 0), at: .top, animated: true)
+            } else {
+                self.tableView.setContentOffset(.zero, animated: true)
+            }
         }
 
         // If map is showing, refresh it and update POI cards
@@ -775,17 +780,33 @@ extension TRPTimelineItineraryVC: TRPTimelineDayFilterViewDelegate {
 
 // MARK: - TRPTimelineBookedActivityCellDelegate
 extension TRPTimelineItineraryVC: TRPTimelineBookedActivityCellDelegate {
-    
+
     func bookedActivityCellDidTapMoreOptions(_ cell: TRPTimelineBookedActivityCell) {
         // Handle more options
+    }
+
+    func bookedActivityCellDidTapReservation(_ cell: TRPTimelineBookedActivityCell, segment: TRPTimelineSegment) {
+        // Notify delegate about activity reservation request
+        guard let activityId = segment.additionalData?.activityId else {
+            return
+        }
+        TRPCoreKit.shared.delegate?.trpCoreKitDidRequestActivityReservation(activityId: activityId)
     }
 }
 
 // MARK: - TRPTimelineActivityStepCellDelegate
 extension TRPTimelineItineraryVC: TRPTimelineActivityStepCellDelegate {
-    
+
     func activityStepCellDidTapMoreOptions(_ cell: TRPTimelineActivityStepCell) {
         // Handle more options for activity steps
+    }
+
+    func activityStepCellDidTapReservation(_ cell: TRPTimelineActivityStepCell, step: TRPTimelineStep) {
+        // Notify delegate about activity reservation request
+        guard let activityId = step.poi?.id else {
+            return
+        }
+        TRPCoreKit.shared.delegate?.trpCoreKitDidRequestActivityReservation(activityId: activityId)
     }
 }
 
@@ -832,10 +853,7 @@ extension TRPTimelineItineraryVC: TRPTimelineRecommendationsCellDelegate {
     
     func recommendationsCellDidSelectStep(_ cell: TRPTimelineRecommendationsCell, step: TRPTimelineStep) {
         // Open new POI detail view controller
-        guard step.poi != nil else {
-            print("⚠️ [TRPTimelineItineraryVC] Could not open POI detail - POI is nil")
-            return
-        }
+        guard step.poi != nil else { return }
 
         let viewModel = TimelinePoiDetailViewModel(step: step)
         let detailVC = TimelinePoiDetailViewController(viewModel: viewModel)
@@ -1157,11 +1175,38 @@ extension TRPTimelineItineraryVC: TRPTimelineItineraryViewModelDelegate {
 
 // MARK: - TRPTimelineSavedPlansButtonDelegate
 extension TRPTimelineItineraryVC: TRPTimelineSavedPlansButtonDelegate {
-    
+
     func savedPlansButtonDidTap(_ button: TRPTimelineSavedPlansButton) {
-        // TODO: Open saved/favorite plans list
-        // For now, just launch add plan flow
-        showAddPlanFlow()
+        // Open saved/favorite plans list
+        showSavedPlans()
+    }
+
+    private func showSavedPlans() {
+        let favouriteItems = viewModel.getFavoriteItems()
+        let tripHash = viewModel.getTripHash()
+        let availableDays = viewModel.getDayDates()
+        let availableCities = viewModel.getCities()
+
+        let savedPlansViewModel = SavedPlansViewModel(
+            favouriteItems: favouriteItems,
+            tripHash: tripHash,
+            availableDays: availableDays,
+            availableCities: availableCities
+        )
+
+        let savedPlansVC = SavedPlansVC(viewModel: savedPlansViewModel)
+
+        // Set callback for segment creation
+        savedPlansVC.onSegmentCreated = { [weak self] in
+            guard let self = self else { return }
+            // Refresh timeline after segment is created
+            self.refreshTimeline()
+        }
+
+        // Present in navigation controller
+        let navController = UINavigationController(rootViewController: savedPlansVC)
+        navController.modalPresentationStyle = .fullScreen
+        present(navController, animated: true)
     }
 }
 

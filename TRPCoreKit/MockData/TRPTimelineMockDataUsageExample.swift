@@ -124,7 +124,7 @@ class TRPTimelineMockDataUsageExample {
         
         // Filter plans for Day 2 (December 8th)
         let day2Plans = mockTimeline.plans?.filter { plan in
-            plan.getStartDate().toString(format: "yyyy-MM-dd") == "2025-12-08"
+            plan.getStartDate()?.toString(format: "yyyy-MM-dd") == "2025-12-08"
         }
         
         print("Day 2 has \(day2Plans?.count ?? 0) alternative plans")
