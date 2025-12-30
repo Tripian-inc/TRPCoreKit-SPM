@@ -158,69 +158,118 @@ public class TRPTimelineItineraryViewModel {
             return
         }
 
-        // Collect segments from both sources: timeline.tripProfile.segments and timeline.segments
-        // IMPORTANT: tripProfile.segments has priority because it contains the correct API response data
-        var allSegments: [TRPTimelineSegment] = []
-        var addedSegmentIds = Set<String>() // Track added segments to avoid duplicates
+        // IMPORTANT: Process segments in the order they appear in tripProfile.segments
+        // This preserves the API response order
+        // tripProfile.segments[i] and plans[i] represent the SAME segment (index-based mapping)
 
-        // FIRST: Add segments from timeline.tripProfile.segments (API response - has correct data)
+        var items: [TimelineItem] = []
+        var planIndex = 0 // Track which plan corresponds to current segment
+        var processedSegmentIds = Set<String>()
+        var earliestDateString: String?
+
+        // Process tripProfile.segments in order (API response order)
         if let profileSegments = timeline.tripProfile?.segments {
             for segment in profileSegments {
                 let segmentId = getSegmentUniqueId(segment)
-                if !addedSegmentIds.contains(segmentId) {
-                    allSegments.append(segment)
-                    addedSegmentIds.insert(segmentId)
+
+                // Skip duplicates
+                guard !processedSegmentIds.contains(segmentId) else { continue }
+                processedSegmentIds.insert(segmentId)
+
+                // Update earliest date for filtering
+                var segmentStartDateStr = segment.additionalData?.startDatetime ?? segment.startDate
+                if let dateStr = segmentStartDateStr {
+                    let segmentDateString = String(dateStr.prefix(10))
+                    if earliestDateString == nil || segmentDateString < earliestDateString! {
+                        earliestDateString = segmentDateString
+                    }
                 }
-            }
-        }
 
-        // SECOND: Add segments from timeline.segments (only missing ones)
-        if let segments = timeline.segments {
-            for segment in segments {
-                // Use unique identifier: activityId from additionalData or segment hash
-                let segmentId = getSegmentUniqueId(segment)
-                if !addedSegmentIds.contains(segmentId) {
-                    allSegments.append(segment)
-                    addedSegmentIds.insert(segmentId)
-                }
-            }
-        }
+                // Determine segment type and create appropriate TimelineItem
+                if let additionalData = segment.additionalData {
+                    // Booked or reserved activity segment
+                    segment.startDate = additionalData.startDatetime
+                    segment.endDate = additionalData.endDatetime
 
-        // Store start date for filtering
-        // Find the earliest date from BOTH plans AND segments to ensure consistency with getDayDates()
-        // Use string-based comparison to avoid timezone issues
-        var earliestDateString: String?
+                    if segment.segmentType == .reservedActivity {
+                        items.append(.reservedActivitySegment(segment))
+                    } else {
+                        segment.segmentType = .bookedActivity
+                        items.append(.bookedActivitySegment(segment))
+                    }
+                } else if segment.segmentType == .itinerary {
+                    // Itinerary segment - get corresponding plan using index
+                    if let plans = timeline.plans, planIndex < plans.count {
+                        let plan = plans[planIndex]
+                        planIndex += 1
 
-        // Check plans for earliest date
-        if let plans = timeline.plans {
-            for plan in plans {
-                let planStartDate = plan.startDate
-                if !planStartDate.isEmpty {
-                    // Extract only date portion (yyyy-MM-dd)
-                    let planDateString = String(planStartDate.prefix(10))
-                    if earliestDateString == nil || planDateString < earliestDateString! {
-                        earliestDateString = planDateString
+                        // Update earliest date from plan
+                        let planStartDate = plan.startDate
+                        if !planStartDate.isEmpty {
+                            let planDateString = String(planStartDate.prefix(10))
+                            if earliestDateString == nil || planDateString < earliestDateString! {
+                                earliestDateString = planDateString
+                            }
+                        }
+
+                        if !plan.steps.isEmpty {
+                            items.append(.poiSteps(plan.steps, plan.city))
+                        }
                     }
                 }
             }
         }
 
-        // Check segments for earliest date
-        // Check both segment.startDate and segment.additionalData.startDatetime
-        for segment in allSegments {
-            // First try additionalData.startDatetime (for booked/reserved activities)
-            var segmentStartDateStr = segment.additionalData?.startDatetime
+        // Also check timeline.segments for any missing segments
+        if let segments = timeline.segments {
+            for segment in segments {
+                let segmentId = getSegmentUniqueId(segment)
 
-            // If not available, try segment.startDate directly (for itinerary segments)
-            if segmentStartDateStr == nil {
-                segmentStartDateStr = segment.startDate
+                // Skip if already processed
+                guard !processedSegmentIds.contains(segmentId) else { continue }
+                processedSegmentIds.insert(segmentId)
+
+                // Update earliest date
+                var segmentStartDateStr = segment.additionalData?.startDatetime ?? segment.startDate
+                if let dateStr = segmentStartDateStr {
+                    let segmentDateString = String(dateStr.prefix(10))
+                    if earliestDateString == nil || segmentDateString < earliestDateString! {
+                        earliestDateString = segmentDateString
+                    }
+                }
+
+                // Process segment
+                if let additionalData = segment.additionalData {
+                    segment.startDate = additionalData.startDatetime
+                    segment.endDate = additionalData.endDatetime
+
+                    if segment.segmentType == .reservedActivity {
+                        items.append(.reservedActivitySegment(segment))
+                    } else {
+                        segment.segmentType = .bookedActivity
+                        items.append(.bookedActivitySegment(segment))
+                    }
+                }
             }
+        }
 
-            if let dateStr = segmentStartDateStr {
-                // Extract only date portion (yyyy-MM-dd)
-                let segmentDateString = String(dateStr.prefix(10))
-                if earliestDateString == nil || segmentDateString < earliestDateString! {
-                    earliestDateString = segmentDateString
+        // Process any remaining plans that weren't matched to segments
+        if let plans = timeline.plans {
+            for (index, plan) in plans.enumerated() {
+                // Skip plans that were already processed via tripProfile.segments
+                guard index >= planIndex else { continue }
+
+                // Update earliest date
+                let planStartDate = plan.startDate
+                if !planStartDate.isEmpty {
+                    let planDateString = String(planStartDate.prefix(10))
+                    if earliestDateString == nil || planDateString < earliestDateString! {
+                        earliestDateString = planDateString
+                    }
+                }
+
+                if !plan.steps.isEmpty {
+                    items.append(.poiSteps(plan.steps, plan.city))
                 }
             }
         }
@@ -235,50 +284,10 @@ public class TRPTimelineItineraryViewModel {
             startDate = nil
         }
 
-        var items: [TimelineItem] = []
+        // NOTE: Do NOT sort items - preserve API response order
+        // API returns segments in the correct order, we only need to filter by day and group by city for headers
 
-        // 1. Process activity segments (booked and reserved - those with additionalData)
-
-        // Process all collected segments
-        for segment in allSegments {
-            if let additionalData = segment.additionalData {
-                // Copy dates from additionalData to segment for sorting/filtering
-                segment.startDate = additionalData.startDatetime
-                segment.endDate = additionalData.endDatetime
-
-                // Check segment type to distinguish between booked and reserved
-                if segment.segmentType == .reservedActivity {
-                    items.append(.reservedActivitySegment(segment))
-                } else {
-                    // Default to booked activity (bookedActivity or if type not set)
-                    segment.segmentType = .bookedActivity
-                    items.append(.bookedActivitySegment(segment))
-                }
-            }
-        }
-        
-        // 2. Process plan steps (include all steps in recommendations)
-        if let plans = timeline.plans {
-            for plan in plans {
-                // Add all steps together (POI and activity) for recommendations cell
-                // Include plan's city for proper city grouping
-                if !plan.steps.isEmpty {
-                    items.append(.poiSteps(plan.steps, plan.city))
-                }
-            }
-        }
-
-        // 3. Sort all items by start time first
-        items.sort { item1, item2 in
-            let date1 = getItemStartDate(item1)
-            let date2 = getItemStartDate(item2)
-            return date1 < date2
-        }
-
-        // 4. Group items by city (first segment's city comes first)
-        items = groupItemsByCity(items)
-
-        // 5. Each item becomes its own section
+        // Each item becomes its own section
         allTimelineItems = items.map { [$0] }
 
         filterItemsByDay(selectedDayIndex)
@@ -484,19 +493,9 @@ public class TRPTimelineItineraryViewModel {
                 filtered.append(filteredGroup)
             }
         }
-        
-        // Sort each filtered group by start time
-        var sorted: [[TimelineItem]] = []
-        for var group in filtered {
-            group.sort { item1, item2 in
-                let date1 = getItemStartDate(item1)
-                let date2 = getItemStartDate(item2)
-                return date1 < date2
-            }
-            sorted.append(group)
-        }
 
-        filteredTimelineItems = sorted
+        // NOTE: Do NOT sort - preserve API response order
+        filteredTimelineItems = filtered
     }
 
     /// Generates a unique identifier for a segment to avoid duplicates
@@ -1043,7 +1042,25 @@ public class TRPTimelineItineraryViewModel {
 
         return bookedActivities
     }
-    
+
+    /// Get all booked and reserved activities (for all days, used in POI selection)
+    public func getAllBookedActivities() -> [TRPTimelineSegment] {
+        var bookedActivities: [TRPTimelineSegment] = []
+
+        for sectionItems in allTimelineItems {
+            for item in sectionItems {
+                switch item {
+                case .bookedActivitySegment(let segment), .reservedActivitySegment(let segment):
+                    bookedActivities.append(segment)
+                default:
+                    break
+                }
+            }
+        }
+
+        return bookedActivities
+    }
+
     /// Get count of reserved activities (saved plans that haven't been purchased)
     public func getReservedActivitiesCount() -> Int {
         var count = 0

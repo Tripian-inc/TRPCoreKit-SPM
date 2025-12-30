@@ -262,9 +262,6 @@ class TRPTimelineMockDataUsageExample {
     func example9_CustomDelegateImplementation() {
         // Create a custom delegate
         class TimelineDelegate: TRPTimelineItineraryVCDelegate {
-            func timelineItineraryDidRequestActivityReservation(_ viewController: TRPTimelineItineraryVC, activityId: String) {
-                
-            }
             
             func timelineItineraryFilterPressed(_ viewController: TRPTimelineItineraryVC) {
                 print("Filter button pressed")
@@ -286,12 +283,16 @@ class TRPTimelineMockDataUsageExample {
                 print("Add button pressed at section: \(atSectionIndex)")
             }
             
-            func timelineItineraryThumbsUpPressed(_ viewController: TRPTimelineItineraryVC, step: TRPTimelineStep) {
-                print("Thumbs up for: \(step.poi?.name ?? "Unknown")")
+            func timelineItineraryChangeTimePressed(_ viewController: TRPTimelineItineraryVC, step: TRPTimelineStep) {
+                print("Change time for: \(step.poi?.name ?? "Unknown")")
             }
-            
-            func timelineItineraryThumbsDownPressed(_ viewController: TRPTimelineItineraryVC, step: TRPTimelineStep) {
-                print("Thumbs down for: \(step.poi?.name ?? "Unknown")")
+
+            func timelineItineraryRemoveStepPressed(_ viewController: TRPTimelineItineraryVC, step: TRPTimelineStep) {
+                print("Remove step: \(step.poi?.name ?? "Unknown")")
+            }
+
+            func timelineItineraryDidRequestActivityReservation(_ viewController: TRPTimelineItineraryVC, activityId: String) {
+                print("Reservation requested for activity: \(activityId)")
             }
         }
         

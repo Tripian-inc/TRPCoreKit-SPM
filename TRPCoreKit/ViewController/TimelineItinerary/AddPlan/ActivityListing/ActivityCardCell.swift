@@ -296,7 +296,7 @@ class ActivityCardCell: UITableViewCell {
         // Set rating
         if tour.isRatingAvailable() {
             ratingLabel.text = String(format: "%.1f", tour.rating ?? 0)
-            reviewCountLabel.text = "\(tour.ratingCount?.formattedWithSeparator() ?? "0") " +
+            reviewCountLabel.text = "\(tour.ratingCount?.formattedWithSeparator ?? "0") " +
                                    AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.opinions)
             ratingLabel.isHidden = false
             starImageView.isHidden = false
@@ -360,7 +360,7 @@ class ActivityCardCell: UITableViewCell {
         // Set rating
         if let rating = favoriteItem.rating, let ratingCount = favoriteItem.ratingCount, ratingCount > 0 {
             ratingLabel.text = String(format: "%.1f", rating)
-            reviewCountLabel.text = "\(ratingCount.formattedWithSeparator()) " +
+            reviewCountLabel.text = "\(ratingCount.formattedWithSeparator) " +
                                    AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.opinions)
             ratingLabel.isHidden = false
             starImageView.isHidden = false
@@ -424,16 +424,5 @@ class ActivityCardCell: UITableViewCell {
         case "TRY": return "₺"
         default: return currencyCode + " "
         }
-    }
-}
-
-// MARK: - Int Extension
-
-extension Int {
-    func formattedWithSeparator() -> String {
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .decimal
-        formatter.groupingSeparator = "."
-        return formatter.string(from: NSNumber(value: self)) ?? "\(self)"
     }
 }

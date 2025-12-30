@@ -347,16 +347,14 @@ extension TRPTimelineCoordinator: TRPTimelineItineraryVCDelegate {
         // TODO: Open add plans flow for specific section
     }
 
-    public func timelineItineraryThumbsUpPressed(_ viewController: TRPTimelineItineraryVC, step: TRPTimelineStep) {
-        guard let poi = step.poi else { return }
-        // TODO: Send thumbs up reaction to API
-        // Example: sendReaction(step: step, type: .thumbsUp)
+    public func timelineItineraryChangeTimePressed(_ viewController: TRPTimelineItineraryVC, step: TRPTimelineStep) {
+        // TODO: Open change time flow for the step
+        // Example: openChangeTimeFlow(step: step)
     }
 
-    public func timelineItineraryThumbsDownPressed(_ viewController: TRPTimelineItineraryVC, step: TRPTimelineStep) {
-        guard let poi = step.poi else { return }
-        // TODO: Send thumbs down reaction to API and possibly show alternatives
-        // Example: sendReaction(step: step, type: .thumbsDown)
+    public func timelineItineraryRemoveStepPressed(_ viewController: TRPTimelineItineraryVC, step: TRPTimelineStep) {
+        // TODO: Remove step from timeline
+        // Example: removeStep(step: step)
     }
 
     public func timelineItineraryDidRequestActivityReservation(_ viewController: TRPTimelineItineraryVC, activityId: String) {

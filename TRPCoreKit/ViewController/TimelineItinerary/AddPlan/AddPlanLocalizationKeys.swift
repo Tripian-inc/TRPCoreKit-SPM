@@ -38,6 +38,7 @@ public struct AddPlanLocalizationKeys {
     public static let selectDateAndTime = "addPlan.label.selectDateAndTime"
     public static let selectTravelers = "addPlan.label.selectTravelers"
     public static let travelers = "addPlan.label.travelers"
+    public static let selectATime = "addPlan.label.selectATime"
     
     // MARK: - POI Selection
     public static let searchPOI = "addPlan.placeholder.searchPOI"
@@ -104,6 +105,7 @@ public struct AddPlanLocalizationKeys {
         selectDateAndTime: "Select Date and Time",
         selectTravelers: "Select Travelers",
         travelers: "Travelers",
+        selectATime: "Select a time",
         searchPOI: "Search for a place",
         nearMe: "Near me",
         cityCenter: "City Center",

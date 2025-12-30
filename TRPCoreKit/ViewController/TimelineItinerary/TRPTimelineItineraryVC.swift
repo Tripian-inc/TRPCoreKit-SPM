@@ -15,8 +15,8 @@ public protocol TRPTimelineItineraryVCDelegate: AnyObject {
     func timelineItineraryDidSelectStep(_ viewController: TRPTimelineItineraryVC, step: TRPTimelineStep)
     func timelineItineraryDidSelectBookedActivity(_ viewController: TRPTimelineItineraryVC, segment: TRPTimelineSegment)
     func timelineItineraryAddButtonPressed(_ viewController: TRPTimelineItineraryVC, atSectionIndex: Int)
-    func timelineItineraryThumbsUpPressed(_ viewController: TRPTimelineItineraryVC, step: TRPTimelineStep)
-    func timelineItineraryThumbsDownPressed(_ viewController: TRPTimelineItineraryVC, step: TRPTimelineStep)
+    func timelineItineraryChangeTimePressed(_ viewController: TRPTimelineItineraryVC, step: TRPTimelineStep)
+    func timelineItineraryRemoveStepPressed(_ viewController: TRPTimelineItineraryVC, step: TRPTimelineStep)
     func timelineItineraryDidRequestActivityReservation(_ viewController: TRPTimelineItineraryVC, activityId: String)
 }
 
@@ -861,24 +861,29 @@ extension TRPTimelineItineraryVC: TRPTimelineRecommendationsCellDelegate {
         navigationController?.pushViewController(detailVC, animated: true)
     }
     
-    func recommendationsCellDidTapThumbsUp(_ cell: TRPTimelineRecommendationsCell, step: TRPTimelineStep) {
-        delegate?.timelineItineraryThumbsUpPressed(self, step: step)
+    func recommendationsCellDidTapChangeTime(_ cell: TRPTimelineRecommendationsCell, step: TRPTimelineStep) {
+        delegate?.timelineItineraryChangeTimePressed(self, step: step)
     }
-    
-    func recommendationsCellDidTapThumbsDown(_ cell: TRPTimelineRecommendationsCell, step: TRPTimelineStep) {
-        delegate?.timelineItineraryThumbsDownPressed(self, step: step)
+
+    func recommendationsCellDidTapRemoveStep(_ cell: TRPTimelineRecommendationsCell, step: TRPTimelineStep) {
+        delegate?.timelineItineraryRemoveStepPressed(self, step: step)
     }
 
     func recommendationsCellDidTapReservation(_ cell: TRPTimelineRecommendationsCell, step: TRPTimelineStep) {
         // Handle reservation tap for activity steps
-        // Get product ID from POI's bookings
-        guard let poi = step.poi,
-              let booking = poi.bookings?.first,
-              let product = booking.firstProduct() else {
-            return
+        // Try to get product ID from POI's bookings first, fallback to POI id
+        guard let poi = step.poi else { return }
+
+        let activityId: String
+        if let booking = poi.bookings?.first, let product = booking.firstProduct() {
+            activityId = product.id
+        } else {
+            // Fallback to POI id if no booking product available
+            activityId = poi.id
         }
+
         // Delegate to coordinator to open reservation flow
-        delegate?.timelineItineraryDidRequestActivityReservation(self, activityId: product.id)
+        delegate?.timelineItineraryDidRequestActivityReservation(self, activityId: activityId)
     }
 
     func recommendationsCellNeedsRouteCalculation(_ cell: TRPTimelineRecommendationsCell, from: TRPLocation, to: TRPLocation, index: Int) {
@@ -1063,11 +1068,13 @@ extension TRPTimelineItineraryVC {
         let days = viewModel.getDayDates()
         let cities = viewModel.getCities()
         let selectedDayIndex = viewModel.selectedDayIndex
-        
+        let bookedActivities = viewModel.getAllBookedActivities()
+
         // Create container view model
         let containerViewModel = AddPlanContainerViewModel(days: days,
                                                            cities: cities,
-                                                           selectedDayIndex: selectedDayIndex)
+                                                           selectedDayIndex: selectedDayIndex,
+                                                           bookedActivities: bookedActivities)
 
         // Inject tripHash into planData
         containerViewModel.planData.tripHash = viewModel.getTripHash()

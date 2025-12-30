@@ -375,13 +375,16 @@ public class AddPlanTimeAndTravelersVC: TRPBaseUIViewController {
     // MARK: - Actions
     @objc private func startingPointButtonTapped() {
         let poiSelectionViewModel = AddPlanPOISelectionViewModel(
-            savedPOIs: viewModel.getSavedPOIs(),
             cityName: viewModel.getCityName(),
-            cityCenterPOI: viewModel.getCityCenterPOI()
+            cityCenterPOI: viewModel.getCityCenterPOI(),
+            bookedActivities: viewModel.getBookedActivities(),
+            boundarySW: viewModel.getBoundarySW(),
+            boundaryNE: viewModel.getBoundaryNE()
         )
         let poiSelectionVC = AddPlanPOISelectionVC()
         poiSelectionVC.viewModel = poiSelectionViewModel
-        poiSelectionVC.onLocationSelected = { [weak self] coordinate, name in
+        poiSelectionVC.modalPresentationStyle = .fullScreen
+        poiSelectionVC.onLocationSelected = { [weak self] coordinate, name, _ in
             self?.handleLocationSelected(coordinate: coordinate, name: name)
         }
 

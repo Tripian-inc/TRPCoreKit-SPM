@@ -35,21 +35,23 @@ public enum AddPlanMode {
 }
 
 public class AddPlanContainerViewModel {
-    
+
     // MARK: - Properties
     public weak var delegate: AddPlanContainerViewModelDelegate?
     private var currentStep: AddPlanSteps = .selectDayAndCity
     public var planData = AddPlanData()
-    
+
     private let availableDays: [Date]
     private let availableCities: [TRPCity]
     private let selectedDayIndex: Int
-    
+    private let bookedActivities: [TRPTimelineSegment]
+
     // MARK: - Initialization
-    public init(days: [Date], cities: [TRPCity], selectedDayIndex: Int) {
+    public init(days: [Date], cities: [TRPCity], selectedDayIndex: Int, bookedActivities: [TRPTimelineSegment] = []) {
         self.availableDays = days
         self.availableCities = cities
         self.selectedDayIndex = selectedDayIndex
+        self.bookedActivities = bookedActivities
 
         // Pre-select day and city
         if selectedDayIndex < days.count {
@@ -103,5 +105,9 @@ public class AddPlanContainerViewModel {
     
     public func getSelectedDayIndex() -> Int {
         return selectedDayIndex
+    }
+
+    public func getBookedActivities() -> [TRPTimelineSegment] {
+        return bookedActivities
     }
 }

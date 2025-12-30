@@ -169,65 +169,51 @@ extension TRPTimelineMockCoordinator: TRPTimelineItineraryVCDelegate {
         viewController.present(alert, animated: true)
     }
     
-    public func timelineItineraryThumbsUpPressed(_ viewController: TRPTimelineItineraryVC, step: TRPTimelineStep) {
+    public func timelineItineraryChangeTimePressed(_ viewController: TRPTimelineItineraryVC, step: TRPTimelineStep) {
         guard let poi = step.poi else { return }
-        
-        print("👍 [Mock Coordinator] Thumbs up for: \(poi.name)")
-        
-        // Show feedback for demo purposes
+
+        print("🕐 [Mock Coordinator] Change time for: \(poi.name)")
+
+        // Show time picker for demo purposes
         let alert = UIAlertController(
-            title: "Great!",
-            message: "You liked \(poi.name)",
+            title: "Change Time",
+            message: "Select new time for \(poi.name)",
             preferredStyle: .alert
         )
         alert.addAction(UIAlertAction(title: "OK", style: .default))
+        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
         viewController.present(alert, animated: true)
-        
+
         // In real implementation, this would:
-        // - Send reaction to API
-        // - Update local data
+        // - Open time picker
+        // - Update step time via API
         // - Refresh UI
     }
-    
-    public func timelineItineraryThumbsDownPressed(_ viewController: TRPTimelineItineraryVC, step: TRPTimelineStep) {
+
+    public func timelineItineraryRemoveStepPressed(_ viewController: TRPTimelineItineraryVC, step: TRPTimelineStep) {
         guard let poi = step.poi else { return }
-        
-        print("👎 [Mock Coordinator] Thumbs down for: \(poi.name)")
-        
-        // Show action sheet for demo purposes
+
+        print("🗑️ [Mock Coordinator] Remove step: \(poi.name)")
+
+        // Show confirmation for demo purposes
         let alert = UIAlertController(
-            title: "Not interested?",
-            message: "What would you like to do with \(poi.name)?",
-            preferredStyle: .actionSheet
+            title: "Remove Step",
+            message: "Are you sure you want to remove \(poi.name) from your itinerary?",
+            preferredStyle: .alert
         )
-        
-        alert.addAction(UIAlertAction(title: "Remove from itinerary", style: .destructive) { _ in
-            print("🗑️ [Mock Coordinator] Remove \(poi.name) from itinerary")
-            // In real implementation, remove the step
+
+        alert.addAction(UIAlertAction(title: "Remove", style: .destructive) { _ in
+            print("🗑️ [Mock Coordinator] Confirmed removal of \(poi.name)")
+            // In real implementation, remove the step via API
         })
-        
-        alert.addAction(UIAlertAction(title: "Replace with alternative", style: .default) { _ in
-            print("🔄 [Mock Coordinator] Replace \(poi.name) with alternative")
-            // In real implementation, show alternatives
-        })
-        
+
         alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
-        
-        // For iPad support
-        if let popoverController = alert.popoverPresentationController {
-            popoverController.sourceView = viewController.view
-            popoverController.sourceRect = CGRect(x: viewController.view.bounds.midX,
-                                                  y: viewController.view.bounds.midY,
-                                                  width: 0, height: 0)
-            popoverController.permittedArrowDirections = []
-        }
-        
+
         viewController.present(alert, animated: true)
-        
+
         // In real implementation, this would:
-        // - Send reaction to API
+        // - Send delete request to API
         // - Update local data
-        // - Possibly fetch alternatives
         // - Refresh UI
     }
 }

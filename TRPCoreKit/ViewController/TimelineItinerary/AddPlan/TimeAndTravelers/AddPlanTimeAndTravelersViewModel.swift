@@ -138,12 +138,26 @@ public class AddPlanTimeAndTravelersViewModel {
         containerViewModel?.planData.travelers = 1
     }
     
+    // MARK: - POI Selection Data
+
+    public func getBookedActivities() -> [TRPTimelineSegment] {
+        return containerViewModel?.getBookedActivities() ?? []
+    }
+
+    public func getBoundarySW() -> TRPLocation? {
+        return containerViewModel?.planData.selectedCity?.boundarySouthWest
+    }
+
+    public func getBoundaryNE() -> TRPLocation? {
+        return containerViewModel?.planData.selectedCity?.boundaryNorthEast
+    }
+
     // MARK: - Private Methods
     private func createCityCenterLocation() -> TRPLocation? {
         guard let city = containerViewModel?.planData.selectedCity else { return nil }
         return city.coordinate
     }
-    
+
     // Keep this method for backwards compatibility if needed elsewhere
     public func getCityCenterPOI() -> TRPPoi? {
         guard let city = containerViewModel?.planData.selectedCity else { return nil }
