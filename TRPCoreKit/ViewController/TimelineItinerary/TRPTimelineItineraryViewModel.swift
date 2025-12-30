@@ -74,6 +74,9 @@ public class TRPTimelineItineraryViewModel {
     // Keep reference to use case to prevent deallocation during async operations
     private var checkAllPlanUseCase: TRPTimelineCheckAllPlanUseCases?
 
+    // Use case for step operations (edit, delete, etc.)
+    private lazy var timelineModeUseCases: TRPTimelineModeUseCases = TRPTimelineModeUseCases()
+
     // MARK: - Initialization
 
     /// Initialize with existing timeline (direct display)
@@ -1824,6 +1827,63 @@ public class TRPTimelineItineraryViewModel {
                 }
             }
         }
+    }
+
+    // MARK: - Step Time Update
+
+    /// Updates a step's start and end times
+    /// - Parameters:
+    ///   - step: The step to update
+    ///   - startTime: New start time in "yyyy-MM-dd HH:mm" format
+    ///   - endTime: New end time in "yyyy-MM-dd HH:mm" format
+    ///   - completion: Completion handler with success/failure result
+    public func updateStepTime(step: TRPTimelineStep, startTime: String, endTime: String, completion: @escaping (Result<TRPTimelineStep, Error>) -> Void) {
+        // Show loading
+        delegate?.viewModel(showPreloader: true)
+
+        // Use the UseCase for step editing
+        timelineModeUseCases.executeEditStepHour(id: step.id, startTime: startTime, endTime: endTime) { [weak self] result in
+            guard let self = self else { return }
+
+            DispatchQueue.main.async {
+                self.delegate?.viewModel(showPreloader: false)
+
+                switch result {
+                case .success(let updatedStep):
+                    // Update the step in timeline locally
+                    self.updateStepInTimeline(updatedStep)
+
+                    // Notify delegate to reload UI
+                    self.delegate?.timelineItineraryViewModel(didUpdateTimeline: true)
+
+                    completion(.success(updatedStep))
+
+                case .failure(let error):
+                    self.delegate?.viewModel(error: error)
+                    completion(.failure(error))
+                }
+            }
+        }
+    }
+
+    /// Updates a step within the timeline data structure
+    private func updateStepInTimeline(_ updatedStep: TRPTimelineStep) {
+        guard var timeline = timeline, var plans = timeline.plans else { return }
+
+        // Find and update the step in plans
+        for (planIndex, plan) in plans.enumerated() {
+            if let stepIndex = plan.steps.firstIndex(where: { $0.id == updatedStep.id }) {
+                plans[planIndex].steps[stepIndex] = updatedStep
+                break
+            }
+        }
+
+        // Update timeline with modified plans
+        timeline.plans = plans
+        self.timeline = timeline
+
+        // Reprocess timeline data to update UI
+        processTimelineData()
     }
 }
 

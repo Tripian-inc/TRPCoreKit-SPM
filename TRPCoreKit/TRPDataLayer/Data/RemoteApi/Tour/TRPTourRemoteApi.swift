@@ -26,7 +26,9 @@ public class TRPTourRemoteApi: TourRemoteApi {
         request.providerId = 15
 
         // Always require instant availability
-        request.instantAvailability = 0
+        request.instantAvailability = 1
+        request.sortingBy = "distance"
+        request.sortingType = "asc"
 
         // Set city center coordinates from cache
         if let cityCoordinate = TRPCityCache.shared.getCityCoordinate(cityId: cityId) {
@@ -90,7 +92,9 @@ public class TRPTourRemoteApi: TourRemoteApi {
         request.providerId = 15
 
         // Always require instant availability
-        request.instantAvailability = 0
+        request.instantAvailability = 1
+        request.sortingBy = "distance"
+        request.sortingType = "asc"
 
         // Set location coordinates
         request.lat = coordinate.lat

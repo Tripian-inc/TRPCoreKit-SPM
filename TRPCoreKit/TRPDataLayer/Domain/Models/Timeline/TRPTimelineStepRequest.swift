@@ -26,6 +26,16 @@ public struct TRPTimelineStepEdit {
     var startTime: String?
     var endTime: String?
     var order: Int?
+
+    public init(stepId: Int, poiId: String? = nil, stepType: String? = nil, customPoi: TRPTimelineStepCustomPoi? = nil, startTime: String? = nil, endTime: String? = nil, order: Int? = nil) {
+        self.stepId = stepId
+        self.poiId = poiId
+        self.stepType = stepType
+        self.customPoi = customPoi
+        self.startTime = startTime
+        self.endTime = endTime
+        self.order = order
+    }
 }
 
 public struct TRPTimelineStepCustomPoi {

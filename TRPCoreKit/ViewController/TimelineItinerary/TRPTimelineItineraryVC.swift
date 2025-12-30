@@ -131,9 +131,12 @@ public class TRPTimelineItineraryVC: TRPBaseUIViewController {
         case poi(TRPPoi)
         case bookedActivity(TRPTimelineSegment)
     }
-    
+
     internal var currentTimelineItems: [TimelineItem] = []
     private var isShowingMap: Bool = false
+
+    // Step being edited for time change
+    private var stepBeingEdited: TRPTimelineStep?
     
     // Collection view state
     private var isCollectionViewExpanded: Bool = false
@@ -862,7 +865,41 @@ extension TRPTimelineItineraryVC: TRPTimelineRecommendationsCellDelegate {
     }
     
     func recommendationsCellDidTapChangeTime(_ cell: TRPTimelineRecommendationsCell, step: TRPTimelineStep) {
-        delegate?.timelineItineraryChangeTimePressed(self, step: step)
+        // Store the step being edited
+        stepBeingEdited = step
+
+        // Get current start and end times from step
+        let timeRangeVC = TRPTimeRangeSelectionViewController()
+        timeRangeVC.delegate = self
+
+        // Parse step times and set as initial values
+        if let startDateTimes = step.startDateTimes,
+           let endDateTimes = step.endDateTimes,
+           let startDate = parseStepDateTime(startDateTimes),
+           let endDate = parseStepDateTime(endDateTimes) {
+            timeRangeVC.setInitialTimes(from: startDate, to: endDate)
+        }
+
+        // Present the time selection view controller
+        timeRangeVC.show(from: self)
+    }
+
+    /// Parses step datetime string to Date without timezone conversion
+    /// Supports formats: "yyyy-MM-dd HH:mm:ss" and "yyyy-MM-dd HH:mm"
+    /// Uses current timezone to avoid UTC conversion issues
+    private func parseStepDateTime(_ dateTimeString: String) -> Date? {
+        let dateFormatter = DateFormatter()
+        dateFormatter.timeZone = TimeZone.current // Use local timezone, not UTC
+
+        // Try format with seconds first (server format)
+        dateFormatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
+        if let date = dateFormatter.date(from: dateTimeString) {
+            return date
+        }
+
+        // Try format without seconds
+        dateFormatter.dateFormat = "yyyy-MM-dd HH:mm"
+        return dateFormatter.date(from: dateTimeString)
     }
 
     func recommendationsCellDidTapRemoveStep(_ cell: TRPTimelineRecommendationsCell, step: TRPTimelineStep) {
@@ -1227,6 +1264,35 @@ extension TRPTimelineItineraryVC: TRPTimelineSavedPlansButtonDelegate {
         let navController = UINavigationController(rootViewController: savedPlansVC)
         navController.modalPresentationStyle = .fullScreen
         present(navController, animated: true)
+    }
+}
+
+// MARK: - TRPTimeRangeSelectionDelegate
+extension TRPTimelineItineraryVC: TRPTimeRangeSelectionDelegate {
+
+    func timeRangeSelected(fromTime: String, toTime: String) {
+        guard let step = stepBeingEdited else { return }
+
+        // fromTime and toTime are already in "HH:mm" format from TRPTimeRangeSelectionViewController
+        viewModel.updateStepTime(step: step, startTime: fromTime, endTime: toTime) { [weak self] result in
+            guard let self = self else { return }
+
+            switch result {
+            case .success:
+                // Clear the step being edited
+                self.stepBeingEdited = nil
+                // Notify delegate if needed
+                self.delegate?.timelineItineraryChangeTimePressed(self, step: step)
+
+            case .failure:
+                // Error is already handled by ViewModel (shows error via delegate)
+                self.stepBeingEdited = nil
+            }
+        }
+    }
+
+    func timeRangeSelected(fromDate: Date, toDate: Date) {
+        // Not used - we use the String version
     }
 }
 

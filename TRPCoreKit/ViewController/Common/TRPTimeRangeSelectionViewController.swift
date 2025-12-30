@@ -183,6 +183,10 @@ class TRPTimeRangeSelectionViewController: UIViewController {
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         setupPickerView()
+        // Ensure initial values are displayed
+        updateFromDisplay()
+        updateToDisplay()
+        updateConfirmButtonState()
     }
 
     // MARK: - Setup
@@ -316,15 +320,25 @@ class TRPTimeRangeSelectionViewController: UIViewController {
     }
 
     @objc private func confirmButtonTapped() {
-        guard let fromTime = fromTime, let toTime = toTime,
-              let fromDate = fromDate, let toDate = toDate else {
+        guard let fromDate = fromDate, let toDate = toDate else {
             return
         }
 
-        delegate?.timeRangeSelected(fromTime: fromTime, toTime: toTime)
-        delegate?.timeRangeSelected(fromDate: fromDate, toDate: toDate)
+        // Convert to HH:mm format for service calls
+        let fromTimeHHmm = convertTo24HourFormat(fromDate)
+        let toTimeHHmm = convertTo24HourFormat(toDate)
 
-        dismiss(animated: true, completion: nil)
+        dismiss(animated: true, completion: { [weak self] in
+            self?.delegate?.timeRangeSelected(fromTime: fromTimeHHmm, toTime: toTimeHHmm)
+            self?.delegate?.timeRangeSelected(fromDate: fromDate, toDate: toDate)
+        })
+    }
+
+    /// Converts Date to "HH:mm" format string
+    private func convertTo24HourFormat(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "HH:mm"
+        return formatter.string(from: date)
     }
 
     @objc private func fromFieldTapped() {

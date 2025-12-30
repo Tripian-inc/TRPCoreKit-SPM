@@ -321,12 +321,13 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
         actionButtonsStack.spacing = 8
         actionButtonsStack.alignment = .center
 
-        // Change time button
+        // Change time button (hidden for activity steps)
         let changeTimeButton = UIButton(type: .custom)
         changeTimeButton.translatesAutoresizingMaskIntoConstraints = false
         changeTimeButton.setImage(TRPImageController().getImage(inFramework: "ic_change_time", inApp: nil), for: .normal)
         changeTimeButton.tag = steps.firstIndex(where: { $0.id == step.id }) ?? 0
         changeTimeButton.addTarget(self, action: #selector(changeTimeTapped(_:)), for: .touchUpInside)
+        changeTimeButton.isHidden = isActivity
 
         // Remove step button
         let removeStepButton = UIButton(type: .custom)
