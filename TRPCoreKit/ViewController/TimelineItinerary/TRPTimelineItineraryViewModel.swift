@@ -96,6 +96,33 @@ public class TRPTimelineItineraryViewModel {
         }
     }
 
+    /// Initialize with existing timeline and itinerary model
+    /// Will check for missing booked activities and add them via API
+    /// - Parameters:
+    ///   - timeline: Existing timeline from server
+    ///   - itineraryModel: Itinerary model containing tripItems to check for missing activities
+    public init(timeline: TRPTimeline, itineraryModel: TRPItineraryWithActivities) {
+        var mutableTimeline = timeline
+
+        // Sync segments between timeline.segments and tripProfile.segments
+        syncTimelineSegments(&mutableTimeline)
+        // Populate city information in segments BEFORE processing
+        populateCitiesInSegments(&mutableTimeline)
+
+        self.timeline = mutableTimeline
+
+        processTimelineData()
+
+        // Notify that timeline is ready (for VC to reload)
+        // Then check for missing booked activities
+        DispatchQueue.main.async { [weak self] in
+            self?.delegate?.timelineItineraryViewModel(didUpdateTimeline: true)
+
+            // Check for missing booked activities and add via API if needed
+            self?.addMissingBookedActivities(from: itineraryModel)
+        }
+    }
+
     /// Initialize with itinerary model (will create/fetch timeline)
     /// - Parameters:
     ///   - itineraryModel: Itinerary model containing trip items
@@ -422,15 +449,6 @@ public class TRPTimelineItineraryViewModel {
                     if let dateStr = segmentStartDateStr {
                         // Extract date portion (first 10 characters: "yyyy-MM-dd")
                         let segmentDateString = String(dateStr.prefix(10))
-
-                        // Debug log - show full values
-                        let activityId = segment.additionalData?.activityId ?? "unknown"
-                        let additionalStartDatetime = segment.additionalData?.startDatetime ?? "nil"
-                        let segmentStartDate = segment.startDate ?? "nil"
-                        print("🔍 Filter Debug - ActivityId: \(activityId)")
-                        print("   additionalData.startDatetime: \(additionalStartDatetime)")
-                        print("   segment.startDate: \(segmentStartDate)")
-                        print("   segmentDateString: \(segmentDateString), selectedDateString: \(selectedDateString), match: \(segmentDateString == selectedDateString)")
 
                         if segmentDateString == selectedDateString {
                             filteredGroup.append(item)
@@ -1233,7 +1251,7 @@ public class TRPTimelineItineraryViewModel {
             DispatchQueue.main.async {
                 switch result {
                 case .success(var timeline):
-                    // Merge itinerary model data (segments from tripItems)
+                    // Merge itinerary model data (only favouriteItems - segments handled via API)
                     timeline = self.mergeItineraryData(timeline: timeline, itineraryModel: itineraryModel)
 
                     // Sync segments between timeline.segments and tripProfile.segments
@@ -1245,9 +1263,13 @@ public class TRPTimelineItineraryViewModel {
                     self.timeline = timeline
                     self.processTimelineData()
 
-                    // Notify delegate
+                    // Notify delegate - UI is ready
                     self.delegate?.viewModel(showPreloader: false)
                     self.delegate?.timelineItineraryViewModel(didUpdateTimeline: true)
+
+                    // Check for missing booked activities and add via API if needed
+                    // This runs in background after UI is shown
+                    self.addMissingBookedActivities(from: itineraryModel)
 
                 case .failure(let error):
                     self.delegate?.viewModel(showPreloader: false)
@@ -1258,65 +1280,142 @@ public class TRPTimelineItineraryViewModel {
     }
 
     /// Merges itinerary model data into timeline
-    /// IMPORTANT: Only adds missing booked activities from itineraryModel.tripItems
-    /// Does NOT overwrite existing segments from timeline (API data is correct)
+    /// IMPORTANT: Does NOT modify segments - only adds favouriteItems
+    /// Missing booked activities should be added via addMissingBookedActivities() which calls API
     private func mergeItineraryData(timeline: TRPTimeline, itineraryModel: TRPItineraryWithActivities) -> TRPTimeline {
         var updatedTimeline = timeline
 
-        // Add favourite items
+        // Add favourite items only - segments are handled separately via API
         updatedTimeline.favouriteItems = itineraryModel.favouriteItems
 
-        // Only add MISSING tripItems as segments (don't overwrite existing ones)
-        if let tripItems = itineraryModel.tripItems, !tripItems.isEmpty {
-            // Collect existing activity IDs from timeline (both segments and tripProfile.segments)
-            var existingActivityIds = Set<String>()
+        return updatedTimeline
+    }
 
-            if let segments = timeline.segments {
-                for segment in segments {
-                    if let activityId = segment.additionalData?.activityId {
-                        existingActivityIds.insert(activityId)
-                    }
-                }
-            }
+    // MARK: - Add Missing Booked Activities
 
-            if let profileSegments = timeline.tripProfile?.segments {
-                for segment in profileSegments {
-                    if let activityId = segment.additionalData?.activityId {
-                        existingActivityIds.insert(activityId)
-                    }
-                }
-            }
+    /// Adds missing booked activities from itineraryModel to timeline via API
+    /// Compares itineraryModel.tripItems with timeline segments and adds only missing ones
+    /// - Parameter itineraryModel: Itinerary model containing tripItems to check
+    public func addMissingBookedActivities(from itineraryModel: TRPItineraryWithActivities) {
+        guard let timeline = timeline,
+              let tripItems = itineraryModel.tripItems,
+              !tripItems.isEmpty else {
+            return
+        }
 
-            // Find tripItems that are NOT in timeline
-            let missingTripItems = tripItems.filter { tripItem in
-                guard let activityId = tripItem.activityId else { return false }
-                return !existingActivityIds.contains(activityId)
-            }
+        let tripHash = timeline.tripHash
 
-            // Only create segments for missing items
-            if !missingTripItems.isEmpty {
-                // Create a temporary itinerary with only missing items
-                var tempItinerary = itineraryModel
-                tempItinerary.tripItems = missingTripItems
+        // Collect existing activity IDs from timeline (both segments and tripProfile.segments)
+        var existingActivityIds = Set<String>()
 
-                let profileFromBookings = tempItinerary.createTimelineProfileFromBookings()
-
-                if !profileFromBookings.segments.isEmpty {
-                    // APPEND to existing segments, don't replace
-                    if var existingSegments = updatedTimeline.segments {
-                        existingSegments.append(contentsOf: profileFromBookings.segments)
-                        updatedTimeline.segments = existingSegments
-                    } else {
-                        updatedTimeline.segments = profileFromBookings.segments
-                    }
-
-                    // Populate segment.city for newly added segments
-                    populateCitiesInSegments(&updatedTimeline, destinationItems: itineraryModel.destinationItems)
+        if let segments = timeline.segments {
+            for segment in segments {
+                if let activityId = segment.additionalData?.activityId {
+                    existingActivityIds.insert(activityId)
                 }
             }
         }
 
-        return updatedTimeline
+        if let profileSegments = timeline.tripProfile?.segments {
+            for segment in profileSegments {
+                if let activityId = segment.additionalData?.activityId {
+                    existingActivityIds.insert(activityId)
+                }
+            }
+        }
+
+        // Find tripItems that are NOT in timeline
+        let missingTripItems = tripItems.filter { tripItem in
+            guard let activityId = tripItem.activityId else { return false }
+            return !existingActivityIds.contains(activityId)
+        }
+
+        // If no missing items, nothing to do
+        guard !missingTripItems.isEmpty else {
+            return
+        }
+
+        Log.i("TRPTimelineItineraryViewModel: Found \(missingTripItems.count) missing booked activities to add via API")
+
+        // Show loading
+        delegate?.viewModel(showPreloader: true)
+
+        // Add each missing tripItem via API (sequentially)
+        addMissingTripItemsSequentially(tripItems: missingTripItems, tripHash: tripHash, index: 0)
+    }
+
+    /// Recursively adds missing tripItems one by one via API
+    private func addMissingTripItemsSequentially(tripItems: [TRPSegmentActivityItem], tripHash: String, index: Int) {
+        // Base case: all items added
+        guard index < tripItems.count else {
+            Log.i("TRPTimelineItineraryViewModel: All missing booked activities added successfully")
+            // Wait for generation and refresh timeline
+            waitForSegmentGeneration(tripHash: tripHash)
+            return
+        }
+
+        let tripItem = tripItems[index]
+
+        // Create segment profile from tripItem
+        let profile = createSegmentProfileFromTripItem(tripItem, tripHash: tripHash)
+
+        // Call API to add segment
+        let repository = TRPTimelineRepository()
+        repository.createEditTimelineSegment(profile: profile) { [weak self] result in
+            guard let self = self else { return }
+
+            switch result {
+            case .success(let success):
+                if success {
+                    Log.i("TRPTimelineItineraryViewModel: Added booked activity \(tripItem.activityId ?? "unknown") via API")
+                    // Continue with next item
+                    self.addMissingTripItemsSequentially(tripItems: tripItems, tripHash: tripHash, index: index + 1)
+                } else {
+                    Log.e("TRPTimelineItineraryViewModel: Failed to add booked activity \(tripItem.activityId ?? "unknown")")
+                    // Continue anyway to try remaining items
+                    self.addMissingTripItemsSequentially(tripItems: tripItems, tripHash: tripHash, index: index + 1)
+                }
+
+            case .failure(let error):
+                Log.e("TRPTimelineItineraryViewModel: Error adding booked activity: \(error.localizedDescription)")
+                // Continue anyway to try remaining items
+                self.addMissingTripItemsSequentially(tripItems: tripItems, tripHash: tripHash, index: index + 1)
+            }
+        }
+    }
+
+    /// Creates a TRPCreateEditTimelineSegmentProfile from a TRPSegmentActivityItem
+    private func createSegmentProfileFromTripItem(_ tripItem: TRPSegmentActivityItem, tripHash: String) -> TRPCreateEditTimelineSegmentProfile {
+        let profile = TRPCreateEditTimelineSegmentProfile(tripHash: tripHash)
+
+        // Set segment type
+        profile.segmentType = .bookedActivity
+
+        // Set basic properties
+        profile.title = tripItem.title
+        profile.description = tripItem.description
+        profile.available = false // Booking products are fixed activities
+        profile.distinctPlan = true
+
+        // Set dates
+        profile.startDate = tripItem.startDatetime
+        profile.endDate = tripItem.endDatetime
+
+        // Set coordinate
+        profile.coordinate = tripItem.coordinate
+
+        // Set traveler counts
+        profile.adults = tripItem.adultCount
+        profile.children = tripItem.childCount
+        profile.pets = 0
+
+        // Set additional data (this is CRITICAL for booked activities)
+        profile.additionalData = tripItem
+
+        // Don't generate recommendations for booked activities
+        profile.doNotGenerate = 1
+
+        return profile
     }
 
     /// Synchronizes segments between timeline.segments and tripProfile.segments

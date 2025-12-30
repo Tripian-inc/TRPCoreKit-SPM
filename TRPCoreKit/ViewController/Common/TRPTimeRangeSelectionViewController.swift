@@ -406,7 +406,12 @@ class TRPTimeRangeSelectionViewController: UIViewController {
     }
 
     private func updateConfirmButtonState() {
-        let isValid = fromDate != nil && toDate != nil
+        guard let fromDate = fromDate, let toDate = toDate else {
+            confirmButton.setEnabled(false)
+            return
+        }
+        // End time must be greater than start time
+        let isValid = toDate > fromDate
         confirmButton.setEnabled(isValid)
     }
 

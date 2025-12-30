@@ -262,6 +262,10 @@ class TRPTimelineMockDataUsageExample {
     func example9_CustomDelegateImplementation() {
         // Create a custom delegate
         class TimelineDelegate: TRPTimelineItineraryVCDelegate {
+            func timelineItineraryDidRequestActivityReservation(_ viewController: TRPTimelineItineraryVC, activityId: String) {
+                
+            }
+            
             func timelineItineraryFilterPressed(_ viewController: TRPTimelineItineraryVC) {
                 print("Filter button pressed")
             }

@@ -16,6 +16,7 @@ protocol TRPTimelineRecommendationsCellDelegate: AnyObject {
     func recommendationsCellDidSelectStep(_ cell: TRPTimelineRecommendationsCell, step: TRPTimelineStep)
     func recommendationsCellDidTapThumbsUp(_ cell: TRPTimelineRecommendationsCell, step: TRPTimelineStep)
     func recommendationsCellDidTapThumbsDown(_ cell: TRPTimelineRecommendationsCell, step: TRPTimelineStep)
+    func recommendationsCellDidTapReservation(_ cell: TRPTimelineRecommendationsCell, step: TRPTimelineStep)
     func recommendationsCellNeedsRouteCalculation(_ cell: TRPTimelineRecommendationsCell, from: TRPLocation, to: TRPLocation, index: Int)
 }
 
@@ -260,8 +261,10 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
         containerView.translatesAutoresizingMaskIntoConstraints = false
         containerView.backgroundColor = .clear
 
-        // Check if this is an activity step
+        // Check if this is an activity step with bookings available
         let isActivity = step.stepType == "activity"
+        let hasBookings = step.poi?.bookings?.first?.firstProduct() != nil
+        let showReservationButton = isActivity && hasBookings
 
         // Time badge view
         let timeBadgeView = TRPTimelineTimeBadgeView()
@@ -356,13 +359,13 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
             ratingStack.addArrangedSubview(reviewLabel)
         }
         
-        // Feedback buttons
+        // Feedback buttons (for POI steps)
         let feedbackStack = UIStackView()
         feedbackStack.translatesAutoresizingMaskIntoConstraints = false
         feedbackStack.axis = .horizontal
         feedbackStack.spacing = 8
         feedbackStack.distribution = .fillEqually
-        
+
         let thumbsDownButton = UIButton(type: .system)
         thumbsDownButton.setImage(TRPImageController().getImage(inFramework: "ic_dislike", inApp: nil), for: .normal)
         thumbsDownButton.tintColor = ColorSet.fg.uiColor
@@ -371,7 +374,7 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
         thumbsDownButton.tag = steps.firstIndex(where: { $0.id == step.id }) ?? 0
         thumbsDownButton.addTarget(self, action: #selector(thumbsDownTapped(_:)), for: .touchUpInside)
         thumbsDownButton.translatesAutoresizingMaskIntoConstraints = false
-        
+
         let thumbsUpButton = UIButton(type: .system)
         thumbsUpButton.setImage(TRPImageController().getImage(inFramework: "ic_like", inApp: nil), for: .normal)
         thumbsUpButton.tintColor = ColorSet.mainDark.uiColor
@@ -380,10 +383,25 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
         thumbsUpButton.tag = steps.firstIndex(where: { $0.id == step.id }) ?? 0
         thumbsUpButton.addTarget(self, action: #selector(thumbsUpTapped(_:)), for: .touchUpInside)
         thumbsUpButton.translatesAutoresizingMaskIntoConstraints = false
-        
+
         feedbackStack.addArrangedSubview(thumbsDownButton)
         feedbackStack.addArrangedSubview(thumbsUpButton)
-        
+
+        // Reservation button (for activity steps)
+        let reservationButton = UIButton(type: .system)
+        reservationButton.translatesAutoresizingMaskIntoConstraints = false
+        reservationButton.setTitle("Reservation", for: .normal)
+        reservationButton.setTitleColor(.white, for: .normal)
+        reservationButton.titleLabel?.font = FontSet.montserratSemiBold.font(14)
+        reservationButton.backgroundColor = ColorSet.mainDark.uiColor
+        reservationButton.layer.cornerRadius = 20
+        reservationButton.tag = steps.firstIndex(where: { $0.id == step.id }) ?? 0
+        reservationButton.addTarget(self, action: #selector(reservationTapped(_:)), for: .touchUpInside)
+        reservationButton.isHidden = !showReservationButton // Only show for activity steps with bookings
+
+        // Hide feedbackStack for activity steps with bookings, show reservationButton instead
+        feedbackStack.isHidden = showReservationButton
+
         // Add all subviews
         containerView.addSubview(timeBadgeView)
         containerView.addSubview(verticalLineView)
@@ -393,6 +411,7 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
         contentContainer.addSubview(titleLabel)
         contentContainer.addSubview(ratingStack)
         contentContainer.addSubview(feedbackStack)
+        contentContainer.addSubview(reservationButton)
 
         // Constraints
         NSLayoutConstraint.activate([
@@ -433,16 +452,29 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
             
             thumbsDownButton.widthAnchor.constraint(equalToConstant: 40),
             thumbsDownButton.heightAnchor.constraint(equalToConstant: 40),
-            
+
             thumbsUpButton.widthAnchor.constraint(equalToConstant: 40),
             thumbsUpButton.heightAnchor.constraint(equalToConstant: 40),
+
+            // Reservation button constraints
+            reservationButton.topAnchor.constraint(equalTo: ratingStack.bottomAnchor, constant: 8),
+            reservationButton.trailingAnchor.constraint(equalTo: contentContainer.trailingAnchor, constant: -16),
+            reservationButton.heightAnchor.constraint(equalToConstant: 40),
+            reservationButton.widthAnchor.constraint(equalToConstant: 120),
         ])
-        
+
         // Additional constraints for activity badge
         if isActivity {
             NSLayoutConstraint.activate([
                 categoryLabel.widthAnchor.constraint(equalToConstant: 80),
                 categoryLabel.heightAnchor.constraint(equalToConstant: 24),
+            ])
+        }
+
+        // Bottom constraint for reservation button when visible
+        if showReservationButton {
+            NSLayoutConstraint.activate([
+                reservationButton.bottomAnchor.constraint(lessThanOrEqualTo: contentContainer.bottomAnchor),
             ])
         }
         
@@ -470,7 +502,13 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
         guard tag < steps.count else { return }
         delegate?.recommendationsCellDidTapThumbsDown(self, step: steps[tag])
     }
-    
+
+    @objc private func reservationTapped(_ sender: UIButton) {
+        let tag = sender.tag
+        guard tag < steps.count else { return }
+        delegate?.recommendationsCellDidTapReservation(self, step: steps[tag])
+    }
+
     // MARK: - Distance View
     private func createDistanceView(for index: Int) -> UIView {
         let containerView = UIView()

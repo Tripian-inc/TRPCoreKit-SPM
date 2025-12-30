@@ -285,7 +285,11 @@ public class TRPTimelineCoordinator: CoordinatorProtocol {
     }
 
     private func showError(message: String) {
-        guard let navigationController = navigationController else { return }
+        guard let navigationController = navigationController else {
+            // If no navigation controller, just close SDK
+            closeSDK()
+            return
+        }
 
         let alert = UIAlertController(
             title: "Error",
@@ -293,9 +297,20 @@ public class TRPTimelineCoordinator: CoordinatorProtocol {
             preferredStyle: .alert
         )
 
-        alert.addAction(UIAlertAction(title: "OK", style: .default))
+        alert.addAction(UIAlertAction(title: "OK", style: .default) { [weak self] _ in
+            // Close SDK after user taps OK
+            self?.closeSDK()
+        })
 
         navigationController.present(alert, animated: true)
+    }
+
+    private func closeSDK() {
+        // Dismiss navigation controller and notify delegate
+        navigationController?.dismiss(animated: true) { [weak self] in
+            guard let self = self else { return }
+            self.delegate?.timelineCoordinatorDidClose(self)
+        }
     }
 
     // MARK: - Cleanup
@@ -342,6 +357,11 @@ extension TRPTimelineCoordinator: TRPTimelineItineraryVCDelegate {
         guard let poi = step.poi else { return }
         // TODO: Send thumbs down reaction to API and possibly show alternatives
         // Example: sendReaction(step: step, type: .thumbsDown)
+    }
+
+    public func timelineItineraryDidRequestActivityReservation(_ viewController: TRPTimelineItineraryVC, activityId: String) {
+        // Delegate to SDK delegate to handle activity reservation
+        TRPCoreKit.shared.delegate?.trpCoreKitDidRequestActivityReservation(activityId: activityId)
     }
 }
 

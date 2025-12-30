@@ -17,6 +17,7 @@ public protocol TRPTimelineItineraryVCDelegate: AnyObject {
     func timelineItineraryAddButtonPressed(_ viewController: TRPTimelineItineraryVC, atSectionIndex: Int)
     func timelineItineraryThumbsUpPressed(_ viewController: TRPTimelineItineraryVC, step: TRPTimelineStep)
     func timelineItineraryThumbsDownPressed(_ viewController: TRPTimelineItineraryVC, step: TRPTimelineStep)
+    func timelineItineraryDidRequestActivityReservation(_ viewController: TRPTimelineItineraryVC, activityId: String)
 }
 
 @objc(SPMTRPTimelineItineraryVC)
@@ -867,7 +868,19 @@ extension TRPTimelineItineraryVC: TRPTimelineRecommendationsCellDelegate {
     func recommendationsCellDidTapThumbsDown(_ cell: TRPTimelineRecommendationsCell, step: TRPTimelineStep) {
         delegate?.timelineItineraryThumbsDownPressed(self, step: step)
     }
-    
+
+    func recommendationsCellDidTapReservation(_ cell: TRPTimelineRecommendationsCell, step: TRPTimelineStep) {
+        // Handle reservation tap for activity steps
+        // Get product ID from POI's bookings
+        guard let poi = step.poi,
+              let booking = poi.bookings?.first,
+              let product = booking.firstProduct() else {
+            return
+        }
+        // Delegate to coordinator to open reservation flow
+        delegate?.timelineItineraryDidRequestActivityReservation(self, activityId: product.id)
+    }
+
     func recommendationsCellNeedsRouteCalculation(_ cell: TRPTimelineRecommendationsCell, from: TRPLocation, to: TRPLocation, index: Int) {
         // Get the index path of the cell
         guard let indexPath = tableView.indexPath(for: cell) else { return }

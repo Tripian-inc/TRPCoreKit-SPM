@@ -296,9 +296,13 @@ public class AddPlanContainerVC: TRPBaseUIViewController {
             }
             return hasDayAndCity
         case .timeAndTravelers:
+            guard let startTime = viewModel.planData.startTime,
+                  let endTime = viewModel.planData.endTime else {
+                return false
+            }
+            // End time must be greater than start time
             return viewModel.planData.startingPointLocation != nil &&
-                   viewModel.planData.startTime != nil &&
-                   viewModel.planData.endTime != nil &&
+                   endTime > startTime &&
                    viewModel.planData.travelers > 0
         case .categorySelection:
             return !viewModel.planData.selectedCategories.isEmpty
