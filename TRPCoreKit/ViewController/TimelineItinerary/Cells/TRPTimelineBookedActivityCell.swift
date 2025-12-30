@@ -115,6 +115,27 @@ class TRPTimelineBookedActivityCell: UITableViewCell {
         return button
     }()
 
+    // Stack view for right side content (auto-adjusts height when elements are hidden)
+    private let rightContentStackView: UIStackView = {
+        let stack = UIStackView()
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        stack.axis = .vertical
+        stack.spacing = 8
+        stack.alignment = .leading
+        stack.distribution = .fill
+        return stack
+    }()
+
+    // Horizontal stack for person icon and label
+    private let personStackView: UIStackView = {
+        let stack = UIStackView()
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        stack.axis = .horizontal
+        stack.spacing = 6
+        stack.alignment = .center
+        return stack
+    }()
+
     // MARK: - Initialization
     override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
         super.init(style: style, reuseIdentifier: reuseIdentifier)
@@ -129,18 +150,24 @@ class TRPTimelineBookedActivityCell: UITableViewCell {
     private func setupCell() {
         selectionStyle = .none
         backgroundColor = .clear
-        
+
         contentView.addSubview(timeLabel)
         contentView.addSubview(verticalLineView)
         contentView.addSubview(containerView)
-        
+
         containerView.addSubview(activityImageView)
-        containerView.addSubview(titleLabel)
-        containerView.addSubview(confirmedBadge)
-        containerView.addSubview(personIcon)
-        containerView.addSubview(personLabel)
-        containerView.addSubview(cancellationLabel)
-        containerView.addSubview(reservationButton)
+        containerView.addSubview(rightContentStackView)
+
+        // Build person horizontal stack
+        personStackView.addArrangedSubview(personIcon)
+        personStackView.addArrangedSubview(personLabel)
+
+        // Build right content vertical stack
+        rightContentStackView.addArrangedSubview(titleLabel)
+        rightContentStackView.addArrangedSubview(confirmedBadge)
+        rightContentStackView.addArrangedSubview(personStackView)
+        rightContentStackView.addArrangedSubview(cancellationLabel)
+        rightContentStackView.addArrangedSubview(reservationButton)
 
         setupConstraints()
     }
@@ -152,55 +179,40 @@ class TRPTimelineBookedActivityCell: UITableViewCell {
             timeLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
             timeLabel.widthAnchor.constraint(equalToConstant: 120),
             timeLabel.heightAnchor.constraint(equalToConstant: 32),
-            
+
             // Vertical Line
             verticalLineView.topAnchor.constraint(equalTo: timeLabel.bottomAnchor),
             verticalLineView.leadingAnchor.constraint(equalTo: timeLabel.leadingAnchor, constant: 25),
             verticalLineView.widthAnchor.constraint(equalToConstant: 0.5),
             verticalLineView.bottomAnchor.constraint(equalTo: containerView.topAnchor),
-            
+
             // Container View
             containerView.topAnchor.constraint(equalTo: timeLabel.bottomAnchor, constant: 24),
             containerView.leadingAnchor.constraint(equalTo: timeLabel.leadingAnchor),
             containerView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
             containerView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -16),
-            
+
             // Activity Image
             activityImageView.topAnchor.constraint(equalTo: containerView.topAnchor),
             activityImageView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
             activityImageView.widthAnchor.constraint(equalToConstant: 80),
             activityImageView.heightAnchor.constraint(equalToConstant: 80),
-            
-            // Title Label
-            titleLabel.topAnchor.constraint(equalTo: containerView.topAnchor),
-            titleLabel.leadingAnchor.constraint(equalTo: activityImageView.trailingAnchor, constant: 16),
-            titleLabel.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -16),
-            
-            // Confirmed Badge
-            confirmedBadge.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 4),
-            confirmedBadge.leadingAnchor.constraint(equalTo: activityImageView.trailingAnchor, constant: 12),
+
+            // Right Content Stack View
+            rightContentStackView.topAnchor.constraint(equalTo: containerView.topAnchor),
+            rightContentStackView.leadingAnchor.constraint(equalTo: activityImageView.trailingAnchor, constant: 12),
+            rightContentStackView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
+            rightContentStackView.bottomAnchor.constraint(equalTo: containerView.bottomAnchor),
+
+            // Element sizes within stack
             confirmedBadge.widthAnchor.constraint(equalToConstant: 90),
             confirmedBadge.heightAnchor.constraint(equalToConstant: 24),
-            
-            // Person Icon
-            personIcon.topAnchor.constraint(equalTo: confirmedBadge.bottomAnchor, constant: 8),
-            personIcon.leadingAnchor.constraint(equalTo: confirmedBadge.leadingAnchor),
+
             personIcon.widthAnchor.constraint(equalToConstant: 16),
             personIcon.heightAnchor.constraint(equalToConstant: 16),
-            
-            // Person Label
-            personLabel.centerYAnchor.constraint(equalTo: personIcon.centerYAnchor),
-            personLabel.leadingAnchor.constraint(equalTo: personIcon.trailingAnchor, constant: 6),
-            
-            // Cancellation Label
-            cancellationLabel.topAnchor.constraint(equalTo: personIcon.bottomAnchor, constant: 8),
-            cancellationLabel.leadingAnchor.constraint(equalTo: confirmedBadge.leadingAnchor),
 
-            // Reservation Button
-            reservationButton.topAnchor.constraint(equalTo: cancellationLabel.bottomAnchor, constant: 12),
-            reservationButton.leadingAnchor.constraint(equalTo: activityImageView.trailingAnchor, constant: 12),
-            reservationButton.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
-            reservationButton.bottomAnchor.constraint(equalTo: containerView.bottomAnchor, constant: -12),
+            // Reservation button full width
+            reservationButton.widthAnchor.constraint(equalTo: rightContentStackView.widthAnchor),
         ])
     }
     
