@@ -19,7 +19,7 @@ public enum TRPTimelineCellType {
     case bookedActivity(TRPTimelineSegment)
     case reservedActivity(TRPTimelineSegment) // Reserved but not purchased
     case activityStep(TRPTimelineStep) // For activity type steps
-    case recommendations([TRPTimelineStep]) // For POI type steps
+    case recommendations([TRPTimelineStep], TRPTimelineSegment?) // For POI type steps with their segment
     case emptyState // Empty itinerary day
 }
 
@@ -32,7 +32,7 @@ private enum TimelineItem {
     case bookedActivitySegment(TRPTimelineSegment)
     case reservedActivitySegment(TRPTimelineSegment)
     case activityStep(TRPTimelineStep)
-    case poiSteps([TRPTimelineStep], TRPCity?) // Steps with their plan's city
+    case poiSteps([TRPTimelineStep], TRPCity?, TRPTimelineSegment?) // Steps with their plan's city and parent segment
 }
 
 public struct TRPTimelineSectionHeaderData {
@@ -82,8 +82,8 @@ public class TRPTimelineItineraryViewModel {
     /// Initialize with existing timeline (direct display)
     public init(timeline: TRPTimeline?) {
         if var mutableTimeline = timeline {
-            // Sync segments between timeline.segments and tripProfile.segments
-            syncTimelineSegments(&mutableTimeline)
+            // NOTE: Do NOT sync segments - use API response as-is
+            // tripProfile.segments is the single source of truth
             // Populate city information in segments BEFORE processing
             populateCitiesInSegments(&mutableTimeline)
             self.timeline = mutableTimeline
@@ -107,8 +107,8 @@ public class TRPTimelineItineraryViewModel {
     public init(timeline: TRPTimeline, itineraryModel: TRPItineraryWithActivities) {
         var mutableTimeline = timeline
 
-        // Sync segments between timeline.segments and tripProfile.segments
-        syncTimelineSegments(&mutableTimeline)
+        // NOTE: Do NOT sync segments - use API response as-is
+        // tripProfile.segments is the single source of truth
         // Populate city information in segments BEFORE processing
         populateCitiesInSegments(&mutableTimeline)
 
@@ -216,45 +216,16 @@ public class TRPTimelineItineraryViewModel {
                         }
 
                         if !plan.steps.isEmpty {
-                            items.append(.poiSteps(plan.steps, plan.city))
+                            items.append(.poiSteps(plan.steps, plan.city, segment))
                         }
                     }
                 }
             }
         }
 
-        // Also check timeline.segments for any missing segments
-        if let segments = timeline.segments {
-            for segment in segments {
-                let segmentId = getSegmentUniqueId(segment)
-
-                // Skip if already processed
-                guard !processedSegmentIds.contains(segmentId) else { continue }
-                processedSegmentIds.insert(segmentId)
-
-                // Update earliest date
-                var segmentStartDateStr = segment.additionalData?.startDatetime ?? segment.startDate
-                if let dateStr = segmentStartDateStr {
-                    let segmentDateString = String(dateStr.prefix(10))
-                    if earliestDateString == nil || segmentDateString < earliestDateString! {
-                        earliestDateString = segmentDateString
-                    }
-                }
-
-                // Process segment
-                if let additionalData = segment.additionalData {
-                    segment.startDate = additionalData.startDatetime
-                    segment.endDate = additionalData.endDatetime
-
-                    if segment.segmentType == .reservedActivity {
-                        items.append(.reservedActivitySegment(segment))
-                    } else {
-                        segment.segmentType = .bookedActivity
-                        items.append(.bookedActivitySegment(segment))
-                    }
-                }
-            }
-        }
+        // NOTE: Do NOT process timeline.segments separately
+        // tripProfile.segments is the single source of truth from the API
+        // Processing both would cause duplicates
 
         // Process any remaining plans that weren't matched to segments
         if let plans = timeline.plans {
@@ -272,7 +243,8 @@ public class TRPTimelineItineraryViewModel {
                 }
 
                 if !plan.steps.isEmpty {
-                    items.append(.poiSteps(plan.steps, plan.city))
+                    // No segment available for remaining plans
+                    items.append(.poiSteps(plan.steps, plan.city, nil))
                 }
             }
         }
@@ -321,7 +293,7 @@ public class TRPTimelineItineraryViewModel {
             }
             return Date()
 
-        case .poiSteps(let steps, _):
+        case .poiSteps(let steps, _, _):
             if let firstStep = steps.first, let stepStart = firstStep.startDateTimes {
                 // Try both formats: with and without seconds
                 return Date.fromString(stepStart, format: "yyyy-MM-dd HH:mm") ??
@@ -340,7 +312,7 @@ public class TRPTimelineItineraryViewModel {
         case .activityStep(let step):
             return step.poi?.locations.first?.name ?? "Unknown"
 
-        case .poiSteps(_, let city):
+        case .poiSteps(_, let city, _):
             // Use the plan's city, not the POI's location
             return city?.name ?? "Unknown"
         }
@@ -476,7 +448,7 @@ public class TRPTimelineItineraryViewModel {
                         }
                     }
 
-                case .poiSteps(let steps, let city):
+                case .poiSteps(let steps, let city, let segment):
                     // Filter steps that match the selected day
                     let filteredSteps = steps.filter { step in
                         guard let stepStartDate = step.startDateTimes else {
@@ -487,7 +459,7 @@ public class TRPTimelineItineraryViewModel {
                     }
 
                     if !filteredSteps.isEmpty {
-                        filteredGroup.append(.poiSteps(filteredSteps, city))
+                        filteredGroup.append(.poiSteps(filteredSteps, city, segment))
                     }
                 }
             }
@@ -533,8 +505,8 @@ public class TRPTimelineItineraryViewModel {
     public func updateTimeline(_ timeline: TRPTimeline) {
         var mutableTimeline = timeline
 
-        // Sync segments between timeline.segments and tripProfile.segments
-        syncTimelineSegments(&mutableTimeline)
+        // NOTE: Do NOT sync segments - use API response as-is
+        // tripProfile.segments is the single source of truth
         // Populate city information in segments BEFORE processing
         populateCitiesInSegments(&mutableTimeline)
 
@@ -862,8 +834,8 @@ public class TRPTimelineItineraryViewModel {
         case .activityStep(let step):
             return .activityStep(step)
 
-        case .poiSteps(let steps, _):
-            return .recommendations(steps)
+        case .poiSteps(let steps, _, let segment):
+            return .recommendations(steps, segment)
         }
     }
     
@@ -916,8 +888,8 @@ public class TRPTimelineItineraryViewModel {
         case .activityStep(let step):
             // Activity steps might not have city info directly, try to get from POI
             return step.poi?.locations.first?.name ?? "Unknown"
-            
-        case .poiSteps(_, let city):
+
+        case .poiSteps(_, let city, _):
             // Use the plan's city, not the POI's location
             return city?.name ?? "Unknown"
         }
@@ -943,7 +915,7 @@ public class TRPTimelineItineraryViewModel {
                         cityNames.insert(location.name)
                     }
 
-                case .poiSteps(_, let city):
+                case .poiSteps(_, let city, _):
                     // Use the plan's city, not POI locations
                     if let city = city {
                         cityIds.insert(city.id)
@@ -975,7 +947,7 @@ public class TRPTimelineItineraryViewModel {
                         pois.append(poi)
                     }
                     
-                case .poiSteps(let steps, _):
+                case .poiSteps(let steps, _, _):
                     for step in steps {
                         if let poi = step.poi {
                             pois.append(poi)
@@ -988,15 +960,15 @@ public class TRPTimelineItineraryViewModel {
                 }
             }
         }
-        
+
         return pois
     }
-    
+
     /// Get POIs grouped by segments for the selected day
     /// Each inner array represents a separate segment that should have its own route
     public func getSegmentsWithPoisForSelectedDay() -> [[TRPPoi]] {
         var segmentGroups: [[TRPPoi]] = []
-        
+
         for sectionItems in filteredTimelineItems {
             for item in sectionItems {
                 switch item {
@@ -1005,8 +977,8 @@ public class TRPTimelineItineraryViewModel {
                     if let poi = step.poi {
                         segmentGroups.append([poi])
                     }
-                    
-                case .poiSteps(let steps, _):
+
+                case .poiSteps(let steps, _, _):
                     // POI steps are grouped together
                     var poisInGroup: [TRPPoi] = []
                     for step in steps {
@@ -1104,8 +1076,8 @@ public class TRPTimelineItineraryViewModel {
                     if let poi = step.poi, poi.id == id {
                         return poi
                     }
-                    
-                case .poiSteps(let steps, _):
+
+                case .poiSteps(let steps, _, _):
                     for step in steps {
                         if let poi = step.poi, poi.id == id {
                             return poi
@@ -1137,7 +1109,7 @@ public class TRPTimelineItineraryViewModel {
         }
         return nil
     }
-    
+
     /// Get step for a specific POI ID
     public func getStep(forPoiId id: String) -> TRPTimelineStep? {
         for sectionItems in filteredTimelineItems {
@@ -1147,8 +1119,8 @@ public class TRPTimelineItineraryViewModel {
                     if let poi = step.poi, poi.id == id {
                         return step
                     }
-                    
-                case .poiSteps(let steps, _):
+
+                case .poiSteps(let steps, _, _):
                     for step in steps {
                         if let poi = step.poi, poi.id == id {
                             return step
@@ -1274,8 +1246,8 @@ public class TRPTimelineItineraryViewModel {
                     // Merge itinerary model data (only favouriteItems - segments handled via API)
                     timeline = self.mergeItineraryData(timeline: timeline, itineraryModel: itineraryModel)
 
-                    // Sync segments between timeline.segments and tripProfile.segments
-                    self.syncTimelineSegments(&timeline)
+                    // NOTE: Do NOT sync segments - use API response as-is
+                    // tripProfile.segments is the single source of truth
                     // Populate city information in segments BEFORE processing
                     self.populateCitiesInSegments(&timeline)
 
@@ -1436,48 +1408,6 @@ public class TRPTimelineItineraryViewModel {
         profile.doNotGenerate = 1
 
         return profile
-    }
-
-    /// Synchronizes segments between timeline.segments and tripProfile.segments
-    /// Ensures both arrays contain the same set of segments (no duplicates)
-    /// IMPORTANT: tripProfile.segments has priority because it contains the correct API response data
-    private func syncTimelineSegments(_ timeline: inout TRPTimeline) {
-        var allSegments: [TRPTimelineSegment] = []
-        var addedSegmentIds = Set<String>()
-
-        // FIRST: Collect segments from tripProfile.segments (API response - has correct data)
-        if let profileSegments = timeline.tripProfile?.segments {
-            for segment in profileSegments {
-                let segmentId = getSegmentUniqueId(segment)
-                if !addedSegmentIds.contains(segmentId) {
-                    allSegments.append(segment)
-                    addedSegmentIds.insert(segmentId)
-                }
-            }
-        }
-
-        // SECOND: Collect segments from timeline.segments (add only missing ones)
-        if let segments = timeline.segments {
-            for segment in segments {
-                let segmentId = getSegmentUniqueId(segment)
-                if !addedSegmentIds.contains(segmentId) {
-                    allSegments.append(segment)
-                    addedSegmentIds.insert(segmentId)
-                }
-            }
-        }
-
-        // Update both arrays to have the same content
-        if !allSegments.isEmpty {
-            timeline.segments = allSegments
-
-            // Also update tripProfile.segments
-            if timeline.tripProfile != nil {
-                timeline.tripProfile?.segments = allSegments
-            }
-
-            Log.i("TRPTimelineItineraryViewModel: Synced \(allSegments.count) segments between timeline.segments and tripProfile.segments")
-        }
     }
 
     /// Populates city information in segments using index-based mapping with plans
@@ -1808,12 +1738,12 @@ public class TRPTimelineItineraryViewModel {
 
                 switch result {
                 case .success(var updatedTimeline):
-                    // Sync segments between timeline.segments and tripProfile.segments
-                    self.syncTimelineSegments(&updatedTimeline)
+                    // NOTE: Do NOT sync segments - use the API response as-is
+                    // tripProfile.segments is the single source of truth
                     // Populate city information in segments BEFORE processing
                     self.populateCitiesInSegments(&updatedTimeline)
 
-                    // Update timeline data
+                    // Update timeline data with fresh response (replaces old data completely)
                     self.timeline = updatedTimeline
                     self.processTimelineData()
 
@@ -1824,6 +1754,48 @@ public class TRPTimelineItineraryViewModel {
                     // Don't show error - segment was created and generated, just couldn't refresh
                     // User can manually refresh or restart
                     break
+                }
+            }
+        }
+    }
+
+    // MARK: - Remove Segment
+
+    /// Removes a segment from the timeline
+    /// - Parameter segment: The segment to remove
+    public func removeSegment(_ segment: TRPTimelineSegment) {
+        guard let timeline = timeline,
+              let segments = timeline.tripProfile?.segments else { return }
+
+        // Find segment index
+        guard let segmentIndex = segments.firstIndex(where: { $0 === segment }) else {
+            delegate?.viewModel(error: NSError(domain: "Timeline", code: -1, userInfo: [NSLocalizedDescriptionKey: "Segment not found"]))
+            return
+        }
+
+        let tripHash = timeline.tripHash
+
+        // Show loading
+        delegate?.viewModel(showPreloader: true)
+
+        // Delete segment via repository
+        let repository = TRPTimelineRepository()
+        repository.deleteTimelineSegment(tripHash: tripHash, segmentIndex: segmentIndex) { [weak self] result in
+            guard let self = self else { return }
+
+            DispatchQueue.main.async {
+                switch result {
+                case .success(let success):
+                    if success {
+                        // Refresh timeline to get updated data
+                        self.refreshTimeline()
+                    } else {
+                        self.delegate?.viewModel(showPreloader: false)
+                        self.delegate?.viewModel(error: NSError(domain: "Timeline", code: -1, userInfo: [NSLocalizedDescriptionKey: "Failed to remove segment"]))
+                    }
+                case .failure(let error):
+                    self.delegate?.viewModel(showPreloader: false)
+                    self.delegate?.viewModel(error: error)
                 }
             }
         }

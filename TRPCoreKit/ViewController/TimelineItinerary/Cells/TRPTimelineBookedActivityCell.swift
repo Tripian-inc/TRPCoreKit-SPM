@@ -12,6 +12,7 @@ import SDWebImage
 protocol TRPTimelineBookedActivityCellDelegate: AnyObject {
     func bookedActivityCellDidTapMoreOptions(_ cell: TRPTimelineBookedActivityCell)
     func bookedActivityCellDidTapReservation(_ cell: TRPTimelineBookedActivityCell, segment: TRPTimelineSegment)
+    func bookedActivityCellDidTapRemove(_ cell: TRPTimelineBookedActivityCell, segment: TRPTimelineSegment)
 }
 
 class TRPTimelineBookedActivityCell: UITableViewCell {
@@ -100,7 +101,32 @@ class TRPTimelineBookedActivityCell: UITableViewCell {
         label.textColor = ColorSet.fg.uiColor
         return label
     }()
-    
+
+    private let durationIcon: UIImageView = {
+        let imageView = UIImageView()
+        imageView.translatesAutoresizingMaskIntoConstraints = false
+        imageView.image = TRPImageController().getImage(inFramework: "ic_clock", inApp: nil)
+        imageView.tintColor = ColorSet.fgWeak.uiColor
+        imageView.contentMode = .scaleAspectFit
+        return imageView
+    }()
+
+    private let durationLabel: UILabel = {
+        let label = UILabel()
+        label.translatesAutoresizingMaskIntoConstraints = false
+        label.font = FontSet.montserratLight.font(14)
+        label.textColor = ColorSet.fg.uiColor
+        return label
+    }()
+
+    private let priceLabel: UILabel = {
+        let label = UILabel()
+        label.translatesAutoresizingMaskIntoConstraints = false
+        label.font = FontSet.montserratSemiBold.font(14)
+        label.textColor = ColorSet.fg.uiColor
+        return label
+    }()
+
     private let cancellationLabel: UILabel = {
         let label = UILabel()
         label.translatesAutoresizingMaskIntoConstraints = false
@@ -115,6 +141,15 @@ class TRPTimelineBookedActivityCell: UITableViewCell {
         return button
     }()
 
+    private lazy var removeButton: UIButton = {
+        let button = UIButton(type: .custom)
+        button.translatesAutoresizingMaskIntoConstraints = false
+        button.setImage(TRPImageController().getImage(inFramework: "ic_remove_step", inApp: nil), for: .normal)
+        button.addTarget(self, action: #selector(removeButtonTapped), for: .touchUpInside)
+        return button
+    }()
+
+
     // Stack view for right side content (auto-adjusts height when elements are hidden)
     private let rightContentStackView: UIStackView = {
         let stack = UIStackView()
@@ -128,6 +163,16 @@ class TRPTimelineBookedActivityCell: UITableViewCell {
 
     // Horizontal stack for person icon and label
     private let personStackView: UIStackView = {
+        let stack = UIStackView()
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        stack.axis = .horizontal
+        stack.spacing = 6
+        stack.alignment = .center
+        return stack
+    }()
+
+    // Horizontal stack for duration icon and label
+    private let durationStackView: UIStackView = {
         let stack = UIStackView()
         stack.translatesAutoresizingMaskIntoConstraints = false
         stack.axis = .horizontal
@@ -156,16 +201,23 @@ class TRPTimelineBookedActivityCell: UITableViewCell {
         contentView.addSubview(containerView)
 
         containerView.addSubview(activityImageView)
+        containerView.addSubview(titleLabel)
+        containerView.addSubview(removeButton)
         containerView.addSubview(rightContentStackView)
 
         // Build person horizontal stack
         personStackView.addArrangedSubview(personIcon)
         personStackView.addArrangedSubview(personLabel)
 
-        // Build right content vertical stack
-        rightContentStackView.addArrangedSubview(titleLabel)
+        // Build duration horizontal stack
+        durationStackView.addArrangedSubview(durationIcon)
+        durationStackView.addArrangedSubview(durationLabel)
+
+        // Build right content vertical stack (below title)
         rightContentStackView.addArrangedSubview(confirmedBadge)
         rightContentStackView.addArrangedSubview(personStackView)
+        rightContentStackView.addArrangedSubview(durationStackView)
+        rightContentStackView.addArrangedSubview(priceLabel)
         rightContentStackView.addArrangedSubview(cancellationLabel)
         rightContentStackView.addArrangedSubview(reservationButton)
 
@@ -198,8 +250,19 @@ class TRPTimelineBookedActivityCell: UITableViewCell {
             activityImageView.widthAnchor.constraint(equalToConstant: 80),
             activityImageView.heightAnchor.constraint(equalToConstant: 80),
 
-            // Right Content Stack View
-            rightContentStackView.topAnchor.constraint(equalTo: containerView.topAnchor),
+            // Title Label - top right area
+            titleLabel.topAnchor.constraint(equalTo: containerView.topAnchor),
+            titleLabel.leadingAnchor.constraint(equalTo: activityImageView.trailingAnchor, constant: 12),
+            titleLabel.trailingAnchor.constraint(equalTo: removeButton.leadingAnchor, constant: -8),
+
+            // Remove button - fixed to right, aligned with title
+            removeButton.topAnchor.constraint(equalTo: containerView.topAnchor),
+            removeButton.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
+            removeButton.widthAnchor.constraint(equalToConstant: 28),
+            removeButton.heightAnchor.constraint(equalToConstant: 28),
+
+            // Right Content Stack View - below title
+            rightContentStackView.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 8),
             rightContentStackView.leadingAnchor.constraint(equalTo: activityImageView.trailingAnchor, constant: 12),
             rightContentStackView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
             rightContentStackView.bottomAnchor.constraint(equalTo: containerView.bottomAnchor),
@@ -210,6 +273,9 @@ class TRPTimelineBookedActivityCell: UITableViewCell {
 
             personIcon.widthAnchor.constraint(equalToConstant: 16),
             personIcon.heightAnchor.constraint(equalToConstant: 16),
+
+            durationIcon.widthAnchor.constraint(equalToConstant: 16),
+            durationIcon.heightAnchor.constraint(equalToConstant: 16),
 
             // Reservation button full width
             reservationButton.widthAnchor.constraint(equalTo: rightContentStackView.widthAnchor),
@@ -229,17 +295,21 @@ class TRPTimelineBookedActivityCell: UITableViewCell {
 
         // Configure badge and button based on segment type
         if segment.segmentType == .reservedActivity {
-            // Reserved activity - show "Reservation" badge and button
+            // Reserved activity - show "Reservation" badge, buttons, hide person count
             confirmedBadge.text = TimelineLocalizationKeys.localized(TimelineLocalizationKeys.reservation)
             confirmedBadge.textColor = ColorSet.fgOrange.uiColor
             confirmedBadge.backgroundColor = ColorSet.bgOrange.uiColor
             reservationButton.isHidden = false
+            removeButton.isHidden = false
+            personStackView.isHidden = true
         } else {
-            // Booked activity - show "Confirmed" badge, hide button
+            // Booked activity - show "Confirmed" badge, hide buttons, show person count
             confirmedBadge.text = TimelineLocalizationKeys.localized(TimelineLocalizationKeys.confirmed)
             confirmedBadge.textColor = ColorSet.fgGreen.uiColor
             confirmedBadge.backgroundColor = ColorSet.bgGreen.uiColor
             reservationButton.isHidden = true
+            removeButton.isHidden = true
+            personStackView.isHidden = false
         }
         
         // Configure time from additionalData
@@ -279,6 +349,47 @@ class TRPTimelineBookedActivityCell: UITableViewCell {
             cancellationLabel.text = TimelineLocalizationKeys.localized(TimelineLocalizationKeys.freeCancellation)
             cancellationLabel.isHidden = false
         }
+
+        // Configure duration
+        if let duration = additionalData.duration, duration > 0 {
+            durationLabel.text = formatDuration(duration)
+            durationStackView.isHidden = false
+        } else {
+            durationStackView.isHidden = true
+        }
+
+        // Configure price
+        if let price = additionalData.price, price.value > 0 {
+            priceLabel.text = formatPrice(price)
+            priceLabel.isHidden = false
+        } else {
+            priceLabel.isHidden = true
+        }
+    }
+
+    private func formatDuration(_ minutes: Double) -> String {
+        let totalMinutes = Int(minutes)
+        let hours = totalMinutes / 60
+        let mins = totalMinutes % 60
+
+        if hours > 0 && mins > 0 {
+            return "\(hours)h \(mins)m"
+        } else if hours > 0 {
+            return "\(hours)h"
+        } else {
+            return "\(mins)m"
+        }
+    }
+
+    private func formatPrice(_ price: TRPSegmentActivityPrice) -> String {
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .currency
+        formatter.currencyCode = price.currency
+
+        if let formattedPrice = formatter.string(from: NSNumber(value: price.value)) {
+            return formattedPrice
+        }
+        return "\(price.currency) \(String(format: "%.2f", price.value))"
     }
     
     private func formatTime(from dateString: String) -> String {
@@ -307,6 +418,11 @@ class TRPTimelineBookedActivityCell: UITableViewCell {
     @objc private func reservationButtonTapped() {
         guard let segment = segment else { return }
         delegate?.bookedActivityCellDidTapReservation(self, segment: segment)
+    }
+
+    @objc private func removeButtonTapped() {
+        guard let segment = segment else { return }
+        delegate?.bookedActivityCellDidTapRemove(self, segment: segment)
     }
 }
 

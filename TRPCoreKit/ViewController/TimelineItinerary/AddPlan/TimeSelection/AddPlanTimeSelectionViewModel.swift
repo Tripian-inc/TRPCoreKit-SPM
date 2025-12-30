@@ -156,6 +156,16 @@ public class AddPlanTimeSelectionViewModel {
         )
 
         // 3. Create TRPSegmentActivityItem (additionalData)
+        // Get duration (convert Int to Double)
+        let durationValue: Double? = tour.duration != nil ? Double(tour.duration!) : nil
+
+        // Get price with currency (from offers or default to USD)
+        var activityPrice: TRPSegmentActivityPrice? = nil
+        if let priceValue = tour.price, priceValue > 0 {
+            let currency = tour.offers.first?.currency.rawValue ?? "USD"
+            activityPrice = TRPSegmentActivityPrice(currency: currency, value: Double(priceValue))
+        }
+
         let activityItem = TRPSegmentActivityItem(
             activityId: tour.productId,
             bookingId: nil,  // Not sent for reserved activities
@@ -167,7 +177,9 @@ public class AddPlanTimeSelectionViewModel {
             coordinate: tourCoordinate,
             cancellation: nil,  // Not sent for reserved activities
             adultCount: planData.travelers,
-            childCount: 0
+            childCount: 0,
+            duration: durationValue,
+            price: activityPrice
         )
 
         // 4. Create TRPCreateEditTimelineSegmentProfile

@@ -22,7 +22,7 @@ protocol TRPCalendarViewControllerDelegate: AnyObject {
 }
 
 @objc(SPMTRPCalendarViewController)
-class TRPCalendarViewController: UIViewController {
+class TRPCalendarViewController: TRPBaseUIViewController {
     
     // MARK: - Properties
     weak var delegate: TRPCalendarViewControllerDelegate?

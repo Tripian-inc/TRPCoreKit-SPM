@@ -37,9 +37,9 @@ class PopupAlert: UIViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        titleLbl.setFontColor(font: trpTheme.font.bold20, color: trpTheme.color.tripianBlack)
-        contentLbl.setFontColor(font: trpTheme.font.body3, color: trpTheme.color.tripianTextPrimary)
-        subContentLbl.setFontColor(font: trpTheme.font.title3, color: trpTheme.color.tripianTextPrimary)
+        titleLbl.setFontColor(font: FontSet.montserratBold.font(16), color: ColorSet.primaryText.uiColor)
+        contentLbl.setFontColor(font: FontSet.montserratMedium.font(14), color: ColorSet.primaryText.uiColor)
+        subContentLbl.setFontColor(font: FontSet.montserratRegular.font(16), color: ColorSet.primaryText.uiColor)
         bgView.backgroundColor = trpTheme.color.textBody.withAlphaComponent(0.45)
         
         self.bgView?.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(self.tappedBg)))
@@ -135,10 +135,10 @@ class TRPBtn: UIButton {
     }
     
     fileprivate func setupUI() {
-        backgroundColor = trpTheme.color.tripianPrimary
+        backgroundColor = ColorSet.primary.uiColor
         layer.cornerRadius = 26
         setTitleColor(.white, for: .normal)
-        titleLabel?.font = trpTheme.font.title2
+        titleLabel?.font = FontSet.montserratSemiBold.font(16)
         tintColor = .white
     }
     
@@ -177,7 +177,7 @@ class TRPBtnPopup: TRPBtn {
     }
     
     func makePositiveConfirmBtn() {
-        backgroundColor = trpTheme.color.tripianPrimary
+        backgroundColor = ColorSet.primary.uiColor
     }
 }
 
@@ -188,8 +188,8 @@ class TRPBtnPopupCancel: TRPBtnPopup {
         super.setupUI()
         backgroundColor = .white
         layer.borderWidth = 1.5
-        layer.borderColor = trpTheme.color.tripianTextPrimary.cgColor
-        setTitleColor(trpTheme.color.tripianTextPrimary, for: .normal)
+        layer.borderColor = ColorSet.primary.uiColor.cgColor
+        setTitleColor(ColorSet.primary.uiColor, for: .normal)
 //        tintColor = appTheme.color.white
     }
 }

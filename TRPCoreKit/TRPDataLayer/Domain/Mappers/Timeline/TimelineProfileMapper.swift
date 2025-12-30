@@ -148,6 +148,11 @@ final class TimelineProfileMapper {
         additionalData.endDatetime = data.endDatetime
         additionalData.coordinate = data.coordinate
         additionalData.cancellation = data.cancellation
+        additionalData.duration = data.duration
+        if let price = data.price {
+            additionalData.price = price.value
+            additionalData.currency = price.currency
+        }
         // Note: TRPRestKit model doesn't have adultCount/childCount
         // These are stored in the segment itself, not in additionalData
         return additionalData

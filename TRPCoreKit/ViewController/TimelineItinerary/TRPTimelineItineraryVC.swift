@@ -553,22 +553,22 @@ extension TRPTimelineItineraryVC: UITableViewDataSource {
             cell.delegate = self
             return cell
             
-        case .recommendations(let steps):
+        case .recommendations(let steps, let segment):
             guard let cell = tableView.dequeueReusableCell(withIdentifier: TRPTimelineRecommendationsCell.reuseIdentifier, for: indexPath) as? TRPTimelineRecommendationsCell else {
                 return UITableViewCell()
             }
             // Get collapse state from ViewModel
             let isExpanded = viewModel.getSectionCollapseState(for: indexPath.section)
-            cell.configure(with: steps, isExpanded: isExpanded)
+            cell.configure(with: steps, segment: segment, isExpanded: isExpanded)
             cell.delegate = self
-            
+
             // Apply any pre-calculated distances
             if let distances = calculatedDistances[indexPath] {
                 for (index, distanceData) in distances {
                     cell.updateDistance(at: index, distance: distanceData.distance, time: distanceData.time)
                 }
             }
-            
+
             return cell
             
         case .emptyState:
@@ -796,6 +796,18 @@ extension TRPTimelineItineraryVC: TRPTimelineBookedActivityCellDelegate {
         }
         TRPCoreKit.shared.delegate?.trpCoreKitDidRequestActivityReservation(activityId: activityId)
     }
+
+    func bookedActivityCellDidTapRemove(_ cell: TRPTimelineBookedActivityCell, segment: TRPTimelineSegment) {
+        showConfirmAlert(
+            title: TimelineLocalizationKeys.localized(TimelineLocalizationKeys.removeActivityTitle),
+            message: TimelineLocalizationKeys.localized(TimelineLocalizationKeys.removeActivityMessage),
+            confirmTitle: TimelineLocalizationKeys.localized(TimelineLocalizationKeys.remove),
+            cancelTitle: TimelineLocalizationKeys.localized(TimelineLocalizationKeys.cancel),
+            btnConfirmAction: { [weak self] in
+                self?.viewModel.removeSegment(segment)
+            }
+        )
+    }
 }
 
 // MARK: - TRPTimelineActivityStepCellDelegate
@@ -839,8 +851,18 @@ extension TRPTimelineItineraryVC: TRPTimelineEmptyStateCellDelegate {
 // MARK: - TRPTimelineRecommendationsCellDelegate
 extension TRPTimelineItineraryVC: TRPTimelineRecommendationsCellDelegate {
     
-    func recommendationsCellDidTapClose(_ cell: TRPTimelineRecommendationsCell) {
-        // Handle close recommendations
+    func recommendationsCellDidTapClose(_ cell: TRPTimelineRecommendationsCell, segment: TRPTimelineSegment?) {
+        guard let segment = segment else { return }
+
+        showConfirmAlert(
+            title: TimelineLocalizationKeys.localized(TimelineLocalizationKeys.removeRecommendationsTitle),
+            message: TimelineLocalizationKeys.localized(TimelineLocalizationKeys.removeRecommendationsMessage),
+            confirmTitle: TimelineLocalizationKeys.localized(TimelineLocalizationKeys.remove),
+            cancelTitle: TimelineLocalizationKeys.localized(TimelineLocalizationKeys.cancel),
+            btnConfirmAction: { [weak self] in
+                self?.viewModel.removeSegment(segment)
+            }
+        )
     }
     
     func recommendationsCellDidTapToggle(_ cell: TRPTimelineRecommendationsCell, isExpanded: Bool) {

@@ -14,37 +14,30 @@ protocol TRPTimelineEmptyStateCellDelegate: AnyObject {
 }
 
 class TRPTimelineEmptyStateCell: UITableViewCell {
-    
+
     static let reuseIdentifier = "TRPTimelineEmptyStateCell"
-    
+
     weak var delegate: TRPTimelineEmptyStateCellDelegate?
-    
+
     // MARK: - UI Components
     private let containerView: UIView = {
         let view = UIView()
         view.translatesAutoresizingMaskIntoConstraints = false
-        view.backgroundColor = .clear
+        view.backgroundColor = ColorSet.neutral100.uiColor
+        view.layer.cornerRadius = 12
         return view
     }()
-    
-    private let iconImageView: UIImageView = {
-        let imageView = UIImageView()
-        imageView.translatesAutoresizingMaskIntoConstraints = false
-        imageView.contentMode = .scaleAspectFit
-        imageView.tintColor = ColorSet.fgWeak.uiColor
-        return imageView
-    }()
-    
+
     private let titleLabel: UILabel = {
         let label = UILabel()
         label.translatesAutoresizingMaskIntoConstraints = false
-        label.font = FontSet.montserratSemiBold.font(18)
+        label.font = FontSet.montserratSemiBold.font(16)
         label.textColor = ColorSet.primaryText.uiColor
         label.textAlignment = .center
         label.numberOfLines = 0
         return label
     }()
-    
+
     private let descriptionLabel: UILabel = {
         let label = UILabel()
         label.translatesAutoresizingMaskIntoConstraints = false
@@ -54,94 +47,59 @@ class TRPTimelineEmptyStateCell: UITableViewCell {
         label.numberOfLines = 0
         return label
     }()
-    
-    private let addPlanButton: UIButton = {
-        let button = UIButton(type: .system)
-        button.translatesAutoresizingMaskIntoConstraints = false
-        button.backgroundColor = ColorSet.primary.uiColor
-        button.setTitleColor(.white, for: .normal)
-        button.titleLabel?.font = FontSet.montserratSemiBold.font(14)
-        button.layer.cornerRadius = 24
-        button.contentEdgeInsets = UIEdgeInsets(top: 12, left: 24, bottom: 12, right: 24)
-        return button
-    }()
-    
+
     // MARK: - Initialization
     override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
         super.init(style: style, reuseIdentifier: reuseIdentifier)
         setupUI()
     }
-    
+
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
-    
+
     // MARK: - Setup
     private func setupUI() {
         backgroundColor = .clear
         selectionStyle = .none
-        
+
         contentView.addSubview(containerView)
-        containerView.addSubview(iconImageView)
         containerView.addSubview(titleLabel)
         containerView.addSubview(descriptionLabel)
-        containerView.addSubview(addPlanButton)
-        
-        addPlanButton.addTarget(self, action: #selector(addPlanButtonTapped), for: .touchUpInside)
-        
+
+        // Add tap gesture to container
+        let tapGesture = UITapGestureRecognizer(target: self, action: #selector(containerTapped))
+        containerView.addGestureRecognizer(tapGesture)
+        containerView.isUserInteractionEnabled = true
+
         NSLayoutConstraint.activate([
             // Container View
-            containerView.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 40),
-            containerView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 24),
-            containerView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -24),
-            containerView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -40),
-            containerView.heightAnchor.constraint(greaterThanOrEqualToConstant: 300),
-            
-            // Icon Image View
-            iconImageView.topAnchor.constraint(equalTo: containerView.topAnchor),
-            iconImageView.centerXAnchor.constraint(equalTo: containerView.centerXAnchor),
-            iconImageView.widthAnchor.constraint(equalToConstant: 80),
-            iconImageView.heightAnchor.constraint(equalToConstant: 80),
-            
+            containerView.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 16),
+            containerView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
+            containerView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
+            containerView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -16),
+
             // Title Label
-            titleLabel.topAnchor.constraint(equalTo: iconImageView.bottomAnchor, constant: 24),
-            titleLabel.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
-            titleLabel.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
-            
+            titleLabel.topAnchor.constraint(equalTo: containerView.topAnchor, constant: 24),
+            titleLabel.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 16),
+            titleLabel.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -16),
+
             // Description Label
-            descriptionLabel.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 12),
-            descriptionLabel.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
-            descriptionLabel.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
-            
-            // Add Plan Button
-            addPlanButton.topAnchor.constraint(equalTo: descriptionLabel.bottomAnchor, constant: 32),
-            addPlanButton.centerXAnchor.constraint(equalTo: containerView.centerXAnchor),
-            addPlanButton.bottomAnchor.constraint(lessThanOrEqualTo: containerView.bottomAnchor)
+            descriptionLabel.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 8),
+            descriptionLabel.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 16),
+            descriptionLabel.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -16),
+            descriptionLabel.bottomAnchor.constraint(equalTo: containerView.bottomAnchor, constant: -24)
         ])
     }
-    
+
     // MARK: - Configuration
     func configure() {
-        // Set icon
-        if let icon = TRPImageController().getImage(inFramework: "ic_empty_state", inApp: nil) {
-            iconImageView.image = icon
-        } else {
-            // Fallback to system image if custom icon not found
-            iconImageView.image = UIImage(systemName: "calendar.badge.plus")
-        }
-        
-        // Set title
-        titleLabel.text = "No plans for this day"
-        
-        // Set description
-        descriptionLabel.text = "Add activities and places to make the most of your day"
-        
-        // Set button title
-        addPlanButton.setTitle("Add Plan", for: .normal)
+        titleLabel.text = TimelineLocalizationKeys.localized(TimelineLocalizationKeys.noPlansYet)
+        descriptionLabel.text = TimelineLocalizationKeys.localized(TimelineLocalizationKeys.noPlansDescription)
     }
-    
+
     // MARK: - Actions
-    @objc private func addPlanButtonTapped() {
+    @objc private func containerTapped() {
         delegate?.emptyStateCellDidTapAddPlan(self)
     }
 }

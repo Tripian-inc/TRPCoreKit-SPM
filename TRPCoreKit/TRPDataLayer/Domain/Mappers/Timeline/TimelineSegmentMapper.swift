@@ -65,6 +65,12 @@ final class TimelineSegmentMapper {
     }
 
     private func mapAdditionalData(from data: TRPTimelineSegmentAdditionalData) -> TRPSegmentActivityItem {
+        // Map price if available (price and currency are separate fields)
+        var price: TRPSegmentActivityPrice? = nil
+        if let priceValue = data.price, let currency = data.currency {
+            price = TRPSegmentActivityPrice(currency: currency, value: priceValue)
+        }
+
         return TRPSegmentActivityItem(
             activityId: data.activityId,
             bookingId: data.bookingId,
@@ -76,7 +82,9 @@ final class TimelineSegmentMapper {
             coordinate: data.coordinate ?? TRPLocation(lat: 0, lon: 0),
             cancellation: data.cancellation,
             adultCount: 1, // Default value - actual count is in segment.adults
-            childCount: 0  // Default value - actual count is in segment.children
+            childCount: 0, // Default value - actual count is in segment.children
+            duration: data.duration,
+            price: price
         )
     }
 

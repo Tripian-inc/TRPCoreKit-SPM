@@ -56,9 +56,9 @@ extension TRPPoiUseCases: SearchPoiUseCase {
                                  categoies: [Int],
                                  userLocation: TRPLocation,
                                  completion: ((Result<[TRPPoi], Error>, TRPPagination?) -> Void)?) {
-       
+
         let onComplete = completion ?? { result, pagination in }
-        
+
         if ReachabilityUseCases.shared.isOnline {
             var params = PoiParameters(search: text)
             params.cityId = cityId
@@ -85,7 +85,7 @@ extension TRPPoiUseCases: SearchPoiUseCase {
                         }
                         return isContaine
                     }
-                    
+
                     let textFilter = filteredData.filter { poi in
                         if poi.name.contains(text) {
                             return true
@@ -99,7 +99,55 @@ extension TRPPoiUseCases: SearchPoiUseCase {
             }
         }
     }
-    
+
+    public func executeSearchPoi(text: String,
+                                 categories: [Int],
+                                 cityId: Int,
+                                 completion: ((Result<[TRPPoi], Error>, TRPPagination?) -> Void)?) {
+
+        let onComplete = completion ?? { result, pagination in }
+
+        if ReachabilityUseCases.shared.isOnline {
+            var params = PoiParameters(search: text)
+            params.cityId = cityId
+            params.poiCategoies = categories
+
+            poiRepository.fetchPoi(cityId: cityId, parameters: params) { result, pagination in
+                switch result {
+                case .success(let result):
+                    onComplete(.success(result), pagination)
+                case .failure(let error):
+                    onComplete(.failure(error), pagination)
+                }
+            }
+        } else {
+            poiRepository.fetchLocalPoi { result, pagination in
+                switch result {
+                case .success(let result):
+                    let filteredData = result.filter { pois in
+                        var isContaine = false
+                        for cat in pois.categories {
+                            if categories.contains(cat.id) {
+                                isContaine = true
+                            }
+                        }
+                        return isContaine
+                    }
+
+                    let textFilter = filteredData.filter { poi in
+                        if poi.name.lowercased().contains(text.lowercased()) {
+                            return true
+                        }
+                        return false
+                    }
+                    onComplete(.success(textFilter), pagination)
+                case .failure(let error):
+                    onComplete(.failure(error), pagination)
+                }
+            }
+        }
+    }
+
 }
 
 extension TRPPoiUseCases: FetchPoiUseCase {

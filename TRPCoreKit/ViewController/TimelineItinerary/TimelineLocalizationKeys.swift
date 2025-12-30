@@ -20,6 +20,20 @@ public struct TimelineLocalizationKeys {
     public static let child = "timeline.bookedActivity.child"
     public static let children = "timeline.bookedActivity.children"
 
+    // MARK: - Remove Activity Alert
+    public static let removeActivityTitle = "timeline.removeActivity.title"
+    public static let removeActivityMessage = "timeline.removeActivity.message"
+    public static let remove = "timeline.removeActivity.remove"
+    public static let cancel = "timeline.removeActivity.cancel"
+
+    // MARK: - Remove Recommendations Alert
+    public static let removeRecommendationsTitle = "timeline.removeRecommendations.title"
+    public static let removeRecommendationsMessage = "timeline.removeRecommendations.message"
+
+    // MARK: - Empty State
+    public static let noPlansYet = "timeline.emptyState.noPlansYet"
+    public static let noPlansDescription = "timeline.emptyState.noPlansDescription"
+
     // MARK: - Default English Values
     private static let defaultValues: [String: String] = [
         navigationTitle: "Plan Your Itinerary",
@@ -28,7 +42,15 @@ public struct TimelineLocalizationKeys {
         freeCancellation: "Free cancellation",
         adults: "Adults",
         child: "Child",
-        children: "Children"
+        children: "Children",
+        removeActivityTitle: "Remove Activity",
+        removeActivityMessage: "Are you sure you want to remove this activity from your itinerary?",
+        remove: "Remove",
+        cancel: "Cancel",
+        removeRecommendationsTitle: "Remove Recommendations",
+        removeRecommendationsMessage: "Are you sure you want to remove these recommendations from your itinerary?",
+        noPlansYet: "No Plans Yet",
+        noPlansDescription: "Add must see attractions, restaurants and cafes or block time to rest and recharge."
     ]
 
     // MARK: - Helper Methods

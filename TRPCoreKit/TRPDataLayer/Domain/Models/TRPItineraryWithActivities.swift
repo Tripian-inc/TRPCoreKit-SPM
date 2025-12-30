@@ -134,8 +134,10 @@ public struct TRPSegmentActivityItem: Codable {
     public var adultCount: Int = 1
     public var childCount: Int = 0
     public var bookingUrl: String?
+    public var duration: Double?
+    public var price: TRPSegmentActivityPrice?
 
-    public init(activityId: String?, bookingId: String?, title: String?, imageUrl: String?, description: String?, startDatetime: String?, endDatetime: String?, coordinate: TRPLocation, cancellation: String?, adultCount: Int, childCount: Int, bookingUrl: String? = nil) {
+    public init(activityId: String?, bookingId: String?, title: String?, imageUrl: String?, description: String?, startDatetime: String?, endDatetime: String?, coordinate: TRPLocation, cancellation: String?, adultCount: Int, childCount: Int, bookingUrl: String? = nil, duration: Double? = nil, price: TRPSegmentActivityPrice? = nil) {
         self.activityId = activityId
         self.bookingId = bookingId
         self.title = title
@@ -148,6 +150,8 @@ public struct TRPSegmentActivityItem: Codable {
         self.adultCount = adultCount
         self.childCount = childCount
         self.bookingUrl = bookingUrl
+        self.duration = duration
+        self.price = price
     }
 
     enum CodingKeys: String, CodingKey {
@@ -163,6 +167,8 @@ public struct TRPSegmentActivityItem: Codable {
         case adultCount
         case childCount
         case bookingUrl
+        case duration
+        case price
     }
 
 }
@@ -170,9 +176,9 @@ public struct TRPSegmentActivityItem: Codable {
 public struct TRPSegmentActivityPrice: Codable {
 
     public var currency: String
-    public var value: Float
+    public var value: Double
 
-    public init(currency: String, value: Float) {
+    public init(currency: String, value: Double) {
         self.currency = currency
         self.value = value
     }

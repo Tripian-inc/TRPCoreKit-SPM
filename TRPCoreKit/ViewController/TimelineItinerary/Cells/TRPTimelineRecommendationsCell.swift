@@ -11,7 +11,7 @@ import SDWebImage
 import TRPFoundationKit
 
 protocol TRPTimelineRecommendationsCellDelegate: AnyObject {
-    func recommendationsCellDidTapClose(_ cell: TRPTimelineRecommendationsCell)
+    func recommendationsCellDidTapClose(_ cell: TRPTimelineRecommendationsCell, segment: TRPTimelineSegment?)
     func recommendationsCellDidTapToggle(_ cell: TRPTimelineRecommendationsCell, isExpanded: Bool)
     func recommendationsCellDidSelectStep(_ cell: TRPTimelineRecommendationsCell, step: TRPTimelineStep)
     func recommendationsCellDidTapChangeTime(_ cell: TRPTimelineRecommendationsCell, step: TRPTimelineStep)
@@ -21,11 +21,12 @@ protocol TRPTimelineRecommendationsCellDelegate: AnyObject {
 }
 
 class TRPTimelineRecommendationsCell: UITableViewCell {
-    
+
     static let reuseIdentifier = "TRPTimelineRecommendationsCell"
-    
+
     weak var delegate: TRPTimelineRecommendationsCellDelegate?
     private var steps: [TRPTimelineStep] = []
+    private var segment: TRPTimelineSegment?
     private var isExpanded: Bool = true
     private var distanceViews: [Int: UIView] = [:] // Track distance views by index
     
@@ -194,7 +195,7 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
     }
     
     @objc private func closeTapped() {
-        delegate?.recommendationsCellDidTapClose(self)
+        delegate?.recommendationsCellDidTapClose(self, segment: segment)
     }
     
     // MARK: - Updates
@@ -211,8 +212,9 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
     }
     
     // MARK: - Configuration
-    func configure(with steps: [TRPTimelineStep], isExpanded: Bool = true) {
+    func configure(with steps: [TRPTimelineStep], segment: TRPTimelineSegment?, isExpanded: Bool = true) {
         self.steps = steps
+        self.segment = segment
         self.isExpanded = isExpanded
 
         // Clear existing views and distance views
