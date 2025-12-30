@@ -294,9 +294,17 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
             poiImageView.sd_setImage(with: URL(string: imageUrl), placeholderImage: nil)
         }
 
-        // Right side info container
-        let infoContainer = UIView()
-        infoContainer.translatesAutoresizingMaskIntoConstraints = false
+        // Right side info container - using stack view for auto height adjustment
+        let infoStackView = UIStackView()
+        infoStackView.translatesAutoresizingMaskIntoConstraints = false
+        infoStackView.axis = .vertical
+        infoStackView.spacing = 4
+        infoStackView.alignment = .leading
+        infoStackView.distribution = .fill
+
+        // Title row (title + action buttons)
+        let titleRow = UIView()
+        titleRow.translatesAutoresizingMaskIntoConstraints = false
 
         // Title label
         let titleLabel = UILabel()
@@ -314,23 +322,25 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
         actionButtonsStack.alignment = .center
 
         // Change time button
-        let changeTimeButton = UIButton(type: .system)
+        let changeTimeButton = UIButton(type: .custom)
         changeTimeButton.translatesAutoresizingMaskIntoConstraints = false
-        changeTimeButton.setImage(UIImage(systemName: "clock"), for: .normal)
-        changeTimeButton.tintColor = ColorSet.fgWeak.uiColor
+        changeTimeButton.setImage(TRPImageController().getImage(inFramework: "ic_change_time", inApp: nil), for: .normal)
         changeTimeButton.tag = steps.firstIndex(where: { $0.id == step.id }) ?? 0
         changeTimeButton.addTarget(self, action: #selector(changeTimeTapped(_:)), for: .touchUpInside)
 
         // Remove step button
-        let removeStepButton = UIButton(type: .system)
+        let removeStepButton = UIButton(type: .custom)
         removeStepButton.translatesAutoresizingMaskIntoConstraints = false
-        removeStepButton.setImage(UIImage(systemName: "minus.circle"), for: .normal)
-        removeStepButton.tintColor = ColorSet.fgPink.uiColor
+        removeStepButton.setImage(TRPImageController().getImage(inFramework: "ic_remove_step", inApp: nil), for: .normal)
         removeStepButton.tag = steps.firstIndex(where: { $0.id == step.id }) ?? 0
         removeStepButton.addTarget(self, action: #selector(removeStepTapped(_:)), for: .touchUpInside)
 
         actionButtonsStack.addArrangedSubview(changeTimeButton)
         actionButtonsStack.addArrangedSubview(removeStepButton)
+
+        // Add to title row
+        titleRow.addSubview(titleLabel)
+        titleRow.addSubview(actionButtonsStack)
 
         // Rating stack
         let ratingStack = UIStackView()
@@ -481,18 +491,21 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
         priceLabel.font = FontSet.montserratBold.font(16)
         priceLabel.textColor = ColorSet.fg.uiColor
         priceLabel.textAlignment = .right
-        priceLabel.isHidden = true
 
         if isActivity {
             if let price = bookingProduct?.price, let currency = bookingProduct?.currency {
                 let priceString = String(format: "%.2f", price).replacingOccurrences(of: ".", with: ",")
                 priceLabel.text = "\(priceString) \(currency)"
-                priceLabel.isHidden = false
             } else if let poiPrice = step.poi?.price, poiPrice > 0 {
                 priceLabel.text = "\(poiPrice) €"
-                priceLabel.isHidden = false
             }
         }
+
+        // Category + Price row
+        let categoryPriceRow = UIView()
+        categoryPriceRow.translatesAutoresizingMaskIntoConstraints = false
+        categoryPriceRow.addSubview(categoryBadge)
+        categoryPriceRow.addSubview(priceLabel)
 
         // Reservation button (TRPButton primary for activity steps)
         let reservationButton = TRPButton(title: "Reservation", style: .primary, height: 40)
@@ -505,15 +518,15 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
         containerView.addSubview(verticalLineView)
         containerView.addSubview(contentContainer)
         contentContainer.addSubview(poiImageView)
-        contentContainer.addSubview(infoContainer)
-        infoContainer.addSubview(titleLabel)
-        infoContainer.addSubview(actionButtonsStack)
-        infoContainer.addSubview(ratingStack)
-        infoContainer.addSubview(durationStack)
-        infoContainer.addSubview(cancellationStack)
-        infoContainer.addSubview(categoryBadge)
-        infoContainer.addSubview(priceLabel)
-        infoContainer.addSubview(reservationButton)
+        contentContainer.addSubview(infoStackView)
+
+        // Build info stack view
+        infoStackView.addArrangedSubview(titleRow)
+        infoStackView.addArrangedSubview(ratingStack)
+        infoStackView.addArrangedSubview(durationStack)
+        infoStackView.addArrangedSubview(cancellationStack)
+        infoStackView.addArrangedSubview(categoryPriceRow)
+        infoStackView.addArrangedSubview(reservationButton)
 
         // Constraints
         NSLayoutConstraint.activate([
@@ -539,20 +552,24 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
             poiImageView.widthAnchor.constraint(equalToConstant: 80),
             poiImageView.heightAnchor.constraint(equalToConstant: 80),
 
-            // Info container
-            infoContainer.topAnchor.constraint(equalTo: contentContainer.topAnchor),
-            infoContainer.leadingAnchor.constraint(equalTo: poiImageView.trailingAnchor, constant: 12),
-            infoContainer.trailingAnchor.constraint(equalTo: contentContainer.trailingAnchor),
-            infoContainer.bottomAnchor.constraint(equalTo: contentContainer.bottomAnchor),
+            // Info stack view
+            infoStackView.topAnchor.constraint(equalTo: contentContainer.topAnchor),
+            infoStackView.leadingAnchor.constraint(equalTo: poiImageView.trailingAnchor, constant: 12),
+            infoStackView.trailingAnchor.constraint(equalTo: contentContainer.trailingAnchor),
+            infoStackView.bottomAnchor.constraint(equalTo: contentContainer.bottomAnchor),
 
-            // Title label
-            titleLabel.topAnchor.constraint(equalTo: infoContainer.topAnchor),
-            titleLabel.leadingAnchor.constraint(equalTo: infoContainer.leadingAnchor),
+            // Title row - full width
+            titleRow.widthAnchor.constraint(equalTo: infoStackView.widthAnchor),
+
+            // Title label inside title row
+            titleLabel.topAnchor.constraint(equalTo: titleRow.topAnchor),
+            titleLabel.leadingAnchor.constraint(equalTo: titleRow.leadingAnchor),
             titleLabel.trailingAnchor.constraint(equalTo: actionButtonsStack.leadingAnchor, constant: -8),
+            titleLabel.bottomAnchor.constraint(equalTo: titleRow.bottomAnchor),
 
-            // Action buttons stack
-            actionButtonsStack.topAnchor.constraint(equalTo: infoContainer.topAnchor),
-            actionButtonsStack.trailingAnchor.constraint(equalTo: infoContainer.trailingAnchor),
+            // Action buttons stack inside title row
+            actionButtonsStack.topAnchor.constraint(equalTo: titleRow.topAnchor),
+            actionButtonsStack.trailingAnchor.constraint(equalTo: titleRow.trailingAnchor),
 
             // Button sizes
             changeTimeButton.widthAnchor.constraint(equalToConstant: 28),
@@ -560,54 +577,28 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
             removeStepButton.widthAnchor.constraint(equalToConstant: 28),
             removeStepButton.heightAnchor.constraint(equalToConstant: 28),
 
-            // Rating stack
-            ratingStack.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 4),
-            ratingStack.leadingAnchor.constraint(equalTo: infoContainer.leadingAnchor),
+            // Category + Price row - full width
+            categoryPriceRow.widthAnchor.constraint(equalTo: infoStackView.widthAnchor),
+
+            // Category badge inside category price row
+            categoryBadge.topAnchor.constraint(equalTo: categoryPriceRow.topAnchor),
+            categoryBadge.leadingAnchor.constraint(equalTo: categoryPriceRow.leadingAnchor),
+            categoryBadge.bottomAnchor.constraint(equalTo: categoryPriceRow.bottomAnchor),
 
             // Category label inside badge
             categoryLabel.topAnchor.constraint(equalTo: categoryBadge.topAnchor, constant: 4),
             categoryLabel.bottomAnchor.constraint(equalTo: categoryBadge.bottomAnchor, constant: -4),
             categoryLabel.leadingAnchor.constraint(equalTo: categoryBadge.leadingAnchor, constant: 8),
             categoryLabel.trailingAnchor.constraint(equalTo: categoryBadge.trailingAnchor, constant: -8),
+
+            // Price label inside category price row (right side)
+            priceLabel.centerYAnchor.constraint(equalTo: categoryBadge.centerYAnchor),
+            priceLabel.trailingAnchor.constraint(equalTo: categoryPriceRow.trailingAnchor),
+            priceLabel.leadingAnchor.constraint(greaterThanOrEqualTo: categoryBadge.trailingAnchor, constant: 8),
+
+            // Reservation button - full width
+            reservationButton.widthAnchor.constraint(equalTo: infoStackView.widthAnchor),
         ])
-
-        // Different constraints for activity vs POI
-        if isActivity {
-            // Activity layout: rating -> duration -> cancellation -> category+price row -> reservation button
-            NSLayoutConstraint.activate([
-                // Duration stack
-                durationStack.topAnchor.constraint(equalTo: ratingStack.bottomAnchor, constant: 4),
-                durationStack.leadingAnchor.constraint(equalTo: infoContainer.leadingAnchor),
-
-                // Cancellation stack
-                cancellationStack.topAnchor.constraint(equalTo: durationStack.bottomAnchor, constant: 4),
-                cancellationStack.leadingAnchor.constraint(equalTo: infoContainer.leadingAnchor),
-                cancellationStack.trailingAnchor.constraint(lessThanOrEqualTo: infoContainer.trailingAnchor),
-
-                // Category badge (left side)
-                categoryBadge.topAnchor.constraint(equalTo: cancellationStack.bottomAnchor, constant: 8),
-                categoryBadge.leadingAnchor.constraint(equalTo: infoContainer.leadingAnchor),
-
-                // Price label (right side, same row as category)
-                priceLabel.centerYAnchor.constraint(equalTo: categoryBadge.centerYAnchor),
-                priceLabel.trailingAnchor.constraint(equalTo: infoContainer.trailingAnchor),
-                priceLabel.leadingAnchor.constraint(greaterThanOrEqualTo: categoryBadge.trailingAnchor, constant: 8),
-
-                // Reservation button (full width at bottom)
-                reservationButton.topAnchor.constraint(equalTo: categoryBadge.bottomAnchor, constant: 12),
-                reservationButton.leadingAnchor.constraint(equalTo: infoContainer.leadingAnchor),
-                reservationButton.trailingAnchor.constraint(equalTo: infoContainer.trailingAnchor),
-                reservationButton.bottomAnchor.constraint(equalTo: infoContainer.bottomAnchor),
-            ])
-        } else {
-            // POI layout: rating -> category badge
-            NSLayoutConstraint.activate([
-                // Category badge
-                categoryBadge.topAnchor.constraint(equalTo: ratingStack.bottomAnchor, constant: 6),
-                categoryBadge.leadingAnchor.constraint(equalTo: infoContainer.leadingAnchor),
-                categoryBadge.bottomAnchor.constraint(lessThanOrEqualTo: infoContainer.bottomAnchor),
-            ])
-        }
 
         // Add tap gesture for selection
         let tapGesture = UITapGestureRecognizer(target: self, action: #selector(recommendationTapped(_:)))
