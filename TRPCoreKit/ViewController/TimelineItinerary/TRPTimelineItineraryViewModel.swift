@@ -18,6 +18,7 @@ public protocol TRPTimelineItineraryViewModelDelegate: ViewModelDelegate {
 public enum TRPTimelineCellType {
     case bookedActivity(TRPTimelineSegment)
     case reservedActivity(TRPTimelineSegment) // Reserved but not purchased
+    case manualPoi(TRPTimelineSegment, TRPPoi?) // Manual POI segment with POI data from plans.steps
     case activityStep(TRPTimelineStep) // For activity type steps
     case recommendations([TRPTimelineStep], TRPTimelineSegment?) // For POI type steps with their segment
     case emptyState // Empty itinerary day
@@ -31,6 +32,7 @@ private struct SegmentWithSteps {
 private enum TimelineItem {
     case bookedActivitySegment(TRPTimelineSegment)
     case reservedActivitySegment(TRPTimelineSegment)
+    case manualPoiSegment(TRPTimelineSegment, TRPPoi?) // Manual POI segment with POI data
     case activityStep(TRPTimelineStep)
     case poiSteps([TRPTimelineStep], TRPCity?, TRPTimelineSegment?) // Steps with their plan's city and parent segment
 }
@@ -148,6 +150,24 @@ public class TRPTimelineItineraryViewModel {
     }
     
     // MARK: - Data Processing
+
+    /// Find the matching plan for a segment using plan.id and segment.dayIds
+    /// Returns the plan if found, nil otherwise
+    private func findMatchingPlan(for segment: TRPTimelineSegment, in plans: [TRPTimelinePlan]) -> TRPTimelinePlan? {
+        guard let dayIds = segment.dayIds, !dayIds.isEmpty else {
+            return nil
+        }
+
+        // Match plan.id (String) with segment.dayIds (contains Int values)
+        for plan in plans {
+            if let planIdInt = Int(plan.id), dayIds.contains(planIdInt) {
+                return plan
+            }
+        }
+
+        return nil
+    }
+
     private func processTimelineData() {
         // Always reset to empty state first
         segmentsWithSteps = []
@@ -163,11 +183,11 @@ public class TRPTimelineItineraryViewModel {
 
         // IMPORTANT: Process segments in the order they appear in tripProfile.segments
         // This preserves the API response order
-        // tripProfile.segments[i] and plans[i] represent the SAME segment (index-based mapping)
+        // Match segments with plans using plan.id and segment.dayIds
 
         var items: [TimelineItem] = []
-        var planIndex = 0 // Track which plan corresponds to current segment
         var processedSegmentIds = Set<String>()
+        var processedPlanIds = Set<String>()
         var earliestDateString: String?
 
         // Process tripProfile.segments in order (API response order)
@@ -180,7 +200,7 @@ public class TRPTimelineItineraryViewModel {
                 processedSegmentIds.insert(segmentId)
 
                 // Update earliest date for filtering
-                var segmentStartDateStr = segment.additionalData?.startDatetime ?? segment.startDate
+                let segmentStartDateStr = segment.additionalData?.startDatetime ?? segment.startDate
                 if let dateStr = segmentStartDateStr {
                     let segmentDateString = String(dateStr.prefix(10))
                     if earliestDateString == nil || segmentDateString < earliestDateString! {
@@ -189,25 +209,34 @@ public class TRPTimelineItineraryViewModel {
                 }
 
                 // Determine segment type and create appropriate TimelineItem
-                if let additionalData = segment.additionalData {
-                    // Booked or reserved activity segment
-                    segment.startDate = additionalData.startDatetime
-                    segment.endDate = additionalData.endDatetime
-
-                    if segment.segmentType == .reservedActivity {
-                        items.append(.reservedActivitySegment(segment))
-                    } else {
-                        segment.segmentType = .bookedActivity
-                        items.append(.bookedActivitySegment(segment))
+                // IMPORTANT: Check segmentType FIRST to preserve API response order
+                // Do NOT check additionalData first as it would misclassify segment types
+                switch segment.segmentType {
+                case .bookedActivity:
+                    // Booked activity segment (already purchased)
+                    if let additionalData = segment.additionalData {
+                        segment.startDate = additionalData.startDatetime
+                        segment.endDate = additionalData.endDatetime
                     }
-                } else if segment.segmentType == .itinerary {
-                    // Itinerary segment - get corresponding plan using index
-                    if let plans = timeline.plans, planIndex < plans.count {
-                        let plan = plans[planIndex]
-                        planIndex += 1
+                    items.append(.bookedActivitySegment(segment))
+
+                case .reservedActivity:
+                    // Reserved activity segment (not yet purchased)
+                    if let additionalData = segment.additionalData {
+                        segment.startDate = additionalData.startDatetime
+                        segment.endDate = additionalData.endDatetime
+                    }
+                    items.append(.reservedActivitySegment(segment))
+
+                case .manualPoi:
+                    // Manual POI segment - get POI data from matching plan's steps
+                    // Match using plan.id and segment.dayIds
+                    if let plans = timeline.plans,
+                       let matchingPlan = findMatchingPlan(for: segment, in: plans) {
+                        processedPlanIds.insert(matchingPlan.id)
 
                         // Update earliest date from plan
-                        let planStartDate = plan.startDate
+                        let planStartDate = matchingPlan.startDate
                         if !planStartDate.isEmpty {
                             let planDateString = String(planStartDate.prefix(10))
                             if earliestDateString == nil || planDateString < earliestDateString! {
@@ -215,8 +244,36 @@ public class TRPTimelineItineraryViewModel {
                             }
                         }
 
-                        if !plan.steps.isEmpty {
-                            items.append(.poiSteps(plan.steps, plan.city, segment))
+                        // Update segment dates from plan
+                        if segment.startDate == nil || segment.startDate?.isEmpty == true {
+                            segment.startDate = matchingPlan.startDate
+                        }
+                        if segment.endDate == nil || segment.endDate?.isEmpty == true {
+                            segment.endDate = matchingPlan.endDate
+                        }
+
+                        // Get POI from first step
+                        let poi = matchingPlan.steps.first?.poi
+                        items.append(.manualPoiSegment(segment, poi))
+                    }
+
+                case .itinerary:
+                    // Itinerary segment - get matching plan using plan.id and segment.dayIds
+                    if let plans = timeline.plans,
+                       let matchingPlan = findMatchingPlan(for: segment, in: plans) {
+                        processedPlanIds.insert(matchingPlan.id)
+
+                        // Update earliest date from plan
+                        let planStartDate = matchingPlan.startDate
+                        if !planStartDate.isEmpty {
+                            let planDateString = String(planStartDate.prefix(10))
+                            if earliestDateString == nil || planDateString < earliestDateString! {
+                                earliestDateString = planDateString
+                            }
+                        }
+
+                        if !matchingPlan.steps.isEmpty {
+                            items.append(.poiSteps(matchingPlan.steps, matchingPlan.city, segment))
                         }
                     }
                 }
@@ -229,9 +286,9 @@ public class TRPTimelineItineraryViewModel {
 
         // Process any remaining plans that weren't matched to segments
         if let plans = timeline.plans {
-            for (index, plan) in plans.enumerated() {
-                // Skip plans that were already processed via tripProfile.segments
-                guard index >= planIndex else { continue }
+            for plan in plans {
+                // Skip plans that were already processed via segment matching
+                guard !processedPlanIds.contains(plan.id) else { continue }
 
                 // Update earliest date
                 let planStartDate = plan.startDate
@@ -243,7 +300,7 @@ public class TRPTimelineItineraryViewModel {
                 }
 
                 if !plan.steps.isEmpty {
-                    items.append(.poiSteps(plan.steps, plan.city, timeline.tripProfile?.segments[index]))
+                    items.append(.poiSteps(plan.steps, plan.city, nil))
                 }
             }
         }
@@ -284,6 +341,14 @@ public class TRPTimelineItineraryViewModel {
             }
             return Date()
 
+        case .manualPoiSegment(let segment, _):
+            if let startDate = segment.startDate {
+                // Try both formats: with and without seconds
+                return Date.fromString(startDate, format: "yyyy-MM-dd HH:mm") ??
+                       Date.fromString(startDate, format: "yyyy-MM-dd HH:mm:ss") ?? Date()
+            }
+            return Date()
+
         case .activityStep(let step):
             if let stepStart = step.startDateTimes {
                 // Try both formats: with and without seconds
@@ -305,7 +370,7 @@ public class TRPTimelineItineraryViewModel {
     // Helper to get city name for timeline items
     private func getItemCityName(_ item: TimelineItem) -> String {
         switch item {
-        case .bookedActivitySegment(let segment), .reservedActivitySegment(let segment):
+        case .bookedActivitySegment(let segment), .reservedActivitySegment(let segment), .manualPoiSegment(let segment, _):
             return segment.city?.name ?? "Unknown"
 
         case .activityStep(let step):
@@ -420,8 +485,8 @@ public class TRPTimelineItineraryViewModel {
 
             for item in itemGroup {
                 switch item {
-                case .bookedActivitySegment(let segment), .reservedActivitySegment(let segment):
-                    // Check if activity (booked or reserved) falls on selected day
+                case .bookedActivitySegment(let segment), .reservedActivitySegment(let segment), .manualPoiSegment(let segment, _):
+                    // Check if activity (booked, reserved, or manual POI) falls on selected day
                     // Use string comparison: extract "yyyy-MM-dd" from segment date
                     // Priority: additionalData.startDatetime > segment.startDate
                     var segmentStartDateStr = segment.additionalData?.startDatetime
@@ -830,6 +895,9 @@ public class TRPTimelineItineraryViewModel {
         case .reservedActivitySegment(let segment):
             return .reservedActivity(segment)
 
+        case .manualPoiSegment(let segment, let poi):
+            return .manualPoi(segment, poi)
+
         case .activityStep(let step):
             return .activityStep(step)
 
@@ -880,7 +948,7 @@ public class TRPTimelineItineraryViewModel {
 
         // Extract city from the timeline item
         switch firstItem {
-        case .bookedActivitySegment(let segment), .reservedActivitySegment(let segment):
+        case .bookedActivitySegment(let segment), .reservedActivitySegment(let segment), .manualPoiSegment(let segment, _):
             let cityName = segment.city?.name ?? "Unknown"
             return cityName
 
@@ -902,7 +970,7 @@ public class TRPTimelineItineraryViewModel {
         for sectionItems in filteredTimelineItems {
             for item in sectionItems {
                 switch item {
-                case .bookedActivitySegment(let segment), .reservedActivitySegment(let segment):
+                case .bookedActivitySegment(let segment), .reservedActivitySegment(let segment), .manualPoiSegment(let segment, _):
                     if let city = segment.city {
                         cityIds.insert(city.id)
                         cityNames.insert(city.name)
@@ -937,7 +1005,7 @@ public class TRPTimelineItineraryViewModel {
     /// Get all POIs for the currently selected day
     public func getPoisForSelectedDay() -> [TRPPoi] {
         var pois: [TRPPoi] = []
-        
+
         for sectionItems in filteredTimelineItems {
             for item in sectionItems {
                 switch item {
@@ -945,12 +1013,18 @@ public class TRPTimelineItineraryViewModel {
                     if let poi = step.poi {
                         pois.append(poi)
                     }
-                    
+
                 case .poiSteps(let steps, _, _):
                     for step in steps {
                         if let poi = step.poi {
                             pois.append(poi)
                         }
+                    }
+
+                case .manualPoiSegment(_, let poi):
+                    // Manual POI segment has POI to show on map
+                    if let poi = poi {
+                        pois.append(poi)
                     }
 
                 case .bookedActivitySegment, .reservedActivitySegment:
@@ -989,13 +1063,19 @@ public class TRPTimelineItineraryViewModel {
                         segmentGroups.append(poisInGroup)
                     }
 
+                case .manualPoiSegment(_, let poi):
+                    // Manual POI is individual
+                    if let poi = poi {
+                        segmentGroups.append([poi])
+                    }
+
                 case .bookedActivitySegment, .reservedActivitySegment:
                     // Booked/reserved activities don't have POIs
                     break
                 }
             }
         }
-        
+
         return segmentGroups
     }
     
@@ -1083,6 +1163,11 @@ public class TRPTimelineItineraryViewModel {
                         }
                     }
 
+                case .manualPoiSegment(_, let poi):
+                    if let poi = poi, poi.id == id {
+                        return poi
+                    }
+
                 case .bookedActivitySegment, .reservedActivitySegment:
                     break
                 }
@@ -1126,7 +1211,8 @@ public class TRPTimelineItineraryViewModel {
                         }
                     }
 
-                case .bookedActivitySegment, .reservedActivitySegment:
+                case .manualPoiSegment, .bookedActivitySegment, .reservedActivitySegment:
+                    // Manual POI, booked and reserved activities don't have steps
                     break
                 }
             }

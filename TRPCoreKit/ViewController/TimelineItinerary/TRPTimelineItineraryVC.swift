@@ -192,12 +192,13 @@ public class TRPTimelineItineraryVC: TRPBaseUIViewController {
     
     private func registerCells() {
         tableView.register(TRPTimelineBookedActivityCell.self, forCellReuseIdentifier: TRPTimelineBookedActivityCell.reuseIdentifier)
+        tableView.register(TRPTimelineManualPoiCell.self, forCellReuseIdentifier: TRPTimelineManualPoiCell.reuseIdentifier)
         tableView.register(TRPTimelineActivityStepCell.self, forCellReuseIdentifier: TRPTimelineActivityStepCell.reuseIdentifier)
         tableView.register(TRPTimelineRecommendationsCell.self, forCellReuseIdentifier: TRPTimelineRecommendationsCell.reuseIdentifier)
         tableView.register(TRPTimelineEmptyStateCell.self, forCellReuseIdentifier: TRPTimelineEmptyStateCell.reuseIdentifier)
         tableView.register(TRPTimelineSectionHeaderView.self, forHeaderFooterViewReuseIdentifier: TRPTimelineSectionHeaderView.reuseIdentifier)
         tableView.register(TRPTimelineSectionFooterView.self, forHeaderFooterViewReuseIdentifier: TRPTimelineSectionFooterView.reuseIdentifier)
-        
+
         // POI preview cell for map view
         poiPreviewCollectionView.register(TRPTimelineMapPOIPreviewCell.self, forCellWithReuseIdentifier: TRPTimelineMapPOIPreviewCell.reuseIdentifier)
     }
@@ -545,6 +546,14 @@ extension TRPTimelineItineraryVC: UITableViewDataSource {
             cell.delegate = self
             return cell
 
+        case .manualPoi(let segment, let poi):
+            guard let cell = tableView.dequeueReusableCell(withIdentifier: TRPTimelineManualPoiCell.reuseIdentifier, for: indexPath) as? TRPTimelineManualPoiCell else {
+                return UITableViewCell()
+            }
+            cell.configure(with: segment, poi: poi)
+            cell.delegate = self
+            return cell
+
         case .activityStep(let step):
             // Activity steps use the same booking cell as booked activities
             guard let cell = tableView.dequeueReusableCell(withIdentifier: TRPTimelineActivityStepCell.reuseIdentifier, for: indexPath) as? TRPTimelineActivityStepCell else {
@@ -698,6 +707,10 @@ extension TRPTimelineItineraryVC: UITableViewDelegate {
         case .reservedActivity(let segment):
             delegate?.timelineItineraryDidSelectBookedActivity(self, segment: segment)
 
+        case .manualPoi:
+            // Manual POI cell handles selection internally via TRPTimelineManualPoiCellDelegate
+            break
+
         case .activityStep(let step):
             // Treat activity step selection similar to regular step selection
             delegate?.timelineItineraryDidSelectStep(self, step: step)
@@ -705,7 +718,7 @@ extension TRPTimelineItineraryVC: UITableViewDelegate {
         case .recommendations:
             // Recommendations cell handles selection internally
             break
-            
+
         case .emptyState:
             // Empty state cell handles selection internally via button
             break
@@ -824,6 +837,35 @@ extension TRPTimelineItineraryVC: TRPTimelineActivityStepCellDelegate {
             return
         }
         TRPCoreKit.shared.delegate?.trpCoreKitDidRequestActivityReservation(activityId: activityId)
+    }
+}
+
+// MARK: - TRPTimelineManualPoiCellDelegate
+extension TRPTimelineItineraryVC: TRPTimelineManualPoiCellDelegate {
+
+    func manualPoiCellDidTapChangeTime(_ cell: TRPTimelineManualPoiCell, segment: TRPTimelineSegment) {
+        // TODO: Implement time change for manual POI
+    }
+
+    func manualPoiCellDidTapRemove(_ cell: TRPTimelineManualPoiCell, segment: TRPTimelineSegment) {
+        showConfirmAlert(
+            title: TimelineLocalizationKeys.localized(TimelineLocalizationKeys.removeActivityTitle),
+            message: TimelineLocalizationKeys.localized(TimelineLocalizationKeys.removeActivityMessage),
+            confirmTitle: TimelineLocalizationKeys.localized(TimelineLocalizationKeys.remove),
+            cancelTitle: TimelineLocalizationKeys.localized(TimelineLocalizationKeys.cancel),
+            btnConfirmAction: { [weak self] in
+                self?.viewModel.removeSegment(segment)
+            }
+        )
+    }
+
+    func manualPoiCellDidTapCell(_ cell: TRPTimelineManualPoiCell, segment: TRPTimelineSegment, poi: TRPPoi?) {
+        // Open POI detail
+        if let poi = poi {
+            let detailVM = TimelinePoiDetailViewModel(poi: poi)
+            let detailVC = TimelinePoiDetailViewController(viewModel: detailVM)
+            navigationController?.pushViewController(detailVC, animated: true)
+        }
     }
 }
 
