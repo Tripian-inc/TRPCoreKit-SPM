@@ -104,6 +104,14 @@ extension TRPPoiUseCases: SearchPoiUseCase {
                                  categories: [Int],
                                  cityId: Int,
                                  completion: ((Result<[TRPPoi], Error>, TRPPagination?) -> Void)?) {
+        executeSearchPoi(text: text, categories: categories, cityId: cityId, page: nil, completion: completion)
+    }
+
+    public func executeSearchPoi(text: String,
+                                 categories: [Int],
+                                 cityId: Int,
+                                 page: Int?,
+                                 completion: ((Result<[TRPPoi], Error>, TRPPagination?) -> Void)?) {
 
         let onComplete = completion ?? { result, pagination in }
 
@@ -111,6 +119,7 @@ extension TRPPoiUseCases: SearchPoiUseCase {
             var params = PoiParameters(search: text)
             params.cityId = cityId
             params.poiCategoies = categories
+            params.page = page
 
             poiRepository.fetchPoi(cityId: cityId, parameters: params) { result, pagination in
                 switch result {

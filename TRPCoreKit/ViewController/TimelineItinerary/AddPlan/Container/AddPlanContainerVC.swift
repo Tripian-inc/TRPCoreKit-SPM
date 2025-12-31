@@ -13,6 +13,7 @@ public protocol AddPlanContainerVCDelegate: AnyObject {
     func addPlanContainerDidComplete(_ viewController: AddPlanContainerVC, data: AddPlanData)
     func addPlanContainerDidCancel(_ viewController: AddPlanContainerVC)
     func addPlanContainerShouldShowActivityListing(_ viewController: AddPlanContainerVC, data: AddPlanData)
+    func addPlanContainerShouldShowPOIListing(_ viewController: AddPlanContainerVC, data: AddPlanData, categoryType: POIListingCategoryType)
     func addPlanContainerSegmentCreated(_ viewController: AddPlanContainerVC)
 }
 
@@ -271,13 +272,28 @@ public class AddPlanContainerVC: TRPBaseUIViewController {
         let currentStep = viewModel.getCurrentStep()
 
         if canContinue(currentStep: currentStep) {
-            // Check if manual mode with activities category selected
+            // Check if manual mode with specific category selected
             if currentStep == .selectDayAndCity &&
-               viewModel.planData.selectedMode == .manual &&
-               viewModel.planData.selectedCategories.first == "activities" {
-                // Show activity listing screen instead of next step
-                delegate?.addPlanContainerShouldShowActivityListing(self, data: viewModel.planData)
-                return
+               viewModel.planData.selectedMode == .manual {
+
+                if let selectedCategory = viewModel.planData.selectedCategories.first {
+                    switch selectedCategory {
+                    case "activities":
+                        // Show activity listing screen
+                        delegate?.addPlanContainerShouldShowActivityListing(self, data: viewModel.planData)
+                        return
+                    case "places_of_interest":
+                        // Show POI listing screen for places of interest
+                        delegate?.addPlanContainerShouldShowPOIListing(self, data: viewModel.planData, categoryType: .placesOfInterest)
+                        return
+                    case "eat_and_drink":
+                        // Show POI listing screen for eat and drink
+                        delegate?.addPlanContainerShouldShowPOIListing(self, data: viewModel.planData, categoryType: .eatAndDrink)
+                        return
+                    default:
+                        break
+                    }
+                }
             }
 
             viewModel.goNextStep()

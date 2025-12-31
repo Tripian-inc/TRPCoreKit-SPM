@@ -69,6 +69,7 @@ public class TRPTimelineItineraryVC: TRPBaseUIViewController {
         table.rowHeight = UITableView.automaticDimension
         table.sectionHeaderHeight = UITableView.automaticDimension
         table.estimatedSectionHeaderHeight = 80
+        table.contentInset = UIEdgeInsets(top: 0, left: 0, bottom: 80, right: 0)
         return table
     }()
     
@@ -879,9 +880,9 @@ extension TRPTimelineItineraryVC: TRPTimelineRecommendationsCellDelegate {
     
     func recommendationsCellDidSelectStep(_ cell: TRPTimelineRecommendationsCell, step: TRPTimelineStep) {
         // Open new POI detail view controller
-        guard step.poi != nil else { return }
+        guard let poi = step.poi else { return }
 
-        let viewModel = TimelinePoiDetailViewModel(step: step)
+        let viewModel = TimelinePoiDetailViewModel(poi: poi)
         let detailVC = TimelinePoiDetailViewController(viewModel: viewModel)
         navigationController?.pushViewController(detailVC, animated: true)
     }
@@ -1210,6 +1211,30 @@ extension TRPTimelineItineraryVC: AddPlanContainerVCDelegate {
 
         // Set title
         activityListingVC.title = AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.categoryActivities)
+
+        // Present from the AddPlanContainerVC instead of dismissing it first
+        viewController.present(navController, animated: true)
+    }
+
+    public func addPlanContainerShouldShowPOIListing(_ viewController: AddPlanContainerVC, data: AddPlanData, categoryType: POIListingCategoryType) {
+        // Don't dismiss the add plan container - present POI listing on top of it
+        // This allows user to go back to add plan screen
+
+        // Create POI listing ViewModel with the plan data and category type
+        let poiListingViewModel = AddPlanPOIListingViewModel(planData: data, categoryType: categoryType)
+        let poiListingVC = AddPlanPOIListingVC()
+        poiListingVC.viewModel = poiListingViewModel
+
+        // Set segment creation callback
+        poiListingVC.onSegmentCreated = { [weak self, weak viewController] in
+            guard let self = self, let viewController = viewController else { return }
+            // Trigger container delegate
+            self.addPlanContainerSegmentCreated(viewController)
+        }
+
+        // Create navigation controller for the POI listing
+        let navController = UINavigationController(rootViewController: poiListingVC)
+        navController.modalPresentationStyle = .fullScreen
 
         // Present from the AddPlanContainerVC instead of dismissing it first
         viewController.present(navController, animated: true)

@@ -26,7 +26,8 @@ public struct PoiParameters {
     
     var limit: Int? = nil
     var autoPagination: Bool = false
-    
+    var page: Int? = nil
+
     var url: String?
     
     var createdTime: Int = Int(Date().localDate().timeIntervalSince1970)

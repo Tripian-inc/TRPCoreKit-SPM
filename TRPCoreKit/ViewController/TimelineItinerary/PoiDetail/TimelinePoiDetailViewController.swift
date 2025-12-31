@@ -991,8 +991,7 @@ extension TimelinePoiDetailViewController: UICollectionViewDelegateFlowLayout {
     public func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         if collectionView == activitiesCollectionView {
             let product = viewModel.getProducts()[indexPath.item]
-            // TODO: Open product detail or booking page
-            print("Product tapped: \(product.title)")
+            TRPCoreKit.shared.delegate?.trpCoreKitDidRequestActivityDetail(activityId: product.id)
         }
     }
 }

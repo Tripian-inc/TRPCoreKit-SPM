@@ -12,6 +12,7 @@ public enum TRPTimelineSegmentType: String, Codable {
     case bookedActivity = "booked_activity"
     case reservedActivity = "reserved_activity"
     case itinerary = "itinerary"
+    case manualPoi = "manual_poi"
 }
 
 public class TRPTimelineSegment: Codable {
@@ -28,11 +29,11 @@ public class TRPTimelineSegment: Codable {
     public var generatedStatus: Int?
     public var answerIds: [Int]?
     public var doNotRecommend: [String]?
-    public var excludePoiIds: [Int]?
-    public var includePoiIds: [Int]?
+    public var excludePoiIds: [String]?
+    public var includePoiIds: [String]?
     public var dayIds: [Int]?
     public var considerWeather: Bool?
-    public var distinctPlan: Bool?
+    public var distinctPlan: Bool = true
     public var segmentType: TRPTimelineSegmentType = .itinerary
     
     public var city: TRPCity?
@@ -47,6 +48,9 @@ public class TRPTimelineSegment: Codable {
     public var activityIds: [String]?
     public var smartRecommendation: Bool?
     public var excludedActivityIds: [String]?
+
+    // Manual POI properties
+    public var poiId: String?
 
     public var additionalData: TRPSegmentActivityItem?
     
@@ -124,5 +128,8 @@ extension TRPCreateEditTimelineSegmentProfile {
         self.activityIds           = base.activityIds
         self.smartRecommendation   = base.smartRecommendation
         self.excludedActivityIds   = base.excludedActivityIds
+
+        // Manual POI properties
+        self.poiId                 = base.poiId
     }
 }

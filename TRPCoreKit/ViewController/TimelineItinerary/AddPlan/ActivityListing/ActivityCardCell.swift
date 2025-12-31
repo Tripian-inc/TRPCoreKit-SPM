@@ -158,6 +158,7 @@ class ActivityCardCell: UITableViewCell {
         let view = UIView()
         view.backgroundColor = ColorSet.lineWeak.uiColor
         view.translatesAutoresizingMaskIntoConstraints = false
+        view.isHidden = true
         return view
     }()
 

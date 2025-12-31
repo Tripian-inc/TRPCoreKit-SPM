@@ -243,8 +243,7 @@ public class TRPTimelineItineraryViewModel {
                 }
 
                 if !plan.steps.isEmpty {
-                    // No segment available for remaining plans
-                    items.append(.poiSteps(plan.steps, plan.city, nil))
+                    items.append(.poiSteps(plan.steps, plan.city, timeline.tripProfile?.segments[index]))
                 }
             }
         }

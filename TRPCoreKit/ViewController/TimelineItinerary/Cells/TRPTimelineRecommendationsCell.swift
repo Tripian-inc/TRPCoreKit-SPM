@@ -31,14 +31,20 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
     private var distanceViews: [Int: UIView] = [:] // Track distance views by index
     
     // MARK: - UI Components
-    private let containerView: UIView = {
-        let view = UIView()
-        view.translatesAutoresizingMaskIntoConstraints = false
-        view.backgroundColor = ColorSet.neutral100.uiColor
-        view.layer.borderWidth = 1
-        view.layer.borderColor = ColorSet.neutral200.uiColor.cgColor
-        view.layer.cornerRadius = 12
-        return view
+    private let containerView: UIStackView = {
+        let stack = UIStackView()
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        stack.axis = .vertical
+        stack.spacing = 12
+        stack.alignment = .fill
+        stack.distribution = .fill
+        stack.backgroundColor = ColorSet.neutral100.uiColor
+        stack.layer.borderWidth = 1
+        stack.layer.borderColor = ColorSet.neutral200.uiColor.cgColor
+        stack.layer.cornerRadius = 12
+        stack.layoutMargins = UIEdgeInsets(top: 12, left: 16, bottom: 16, right: 16)
+        stack.isLayoutMarginsRelativeArrangement = true
+        return stack
     }()
     
     // Header components
@@ -52,7 +58,6 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
     private let titleLabel: UILabel = {
         let label = UILabel()
         label.translatesAutoresizingMaskIntoConstraints = false
-        label.text = "Recommendations"
         label.font = FontSet.montserratSemiBold.font(16)
         label.textColor = ColorSet.fg.uiColor
         return label
@@ -62,7 +67,7 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
         let button = UIButton(type: .system)
         button.translatesAutoresizingMaskIntoConstraints = false
         button.setImage(TRPImageController().getImage(inFramework: "ic_recom_arrow", inApp: nil), for: .normal)
-        button.tintColor = ColorSet.fgWeaker.uiColor
+        button.tintColor = ColorSet.fg.uiColor
         return button
     }()
 
@@ -88,10 +93,6 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
         return stack
     }()
     
-    private var stackViewHeightConstraint: NSLayoutConstraint?
-    private var stackToContainerBottomConstraint: NSLayoutConstraint?
-    private var headerToContainerBottomConstraint: NSLayoutConstraint?
-    
     // MARK: - Initialization
     override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
         super.init(style: style, reuseIdentifier: reuseIdentifier)
@@ -106,38 +107,33 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
     private func setupCell() {
         selectionStyle = .none
         backgroundColor = .clear
-        
+
         contentView.addSubview(containerView)
-        containerView.addSubview(headerView)
-        containerView.addSubview(recommendationsStackView)
-        
+
+        // Add views to container stack view
+        containerView.addArrangedSubview(headerView)
+        containerView.addArrangedSubview(recommendationsStackView)
+
         headerView.addSubview(titleLabel)
         headerView.addSubview(chevronButton)
         headerView.addSubview(closeButton)
-        
-        // Create both bottom constraints but only activate one at a time
-        stackToContainerBottomConstraint = recommendationsStackView.bottomAnchor.constraint(equalTo: containerView.bottomAnchor, constant: -16)
-        headerToContainerBottomConstraint = headerView.bottomAnchor.constraint(equalTo: containerView.bottomAnchor, constant: -12)
-        
+
         NSLayoutConstraint.activate([
             // Container View
             containerView.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 8),
             containerView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
             containerView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
             containerView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -8),
-            
+
             // Header View
-            headerView.topAnchor.constraint(equalTo: containerView.topAnchor, constant: 12),
-            headerView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 16),
-            headerView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -16),
             headerView.heightAnchor.constraint(equalToConstant: 44),
-            
+
             // Title Label
             titleLabel.leadingAnchor.constraint(equalTo: headerView.leadingAnchor),
             titleLabel.centerYAnchor.constraint(equalTo: headerView.centerYAnchor),
-            
+
             // Chevron Button
-            chevronButton.leadingAnchor.constraint(equalTo: titleLabel.trailingAnchor, constant: 8),
+            chevronButton.leadingAnchor.constraint(equalTo: titleLabel.trailingAnchor, constant: 10),
             chevronButton.centerYAnchor.constraint(equalTo: headerView.centerYAnchor),
             chevronButton.widthAnchor.constraint(equalToConstant: 16),
             chevronButton.heightAnchor.constraint(equalToConstant: 16),
@@ -147,16 +143,8 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
             closeButton.centerYAnchor.constraint(equalTo: headerView.centerYAnchor),
             closeButton.widthAnchor.constraint(equalToConstant: 40),
             closeButton.heightAnchor.constraint(equalToConstant: 40),
-            
-            // Recommendations Stack
-            recommendationsStackView.topAnchor.constraint(equalTo: headerView.bottomAnchor, constant: 12),
-            recommendationsStackView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 16),
-            recommendationsStackView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -16)
         ])
-        
-        // Initially expanded, so activate stack to bottom constraint
-        stackToContainerBottomConstraint?.isActive = true
-        
+
         setupActions()
     }
     
@@ -170,25 +158,13 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
     // MARK: - Actions
     @objc private func toggleTapped() {
         isExpanded.toggle()
-        updateChevron(animated: true) // Animated rotation
+        updateChevron(animated: true)
 
-        // Switch constraints before animation
-        if isExpanded {
-            // Expanding: container bottom connects to stack
-            headerToContainerBottomConstraint?.isActive = false
-            stackToContainerBottomConstraint?.isActive = true
-        } else {
-            // Collapsing: container bottom connects to header
-            stackToContainerBottomConstraint?.isActive = false
-            headerToContainerBottomConstraint?.isActive = true
-        }
-
-        // Animate the collapse/expand
+        // Animate the collapse/expand using UIStackView's automatic hiding
         UIView.animate(withDuration: 0.3, delay: 0, usingSpringWithDamping: 0.8, initialSpringVelocity: 0.5, options: .curveEaseInOut) {
-            self.recommendationsStackView.alpha = self.isExpanded ? 1.0 : 0.0
-            self.layoutIfNeeded() // Animate constraint changes
-        } completion: { _ in
             self.recommendationsStackView.isHidden = !self.isExpanded
+            self.recommendationsStackView.alpha = self.isExpanded ? 1.0 : 0.0
+            self.layoutIfNeeded()
         }
 
         delegate?.recommendationsCellDidTapToggle(self, isExpanded: isExpanded)
@@ -217,6 +193,9 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
         self.segment = segment
         self.isExpanded = isExpanded
 
+        // Set segment title
+        titleLabel.text = segment?.title ?? "Recommendations"
+
         // Clear existing views and distance views
         recommendationsStackView.arrangedSubviews.forEach { $0.removeFromSuperview() }
         distanceViews.removeAll()
@@ -244,18 +223,9 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
         
         updateChevron()
 
-        // Set UI based on collapse state
+        // Set UI based on collapse state - UIStackView handles layout automatically
         recommendationsStackView.isHidden = !isExpanded
         recommendationsStackView.alpha = isExpanded ? 1.0 : 0.0
-
-        // Update constraints based on state
-        if isExpanded {
-            headerToContainerBottomConstraint?.isActive = false
-            stackToContainerBottomConstraint?.isActive = true
-        } else {
-            stackToContainerBottomConstraint?.isActive = false
-            headerToContainerBottomConstraint?.isActive = true
-        }
     }
     
     private func createRecommendationView(for step: TRPTimelineStep) -> UIView {
@@ -487,6 +457,8 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
         }
 
         categoryBadge.addSubview(categoryLabel)
+        let priceRow = UIView()
+        priceRow.translatesAutoresizingMaskIntoConstraints = false
 
         // Price label (for activity steps - bottom right)
         let priceLabel = UILabel()
@@ -496,10 +468,18 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
         priceLabel.textAlignment = .right
 
         if isActivity {
-            if let price = bookingProduct?.price, let currency = bookingProduct?.currency {
+            // First priority: POI additionalData (from API response for activity steps)
+            if let price = step.poi?.additionalData?.price, let currency = step.poi?.additionalData?.currency {
                 let priceString = String(format: "%.2f", price).replacingOccurrences(of: ".", with: ",")
                 priceLabel.text = "\(priceString) \(currency)"
-            } else if let poiPrice = step.poi?.price, poiPrice > 0 {
+            }
+            // Second priority: booking product price
+            else if let price = bookingProduct?.price, let currency = bookingProduct?.currency {
+                let priceString = String(format: "%.2f", price).replacingOccurrences(of: ".", with: ",")
+                priceLabel.text = "\(priceString) \(currency)"
+            }
+            // Third priority: POI price
+            else if let poiPrice = step.poi?.price, poiPrice > 0 {
                 priceLabel.text = "\(poiPrice) €"
             }
         }
@@ -544,13 +524,15 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
             verticalLineView.bottomAnchor.constraint(equalTo: contentContainer.topAnchor),
 
             // Content container
-            contentContainer.topAnchor.constraint(equalTo: timeBadgeView.bottomAnchor, constant: 8),
+            contentContainer.topAnchor.constraint(equalTo: timeBadgeView.bottomAnchor, constant: 24),
             contentContainer.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
             contentContainer.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
             contentContainer.bottomAnchor.constraint(equalTo: containerView.bottomAnchor),
+            contentContainer.heightAnchor.constraint(greaterThanOrEqualToConstant: 100),
 
             // POI Image
             poiImageView.topAnchor.constraint(equalTo: contentContainer.topAnchor),
+            poiImageView.bottomAnchor.constraint(greaterThanOrEqualTo: contentContainer.bottomAnchor),
             poiImageView.leadingAnchor.constraint(equalTo: contentContainer.leadingAnchor),
             poiImageView.widthAnchor.constraint(equalToConstant: 80),
             poiImageView.heightAnchor.constraint(equalToConstant: 80),
@@ -559,7 +541,7 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
             infoStackView.topAnchor.constraint(equalTo: contentContainer.topAnchor),
             infoStackView.leadingAnchor.constraint(equalTo: poiImageView.trailingAnchor, constant: 12),
             infoStackView.trailingAnchor.constraint(equalTo: contentContainer.trailingAnchor),
-            infoStackView.bottomAnchor.constraint(equalTo: contentContainer.bottomAnchor),
+            infoStackView.bottomAnchor.constraint(greaterThanOrEqualTo: contentContainer.bottomAnchor),
 
             // Title row - full width
             titleRow.widthAnchor.constraint(equalTo: infoStackView.widthAnchor),
@@ -652,7 +634,7 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
         distanceLabel.translatesAutoresizingMaskIntoConstraints = false
         distanceLabel.font = FontSet.montserratRegular.font(14)
         distanceLabel.textColor = ColorSet.fgWeak.uiColor
-        distanceLabel.text = "Calculating..."
+//        distanceLabel.text = "Calculating..."
         distanceLabel.tag = 1000 + index // Tag to identify label for updates
         
         // Horizontal line

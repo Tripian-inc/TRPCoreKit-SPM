@@ -11,6 +11,15 @@ import TRPRestKit
 public final class AdditionalDataMapper {
     func map(_ restModel: TRPAdditionalDataModel?) -> TRPAdditionalData? {
         guard let restModel else { return nil }
-        return TRPAdditionalData(bookingUrl: restModel.bookingUrl)
+        return TRPAdditionalData(
+            bookingUrl: restModel.bookingUrl,
+            productId: restModel.productId,
+            providerId: restModel.providerId,
+            currency: restModel.currency,
+            version: restModel.version,
+            tagIds: restModel.tagIds,
+            tripianPois: restModel.tripianPois,
+            price: restModel.price
+        )
     }
 }

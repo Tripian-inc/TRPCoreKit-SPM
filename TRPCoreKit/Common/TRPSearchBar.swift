@@ -65,8 +65,8 @@ public class TRPSearchBar: UIView {
     private lazy var textField: UITextField = {
         let textField = UITextField()
         textField.translatesAutoresizingMaskIntoConstraints = false
-        textField.font = FontSet.montserratLight.font(14)
-        textField.textColor = ColorSet.fgWeak.uiColor
+        textField.font = FontSet.montserratRegular.font(14)
+        textField.textColor = ColorSet.primaryText.uiColor
         textField.backgroundColor = .clear
         textField.returnKeyType = .search
         textField.autocorrectionType = .no

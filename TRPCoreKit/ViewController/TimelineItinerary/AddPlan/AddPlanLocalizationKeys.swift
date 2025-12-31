@@ -70,6 +70,12 @@ public struct AddPlanLocalizationKeys {
     public static let freeCancellation = "addPlan.label.freeCancellation"
     public static let activity = "addPlan.label.activity"
     public static let activities = "addPlan.label.activities"
+
+    // MARK: - POI Listing
+    public static let searchPOIPlace = "addPlan.search.poiPlace"
+    public static let placesOfInterest = "addPlan.title.placesOfInterest"
+    public static let place = "addPlan.label.place"
+    public static let places = "addPlan.label.places"
     
     // MARK: - Empty State
     public static let addSavedPlansToItinerary = "addPlan.emptyState.addSavedPlansToItinerary"
@@ -129,6 +135,10 @@ public struct AddPlanLocalizationKeys {
         freeCancellation: "Free cancellation",
         activity: "activity",
         activities: "activities",
+        searchPOIPlace: "Search for a place or address",
+        placesOfInterest: "Places of Interest",
+        place: "place",
+        places: "places",
         addSavedPlansToItinerary: "Add your saved plans to the itinerary",
         savedPlans: "Saved Plans",
         errorMissingData: "Missing required information. Please complete all fields.",

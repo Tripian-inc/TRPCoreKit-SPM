@@ -38,7 +38,6 @@ class TRPTimelineBookedActivityCell: UITableViewCell {
         label.font = FontSet.montserratMedium.font(14)
         label.textColor = ColorSet.fgGreen.uiColor
         label.textAlignment = .center
-        label.backgroundColor = ColorSet.bgGreen.uiColor
         label.layer.cornerRadius = 16
         label.layer.borderColor = ColorSet.green250.uiColor.cgColor
         label.layer.borderWidth = 2
@@ -105,7 +104,7 @@ class TRPTimelineBookedActivityCell: UITableViewCell {
     private let durationIcon: UIImageView = {
         let imageView = UIImageView()
         imageView.translatesAutoresizingMaskIntoConstraints = false
-        imageView.image = TRPImageController().getImage(inFramework: "ic_clock", inApp: nil)
+        imageView.image = TRPImageController().getImage(inFramework: "ic_duration", inApp: nil)
         imageView.tintColor = ColorSet.fgWeak.uiColor
         imageView.contentMode = .scaleAspectFit
         return imageView

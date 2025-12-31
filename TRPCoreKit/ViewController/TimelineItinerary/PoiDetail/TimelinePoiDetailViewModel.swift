@@ -14,14 +14,9 @@ public class TimelinePoiDetailViewModel {
 
     // MARK: - Properties
     public let poi: TRPPoi
-    public let step: TRPTimelineStep
 
     // MARK: - Initialization
-    public init(step: TRPTimelineStep) {
-        self.step = step
-        guard let poi = step.poi else {
-            fatalError("TRPTimelineStep must have a POI")
-        }
+    public init(poi: TRPPoi) {
         self.poi = poi
     }
 

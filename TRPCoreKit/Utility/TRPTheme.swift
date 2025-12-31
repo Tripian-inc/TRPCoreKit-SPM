@@ -267,6 +267,7 @@ public enum ColorSet {
     case primary
     case neutral100
     case neutral200
+    case neutral500
     case bgPink
     case bgGreen
     case bgDisabled
@@ -313,7 +314,7 @@ public enum ColorSet {
             return UIColor(red: 51, green: 51, blue: 51)
         case .primaryWeakText, .fgWeak:
             return UIColor(red: 102, green: 102, blue: 102)
-        case .inactive, .borderActive:
+        case .inactive, .borderActive, .neutral500:
             return UIColor(red: 153, green: 153, blue: 153)
         case .green250:
             return UIColor(red: 196, green: 245, blue: 225)

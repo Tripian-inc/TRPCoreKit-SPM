@@ -105,7 +105,7 @@ public class AddPlanActivityListingVC: TRPBaseUIViewController {
         let image = TRPImageController().getImage(inFramework: "ic_order_activity", inApp: nil)
         button.setImage(image, for: .normal)
         button.tintColor = ColorSet.fgWeak.uiColor
-        button.imageEdgeInsets = UIEdgeInsets(top: 0, left: 8, bottom: 0, right: -8)
+        button.imageEdgeInsets = UIEdgeInsets(top: 0, left: -8, bottom: 0, right: 8)
 
         return button
     }()

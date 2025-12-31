@@ -10,12 +10,11 @@ import Foundation
 import TRPRestKit
 
 final class TimelineStepMapper {
-    
+
     func map(_ restModel: TRPTimelineStepInfoModel) -> TRPTimelineStep? {
-        
+
         guard let poi = PoiMapper().map(restModel.poi) else { return nil }
-        
-        
+
         return TRPTimelineStep(id: restModel.id,
                                poi: poi,
                                score: restModel.score,

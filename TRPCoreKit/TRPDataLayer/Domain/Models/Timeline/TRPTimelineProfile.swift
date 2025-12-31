@@ -19,7 +19,7 @@ public class TRPTimelineProfile: Codable {
     public var pets: Int = 0
     public var answerIds: [Int]?
     public var doNotRecommend: [String]?
-    public var excludePoiIds: [Int]?
+    public var excludePoiIds: [String]?
     public var excludeHashPois: [String]?
     public var considerWeather: Bool = false
     public var segments: [TRPTimelineSegment] = []

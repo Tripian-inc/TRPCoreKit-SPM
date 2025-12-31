@@ -103,6 +103,7 @@ final class TimelineProfileMapper {
         restKitSegment.answerIds = _segment.answerIds ?? []
         restKitSegment.doNotRecommend = _segment.doNotRecommend
         restKitSegment.excludePoiIds = _segment.excludePoiIds
+        restKitSegment.includePoiIds = _segment.includePoiIds
         restKitSegment.considerWeather = _segment.considerWeather
         restKitSegment.available = _segment.available
         restKitSegment.distinctPlan = _segment.distinctPlan

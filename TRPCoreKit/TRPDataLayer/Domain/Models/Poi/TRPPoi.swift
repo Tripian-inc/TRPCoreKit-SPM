@@ -131,6 +131,24 @@ extension [TRPPoi] {
     }
 }
 
-public struct TRPAdditionalData: Codable {
-    var bookingUrl: String?
+public struct TRPAdditionalData: Codable, Hashable {
+    public var bookingUrl: String?
+    public var productId: String?
+    public var providerId: Int?
+    public var currency: String?
+    public var version: String?
+    public var tagIds: [Int]?
+    public var tripianPois: [String]?
+    public var price: Double?
+
+    public init(bookingUrl: String? = nil, productId: String? = nil, providerId: Int? = nil, currency: String? = nil, version: String? = nil, tagIds: [Int]? = nil, tripianPois: [String]? = nil, price: Double? = nil) {
+        self.bookingUrl = bookingUrl
+        self.productId = productId
+        self.providerId = providerId
+        self.currency = currency
+        self.version = version
+        self.tagIds = tagIds
+        self.tripianPois = tripianPois
+        self.price = price
+    }
 }
