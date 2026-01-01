@@ -227,7 +227,53 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
         recommendationsStackView.isHidden = !isExpanded
         recommendationsStackView.alpha = isExpanded ? 1.0 : 0.0
     }
-    
+
+    // MARK: - Configuration with Pre-computed Data
+
+    /// Configure cell with pre-computed RecommendationsCellData
+    func configure(with cellData: RecommendationsCellData) {
+        self.steps = cellData.steps
+        self.segment = cellData.segment
+        self.isExpanded = cellData.isExpanded
+
+        // Title (pre-computed)
+        titleLabel.text = cellData.title
+
+        // Clear existing views and distance views
+        recommendationsStackView.arrangedSubviews.forEach { $0.removeFromSuperview() }
+        distanceViews.removeAll()
+
+        // Add recommendation views for each step with distance info between them
+        for (index, step) in cellData.steps.enumerated() {
+            let recommendationView = createRecommendationView(for: step)
+            recommendationsStackView.addArrangedSubview(recommendationView)
+
+            // Add distance view between POIs (except after the last one)
+            if index < cellData.steps.count - 1 {
+                let distanceView = createDistanceView(for: index)
+                distanceViews[index] = distanceView
+                recommendationsStackView.addArrangedSubview(distanceView)
+
+                // Request route calculation if both POIs have coordinates
+                if let fromCoordinate = step.poi?.coordinate,
+                   let toCoordinate = cellData.steps[index + 1].poi?.coordinate {
+                    delegate?.recommendationsCellNeedsRouteCalculation(
+                        self,
+                        from: fromCoordinate,
+                        to: toCoordinate,
+                        index: index
+                    )
+                }
+            }
+        }
+
+        updateChevron()
+
+        // Set UI based on collapse state
+        recommendationsStackView.isHidden = !cellData.isExpanded
+        recommendationsStackView.alpha = cellData.isExpanded ? 1.0 : 0.0
+    }
+
     private func createRecommendationView(for step: TRPTimelineStep) -> UIView {
         let containerView = UIView()
         containerView.translatesAutoresizingMaskIntoConstraints = false

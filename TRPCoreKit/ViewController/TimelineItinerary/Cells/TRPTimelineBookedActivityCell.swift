@@ -366,6 +366,81 @@ class TRPTimelineBookedActivityCell: UITableViewCell {
         }
     }
 
+    // MARK: - Configuration with Pre-computed Data
+
+    /// Configure cell with pre-computed BookedActivityCellData
+    func configure(with cellData: BookedActivityCellData) {
+        self.segment = cellData.segment
+
+        // Title (pre-computed)
+        titleLabel.text = cellData.title
+
+        // Time range (pre-computed)
+        timeLabel.text = cellData.timeRange
+
+        // Image
+        if let imageUrl = cellData.imageUrl {
+            activityImageView.sd_setImage(with: URL(string: imageUrl), placeholderImage: nil)
+        } else {
+            activityImageView.image = nil
+        }
+
+        // Configure badge and buttons based on reservation status
+        if cellData.isReserved {
+            // Reserved activity - show "Reservation" badge, buttons, hide person count
+            confirmedBadge.text = TimelineLocalizationKeys.localized(TimelineLocalizationKeys.reservation)
+            confirmedBadge.textColor = ColorSet.fgOrange.uiColor
+            confirmedBadge.backgroundColor = ColorSet.bgOrange.uiColor
+            reservationButton.isHidden = false
+            removeButton.isHidden = false
+            personStackView.isHidden = true
+        } else {
+            // Booked activity - show "Confirmed" badge, hide buttons, show person count
+            confirmedBadge.text = TimelineLocalizationKeys.localized(TimelineLocalizationKeys.confirmed)
+            confirmedBadge.textColor = ColorSet.fgGreen.uiColor
+            confirmedBadge.backgroundColor = ColorSet.bgGreen.uiColor
+            reservationButton.isHidden = true
+            removeButton.isHidden = true
+            personStackView.isHidden = false
+        }
+
+        // Configure person count
+        let adultsText = TimelineLocalizationKeys.localized(TimelineLocalizationKeys.adults)
+        if cellData.childCount > 0 {
+            let childText = cellData.childCount == 1
+                ? TimelineLocalizationKeys.localized(TimelineLocalizationKeys.child)
+                : TimelineLocalizationKeys.localized(TimelineLocalizationKeys.children)
+            personLabel.text = "\(cellData.adultCount) \(adultsText), \(cellData.childCount) \(childText)"
+        } else {
+            personLabel.text = "\(cellData.adultCount) \(adultsText)"
+        }
+
+        // Configure cancellation
+        if let cancellation = cellData.cancellation, !cancellation.isEmpty {
+            cancellationLabel.text = cancellation
+            cancellationLabel.isHidden = false
+        } else {
+            cancellationLabel.text = TimelineLocalizationKeys.localized(TimelineLocalizationKeys.freeCancellation)
+            cancellationLabel.isHidden = false
+        }
+
+        // Configure duration
+        if let duration = cellData.duration, duration > 0 {
+            durationLabel.text = formatDuration(duration)
+            durationStackView.isHidden = false
+        } else {
+            durationStackView.isHidden = true
+        }
+
+        // Configure price
+        if let price = cellData.price, price.value > 0 {
+            priceLabel.text = formatPrice(price)
+            priceLabel.isHidden = false
+        } else {
+            priceLabel.isHidden = true
+        }
+    }
+
     private func formatDuration(_ minutes: Double) -> String {
         let totalMinutes = Int(minutes)
         let hours = totalMinutes / 60

@@ -155,7 +155,7 @@ extension TRPTimelineItineraryVC {
                 guard let coordinate = poi.coordinate else { continue }
 
                 var annotation = TRPPointAnnotation()
-//                annotation.imageName = TRPAppearanceSettings.MapAnnotations.getIcon(tag: poi.icon, type: .route)
+                annotation.imageName = TRPAppearanceSettings.MapAnnotations.getIcon(tag: poi.icon ?? "", type: .route)
                 annotation.order = poiIndex + 1 // Order within segment (1-based for display)
                 annotation.lat = coordinate.lat
                 annotation.lon = coordinate.lon
@@ -206,7 +206,7 @@ extension TRPTimelineItineraryVC {
             guard let coordinate = poi.coordinate else { continue }
 
             var annotation = TRPPointAnnotation()
-//            annotation.imageName = TRPAppearanceSettings.MapAnnotations.getIcon(tag: poi.icon, type: .route)
+            annotation.imageName = TRPAppearanceSettings.MapAnnotations.getIcon(tag: poi.icon ?? "", type: .route)
             annotation.order = index
             annotation.lat = coordinate.lat
             annotation.lon = coordinate.lon

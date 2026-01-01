@@ -468,7 +468,7 @@ public class TRPTimelineItineraryVC: TRPBaseUIViewController {
         // Clear both caches when reloading data
         routeCache.removeAll()
         calculatedDistances.removeAll()
-        dayFilterView.configure(with: viewModel.getDays(), selectedDay: viewModel.selectedDayIndex)
+        dayFilterView.configure(with: viewModel.getAvailableDates(), selectedDay: viewModel.selectedDayIndex)
         
         // Update saved plans button visibility and count
         updateSavedPlansButton()
@@ -523,53 +523,54 @@ extension TRPTimelineItineraryVC: UITableViewDataSource {
     public func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         return viewModel.numberOfRows(in: section)
     }
-    
+
     public func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         guard let cellType = viewModel.cellType(at: indexPath) else {
             return UITableViewCell()
         }
-        
+        return configureCell(for: cellType, at: indexPath, in: tableView)
+    }
+
+    /// Configure cell using TimelineCellType with pre-computed cell data
+    private func configureCell(for cellType: TimelineCellType, at indexPath: IndexPath, in tableView: UITableView) -> UITableViewCell {
         switch cellType {
-        case .bookedActivity(let segment):
+        case .bookedActivity(let cellData):
             guard let cell = tableView.dequeueReusableCell(withIdentifier: TRPTimelineBookedActivityCell.reuseIdentifier, for: indexPath) as? TRPTimelineBookedActivityCell else {
                 return UITableViewCell()
             }
-            cell.configure(with: segment)
+            cell.configure(with: cellData)
             cell.delegate = self
             return cell
 
-        case .reservedActivity(let segment):
+        case .reservedActivity(let cellData):
             guard let cell = tableView.dequeueReusableCell(withIdentifier: TRPTimelineBookedActivityCell.reuseIdentifier, for: indexPath) as? TRPTimelineBookedActivityCell else {
                 return UITableViewCell()
             }
-            cell.configure(with: segment)
+            cell.configure(with: cellData)
             cell.delegate = self
             return cell
 
-        case .manualPoi(let segment, let poi):
+        case .manualPoi(let cellData):
             guard let cell = tableView.dequeueReusableCell(withIdentifier: TRPTimelineManualPoiCell.reuseIdentifier, for: indexPath) as? TRPTimelineManualPoiCell else {
                 return UITableViewCell()
             }
-            cell.configure(with: segment, poi: poi)
+            cell.configure(with: cellData)
             cell.delegate = self
             return cell
 
-        case .activityStep(let step):
-            // Activity steps use the same booking cell as booked activities
+        case .activityStep(let cellData):
             guard let cell = tableView.dequeueReusableCell(withIdentifier: TRPTimelineActivityStepCell.reuseIdentifier, for: indexPath) as? TRPTimelineActivityStepCell else {
                 return UITableViewCell()
             }
-            cell.configure(with: step, order: step.order)
+            cell.configure(with: cellData.step, order: cellData.step.order)
             cell.delegate = self
             return cell
-            
-        case .recommendations(let steps, let segment):
+
+        case .recommendations(let cellData):
             guard let cell = tableView.dequeueReusableCell(withIdentifier: TRPTimelineRecommendationsCell.reuseIdentifier, for: indexPath) as? TRPTimelineRecommendationsCell else {
                 return UITableViewCell()
             }
-            // Get collapse state from ViewModel
-            let isExpanded = viewModel.getSectionCollapseState(for: indexPath.section)
-            cell.configure(with: steps, segment: segment, isExpanded: isExpanded)
+            cell.configure(with: cellData)
             cell.delegate = self
 
             // Apply any pre-calculated distances
@@ -580,7 +581,7 @@ extension TRPTimelineItineraryVC: UITableViewDataSource {
             }
 
             return cell
-            
+
         case .emptyState:
             guard let cell = tableView.dequeueReusableCell(withIdentifier: TRPTimelineEmptyStateCell.reuseIdentifier, for: indexPath) as? TRPTimelineEmptyStateCell else {
                 return UITableViewCell()
@@ -590,19 +591,19 @@ extension TRPTimelineItineraryVC: UITableViewDataSource {
             return cell
         }
     }
-    
+
     public func tableView(_ tableView: UITableView, viewForHeaderInSection section: Int) -> UIView? {
         let headerData = viewModel.headerData(for: section)
-        
+
         // Don't show header if shouldShowHeader is false
         guard headerData.shouldShowHeader else {
             return nil
         }
-        
+
         guard let headerView = tableView.dequeueReusableHeaderFooterView(withIdentifier: TRPTimelineSectionHeaderView.reuseIdentifier) as? TRPTimelineSectionHeaderView else {
             return nil
         }
-        
+
         headerView.configure(with: headerData)
         headerView.delegate = self
         return headerView
@@ -611,31 +612,31 @@ extension TRPTimelineItineraryVC: UITableViewDataSource {
 
 // MARK: - UITableViewDelegate
 extension TRPTimelineItineraryVC: UITableViewDelegate {
-    
+
     public func tableView(_ tableView: UITableView, heightForHeaderInSection section: Int) -> CGFloat {
         let headerData = viewModel.headerData(for: section)
-        
+
         // Return 0 height if header should not be shown
         guard headerData.shouldShowHeader else {
             return 0
         }
-        
+
         // Return automatic dimension for header
         return UITableView.automaticDimension
     }
-    
+
     public func tableView(_ tableView: UITableView, estimatedHeightForHeaderInSection section: Int) -> CGFloat {
         let headerData = viewModel.headerData(for: section)
-        
+
         // Return 0 estimated height if header should not be shown
         guard headerData.shouldShowHeader else {
             return 0
         }
-        
+
         // Return estimated height for header
         return 80
     }
-    
+
     public func tableView(_ tableView: UITableView, viewForFooterInSection section: Int) -> UIView? {
         // Don't show footer for empty state
         if viewModel.numberOfSections() == 1,
@@ -644,21 +645,21 @@ extension TRPTimelineItineraryVC: UITableViewDelegate {
            case .emptyState = cellType {
             return nil
         }
-        
+
         // Don't show footer after the last section
         guard section < viewModel.numberOfSections() - 1 else {
             return nil
         }
-        
+
         guard let footerView = tableView.dequeueReusableHeaderFooterView(withIdentifier: TRPTimelineSectionFooterView.reuseIdentifier) as? TRPTimelineSectionFooterView else {
             return nil
         }
-        
+
         footerView.configure(section: section)
         footerView.delegate = self
         return footerView
     }
-    
+
     public func tableView(_ tableView: UITableView, heightForFooterInSection section: Int) -> CGFloat {
         // Don't show footer for empty state
         if viewModel.numberOfSections() == 1,
@@ -667,15 +668,15 @@ extension TRPTimelineItineraryVC: UITableViewDelegate {
            case .emptyState = cellType {
             return 0
         }
-        
+
         // Don't show footer after the last section
         guard section < viewModel.numberOfSections() - 1 else {
             return 0
         }
-        
+
         return 60
     }
-    
+
     public func tableView(_ tableView: UITableView, estimatedHeightForFooterInSection section: Int) -> CGFloat {
         // Don't show footer for empty state
         if viewModel.numberOfSections() == 1,
@@ -684,36 +685,35 @@ extension TRPTimelineItineraryVC: UITableViewDelegate {
            case .emptyState = cellType {
             return 0
         }
-        
+
         // Don't show footer after the last section
         guard section < viewModel.numberOfSections() - 1 else {
             return 0
         }
-        
+
         return 60
     }
-    
+
     public func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         tableView.deselectRow(at: indexPath, animated: true)
-        
+
         guard let cellType = viewModel.cellType(at: indexPath) else {
             return
         }
-        
-        switch cellType {
-        case .bookedActivity(let segment):
-            delegate?.timelineItineraryDidSelectBookedActivity(self, segment: segment)
 
-        case .reservedActivity(let segment):
-            delegate?.timelineItineraryDidSelectBookedActivity(self, segment: segment)
+        switch cellType {
+        case .bookedActivity(let cellData):
+            delegate?.timelineItineraryDidSelectBookedActivity(self, segment: cellData.segment)
+
+        case .reservedActivity(let cellData):
+            delegate?.timelineItineraryDidSelectBookedActivity(self, segment: cellData.segment)
 
         case .manualPoi:
             // Manual POI cell handles selection internally via TRPTimelineManualPoiCellDelegate
             break
 
-        case .activityStep(let step):
-            // Treat activity step selection similar to regular step selection
-            delegate?.timelineItineraryDidSelectStep(self, step: step)
+        case .activityStep(let cellData):
+            delegate?.timelineItineraryDidSelectStep(self, step: cellData.step)
 
         case .recommendations:
             // Recommendations cell handles selection internally
@@ -757,43 +757,6 @@ extension TRPTimelineItineraryVC: TRPTimelineDayFilterViewDelegate {
         }
     }
     
-    public func dayFilterViewDidTapFilter(_ view: TRPTimelineDayFilterView) {
-        showCalendarPicker()
-    }
-    
-    private func showCalendarPicker() {
-        // Get trip date range from viewModel
-        guard let tripDates = viewModel.getTripDateRange() else {
-            return
-        }
-        
-        let startDate = tripDates.start
-        let endDate = tripDates.end
-        let calendar = Calendar.current
-        
-        // Calculate the currently selected date based on selectedDayIndex
-        let selectedDate = calendar.date(byAdding: .day, value: viewModel.selectedDayIndex, to: startDate)
-        
-        // Set broader min/max dates to allow month navigation (1 year before and after trip)
-        let minNavigationDate = calendar.date(byAdding: .year, value: -1, to: startDate) ?? startDate
-        let maxNavigationDate = calendar.date(byAdding: .year, value: 1, to: endDate) ?? endDate
-        
-        // Create calendar view controller
-        // minimumDate and maximumDate control navigation range
-        // selectableStartDate and selectableEndDate control which dates can be selected
-        let calendarVC = TRPCalendarViewController(
-            selectionMode: .single,
-            minimumDate: minNavigationDate,
-            maximumDate: maxNavigationDate,
-            preselectedDate: selectedDate,
-            preselectedDateRange: nil,
-            selectableStartDate: startDate,
-            selectableEndDate: endDate
-        )
-        
-        calendarVC.delegate = self
-        present(calendarVC, animated: true, completion: nil)
-    }
 }
 
 // MARK: - TRPTimelineBookedActivityCellDelegate
@@ -1063,51 +1026,6 @@ extension TRPTimelineItineraryVC: TRPTimelineCustomNavigationBarDelegate {
         } else {
             dismiss(animated: true, completion: nil)
         }
-    }
-}
-
-// MARK: - TRPCalendarViewControllerDelegate
-extension TRPTimelineItineraryVC: TRPCalendarViewControllerDelegate {
-    
-    func calendarViewControllerDidSelectDate(_ date: Date) {
-        // Calculate which day index was selected based on trip start date
-        guard let tripDates = viewModel.getTripDateRange() else {
-            return
-        }
-        
-        let startDate = tripDates.start
-        let calendar = Calendar.current
-        
-        // Calculate the number of days between start date and selected date
-        let components = calendar.dateComponents([.day], from: calendar.startOfDay(for: startDate), to: calendar.startOfDay(for: date))
-        if let dayIndex = components.day, dayIndex >= 0 {
-            // Update the selected day in the view model and UI
-            viewModel.selectDay(at: dayIndex)
-            dayFilterView.configure(with: viewModel.getDays(), selectedDay: dayIndex)
-
-            // Clear cache and reload table
-            calculatedDistances.removeAll()
-            tableView.reloadData()
-
-            // Scroll table view to top to show section header
-            if viewModel.numberOfSections() > 0 {
-                tableView.setContentOffset(CGPoint(x: 0, y: -tableView.contentInset.top), animated: true)
-            }
-
-            // If map is showing, refresh it and update POI cards
-            if isShowingMap {
-                    refreshMap()
-                updatePOIPreviewCards()
-            }
-        }
-    }
-    
-    func calendarViewControllerDidSelectDateRange(_ startDate: Date, _ endDate: Date) {
-        // Not used in single selection mode
-    }
-    
-    func calendarViewControllerDidCancel() {
-        // Calendar was dismissed without selecting a date
     }
 }
 

@@ -317,6 +317,50 @@ class TRPTimelineManualPoiCell: UITableViewCell {
         }
     }
 
+    // MARK: - Configuration with Pre-computed Data
+
+    /// Configure cell with pre-computed ManualPoiCellData
+    func configure(with cellData: ManualPoiCellData) {
+        self.segment = cellData.segment
+        self.poi = cellData.poi
+
+        // Title (pre-computed)
+        titleLabel.text = cellData.title
+
+        // Time range (pre-computed)
+        timeLabel.text = cellData.timeRange
+
+        // Image
+        if let imageUrl = cellData.imageUrl {
+            poiImageView.sd_setImage(with: URL(string: imageUrl), placeholderImage: nil)
+        } else {
+            poiImageView.image = nil
+        }
+
+        // Configure rating
+        if let rating = cellData.rating {
+            ratingLabel.text = String(format: "%.1f", rating).replacingOccurrences(of: ".", with: ",")
+            ratingStackView.isHidden = false
+
+            if let ratingCount = cellData.ratingCount {
+                reviewLabel.text = "\(ratingCount.formattedWithSeparator) opiniones"
+            } else {
+                reviewLabel.text = ""
+            }
+        } else {
+            ratingStackView.isHidden = true
+        }
+
+        // Configure category
+        if let categoryName = cellData.categoryName, !categoryName.isEmpty {
+            categoryLabel.text = categoryName
+            categoryBadge.isHidden = false
+        } else {
+            categoryLabel.text = "Punto de interés"
+            categoryBadge.isHidden = false
+        }
+    }
+
     private func formatTime(from dateString: String) -> String {
         // Try format with seconds first, then without seconds
         let date = Date.fromString(dateString, format: "yyyy-MM-dd HH:mm:ss")
