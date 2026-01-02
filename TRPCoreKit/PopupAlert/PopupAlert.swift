@@ -37,11 +37,12 @@ class PopupAlert: UIViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
+        overrideUserInterfaceStyle = .light
         titleLbl.setFontColor(font: FontSet.montserratBold.font(16), color: ColorSet.primaryText.uiColor)
         contentLbl.setFontColor(font: FontSet.montserratMedium.font(14), color: ColorSet.primaryText.uiColor)
         subContentLbl.setFontColor(font: FontSet.montserratRegular.font(16), color: ColorSet.primaryText.uiColor)
         bgView.backgroundColor = trpTheme.color.textBody.withAlphaComponent(0.45)
-        
+
         self.bgView?.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(self.tappedBg)))
     }
     

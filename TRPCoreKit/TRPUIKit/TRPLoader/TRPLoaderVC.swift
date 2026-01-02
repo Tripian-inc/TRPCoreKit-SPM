@@ -18,6 +18,8 @@ public class TRPLoaderVC: UIViewController {
     }
     
     public override func viewDidLoad() {
+        super.viewDidLoad()
+        overrideUserInterfaceStyle = .light
         view.backgroundColor = .clear
     }
     

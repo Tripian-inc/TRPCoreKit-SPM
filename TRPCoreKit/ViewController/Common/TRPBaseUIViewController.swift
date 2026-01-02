@@ -45,8 +45,22 @@ public class TRPBaseUIViewController: UIViewController {
         view.backgroundColor = UIColor.white
         navigationController?.interactivePopGestureRecognizer?.delegate = nil
         overrideUserInterfaceStyle = .light
+
+        // Force light mode on window for system UI components (date pickers, etc.)
+        if let window = view.window ?? UIApplication.currentUIWindow() {
+            window.overrideUserInterfaceStyle = .light
+        }
+
         setupViews()
         hideKeyboardWhenTappedAround()
+    }
+
+    public override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        // Ensure window is set to light mode (in case it wasn't available in viewDidLoad)
+        if let window = view.window ?? UIApplication.currentUIWindow() {
+            window.overrideUserInterfaceStyle = .light
+        }
     }
     
     public func setupViews() {

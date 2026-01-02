@@ -39,7 +39,6 @@ public class TRPTimelineStepRemoteApi: TimelineStepRemoteApi {
                 return
             }
             if let result = result as? TRPParentJsonModel {
-                
                 completion(.success(result.success))
             }
         }

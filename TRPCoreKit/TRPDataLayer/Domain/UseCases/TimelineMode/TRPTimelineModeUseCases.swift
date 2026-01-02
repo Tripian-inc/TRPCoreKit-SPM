@@ -509,13 +509,13 @@ extension TRPTimelineModeUseCases: DeleteTimelineStepUseCase {
     public func executeDeleteStep(id: Int,
                                   completion: ((Result<Bool, Error>) -> Void)?) {
         let onComplete = completion ?? { result in }
-        
+
         sendShowLoader(true, type: .deleteStep)
-        
+
         stepRepository.deleteStep(id: id) { [weak self] result in
-            
+
             self?.sendShowLoader(false, type: .deleteStep)
-            
+
             switch result {
             case .success(let result):
                 self?.sendSuccellyUpdated(.deleteStep)

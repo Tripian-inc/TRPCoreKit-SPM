@@ -1606,6 +1606,61 @@ public class TRPTimelineItineraryViewModel {
         // Reprocess timeline data to update UI
         processTimelineData()
     }
+
+    // MARK: - Step Removal
+
+    /// Removes a step from the timeline
+    /// - Parameters:
+    ///   - step: The step to remove
+    ///   - completion: Completion handler with success/failure result
+    public func removeStep(_ step: TRPTimelineStep, completion: ((Result<Bool, Error>) -> Void)? = nil) {
+        // Show loading
+        delegate?.viewModel(showPreloader: true)
+
+        // Use the UseCase for step deletion
+        timelineModeUseCases.executeDeleteStep(id: step.id) { [weak self] result in
+            guard let self = self else { return }
+
+            DispatchQueue.main.async {
+                self.delegate?.viewModel(showPreloader: false)
+
+                switch result {
+                case .success:
+                    // Remove the step from timeline locally
+                    self.removeStepFromTimeline(step)
+
+                    // Notify delegate to reload UI
+                    self.delegate?.timelineItineraryViewModel(didUpdateTimeline: true)
+
+                    completion?(.success(true))
+
+                case .failure(let error):
+                    self.delegate?.viewModel(error: error)
+                    completion?(.failure(error))
+                }
+            }
+        }
+    }
+
+    /// Removes a step from the timeline data structure
+    private func removeStepFromTimeline(_ step: TRPTimelineStep) {
+        guard var timeline = timeline, var plans = timeline.plans else { return }
+
+        // Find and remove the step from plans
+        for (planIndex, plan) in plans.enumerated() {
+            if let stepIndex = plan.steps.firstIndex(where: { $0.id == step.id }) {
+                plans[planIndex].steps.remove(at: stepIndex)
+                break
+            }
+        }
+
+        // Update timeline with modified plans
+        timeline.plans = plans
+        self.timeline = timeline
+
+        // Reprocess timeline data to update UI
+        processTimelineData()
+    }
 }
 
 

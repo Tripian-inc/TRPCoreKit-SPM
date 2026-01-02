@@ -931,7 +931,14 @@ extension TRPTimelineItineraryVC: TRPTimelineRecommendationsCellDelegate {
     }
 
     func recommendationsCellDidTapRemoveStep(_ cell: TRPTimelineRecommendationsCell, step: TRPTimelineStep) {
-        delegate?.timelineItineraryRemoveStepPressed(self, step: step)
+        showConfirmAlert(
+            title: "Remove Step",
+            message: "Are you sure you want to remove this step from your itinerary?",
+            confirmTitle: "Remove",
+            btnConfirmAction: { [weak self] in
+                self?.viewModel.removeStep(step)
+            }
+        )
     }
 
     func recommendationsCellDidTapReservation(_ cell: TRPTimelineRecommendationsCell, step: TRPTimelineStep) {

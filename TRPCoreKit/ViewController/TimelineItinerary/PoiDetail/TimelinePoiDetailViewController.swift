@@ -496,6 +496,7 @@ public class TimelinePoiDetailViewController: UIViewController {
     // MARK: - Lifecycle
     public override func viewDidLoad() {
         super.viewDidLoad()
+        overrideUserInterfaceStyle = .light
         setupUI()
         configureContent()
     }
