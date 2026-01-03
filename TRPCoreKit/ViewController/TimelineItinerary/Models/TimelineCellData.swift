@@ -26,6 +26,10 @@ public struct BookedActivityCellData: TimelineCellData {
     // MARK: - Core
     public let segmentIndex: Int
 
+    // MARK: - Order
+    /// Unified day order (1-based, sequential across all cell types)
+    public let order: Int
+
     // MARK: - Display Data
     public let title: String
     public let imageUrl: String?
@@ -48,6 +52,7 @@ public struct BookedActivityCellData: TimelineCellData {
 
     public init(
         segmentIndex: Int,
+        order: Int,
         title: String,
         imageUrl: String?,
         timeRange: String,
@@ -60,6 +65,7 @@ public struct BookedActivityCellData: TimelineCellData {
         segment: TRPTimelineSegment
     ) {
         self.segmentIndex = segmentIndex
+        self.order = order
         self.title = title
         self.imageUrl = imageUrl
         self.timeRange = timeRange
@@ -72,9 +78,10 @@ public struct BookedActivityCellData: TimelineCellData {
         self.segment = segment
     }
 
-    /// Create from TRPMergedTimelineItem
-    public init(from item: TRPMergedTimelineItem) {
+    /// Create from TRPMergedTimelineItem with unified order
+    public init(from item: TRPMergedTimelineItem, order: Int) {
         self.segmentIndex = item.originalSegmentIndex
+        self.order = order
         self.title = item.title ?? ""
         self.imageUrl = item.imageUrl
         self.timeRange = item.timeRangeString ?? ""
@@ -96,6 +103,10 @@ public struct ManualPoiCellData: TimelineCellData {
     // MARK: - Core
     public let segmentIndex: Int
 
+    // MARK: - Order
+    /// Unified day order (1-based, sequential across all cell types)
+    public let order: Int
+
     // MARK: - Display Data
     public let title: String
     public let imageUrl: String?
@@ -114,6 +125,7 @@ public struct ManualPoiCellData: TimelineCellData {
 
     public init(
         segmentIndex: Int,
+        order: Int,
         title: String,
         imageUrl: String?,
         timeRange: String,
@@ -124,6 +136,7 @@ public struct ManualPoiCellData: TimelineCellData {
         poi: TRPPoi?
     ) {
         self.segmentIndex = segmentIndex
+        self.order = order
         self.title = title
         self.imageUrl = imageUrl
         self.timeRange = timeRange
@@ -134,9 +147,10 @@ public struct ManualPoiCellData: TimelineCellData {
         self.poi = poi
     }
 
-    /// Create from TRPMergedTimelineItem
-    public init(from item: TRPMergedTimelineItem) {
+    /// Create from TRPMergedTimelineItem with unified order
+    public init(from item: TRPMergedTimelineItem, order: Int) {
         self.segmentIndex = item.originalSegmentIndex
+        self.order = order
         self.title = item.manualPoi?.name ?? item.title ?? ""
         self.imageUrl = item.manualPoi?.image?.url ?? item.imageUrl
         self.timeRange = item.timeRangeString ?? ""
@@ -156,6 +170,11 @@ public struct RecommendationsCellData: TimelineCellData {
     // MARK: - Core
     public let segmentIndex: Int
 
+    // MARK: - Order
+    /// Starting order for first step (1-based, sequential across all cell types)
+    /// Each subsequent step uses startingOrder + stepIndex
+    public let startingOrder: Int
+
     // MARK: - Display Data
     public let title: String
     public let steps: [TRPTimelineStep]
@@ -168,21 +187,24 @@ public struct RecommendationsCellData: TimelineCellData {
 
     public init(
         segmentIndex: Int,
+        startingOrder: Int,
         title: String,
         steps: [TRPTimelineStep],
         isExpanded: Bool,
         segment: TRPTimelineSegment
     ) {
         self.segmentIndex = segmentIndex
+        self.startingOrder = startingOrder
         self.title = title
         self.steps = steps
         self.isExpanded = isExpanded
         self.segment = segment
     }
 
-    /// Create from TRPMergedTimelineItem
-    public init(from item: TRPMergedTimelineItem, isExpanded: Bool = true) {
+    /// Create from TRPMergedTimelineItem with unified starting order
+    public init(from item: TRPMergedTimelineItem, startingOrder: Int, isExpanded: Bool = true) {
         self.segmentIndex = item.originalSegmentIndex
+        self.startingOrder = startingOrder
         self.title = item.title ?? "Recommendations"
         self.steps = item.steps
         self.isExpanded = isExpanded
@@ -291,24 +313,25 @@ public enum TimelineCellType {
 
 extension TimelineCellType {
 
-    /// Create TimelineCellType from TRPMergedTimelineItem
+    /// Create TimelineCellType from TRPMergedTimelineItem with unified order
     /// - Parameters:
     ///   - item: The merged timeline item
+    ///   - order: Unified day order (for booked/reserved/manualPoi) or starting order (for recommendations)
     ///   - isExpanded: Whether recommendations cell should be expanded (default: true)
     /// - Returns: Appropriate TimelineCellType for the item's segment type
-    public static func from(_ item: TRPMergedTimelineItem, isExpanded: Bool = true) -> TimelineCellType {
+    public static func from(_ item: TRPMergedTimelineItem, order: Int, isExpanded: Bool = true) -> TimelineCellType {
         switch item.segmentType {
         case .bookedActivity:
-            return .bookedActivity(BookedActivityCellData(from: item))
+            return .bookedActivity(BookedActivityCellData(from: item, order: order))
 
         case .reservedActivity:
-            return .reservedActivity(BookedActivityCellData(from: item))
+            return .reservedActivity(BookedActivityCellData(from: item, order: order))
 
         case .manualPoi:
-            return .manualPoi(ManualPoiCellData(from: item))
+            return .manualPoi(ManualPoiCellData(from: item, order: order))
 
         case .itinerary:
-            return .recommendations(RecommendationsCellData(from: item, isExpanded: isExpanded))
+            return .recommendations(RecommendationsCellData(from: item, startingOrder: order, isExpanded: isExpanded))
         }
     }
 }

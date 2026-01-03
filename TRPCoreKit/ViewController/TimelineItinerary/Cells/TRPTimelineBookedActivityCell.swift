@@ -31,18 +31,11 @@ class TRPTimelineBookedActivityCell: UITableViewCell {
         view.clipsToBounds = true
         return view
     }()
-    
-    private let timeLabel: UILabel = {
-        let label = UILabel()
-        label.translatesAutoresizingMaskIntoConstraints = false
-        label.font = FontSet.montserratMedium.font(14)
-        label.textColor = ColorSet.fgGreen.uiColor
-        label.textAlignment = .center
-        label.layer.cornerRadius = 16
-        label.layer.borderColor = ColorSet.green250.uiColor.cgColor
-        label.layer.borderWidth = 2
-        label.clipsToBounds = true
-        return label
+
+    private let timeBadgeView: TRPTimelineTimeBadgeView = {
+        let view = TRPTimelineTimeBadgeView()
+        view.translatesAutoresizingMaskIntoConstraints = false
+        return view
     }()
     
     private let verticalLineView: UIView = {
@@ -195,7 +188,7 @@ class TRPTimelineBookedActivityCell: UITableViewCell {
         selectionStyle = .none
         backgroundColor = .clear
 
-        contentView.addSubview(timeLabel)
+        contentView.addSubview(timeBadgeView)
         contentView.addSubview(verticalLineView)
         contentView.addSubview(containerView)
 
@@ -225,21 +218,19 @@ class TRPTimelineBookedActivityCell: UITableViewCell {
     
     private func setupConstraints() {
         NSLayoutConstraint.activate([
-            // Time Label
-            timeLabel.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 16),
-            timeLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
-            timeLabel.widthAnchor.constraint(equalToConstant: 120),
-            timeLabel.heightAnchor.constraint(equalToConstant: 32),
+            // Time Badge View
+            timeBadgeView.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 16),
+            timeBadgeView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
 
             // Vertical Line
-            verticalLineView.topAnchor.constraint(equalTo: timeLabel.bottomAnchor),
-            verticalLineView.leadingAnchor.constraint(equalTo: timeLabel.leadingAnchor, constant: 25),
+            verticalLineView.topAnchor.constraint(equalTo: timeBadgeView.bottomAnchor),
+            verticalLineView.leadingAnchor.constraint(equalTo: timeBadgeView.leadingAnchor, constant: 25),
             verticalLineView.widthAnchor.constraint(equalToConstant: 0.5),
             verticalLineView.bottomAnchor.constraint(equalTo: containerView.topAnchor),
 
             // Container View
-            containerView.topAnchor.constraint(equalTo: timeLabel.bottomAnchor, constant: 24),
-            containerView.leadingAnchor.constraint(equalTo: timeLabel.leadingAnchor),
+            containerView.topAnchor.constraint(equalTo: timeBadgeView.bottomAnchor, constant: 24),
+            containerView.leadingAnchor.constraint(equalTo: timeBadgeView.leadingAnchor),
             containerView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
             containerView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -16),
 
@@ -311,12 +302,12 @@ class TRPTimelineBookedActivityCell: UITableViewCell {
             personStackView.isHidden = false
         }
         
-        // Configure time from additionalData
+        // Configure time badge from additionalData (order defaults to 0 for legacy method)
         if let startDatetime = additionalData.startDatetime,
            let endDatetime = additionalData.endDatetime {
             let startTime = formatTime(from: startDatetime)
             let endTime = formatTime(from: endDatetime)
-            timeLabel.text = "\(startTime) - \(endTime)"
+            timeBadgeView.configure(order: 0, startTime: startTime, endTime: endTime, style: .activity)
         }
         
         // Configure person count from additionalData
@@ -375,8 +366,12 @@ class TRPTimelineBookedActivityCell: UITableViewCell {
         // Title (pre-computed)
         titleLabel.text = cellData.title
 
-        // Time range (pre-computed)
-        timeLabel.text = cellData.timeRange
+        // Time badge with order and time range
+        // Parse time range from "HH:mm - HH:mm" format
+        let timeParts = cellData.timeRange.components(separatedBy: " - ")
+        let startTime = timeParts.first ?? ""
+        let endTime = timeParts.count > 1 ? timeParts[1] : ""
+        timeBadgeView.configure(order: cellData.order, startTime: startTime, endTime: endTime, style: .activity)
 
         // Image
         if let imageUrl = cellData.imageUrl {

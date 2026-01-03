@@ -29,6 +29,7 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
     private var segment: TRPTimelineSegment?
     private var isExpanded: Bool = true
     private var distanceViews: [Int: UIView] = [:] // Track distance views by index
+    private var startingOrder: Int = 1 // Unified day order for first step
     
     // MARK: - UI Components
     private let containerView: UIStackView = {
@@ -121,8 +122,8 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
         NSLayoutConstraint.activate([
             // Container View
             containerView.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 8),
-            containerView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
-            containerView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
+            containerView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 12),
+            containerView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -12),
             containerView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -8),
 
             // Header View
@@ -188,10 +189,11 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
     }
     
     // MARK: - Configuration
-    func configure(with steps: [TRPTimelineStep], segment: TRPTimelineSegment?, isExpanded: Bool = true) {
+    func configure(with steps: [TRPTimelineStep], segment: TRPTimelineSegment?, isExpanded: Bool = true, startingOrder: Int = 1) {
         self.steps = steps
         self.segment = segment
         self.isExpanded = isExpanded
+        self.startingOrder = startingOrder
 
         // Set segment title
         titleLabel.text = segment?.title ?? "Recommendations"
@@ -202,15 +204,17 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
 
         // Add recommendation views for each step with distance info between them
         for (index, step) in steps.enumerated() {
-            let recommendationView = createRecommendationView(for: step)
+            // Calculate unified order: startingOrder + index (0-based)
+            let unifiedOrder = startingOrder + index
+            let recommendationView = createRecommendationView(for: step, order: unifiedOrder)
             recommendationsStackView.addArrangedSubview(recommendationView)
-            
+
             // Add distance view between POIs (except after the last one)
             if index < steps.count - 1 {
                 let distanceView = createDistanceView(for: index)
                 distanceViews[index] = distanceView
                 recommendationsStackView.addArrangedSubview(distanceView)
-                
+
                 // Request route calculation if both POIs have coordinates
                 if let fromCoordinate = step.poi?.coordinate, let toCoordinate = steps[index + 1].poi?.coordinate {
                     delegate?.recommendationsCellNeedsRouteCalculation(self,
@@ -220,7 +224,7 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
                 }
             }
         }
-        
+
         updateChevron()
 
         // Set UI based on collapse state - UIStackView handles layout automatically
@@ -235,6 +239,7 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
         self.steps = cellData.steps
         self.segment = cellData.segment
         self.isExpanded = cellData.isExpanded
+        self.startingOrder = cellData.startingOrder
 
         // Title (pre-computed)
         titleLabel.text = cellData.title
@@ -245,7 +250,9 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
 
         // Add recommendation views for each step with distance info between them
         for (index, step) in cellData.steps.enumerated() {
-            let recommendationView = createRecommendationView(for: step)
+            // Calculate unified order: startingOrder + index (0-based)
+            let unifiedOrder = startingOrder + index
+            let recommendationView = createRecommendationView(for: step, order: unifiedOrder)
             recommendationsStackView.addArrangedSubview(recommendationView)
 
             // Add distance view between POIs (except after the last one)
@@ -274,7 +281,7 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
         recommendationsStackView.alpha = cellData.isExpanded ? 1.0 : 0.0
     }
 
-    private func createRecommendationView(for step: TRPTimelineStep) -> UIView {
+    private func createRecommendationView(for step: TRPTimelineStep, order: Int) -> UIView {
         let containerView = UIView()
         containerView.translatesAutoresizingMaskIntoConstraints = false
         containerView.backgroundColor = .clear
@@ -288,7 +295,8 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
 
         if let startTime = step.getStartTime(), let endTime = step.getEndTime() {
             let style: TRPTimelineTimeBadgeStyle = isActivity ? .activity : .poi
-            timeBadgeView.configure(order: step.order, startTime: startTime, endTime: endTime, style: style)
+            // Use unified order (startingOrder + index) instead of step.order
+            timeBadgeView.configure(order: order, startTime: startTime, endTime: endTime, style: style)
         }
 
         // Vertical line between time badge and content
@@ -344,7 +352,7 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
         changeTimeButton.translatesAutoresizingMaskIntoConstraints = false
         let changeTimeIcon = TRPImageController().getImage(inFramework: "ic_change_time", inApp: nil)?.withRenderingMode(.alwaysTemplate)
         changeTimeButton.setImage(changeTimeIcon, for: .normal)
-        changeTimeButton.tintColor = ColorSet.fg.uiColor
+        changeTimeButton.tintColor = ColorSet.primary.uiColor
         changeTimeButton.imageView?.contentMode = .scaleAspectFit
         changeTimeButton.contentVerticalAlignment = .center
         changeTimeButton.contentHorizontalAlignment = .center
@@ -357,7 +365,7 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
         removeStepButton.translatesAutoresizingMaskIntoConstraints = false
         let removeStepIcon = TRPImageController().getImage(inFramework: "ic_remove_step", inApp: nil)?.withRenderingMode(.alwaysTemplate)
         removeStepButton.setImage(removeStepIcon, for: .normal)
-        removeStepButton.tintColor = ColorSet.fg.uiColor
+        removeStepButton.tintColor = ColorSet.primary.uiColor
         removeStepButton.imageView?.contentMode = .scaleAspectFit
         removeStepButton.contentVerticalAlignment = .center
         removeStepButton.contentHorizontalAlignment = .center

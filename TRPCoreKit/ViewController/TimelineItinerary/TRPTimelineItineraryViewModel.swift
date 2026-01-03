@@ -37,6 +37,11 @@ public class TRPTimelineItineraryViewModel {
     /// Items for currently selected day, grouped by city for section display
     private var displayItems: [TRPTimelineCityGroup] = []
 
+    /// Unified order map for current day (segmentIndex -> starting order)
+    /// For single-item segments (booked/reserved/manualPoi): the order value
+    /// For itinerary segments: the starting order (steps use startingOrder + stepIndex)
+    private var unifiedOrderMap: [Int: Int] = [:]
+
     /// All trip dates from start to end (continuous, for day filter display)
     private var allTripDates: [Date] = []
 
@@ -216,12 +221,14 @@ public class TRPTimelineItineraryViewModel {
     private func updateDisplayItems() {
         guard let mergedTimeline = mergedTimeline else {
             displayItems = []
+            unifiedOrderMap = [:]
             return
         }
 
         // Get the selected date from all trip dates (continuous range)
         guard selectedDayIndex >= 0, selectedDayIndex < allTripDates.count else {
             displayItems = []
+            unifiedOrderMap = [:]
             return
         }
 
@@ -230,6 +237,46 @@ public class TRPTimelineItineraryViewModel {
         // Get items grouped by city for section display
         // If no items exist for this date, displayItems will be empty (shows empty state)
         displayItems = mergedTimeline.itemsGroupedByCity(for: selectedDate)
+
+        // Calculate unified orders for the current day
+        calculateUnifiedOrders()
+    }
+
+    /// Calculates unified order for all items in the current day
+    /// Order is sequential across ALL cell types (1-based)
+    /// - BookedActivity/ReservedActivity/ManualPoi: 1 order each
+    /// - Itinerary (Recommendations): consumes N orders (where N = number of steps)
+    private func calculateUnifiedOrders() {
+        unifiedOrderMap = [:]
+
+        // Collect all items from all city groups and sort by start time
+        var allItems: [TRPMergedTimelineItem] = []
+        for cityGroup in displayItems {
+            allItems.append(contentsOf: cityGroup.items)
+        }
+
+        // Sort by start date/time
+        let sortedItems = allItems.sorted { item1, item2 in
+            let date1 = item1.startDate ?? Date.distantFuture
+            let date2 = item2.startDate ?? Date.distantFuture
+            return date1 < date2
+        }
+
+        // Calculate order for each item
+        var currentOrder = 1
+        for item in sortedItems {
+            unifiedOrderMap[item.originalSegmentIndex] = currentOrder
+
+            switch item.segmentType {
+            case .bookedActivity, .reservedActivity, .manualPoi:
+                // Single item, consumes 1 order
+                currentOrder += 1
+            case .itinerary:
+                // Recommendations segment, consumes N orders (one per step)
+                let stepCount = item.steps.count
+                currentOrder += max(stepCount, 1) // At least 1 even if no steps
+            }
+        }
     }
 
     private func processTimelineData() {
@@ -716,7 +763,10 @@ public class TRPTimelineItineraryViewModel {
         let mergedItem = cityGroup.items[indexPath.row]
         let isExpanded = getSectionCollapseState(for: indexPath.section)
 
-        return TimelineCellType.from(mergedItem, isExpanded: isExpanded)
+        // Get unified order from map (default to 1 if not found)
+        let order = unifiedOrderMap[mergedItem.originalSegmentIndex] ?? 1
+
+        return TimelineCellType.from(mergedItem, order: order, isExpanded: isExpanded)
     }
 
     /// Get merged item at index path (for delegate callbacks and navigation)
