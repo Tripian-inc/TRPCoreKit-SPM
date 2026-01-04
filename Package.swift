@@ -22,7 +22,7 @@ let package = Package(
         .package(url: "https://github.com/mapbox/mapbox-maps-ios.git", from: "11.0.0"),
         .package(url: "https://github.com/rechsteiner/Parchment", from: "3.1.0"),
         .package(url: "https://github.com/SDWebImage/SDWebImage.git", from: "5.19.7"),
-        .package(url: "https://github.com/Tripian-inc/TRPRestKit.git", branch: "remove-carthage-add-spm"),
+        .package(url: "https://github.com/Tripian-inc/TRPRestKit.git", branch: "main"),
 //        .package(url: "https://github.com/mapbox/mapbox-events-ios.git", from: "2.0.0"),
     ],
     targets: [
