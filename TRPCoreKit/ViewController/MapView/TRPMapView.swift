@@ -282,11 +282,41 @@ extension TRPMapView {
         mapView.mapboxMap.onMapLoaded.observeNext {  [weak self] _ in
             self?.didMapLoaded = true
         }.store(in: &cancelables)
-        
+
+        // Hide POI labels after style loads for a cleaner map
+        mapView.mapboxMap.onStyleLoaded.observeNext { [weak self] _ in
+            self?.hidePOILayers()
+        }.store(in: &cancelables)
+
         addClickPropetyForAnnotations()
         addSubview(mapView)
     }
-    
+
+    /// Hide POI and place label layers for a cleaner map appearance
+    private func hidePOILayers() {
+        guard let mapView = mapView else { return }
+
+        // Layer IDs to hide (POI labels, transit labels, place labels)
+        let layersToHide = [
+            "poi-label",
+            "transit-label",
+            "airport-label",
+            "settlement-subdivision-label",
+            "settlement-minor-label",
+            "settlement-major-label"
+        ]
+
+        for layerId in layersToHide {
+            do {
+                try mapView.mapboxMap.updateLayer(withId: layerId, type: SymbolLayer.self) { layer in
+                    layer.visibility = .constant(.none)
+                }
+            } catch {
+                // Layer might not exist in this style, ignore
+            }
+        }
+    }
+
     /// Tüm maps üzerine clickable yapı haline getirir.
     /// Style ikonlarının İDlerini almak için kullanılır.
     private func addClickPropetyForAnnotations() {
