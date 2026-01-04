@@ -50,6 +50,9 @@ public struct TimelineLocalizationKeys {
 
     // MARK: - Errors
     public static let error = "timeline.error.title"
+    public static let errorSomethingWentWrong = "timeline.error.somethingWentWrong"
+    public static let errorGenerationFailed = "timeline.error.generationFailed"
+    public static let errorTimeout = "timeline.error.timeout"
 
     // MARK: - Default English Values
     private static let defaultValues: [String: String] = [
@@ -78,7 +81,10 @@ public struct TimelineLocalizationKeys {
         durationMinutes: "%dm",
         durationCombined: "%dh %dm",
         distanceFormat: "%d min (%@ km)",
-        error: "Error"
+        error: "Error",
+        errorSomethingWentWrong: "Something went wrong. Please try again.",
+        errorGenerationFailed: "Failed to generate your itinerary. Please try again.",
+        errorTimeout: "Request timed out. Please try again."
     ]
 
     // MARK: - Helper Methods

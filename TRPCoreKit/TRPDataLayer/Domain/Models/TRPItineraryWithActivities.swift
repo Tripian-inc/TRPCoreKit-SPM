@@ -63,6 +63,7 @@ public struct TRPSegmentFavoriteItem: Codable {
     public var activityId: String?
     public var title: String
     public var cityName: String
+    public var cityId: Int?
     public var photoUrl: String?
     public var description: String?
     public var activityUrl: String?
@@ -77,6 +78,7 @@ public struct TRPSegmentFavoriteItem: Codable {
     public init(activityId: String?,
                 title: String,
                 cityName: String,
+                cityId: Int? = nil,
                 photoUrl: String?,
                 description: String?,
                 activityUrl: String?,
@@ -90,6 +92,7 @@ public struct TRPSegmentFavoriteItem: Codable {
         self.activityId = activityId
         self.title = title
         self.cityName = cityName
+        self.cityId = cityId
         self.photoUrl = photoUrl
         self.description = description
         self.activityUrl = activityUrl
@@ -106,6 +109,7 @@ public struct TRPSegmentFavoriteItem: Codable {
         case activityId
         case title
         case cityName
+        case cityId
         case photoUrl
         case description
         case activityUrl
@@ -136,8 +140,9 @@ public struct TRPSegmentActivityItem: Codable {
     public var bookingUrl: String?
     public var duration: Double?
     public var price: TRPSegmentActivityPrice?
+    public var cityId: Int?
 
-    public init(activityId: String?, bookingId: String?, title: String?, imageUrl: String?, description: String?, startDatetime: String?, endDatetime: String?, coordinate: TRPLocation, cancellation: String?, adultCount: Int, childCount: Int, bookingUrl: String? = nil, duration: Double? = nil, price: TRPSegmentActivityPrice? = nil) {
+    public init(activityId: String?, bookingId: String?, title: String?, imageUrl: String?, description: String?, startDatetime: String?, endDatetime: String?, coordinate: TRPLocation, cancellation: String?, adultCount: Int, childCount: Int, bookingUrl: String? = nil, duration: Double? = nil, price: TRPSegmentActivityPrice? = nil, cityId: Int? = nil) {
         self.activityId = activityId
         self.bookingId = bookingId
         self.title = title
@@ -152,6 +157,7 @@ public struct TRPSegmentActivityItem: Codable {
         self.bookingUrl = bookingUrl
         self.duration = duration
         self.price = price
+        self.cityId = cityId
     }
 
     enum CodingKeys: String, CodingKey {
@@ -169,6 +175,7 @@ public struct TRPSegmentActivityItem: Codable {
         case bookingUrl
         case duration
         case price
+        case cityId
     }
 
 }
@@ -187,33 +194,146 @@ public struct TRPSegmentActivityPrice: Codable {
 
 // MARK: - Timeline Profile Conversion
 extension TRPItineraryWithActivities {
-    
+
     /// Creates a TRPTimelineProfile from booking products (tripItems) in the itinerary export
-    /// This method creates timeline segments ONLY from booking products - no gaps or available segments are generated
+    /// This method creates timeline segments from booking products and adds empty segments for start/end dates if needed
     /// - Returns: TRPTimelineProfile ready to be used with Timeline API's createTimeline method
     public func createTimelineProfileFromBookings() -> TRPTimelineProfile {
         let timelineProfile = TRPTimelineProfile()
 
         // Set traveler counts from first trip item (or default to 1 adult)
+        let adults: Int
+        let children: Int
         if let firstItem = tripItems?.first {
-            timelineProfile.adults = firstItem.adultCount
-            timelineProfile.children = firstItem.childCount
-            timelineProfile.pets = 0
+            adults = firstItem.adultCount
+            children = firstItem.childCount
         } else {
-            timelineProfile.adults = 1
-            timelineProfile.children = 0
-            timelineProfile.pets = 0
+            adults = 1
+            children = 0
         }
 
-        // Create segments only from tripItems (booking products)
+        timelineProfile.adults = adults
+        timelineProfile.children = children
+        timelineProfile.pets = 0
+
+        // Set cityId from first destinationItem (for timeline creation)
+        if let firstCityId = destinationItems.first?.cityId {
+            timelineProfile.cityId = firstCityId
+        }
+
+        // Create segments from tripItems (booking products)
         // Note: City information will come from timeline API response (plans), not from destinationItems
-        let segments = tripItems?.map { tripItem in
+        var segments = tripItems?.map { tripItem in
             createTimelineSegment(from: tripItem)
+        } ?? []
+
+        // Extract start and end dates from itinerary
+        guard let startDateStr = extractDateString(from: startDatetime),
+              let endDateStr = extractDateString(from: endDatetime) else {
+            timelineProfile.segments = segments
+            return timelineProfile
         }
 
-        timelineProfile.segments = segments ?? []
+        // Get city from first destinationItem (if no tripItems, use this for empty segments)
+        let city = createCityFromDestination()
+
+        // Check if there's a tripItem on the start date
+        let hasItemOnStartDate = tripItems?.contains { item in
+            guard let itemDate = item.startDatetime else { return false }
+            return extractDateString(from: itemDate) == startDateStr
+        } ?? false
+
+        // Check if there's a tripItem on the end date
+        let hasItemOnEndDate = tripItems?.contains { item in
+            guard let itemDate = item.startDatetime else { return false }
+            return extractDateString(from: itemDate) == endDateStr
+        } ?? false
+
+        // Add empty segment for start date if needed
+        if !hasItemOnStartDate {
+            let emptyStartSegment = createEmptySegment(
+                date: startDateStr,
+                title: "Empty",
+                adults: adults,
+                children: children,
+                city: city
+            )
+            segments.insert(emptyStartSegment, at: 0)
+        }
+
+        // Add empty segment for end date if needed (and different from start)
+        if !hasItemOnEndDate && startDateStr != endDateStr {
+            let emptyEndSegment = createEmptySegment(
+                date: endDateStr,
+                title: "Empty",
+                adults: adults,
+                children: children,
+                city: city
+            )
+            segments.append(emptyEndSegment)
+        }
+
+        timelineProfile.segments = segments
 
         return timelineProfile
+    }
+
+    // MARK: - Private Helpers
+
+    /// Extracts the date portion from a datetime string
+    /// - Parameter datetime: String in format "yyyy-MM-dd HH:mm" or "yyyy-MM-dd"
+    /// - Returns: Date string in format "yyyy-MM-dd" or nil if extraction fails
+    private func extractDateString(from datetime: String) -> String? {
+        let components = datetime.components(separatedBy: " ")
+        return components.first
+    }
+
+    /// Creates an empty segment for a given date
+    /// Used to ensure timeline covers the full trip date range even when there are no tripItems on certain days
+    private func createEmptySegment(date: String, title: String, adults: Int, children: Int, city: TRPCity?) -> TRPTimelineSegment {
+        let segment = TRPTimelineSegment()
+        segment.segmentType = .itinerary
+        segment.title = title
+        segment.available = false
+        segment.distinctPlan = true
+        segment.startDate = "\(date) 00:00"
+        segment.endDate = "\(date) 23:59"
+        segment.adults = adults
+        segment.children = children
+        segment.pets = 0
+        segment.city = city
+        return segment
+    }
+
+    /// Creates a TRPCity from the first destinationItem if cityId is available
+    /// Used to populate city info in empty segments when no tripItems exist
+    private func createCityFromDestination() -> TRPCity? {
+        guard let destination = destinationItems.first,
+              let cityId = destination.cityId else {
+            return nil
+        }
+
+        // Parse coordinate from string (format: "lat,lon")
+        let coordinate = parseCoordinate(from: destination.coordinate)
+
+        return TRPCity(
+            id: cityId,
+            name: destination.title,
+            coordinate: coordinate
+        )
+    }
+
+    /// Parses a coordinate string into TRPLocation
+    /// - Parameter coordinateString: String in format "lat,lon" (e.g., "41.3851,2.1734")
+    /// - Returns: TRPLocation with parsed coordinates, or default (0,0) if parsing fails
+    private func parseCoordinate(from coordinateString: String) -> TRPLocation {
+        let parts = coordinateString.components(separatedBy: ",")
+        guard parts.count >= 2,
+              let lat = Double(parts[0].trimmingCharacters(in: .whitespaces)),
+              let lon = Double(parts[1].trimmingCharacters(in: .whitespaces)) else {
+            return TRPLocation(lat: 0, lon: 0)
+        }
+        return TRPLocation(lat: lat, lon: lon)
     }
 
     /// Creates a TRPTimelineSegment from a TRPSegmentActivityItem

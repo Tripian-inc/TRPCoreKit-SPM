@@ -270,6 +270,10 @@ public class TRPTimelineItineraryViewModel {
         // - itinerary → TRPTimelineRecommendationsCell
         if let profileSegments = timeline.tripProfile?.segments {
             for (index, segment) in profileSegments.enumerated() {
+                // Skip empty placeholder segments (title = "Empty" and available = false)
+                if isEmptyPlaceholderSegment(segment) {
+                    continue
+                }
                 let plan: TRPTimelinePlan?
 
                 switch segment.segmentType {
@@ -309,6 +313,15 @@ public class TRPTimelineItineraryViewModel {
         }
 
         return mergedItems
+    }
+
+    /// Checks if a segment is an empty placeholder segment
+    /// Empty placeholder segments are created to ensure timeline covers the full trip date range
+    /// They should not be displayed in the UI
+    /// - Parameter segment: The segment to check
+    /// - Returns: true if the segment is an empty placeholder (title = "Empty" and available = false)
+    private func isEmptyPlaceholderSegment(_ segment: TRPTimelineSegment) -> Bool {
+        return segment.title == "Empty" && segment.available == false
     }
 
     /// Updates displayItems for current day using new architecture
@@ -1445,6 +1458,9 @@ public class TRPTimelineItineraryViewModel {
         var existingNumbers: [Int] = []
 
         for segment in allSegments {
+            // Skip empty placeholder segments
+            if isEmptyPlaceholderSegment(segment) { continue }
+
             // Only check itinerary type segments
             guard segment.segmentType == .itinerary else { continue }
 

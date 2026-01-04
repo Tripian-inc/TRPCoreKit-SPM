@@ -55,6 +55,9 @@ This document contains all localization keys used in the Timeline Itinerary feat
 | Key | Default English Value |
 |-----|----------------------|
 | `timeline.error.title` | "Error" |
+| `timeline.error.somethingWentWrong` | "Something went wrong. Please try again." |
+| `timeline.error.generationFailed` | "Failed to generate your itinerary. Please try again." |
+| `timeline.error.timeout` | "Request timed out. Please try again." |
 
 ## Implementation
 
@@ -109,8 +112,16 @@ To add translations for these keys:
 - `TimelinePoiDetailViewController.swift` - Uses unknown location fallback
 - `AddPlanTimeSelectionVC.swift` - Uses error title
 - `ActivityCardCell.swift` - Uses duration formatting
+- `TimelineGenerateController.swift` - Uses error messages (somethingWentWrong, generationFailed, timeout)
 
 ## Changelog
+
+### January 5, 2026
+- Added Timeline Generation Error keys:
+  - `timeline.error.somethingWentWrong` - Generic error message
+  - `timeline.error.generationFailed` - Itinerary generation failed
+  - `timeline.error.timeout` - Request timeout error
+- Updated `TimelineGenerateController.swift` to use localized error messages
 
 ### January 4, 2026
 - Added Segment/Cell Labels:

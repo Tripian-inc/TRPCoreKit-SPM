@@ -19,22 +19,24 @@ class TimelineGenerateController {
     
     
     public func fetchTimeline(hash: String, completion: ((Result<TRPTimeline, Error>) -> Void)?) {
-        
+
         repository?.fetchTimeline(tripHash: hash, completion: { [weak self] result in
             guard let self else {
-                completion?(.failure(GeneralError.customMessageKey("trips.myTrips.itinerary.offers.payment.error.somethingWentWrong")))
+                let errorMessage = TimelineLocalizationKeys.localized(TimelineLocalizationKeys.errorSomethingWentWrong)
+                completion?(.failure(GeneralError.customMessage(errorMessage)))
                 return
             }
             self.dailyPlanGeneraterCount += 1
             if self.dailyPlanGeneraterCount > self.dailyPlanGeneraterLimit {
-                completion?(.failure(GeneralError.customMessageKey("trips.myTrips.itinerary.offers.payment.error.somethingWentWrong")))
+                let errorMessage = TimelineLocalizationKeys.localized(TimelineLocalizationKeys.errorTimeout)
+                completion?(.failure(GeneralError.customMessage(errorMessage)))
                 self.dailyPlanGeneraterCount = 0
                 return
             }
             switch result {
             case .success(let trip):
                 // If there are no plans (only booked/reserved activities), consider it as successfully generated
-                guard let plans = trip.plans, !plans.isEmpty else {
+                guard let plans = trip.plans, !plans.isEmpty, plans.first?.name != "Empty" else {
                     completion?(.success(trip))
                     return
                 }
@@ -51,13 +53,14 @@ class TimelineGenerateController {
                 if firstStatus > 0 {
                     completion?(.success(trip))
                 } else if firstStatus < 0 {
-                    completion?(.failure(GeneralError.customMessageKey("trips.myTrips.itinerary.error.generatedStatusNegative1")))
+                    let errorMessage = TimelineLocalizationKeys.localized(TimelineLocalizationKeys.errorGenerationFailed)
+                    completion?(.failure(GeneralError.customMessage(errorMessage)))
                 }
             case .failure(let error):
                 completion?(.failure(error))
             }
         })
-        
+
     }
     
     
