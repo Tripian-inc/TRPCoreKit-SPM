@@ -238,8 +238,10 @@ extension AddPlanTimeSelectionVC: AddPlanTimeSelectionViewModelDelegate {
 
     public func timeSlotsDidFail(error: Error) {
         // Show error alert
-        let alert = UIAlertController(title: "Error", message: error.localizedDescription, preferredStyle: .alert)
-        alert.addAction(UIAlertAction(title: "OK", style: .default))
+        let errorTitle = TimelineLocalizationKeys.localized(TimelineLocalizationKeys.error)
+        let okTitle = TRPLanguagesController.shared.getLanguageValue(for: "ok")
+        let alert = UIAlertController(title: errorTitle, message: error.localizedDescription, preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: okTitle.isEmpty ? "OK" : okTitle, style: .default))
         present(alert, animated: true)
     }
 

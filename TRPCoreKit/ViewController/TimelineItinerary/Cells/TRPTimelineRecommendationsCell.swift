@@ -196,7 +196,7 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
         self.startingOrder = startingOrder
 
         // Set segment title
-        titleLabel.text = segment?.title ?? "Recommendations"
+        titleLabel.text = segment?.title ?? TimelineLocalizationKeys.localized(TimelineLocalizationKeys.recommendations)
 
         // Clear existing views and distance views
         recommendationsStackView.arrangedSubviews.forEach { $0.removeFromSuperview() }
@@ -411,7 +411,8 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
             reviewLabel.font = FontSet.montserratLight.font(14)
             reviewLabel.textColor = ColorSet.fgWeak.uiColor
             if let reviewCount = poi.ratingCount {
-                reviewLabel.text = "\(reviewCount.formattedWithSeparator)"
+                let opinionsText = AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.opinions)
+                reviewLabel.text = "\(reviewCount.formattedWithSeparator) \(opinionsText)"
             }
 
             ratingStack.addArrangedSubview(ratingLabel)
@@ -437,14 +438,14 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
         if isActivity {
             categoryBadge.backgroundColor = ColorSet.bgGreen.uiColor
             categoryLabel.textColor = ColorSet.fgGreen.uiColor
-            categoryLabel.text = "Activity"
+            categoryLabel.text = TimelineLocalizationKeys.localized(TimelineLocalizationKeys.activityBadge)
         } else {
             categoryBadge.backgroundColor = ColorSet.bgBlue.uiColor
             categoryLabel.textColor = ColorSet.fgBlue.uiColor
             if let poi = step.poi, let firstCategory = poi.categories.first {
                 categoryLabel.text = firstCategory.name
             } else {
-                categoryLabel.text = "Punto de interés"
+                categoryLabel.text = TimelineLocalizationKeys.localized(TimelineLocalizationKeys.pointOfInterest)
             }
         }
 
@@ -475,15 +476,7 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
             if let duration = bookingProduct?.duration {
                 durationText = duration
             } else if let poiDuration = step.poi?.duration {
-                let hours = poiDuration / 60
-                let minutes = poiDuration % 60
-                if hours > 0 && minutes > 0 {
-                    durationText = "\(hours)h \(minutes)m"
-                } else if hours > 0 {
-                    durationText = "\(hours)h"
-                } else {
-                    durationText = "\(minutes)m"
-                }
+                durationText = TimelineLocalizationKeys.formatDuration(minutes: poiDuration)
             }
 
             if let durationText = durationText {
@@ -535,7 +528,7 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
             let fromLabel = UILabel()
             fromLabel.font = FontSet.montserratMedium.font(14)
             fromLabel.textColor = ColorSet.primaryText.uiColor
-            fromLabel.text = "From"
+            fromLabel.text = TimelineLocalizationKeys.localized(TimelineLocalizationKeys.from)
 
             // Price label - bold 16px primaryText
             let priceLabel = UILabel()
@@ -762,7 +755,7 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
         if let distanceLabel = distanceView.viewWithTag(1000 + index) as? UILabel {
             // Format distance with comma as decimal separator (e.g., "1,2 km")
             let distanceString = String(format: "%.1f", distance).replacingOccurrences(of: ".", with: ",")
-            distanceLabel.text = "\(time) min (\(distanceString) km)"
+            distanceLabel.text = TimelineLocalizationKeys.formatDistance(minutes: time, kilometers: distanceString)
         }
     }
 }

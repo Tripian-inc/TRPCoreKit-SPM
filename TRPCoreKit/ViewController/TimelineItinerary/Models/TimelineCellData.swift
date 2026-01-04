@@ -205,7 +205,7 @@ public struct RecommendationsCellData: TimelineCellData {
     public init(from item: TRPMergedTimelineItem, startingOrder: Int, isExpanded: Bool = true) {
         self.segmentIndex = item.originalSegmentIndex
         self.startingOrder = startingOrder
-        self.title = item.title ?? "Recommendations"
+        self.title = item.title ?? TimelineLocalizationKeys.localized(TimelineLocalizationKeys.recommendations)
         self.steps = item.steps
         self.isExpanded = isExpanded
         self.segment = item.segment

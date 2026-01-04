@@ -310,13 +310,7 @@ class ActivityCardCell: UITableViewCell {
 
         // Set duration
         if let duration = tour.duration {
-            let hours = duration / 60
-            let minutes = duration % 60
-            if hours > 0 {
-                durationLabel.text = "\(hours)h \(minutes)m"
-            } else {
-                durationLabel.text = "\(minutes)m"
-            }
+            durationLabel.text = TimelineLocalizationKeys.formatDuration(minutes: duration)
             durationIconImageView.isHidden = false
             durationLabel.isHidden = false
         } else {

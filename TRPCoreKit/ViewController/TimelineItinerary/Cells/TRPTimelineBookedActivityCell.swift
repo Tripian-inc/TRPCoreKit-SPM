@@ -423,17 +423,7 @@ class TRPTimelineBookedActivityCell: UITableViewCell {
     }
 
     private func formatDuration(_ minutes: Double) -> String {
-        let totalMinutes = Int(minutes)
-        let hours = totalMinutes / 60
-        let mins = totalMinutes % 60
-
-        if hours > 0 && mins > 0 {
-            return "\(hours)h \(mins)m"
-        } else if hours > 0 {
-            return "\(hours)h"
-        } else {
-            return "\(mins)m"
-        }
+        return TimelineLocalizationKeys.formatDuration(minutes: Int(minutes))
     }
 
     private func formatPrice(_ price: TRPSegmentActivityPrice) -> String {

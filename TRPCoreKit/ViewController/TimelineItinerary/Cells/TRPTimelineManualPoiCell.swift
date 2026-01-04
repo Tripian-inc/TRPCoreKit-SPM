@@ -327,7 +327,8 @@ class TRPTimelineManualPoiCell: UITableViewCell {
             ratingStackView.isHidden = false
 
             if let ratingCount = poi?.ratingCount {
-                reviewLabel.text = "\(ratingCount.formattedWithSeparator)"
+                let opinionsText = AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.opinions)
+                reviewLabel.text = "\(ratingCount.formattedWithSeparator) \(opinionsText)"
             } else {
                 reviewLabel.text = ""
             }
@@ -340,7 +341,7 @@ class TRPTimelineManualPoiCell: UITableViewCell {
             categoryLabel.text = firstCategory.name
             categoryBadge.isHidden = false
         } else {
-            categoryLabel.text = "Punto de interés"
+            categoryLabel.text = TimelineLocalizationKeys.localized(TimelineLocalizationKeys.pointOfInterest)
             categoryBadge.isHidden = false
         }
     }
@@ -375,7 +376,8 @@ class TRPTimelineManualPoiCell: UITableViewCell {
             ratingStackView.isHidden = false
 
             if let ratingCount = cellData.ratingCount {
-                reviewLabel.text = "\(ratingCount.formattedWithSeparator)"
+                let opinionsText = AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.opinions)
+                reviewLabel.text = "\(ratingCount.formattedWithSeparator) \(opinionsText)"
             } else {
                 reviewLabel.text = ""
             }
@@ -388,7 +390,7 @@ class TRPTimelineManualPoiCell: UITableViewCell {
             categoryLabel.text = categoryName
             categoryBadge.isHidden = false
         } else {
-            categoryLabel.text = "Punto de interés"
+            categoryLabel.text = TimelineLocalizationKeys.localized(TimelineLocalizationKeys.pointOfInterest)
             categoryBadge.isHidden = false
         }
     }

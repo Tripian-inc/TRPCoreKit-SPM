@@ -715,7 +715,7 @@ public class TimelinePoiDetailViewController: UIViewController {
 
         // Configure Labels
         let cityName = viewModel.getCityName()
-        cityLabel.text = cityName.isEmpty ? "Unknown Location" : cityName
+        cityLabel.text = cityName.isEmpty ? TimelineLocalizationKeys.localized(TimelineLocalizationKeys.unknownLocation) : cityName
         cityLabel.isHidden = cityName.isEmpty
 
         poiNameLabel.text = poi.name
@@ -726,7 +726,8 @@ public class TimelinePoiDetailViewController: UIViewController {
 
             // Create underlined attributed string for review count
             let reviewCount = poi.ratingCount ?? 0
-            let reviewText = "\(reviewCount) opiniones"
+            let opinionsText = AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.opinions)
+            let reviewText = "\(reviewCount) \(opinionsText)"
             let attributedString = NSMutableAttributedString(string: reviewText)
             attributedString.addAttribute(.underlineStyle,
                                          value: NSUnderlineStyle.single.rawValue,

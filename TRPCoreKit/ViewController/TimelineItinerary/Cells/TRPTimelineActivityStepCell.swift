@@ -59,7 +59,7 @@ class TRPTimelineActivityStepCell: UITableViewCell {
     private let activityBadge: UILabel = {
         let label = UILabel()
         label.translatesAutoresizingMaskIntoConstraints = false
-        label.text = "Activity"
+        label.text = TimelineLocalizationKeys.localized(TimelineLocalizationKeys.activityBadge)
         label.font = FontSet.montserratMedium.font(12)
         label.textColor = ColorSet.fgGreen.uiColor
         label.backgroundColor = ColorSet.bgGreen.uiColor
@@ -207,7 +207,8 @@ class TRPTimelineActivityStepCell: UITableViewCell {
                 let reviewLabel = UILabel()
                 reviewLabel.font = FontSet.montserratLight.font(14)
                 reviewLabel.textColor = ColorSet.fgWeak.uiColor
-                reviewLabel.text = "(\(reviewCount) reviews)"
+                let opinionsText = AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.opinions)
+                reviewLabel.text = "\(reviewCount.formattedWithSeparator) \(opinionsText)"
                 ratingStack.addArrangedSubview(reviewLabel)
             }
         }

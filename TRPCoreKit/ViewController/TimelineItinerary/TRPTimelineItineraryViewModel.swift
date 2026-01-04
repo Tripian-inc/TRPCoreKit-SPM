@@ -896,12 +896,13 @@ public class TRPTimelineItineraryViewModel {
             )
         }
 
-        let cityName = displayItems[section].city?.name ?? "Unknown"
+        let unknownText = TimelineLocalizationKeys.localized(TimelineLocalizationKeys.unknown)
+        let cityName = displayItems[section].city?.name ?? unknownText
 
         // Show header when city changes
         var shouldShowHeader = isFirstSection
         if hasMultipleDests && !isFirstSection && section > 0 {
-            let previousCityName = displayItems[section - 1].city?.name ?? "Unknown"
+            let previousCityName = displayItems[section - 1].city?.name ?? unknownText
             shouldShowHeader = (cityName != previousCityName)
         }
 
