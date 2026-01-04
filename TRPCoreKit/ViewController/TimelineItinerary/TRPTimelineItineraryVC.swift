@@ -362,22 +362,28 @@ public class TRPTimelineItineraryVC: TRPBaseUIViewController {
             self.tableView.isHidden = true
             self.mapContainerView.isHidden = false
             self.poiPreviewContainerView.isHidden = false
-            
+
+            // Hide saved plans button on map view
+            self.savedPlansButton.isHidden = true
+
             // Make header transparent for map view
             self.customNavigationBar.backgroundColor = .clear
             self.dayFilterView.backgroundColor = .clear
-            
+
             // Update floating button icon to list
             self.mapFloatingButton.updateIcon(TRPImageController().getImage(inFramework: "ic_list", inApp: nil))
         }
-        
+
+        // Update day filter position (move up since savedPlansButton is hidden)
+        updateDayFilterViewConstraints()
+
         // Initialize map if needed
             if map == nil {
                 initializeMap()
             } else {
                 refreshMap()
             }
-            
+
         // Update POI preview cards
         updatePOIPreviewCards()
     }
@@ -399,6 +405,9 @@ public class TRPTimelineItineraryVC: TRPBaseUIViewController {
 
         // Reset collection view state
         isCollectionViewExpanded = false
+
+        // Restore saved plans button visibility
+        updateSavedPlansButton()
     }
     
     private func updatePOIPreviewCards() {
