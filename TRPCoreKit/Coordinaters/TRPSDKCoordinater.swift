@@ -8,15 +8,15 @@
 
 import Foundation
 import UIKit
- let trpTheme = TRPTheme1()
- let Log = TRPLogger(prefixText: "Tripian/TRPCoreKit")
+import TRPFoundationKit
+import TRPRestKit
 
 public protocol TRPSDKCoordinaterDelegate: AnyObject {
     func trpSdkCoordinaterMyTripsButtonPressed(_ coordinate: TRPSDKCoordinater, item: TRPBarButtonItem, navigationController: UINavigationController, vc: UIViewController)
     func trpSdkCoordinaterUserSignOut(_ coordinater: TRPSDKCoordinater)
     func trpSdkCoordinaterUserDelete(_ coordinater: TRPSDKCoordinater)
 }
-
+let Log = TRPLogger(prefixText: "Tripian/TRPCoreKit")
 public class TRPSDKCoordinater {
     
     public weak var delegate: TRPSDKCoordinaterDelegate?
@@ -27,19 +27,20 @@ public class TRPSDKCoordinater {
     private var userProfileAnswers = [Int]()
     
     private var canBackFromMyTrip = true
-    
-    private var nexusMeetingPoint: String? = nil
-    private var nexusStartDate: String? = nil
-    private var nexusEndDate: String? = nil
-    private var nexusNumberOfAdults: Int? = nil
-    private var nexusNumberOfChildren: Int? = nil
+
+    // Timeline-related properties
+    private var timelineFromItineraryViewModel: TRPTimelineFromItineraryViewModel?
+    private var timelineModelRepository: TRPTimelineModelRepository?
+    private var timelineRepository: TRPTimelineRepository?
+
+    // Store itinerary data for opening after splash completes
+    private var pendingItineraryModel: TRPItineraryWithActivities?
+    private var pendingTripHash: String?
     
     private var alertMessage: (title: String?, message: String)? {
         didSet {
             guard let message = alertMessage else {return}
-            if let myTripVC = myTrip as? MyTripVC {
-                myTripVC.alertMessage = message
-            }
+            myTrip.alertMessage = message
         }
     }
     
@@ -69,19 +70,29 @@ public class TRPSDKCoordinater {
         return TRPCompanionUseCases()
     }()
     
+    // Timeline use cases
+    private lazy var createTimelineUseCase: TRPCreateTimelineUseCase = {
+        let repo = timelineRepository ?? TRPTimelineRepository()
+        timelineRepository = repo
+        return TRPCreateTimelineUseCase(repository: repo)
+    }()
+    
+    private lazy var fetchTimelineCheckAllPlanUseCase: TRPTimelineCheckAllPlanUseCases = {
+        let timelineRepo = timelineRepository ?? TRPTimelineRepository()
+        let timelineModelRepo = timelineModelRepository ?? TRPTimelineModelRepository()
+        timelineRepository = timelineRepo
+        timelineModelRepository = timelineModelRepo
+        return TRPTimelineCheckAllPlanUseCases(timelineRepository: timelineRepo, timelineModelRepository: timelineModelRepo)
+    }()
+    
     private lazy var myTrip: MyTripVC = {
         return makeMyTrip()
     }()
     
-//    private lazy var bookingUseCases: TRPMakeBookingUseCases = {
-//        return TRPMakeBookingUseCases()
-//    }()
-    
     public init(navigationController: UINavigationController, canBack: Bool = true) {
         self.navigationController = navigationController
         self.canBackFromMyTrip = canBack
-        
-//        self.navigationController.navigationBar.setNexusBar()
+        TRPFonts.registerAll()
     }
     
      private func setupSomeGeneralAppearances() {
@@ -89,20 +100,113 @@ public class TRPSDKCoordinater {
         navigationController.navigationBar.setNexusBar()
     }
     
+    private func startWithSplashVC(uniqueId: String? = nil, email: String? = nil, password: String? = nil) {
+        let vc = SplashViewController()
+        vc.delegate = self
+        vc.uniqueId = uniqueId
+        vc.email = email
+        vc.password = password
+        vc.start()
+        DispatchQueue.main.async {
+            self.navigationController.pushViewController(vc, animated: true)
+            self.setupSomeGeneralAppearances()
+        }
+    }
+    
+    public func startForGuest(uniqueId: String? = nil) {
+        startWithSplashVC(uniqueId: uniqueId)
+    }
+    
+    public func startWithEmail(_ email: String) {
+        startWithSplashVC(email: email)
+    }
+    
+    public func startWithEmailAndPassword(_ email: String, _ password: String) {
+        startWithSplashVC(email: email, password: password)
+    }
+    
+    /// Start with TRPItineraryWithActivities model to create a timeline
+    /// Opens splash screen first to handle translations and login, then opens timeline itinerary screen
+    /// - Parameters:
+    ///   - itineraryModel: TRPItineraryWithActivities model containing timeline data
+    ///   - tripHash: Optional trip hash. If provided, fetches existing timeline instead of creating new one
+    public func startWithItinerary(_ itineraryModel: TRPItineraryWithActivities, tripHash: String? = nil) {
+        checkAllApiKey()
+        userProfile()
+
+        // Store itinerary data to be used after splash completes
+        pendingItineraryModel = itineraryModel
+        pendingTripHash = tripHash
+
+        // Start with splash screen to handle translations and login
+        startWithSplashVC(uniqueId: itineraryModel.uniqueId)
+    }
+
+    /// Opens timeline with existing trip hash (fetch existing timeline)
+    /// - Parameters:
+    ///   - tripHash: The trip hash for the existing timeline
+    ///   - itineraryModel: The itinerary model containing additional data like favouriteItems
+    private func openTimelineWithTripHash(_ tripHash: String, itineraryModel: TRPItineraryWithActivities) {
+        // Show loading
+        showTripianLoader(true)
+
+        // Fetch timeline using repository
+        let repo = timelineRepository ?? TRPTimelineRepository()
+        repo.fetchTimeline(tripHash: tripHash) { [weak self] result in
+            guard let self = self else { return }
+
+            DispatchQueue.main.async {
+                // Hide loading
+                self.showTripianLoader(false)
+
+                switch result {
+                case .success(let timeline):
+                    // Merge itinerary model data with fetched timeline
+                    self.openTimelineItineraryViewControllerWithItineraryData(timeline: timeline, itineraryModel: itineraryModel)
+
+                case .failure(let error):
+                    // Show error alert
+                    let alert = UIAlertController(
+                        title: "Error",
+                        message: "Failed to load timeline. Please try again.",
+                        preferredStyle: .alert
+                    )
+                    alert.addAction(UIAlertAction(title: "OK", style: .default))
+                    self.navigationController.present(alert, animated: true)
+                }
+            }
+        }
+    }
+
+    /// Sets up the timeline creation view model and starts the creation process
+    private func setupTimelineCreationViewModel(_ itineraryModel: TRPItineraryWithActivities) {
+        // Create view model
+        let viewModel = TRPTimelineFromItineraryViewModel(itineraryModel: itineraryModel)
+        viewModel.delegate = self
+
+        // Set up use cases
+        viewModel.createTimelineUseCase = createTimelineUseCase
+        viewModel.observeTimelineAllPlan = fetchTimelineCheckAllPlanUseCase
+        viewModel.fetchTimelineAllPlan = fetchTimelineCheckAllPlanUseCase
+
+        // Store reference
+        timelineFromItineraryViewModel = viewModel
+
+        // Start timeline creation
+        viewModel.createTimeline()
+    }
     
     public func start() {
         checkAllApiKey()
         userProfile()
 //        getLanguages()
-//        GetYourGuideApi().jsonParser()
         startFirstVC()
-        //navigationController.pushViewController(makePaymetnViewController(), animated: true)
-        //navigationController.pushViewController(makeBilling(), animated: true)
     }
     
     private func startFirstVC() {
         
         let vc = myTrip
+//        myTrip.isNexus = isAppForNexus
         //navigationController.pushViewController(vc, animated: true)
         DispatchQueue.main.async {
             self.navigationController.pushViewController(vc, animated: true)
@@ -113,11 +217,6 @@ public class TRPSDKCoordinater {
     public func startForNexus(bookingDetailUrl: String, startDate: String?, endDate: String?, meetingPoint: String?, numberOfAdults: Int?, numberOfChildren: Int?) {
         checkAllApiKey()
         userProfile()
-        self.nexusMeetingPoint = meetingPoint
-        self.nexusStartDate = startDate
-        self.nexusEndDate = endDate
-        self.nexusNumberOfAdults = numberOfAdults
-        self.nexusNumberOfChildren = numberOfChildren
         let vc = myTrip
         vc.bookingDetailUrl = bookingDetailUrl
         //navigationController.pushViewController(vc, animated: true)
@@ -180,11 +279,6 @@ public class TRPSDKCoordinater {
 //        }
 //    }
     
-     private func onlyMap() -> UIViewController {
-        let vc = OnlyMap()
-        return vc
-    }
-    
 //     private func makePaymentViewController() -> UIViewController {
 //        let viewModel = PaymentViewModel()
 //        viewModel.paymentUseCases = bookingUseCases
@@ -199,6 +293,36 @@ public class TRPSDKCoordinater {
     
 }
 
+extension TRPSDKCoordinater: SplashViewControllerDelegate {
+    func datasFetchCompleted() {
+        // Check if we have pending itinerary model to open
+        if let itineraryModel = pendingItineraryModel {
+            // Remove splash from navigation stack (it's the current top VC)
+            // Use setViewControllers to replace splash with timeline in one operation
+            let viewModel = TRPTimelineItineraryViewModel(itineraryModel: itineraryModel, tripHash: pendingTripHash)
+            let viewController = TRPTimelineItineraryVC(viewModel: viewModel)
+
+            // Replace splash with timeline
+            navigationController.setViewControllers([viewController], animated: true)
+
+            // Clear pending data
+            pendingItineraryModel = nil
+            pendingTripHash = nil
+        } else {
+            // Normal flow: open MyTrips screen
+            start()
+        }
+    }
+
+    func datasFetchFailed() {
+        navigationController.dismiss(animated: true)
+
+        // Clear pending data on failure
+        pendingItineraryModel = nil
+        pendingTripHash = nil
+    }
+
+}
 
 //extension TRPSDKCoordinater: ExperienceDetailViewControllerDelegate, ExperienceAvailabilityViewControllerDelegate {
 //    
@@ -394,12 +518,13 @@ extension TRPSDKCoordinater:  MyTripVCDelegate {
         guard let tripCreateCoordinater = tripCreateCoordinater else {
             return
         }
-        tripCreateCoordinater.nexusTripStartDate = self.nexusStartDate
-        tripCreateCoordinater.nexusTripEndDate = self.nexusEndDate
-        tripCreateCoordinater.nexusTripMeetingPoint = self.nexusMeetingPoint
-        tripCreateCoordinater.nexusNumberOfAdults = self.nexusNumberOfAdults
-        tripCreateCoordinater.nexusNumberOfChildren = self.nexusNumberOfChildren
+//        tripCreateCoordinater.nexusTripStartDate = self.nexusStartDate
+//        tripCreateCoordinater.nexusTripEndDate = self.nexusEndDate
+//        tripCreateCoordinater.nexusTripMeetingPoint = self.nexusMeetingPoint
+//        tripCreateCoordinater.nexusNumberOfAdults = self.nexusNumberOfAdults
+//        tripCreateCoordinater.nexusNumberOfChildren = self.nexusNumberOfChildren
         tripCreateCoordinater.nexusDestinationId = destinationId
+        //TRPTimelineMockCoordinator.quickTest(from: navigationController)
         tripCreateCoordinater.start(city: city)
     }
     
@@ -507,9 +632,65 @@ extension TRPSDKCoordinater {
         let missingApiKey = TRPApiKeyController.checkMissingApiKeys(keys)
         if missingApiKey.count > 0 {
             let missingValus = missingApiKey.toString(", ")
-            Log.d("Could not find '\(missingValus)' key in Info.plist")
-            fatalError()
+            Log.e("Could not find '\(missingValus)' key in Info.plist")
         }
     }
     
+}
+
+// MARK: - Timeline Creation Delegate
+extension TRPSDKCoordinater: TRPTimelineFromItineraryViewModelDelegate {
+
+    public func timelineGenerated(timeline: TRPTimeline) {
+        DispatchQueue.main.async {
+            // Hide loading
+            self.showTripianLoader(false)
+
+            // Open timeline itinerary view with generated timeline
+            self.openTimelineItineraryViewController(timeline: timeline)
+        }
+    }
+
+    /// Opens Timeline Itinerary View Controller with the generated timeline (without itinerary data merge)
+    private func openTimelineItineraryViewController(timeline: TRPTimeline) {
+        // Create view model with timeline
+        let viewModel = TRPTimelineItineraryViewModel(timeline: timeline)
+
+        // Create view controller
+        let viewController = TRPTimelineItineraryVC(viewModel: viewModel)
+
+        // Push onto navigation stack
+        DispatchQueue.main.async {
+            self.navigationController.pushViewController(viewController, animated: true)
+        }
+    }
+
+    /// Opens Timeline Itinerary View Controller with fetched timeline and itinerary model data
+    /// - Parameters:
+    ///   - timeline: Fetched timeline from server
+    ///   - itineraryModel: Itinerary model containing additional data (favouriteItems, tripItems, etc.)
+    private func openTimelineItineraryViewControllerWithItineraryData(timeline: TRPTimeline, itineraryModel: TRPItineraryWithActivities) {
+
+        // Add favouriteItems to timeline
+        var updatedTimeline = timeline
+        updatedTimeline.favouriteItems = itineraryModel.favouriteItems
+
+        // Also add favouriteItems to tripProfile if it exists
+        if var tripProfile = updatedTimeline.tripProfile {
+            tripProfile.favouriteItems = itineraryModel.favouriteItems
+            updatedTimeline.tripProfile = tripProfile
+        }
+
+        // Create view model with timeline
+        // ViewModel will handle adding missing booked activities via API
+        let viewModel = TRPTimelineItineraryViewModel(timeline: updatedTimeline, itineraryModel: itineraryModel)
+
+        // Create view controller
+        let viewController = TRPTimelineItineraryVC(viewModel: viewModel)
+
+        // Push onto navigation stack
+        DispatchQueue.main.async {
+            self.navigationController.pushViewController(viewController, animated: true)
+        }
+    }
 }

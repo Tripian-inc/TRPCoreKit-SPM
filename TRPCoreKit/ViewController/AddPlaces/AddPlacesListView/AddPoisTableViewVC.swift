@@ -126,7 +126,9 @@ extension AddPoiTableViewVC: UITableViewDelegate, UITableViewDataSource {
         cellModel.isSuggestion = viewModel.isSuggestedByTripian(id: model.id)
         cellModel.explaineText = viewModel.getExplainText(placeId: model.id)
         
-        if let distance = viewModel.getDistanceFromUserLocation(toPoiLat: model.coordinate.lat, toPoiLon: model.coordinate.lon), distance < 50000 {
+        if let coordinate = model.coordinate,
+           let distance = viewModel.getDistanceFromUserLocation(toPoiLat: coordinate.lat, toPoiLon: coordinate.lon),
+           distance < 50000 {
             cellModel.distance = Int(distance).reableDistance()
         }
         

@@ -1,4 +1,0 @@
-module TRPCoreKit {
-    header "/Users/cemcaygoz/Documents/GitHub/ModularIOS/SPM/TRPCoreKit/.build/arm64-apple-macosx/debug/TRPCoreKit.build/TRPCoreKit-Swift.h"
-    requires objc
-}

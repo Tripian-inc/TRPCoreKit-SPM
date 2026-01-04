@@ -7,6 +7,7 @@
 //
 
 import Foundation
+import TRPRestKit
 
 
 
@@ -71,7 +72,7 @@ public class FavoritesViewModel: TableViewViewModelProtocol {
     }
     
     public func getImageUrl(at indexPath: IndexPath, width: Int, height: Int) -> URL? {
-        guard let link = TRPImageResizer.generate(withUrl: getCellViewModel(at: indexPath).image.url, standart: .small), let url = URL(string: link) else {
+        guard let link = TRPImageResizer.generate(withUrl: getCellViewModel(at: indexPath).image?.url, standart: .small), let url = URL(string: link) else {
             return nil
         }
         return url

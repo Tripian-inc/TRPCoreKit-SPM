@@ -7,6 +7,7 @@
 //
 
 import Foundation
+import TRPFoundationKit
 
 public typealias LocationCoordinate = (lat:Double, lon: Double)
 
@@ -24,10 +25,10 @@ public protocol TRPMapViewDelegate:AnyObject {
 
     func mapViewCloseAnnotation(_ mapView: TRPMapView)
     
-    func mapView(_ mapView:TRPMapView, regionDidChangeAnimated animated: Bool)
+    func mapView(_ mapView: TRPMapView, regionDidChangeAnimated animated: Bool)
     //func mapViewGeoJson(_ mapView: TRPMapView) -> GeoJson?
     
-    func mapView(_ mapView: TRPMapView, annotationPressed annotationId: String, type: TRPAnnotationType)
+    func mapView(annotationPressed annotationId: String, type: TRPAnnotationType)
     
     func mapView(_ mapView: TRPMapView, userLocationUpdate location: TRPLocation)
 
@@ -36,6 +37,8 @@ public protocol TRPMapViewDelegate:AnyObject {
     func mapViewDidStopLocationingUser(_ mapView: TRPMapView)
     
     func mapView(_ mapView: TRPMapView, didChange mode: TRPUserTrackingMode)
+    
+    func mapView(clickedLocation: TRPLocation)
 }
 
 //Optional Delegation methods

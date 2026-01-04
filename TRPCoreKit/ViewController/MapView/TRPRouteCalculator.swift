@@ -10,6 +10,7 @@ import Foundation
 import MapboxDirections
 
 import CoreLocation
+import TRPFoundationKit
 
 public class TRPRouteCalculator {
     
@@ -27,14 +28,14 @@ public class TRPRouteCalculator {
     
     public typealias CompletationHandler = (_ route: Route? ,_ error:Error? ,_ wayPoints: [TRPLocation],_ dailyPlanId: Int?) -> Void
     
-    public var routeServiceProvider: RouteServicesProvider = .MapBox
-    public var directionProfile: DirectionProfile = .automobile
-    public let providerApiKey: String
+    private var routeServiceProvider: RouteServicesProvider = .MapBox
+    private var directionProfile: DirectionProfile = .walking
+    private let providerApiKey: String
     private var routeErrorStatus: DirectionErrorStatus = .none
     private var handler: CompletationHandler?
     private let wayPoints: [TRPLocation]
     private var dailyPlanId:Int?
-    public var legCount: Int?
+    private var legCount: Int?
     
     public init(providerApiKey: String, wayPoints: [TRPLocation], dailyPlanId:Int? = nil) {
         self.providerApiKey = providerApiKey
@@ -68,7 +69,6 @@ public class TRPRouteCalculator {
         options.includesAlternativeRoutes = true
         options.roadClassesToAvoid = [.ferry]
         options.routeShapeResolution = .full
-        //todo: - mapbox framework ü değiştikten sonra düzenlenecek
         
         let directions = Directions(credentials: Credentials(accessToken: providerApiKey))
         

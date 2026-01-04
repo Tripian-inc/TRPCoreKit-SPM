@@ -6,6 +6,7 @@
 //
 
 import UIKit
+import TRPRestKit
 
 
 class PersonalInfoViewController: TRPBaseUIViewController {

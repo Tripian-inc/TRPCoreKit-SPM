@@ -7,8 +7,8 @@
 //
 
 import Foundation
-
-
+import TRPRestKit
+import TRPFoundationKit
 
 final public class TRPOfferRemoteApi: OfferRemoteApi {
     

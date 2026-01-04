@@ -9,6 +9,8 @@
 import Foundation
 
 import UIKit
+
+let trpTheme = TRPTheme1()
 public class TRPAppearanceSettings {
     
     public class Providers {

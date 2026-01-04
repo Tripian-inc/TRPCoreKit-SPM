@@ -18,6 +18,8 @@ public class TRPLoaderVC: UIViewController {
     }
     
     public override func viewDidLoad() {
+        super.viewDidLoad()
+        overrideUserInterfaceStyle = .light
         view.backgroundColor = .clear
     }
     
@@ -26,7 +28,7 @@ public class TRPLoaderVC: UIViewController {
     }
     
     public func show() {
-        let window: UIWindow = UIApplication.shared.keyWindow!
+        guard let window: UIWindow = UIApplication.currentUIWindow() else { return }
         window.addSubview(view)
         window.bringSubviewToFront(view)
         view.frame = window.bounds

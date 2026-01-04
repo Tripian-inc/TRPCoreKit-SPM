@@ -13,6 +13,8 @@ public typealias CityResultValue = (Result<TRPCity, Error>)
 
 public typealias CityResultsValue = (Result<[TRPCity], Error>)
 
+public typealias CityInformationResultValue = (Result<TRPCityInformationData, Error>)
+
 
 /// Sehir bilgilerini kontrol eden Repository
 public protocol CityRepository {
@@ -37,4 +39,6 @@ public protocol CityRepository {
     func fetchCity(id: Int, completion: @escaping (CityResultValue) -> Void)
     
     func fetchLocalCity(id: Int, completion: @escaping (CityResultValue) -> Void)
+    
+    func fetchCityInformation(id: Int, completion: @escaping (CityInformationResultValue) -> Void)
 }

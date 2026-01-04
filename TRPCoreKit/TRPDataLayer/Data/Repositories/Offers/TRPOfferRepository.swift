@@ -7,6 +7,7 @@
 //
 
 import Foundation
+import TRPFoundationKit
 
 
 final public class TRPOfferRepository: OfferRepository {

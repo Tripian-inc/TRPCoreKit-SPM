@@ -10,6 +10,8 @@ import Foundation
 
 
 import CoreLocation
+import TRPFoundationKit
+import TRPRestKit
 
 protocol StayAddressVMDelegate: ViewModelDelegate {
     func stayAddressVMSelectedPlace(id: String, location: TRPLocation, hotelAddress: String, name: String?)
@@ -52,11 +54,11 @@ class StayAddressViewModel {
 //        self.cityCenter = calculateCenter()
         if let key = TRPApiKeyController.getKey(TRPApiKeys.trpGooglePlace) {
             googleApiKey = key
-        }else {
-            Log.e("TRPGooglePlaceApi key not found")
+        } else {
+            TRPLogger(prefixText: "Tripian/TRPCoreKit").e("TRPGooglePlaceApi key not found")
         }
         self.meetingPoint = meetingPoint
-        checkIfMeetingPointIsTerminal()
+//        checkIfMeetingPointIsTerminal()
     }
     
     private func checkIfMeetingPointIsTerminal() {
@@ -141,7 +143,7 @@ class StayAddressViewModel {
     
     public func searchPlace(withId id: String)  {
         guard let apiKey = googleApiKey else {
-            Log.e("TRPGooglePlaceApi can not found")
+            TRPLogger(prefixText: "Tripian/TRPCoreKit").e("TRPGooglePlaceApi can not found")
             return
         }
         TRPRestKit().googlePlace(key: apiKey, id: id) {[weak self] (data, error) in

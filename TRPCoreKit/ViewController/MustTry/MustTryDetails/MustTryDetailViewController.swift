@@ -185,12 +185,12 @@ extension MustTryDetailViewController {
             cell.isSuggestedByTripian = false//viewModel.isSuggestedByTripian(id: model.id)
             //TODO: - Performans için çok kötü refactor edilmek zorunda
             //50000
-            if let distance = viewModel.getDistanceFromUserLocation(toPoiLat: model.coordinate.lat, toPoiLon: model.coordinate.lon) {
-                if distance < 50000 {
-                    let tempDis = Int(distance)
-                    cell.distanceLabel.text = tempDis.reableDistance()
-                }
-            }
+//            if let distance = viewModel.getDistanceFromUserLocation(toPoiLat: model.coordinate.lat, toPoiLon: model.coordinate.lon) {
+//                if distance < 50000 {
+//                    let tempDis = Int(distance)
+//                    cell.distanceLabel.text = tempDis.reableDistance()
+//                }
+//            }
             
             let explain = viewModel.getExplainText(placeId: model.id)
             cell.setExplaintText(text: explain)

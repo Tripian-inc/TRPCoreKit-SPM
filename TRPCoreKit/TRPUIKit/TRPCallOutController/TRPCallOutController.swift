@@ -183,7 +183,6 @@ class TRPCallOutCell: UIView {
     @PriceIconWrapper
     private var priceDolarSign = 0
     
-    
     private let imageView: UIImageView = {
         let img = UIImageView()
         img.backgroundColor = TRPColor.darkGrey
@@ -250,7 +249,7 @@ class TRPCallOutCell: UIView {
     required init?(coder aDecoder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
-    let stackView   = UIStackView()
+    let stackView = UIStackView()
     let star = TRPStar(frame: CGRect(x: 0, y: 0, width: 100, height: 12))
     
     public func updateModel(_ model : CallOutCellModel){
@@ -264,7 +263,7 @@ class TRPCallOutCell: UIView {
         if Int(model.starCount) < 1 {
             star.isHidden = true
             stackView.removeArrangedSubview(star)
-        }else {
+        } else {
             star.isHidden = false
             stackView.addArrangedSubview(star)
             star.setRating(Int(model.starCount))

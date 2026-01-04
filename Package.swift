@@ -7,7 +7,7 @@ let package = Package(
     name: "TRPCoreKit",
     defaultLocalization: "en",
     platforms: [
-        .iOS(.v13)
+        .iOS(.v14)
     ],
     products: [
         // Products define the executables and libraries a package produces, making them visible to other packages.
@@ -19,8 +19,10 @@ let package = Package(
         .package(url: "https://github.com/Alamofire/Alamofire.git", from: "5.8.1"),
         .package(url: "https://github.com/WenchaoD/FSCalendar.git", from: "2.8.3"),
         .package(url: "https://github.com/mapbox/mapbox-directions-swift.git", from: "2.0.0"),
+        .package(url: "https://github.com/mapbox/mapbox-maps-ios.git", from: "11.0.0"),
         .package(url: "https://github.com/rechsteiner/Parchment", from: "3.1.0"),
         .package(url: "https://github.com/SDWebImage/SDWebImage.git", from: "5.19.7"),
+        .package(url: "https://github.com/Tripian-inc/TRPRestKit.git", branch: "main"),
 //        .package(url: "https://github.com/mapbox/mapbox-events-ios.git", from: "2.0.0"),
     ],
     targets: [
@@ -30,24 +32,29 @@ let package = Package(
             name: "TRPCoreKit",
             dependencies: [
                 .product(name: "MapboxDirections", package: "mapbox-directions-swift"),
+                .product(name: "MapboxMaps", package: "mapbox-maps-ios"),
 //                .product(name: "MapboxMobileEvents", package: "mapbox-events-ios"),
                 "Parchment",
                 "SDWebImage",
                 "FSCalendar",
                 "Alamofire",
-                "Mapbox",
-                "MapboxMobileEvents",
+//                "Mapbox",
+//                "MapboxMobileEvents",
+                .product(name: "TRPRestKit", package: "TRPRestKit"),
             ],
-            path: "TRPCoreKit"
+            path: "TRPCoreKit",
+            resources: [
+                .copy("Resources/Fonts")   
+            ]
         ),
-        .binaryTarget(
-            name: "Mapbox",
-            path: "./Mapbox.xcframework"
-        ),
-        .binaryTarget(
-            name: "MapboxMobileEvents",
-            path: "./MapboxMobileEvents.xcframework"
-        ),
+//        .binaryTarget(
+//            name: "Mapbox",
+//            path: "./Mapbox.xcframework"
+//        ),
+//        .binaryTarget(
+//            name: "MapboxMobileEvents",
+//            path: "./MapboxMobileEvents.xcframework"
+//        ),
         .testTarget(
             name: "TRPCoreKitTests",
             dependencies: ["TRPCoreKit"]

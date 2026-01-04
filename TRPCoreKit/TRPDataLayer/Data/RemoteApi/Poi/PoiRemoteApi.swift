@@ -7,26 +7,26 @@
 //
 
 import Foundation
+import TRPFoundationKit
 
 
 public protocol PoiRemoteApi {
     
     func fetchPoi(poiId: String,
-                    completion: @escaping (PoiResultValue)-> Void)
+                  completion: @escaping (PoiResultValue)-> Void)
     
     func fetchPoi(cityId: Int,
-                    parameters: PoiParameters,
-                    completion: @escaping (PoiResultsValue)-> Void)
+                  parameters: PoiParameters,
+                  completion: @escaping (PoiResultsValue)-> Void)
     
     
     func fetchPoi(coordinate: TRPLocation,
-                    parameters: PoiParameters,
-                    completion: @escaping (PoiResultsValue)-> Void)
+                  parameters: PoiParameters,
+                  completion: @escaping (PoiResultsValue)-> Void)
     
     
     func fetchPoi(url: String,
-             completion: @escaping (PoiResultsValue) -> Void)
+                  completion: @escaping (PoiResultsValue) -> Void)
     
     func fetchPoiCategories(completion: @escaping (PoiCategoriesResultValue) -> Void)
 }
-

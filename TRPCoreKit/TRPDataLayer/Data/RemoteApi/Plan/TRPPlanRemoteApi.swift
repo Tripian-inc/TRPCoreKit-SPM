@@ -7,7 +7,7 @@
 //
 
 import Foundation
-
+import TRPRestKit
 
 public class TRPPlanRemoteApi: PlanRemoteApi {
     

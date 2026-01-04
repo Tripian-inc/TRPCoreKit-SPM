@@ -677,7 +677,7 @@ extension TRPTripModeCoordinater: YelpCoordinaterDelegate {
         reservation.email = user?.email ?? ""
         reservation.poiId = poi.id
         reservation.poiName = poi.name
-        reservation.poiImage = poi.image.url
+         reservation.poiImage = poi.image?.url
         reservation.tripHash = tripHash
         
         let yelpNavigationController = UINavigationController()
