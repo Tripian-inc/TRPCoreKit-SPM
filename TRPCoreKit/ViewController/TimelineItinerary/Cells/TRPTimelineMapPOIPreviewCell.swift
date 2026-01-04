@@ -193,7 +193,7 @@ class TRPTimelineMapPOIPreviewCell: UICollectionViewCell {
     
     func configure(with segment: TRPTimelineSegment, orderNumber: Int) {
         numberLabel.text = "\(orderNumber)"
-        
+
         guard let additionalData = segment.additionalData else {
             titleLabel.text = segment.title ?? ""
             dateIcon.isHidden = true
@@ -202,9 +202,9 @@ class TRPTimelineMapPOIPreviewCell: UICollectionViewCell {
             timeLabel.isHidden = true
             return
         }
-        
+
         titleLabel.text = additionalData.title ?? segment.title ?? ""
-        
+
         // Configure image
         if let imageUrl = additionalData.imageUrl {
             thumbnailImageView.sd_setImage(with: URL(string: imageUrl), placeholderImage: nil)
@@ -212,7 +212,7 @@ class TRPTimelineMapPOIPreviewCell: UICollectionViewCell {
             thumbnailImageView.image = nil
             thumbnailImageView.backgroundColor = ColorSet.neutral100.uiColor
         }
-        
+
         // Configure date and time (same style as TRPTimelineBookedActivityCell)
         if let startDatetime = additionalData.startDatetime {
             dateLabel.text = formatDate(from: startDatetime)
@@ -227,6 +227,34 @@ class TRPTimelineMapPOIPreviewCell: UICollectionViewCell {
             timeIcon.isHidden = true
             timeLabel.isHidden = true
         }
+    }
+
+    /// Configure cell with MapDisplayItem and unified order
+    func configure(with item: MapDisplayItem, order: Int) {
+        numberLabel.text = "\(order)"
+        titleLabel.text = item.title
+
+        // Load image
+        if let imageUrl = item.imageUrl, let url = URL(string: imageUrl) {
+            thumbnailImageView.sd_setImage(with: url, placeholderImage: nil)
+        } else {
+            thumbnailImageView.image = nil
+            thumbnailImageView.backgroundColor = ColorSet.neutral100.uiColor
+        }
+
+        // Show start time for all items (both POIs and activities)
+        if let startTime = item.startTime {
+            timeLabel.text = startTime
+            timeIcon.isHidden = false
+            timeLabel.isHidden = false
+        } else {
+            timeIcon.isHidden = true
+            timeLabel.isHidden = true
+        }
+
+        // Hide date for map preview (only show time)
+        dateIcon.isHidden = true
+        dateLabel.isHidden = true
     }
     
     private func formatTime(from dateString: String) -> String {

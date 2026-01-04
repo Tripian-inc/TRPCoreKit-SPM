@@ -75,47 +75,41 @@ extension TRPTimelineItineraryVC {
     }
     
     internal func loadMapData() {
-        guard let map = map else { 
-            return 
+        guard let map = map else {
+            return
         }
-        
-        // Get segments with POIs from current day
-        let segments = viewModel.getSegmentsWithPoisForSelectedDay()
-        let allPois = segments.flatMap { $0 }
-        
-        // Get booked activities from current day
-        let bookedActivities = viewModel.getBookedActivitiesForSelectedDay()
-        
+
+        // Get ordered items for map (uses unified order matching list view)
+        let orderedItems = viewModel.getOrderedItemsForMap()
+
         // Mark that we've loaded initial data
         hasLoadedInitialMapData = true
-        
-        if allPois.isEmpty && bookedActivities.isEmpty {
-            // Center on city if no POIs or booked activities
+
+        if orderedItems.isEmpty {
+            // Center on city if no items
             let centerLocation = getMapCenterLocation()
             map.setCenter(centerLocation, zoomLevel: 12)
             // Remove any existing routes
             removeAllRoutesFromMap()
             return
         }
-        
-        // Add annotations for each segment with proper ordering
-        addAnnotationsForSegments(segments)
-        
-        // Add booked activity annotations
-        addBookedActivityAnnotations(bookedActivities)
-        
+
+        // Add annotations with unified order
+        addAnnotationsForOrderedItems(orderedItems)
+
+        // Get POIs for routing (legacy behavior)
+        let segments = viewModel.getSegmentsWithPoisForSelectedDay()
+        let allPois = segments.flatMap { $0 }
+
         // Draw separate routes for each segment
         if segments.isEmpty {
-            // No POI segments, center on booked activities if any
-            if !bookedActivities.isEmpty, let firstActivity = bookedActivities.first {
-                let coordinate = firstActivity.additionalData?.coordinate ?? firstActivity.coordinate
-                if let coordinate = coordinate {
-                    map.setCenter(coordinate, zoomLevel: 14)
-                }
+            // No POI segments, center on first item
+            if let firstCoordinate = orderedItems.first?.item.coordinate {
+                map.setCenter(firstCoordinate, zoomLevel: 14)
             }
             return
         }
-        
+
         var hasMultiplePoiSegments = false
         for segment in segments {
             if segment.count > 1 {
@@ -123,18 +117,39 @@ extension TRPTimelineItineraryVC {
                 break
             }
         }
-        
+
         if hasMultiplePoiSegments {
             // Show loading indicator while calculating routes
             showLoader(true)
             drawRoutesForSegments(segments)
         } else {
-            // No segments with multiple POIs, just center on all POIs
-            if let firstPoi = allPois.first, let coordinate = firstPoi.coordinate {
-                map.setCenter(coordinate, zoomLevel: allPois.count == 1 ? 14 : 12)
+            // No segments with multiple POIs, just center on first item
+            if let firstCoordinate = orderedItems.first?.item.coordinate {
+                map.setCenter(firstCoordinate, zoomLevel: allPois.count <= 1 ? 14 : 12)
             }
             removeAllRoutesFromMap()
         }
+    }
+
+    /// Add annotations for ordered items with unified order
+    private func addAnnotationsForOrderedItems(_ orderedItems: [(order: Int, item: MapDisplayItem)]) {
+        guard let map = map else { return }
+
+        var annotations = [TRPPointAnnotation]()
+
+        for (order, item) in orderedItems {
+            guard let coordinate = item.coordinate else { continue }
+
+            var annotation = TRPPointAnnotation()
+            annotation.order = order
+            annotation.lat = coordinate.lat
+            annotation.lon = coordinate.lon
+            annotation.poiId = item.itemId
+            annotations.append(annotation)
+        }
+
+        // Add all annotations as a single group
+        map.addViewAnnotations(annotations, segmentId: "timeline_unified_annotations", annotationOrder: 0)
     }
     
     private func addAnnotationsForSegments(_ segments: [[TRPPoi]]) {
@@ -394,24 +409,16 @@ extension TRPTimelineItineraryVC: TRPMapViewDelegate {
     }
 
     public func mapView(annotationPressed poiId: String, type: TRPAnnotationType) {
-        // Find the index of the item in currentTimelineItems
-        var itemIndex: Int? = nil
-        
-        for (index, item) in currentTimelineItems.enumerated() {
-            switch item {
-            case .poi(let poi):
-                if poi.id == poiId {
-                    itemIndex = index
-                    break
-                }
-            case .bookedActivity(let segment):
-                if let activityId = segment.additionalData?.activityId, activityId == poiId {
-                    itemIndex = index
-                    break
-                }
+        // Find the index of the item in mapDisplayItems
+        var itemIndex: Int?
+
+        for (index, (_, item)) in mapDisplayItems.enumerated() {
+            if item.itemId == poiId {
+                itemIndex = index
+                break
             }
         }
-        
+
         // Expand the collection view and scroll to the item
         if let index = itemIndex {
             let indexPath = IndexPath(item: index, section: 0)

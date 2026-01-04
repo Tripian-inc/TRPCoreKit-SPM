@@ -127,13 +127,17 @@ public class TRPTimelineItineraryVC: TRPBaseUIViewController {
     private var poiPreviewBottomConstraint: NSLayoutConstraint?
     private var addPlanButtonBottomConstraint: NSLayoutConstraint?
     
-    // Enum to handle both POIs and Booked Activities
+    // Enum to handle both POIs and Booked Activities (legacy - kept for compatibility)
     internal enum TimelineItem {
         case poi(TRPPoi)
         case bookedActivity(TRPTimelineSegment)
     }
 
     internal var currentTimelineItems: [TimelineItem] = []
+
+    /// Ordered map display items with unified order (matches list view ordering)
+    internal var mapDisplayItems: [(order: Int, item: MapDisplayItem)] = []
+
     private var isShowingMap: Bool = false
 
     // Step being edited for time change
@@ -398,27 +402,21 @@ public class TRPTimelineItineraryVC: TRPBaseUIViewController {
     }
     
     private func updatePOIPreviewCards() {
-        // Get POIs from current day segments
-        let segments = viewModel.getSegmentsWithPoisForSelectedDay()
-        let pois = segments.flatMap { $0 }
-        
-        // Get booked activities from current day
-        let bookedActivities = viewModel.getBookedActivitiesForSelectedDay()
-        
-        // Combine POIs and booked activities in order
+        // Get ordered items from ViewModel (uses unified order matching list view)
+        mapDisplayItems = viewModel.getOrderedItemsForMap()
+
+        // Also update legacy currentTimelineItems for compatibility
         currentTimelineItems = []
-        
-        // Add booked activities first (they have specific times)
-        for activity in bookedActivities {
-            currentTimelineItems.append(.bookedActivity(activity))
+        for (_, item) in mapDisplayItems {
+            switch item {
+            case .poi(let poi, _, _):
+                currentTimelineItems.append(.poi(poi))
+            case .activity(let segment):
+                currentTimelineItems.append(.bookedActivity(segment))
+            }
         }
-        
-        // Then add POIs
-        for poi in pois {
-            currentTimelineItems.append(.poi(poi))
-        }
-        
-        if currentTimelineItems.isEmpty {
+
+        if mapDisplayItems.isEmpty {
             // Hide completely if no items
             poiPreviewBottomConstraint?.constant = -collectionViewHeight
         } else {
@@ -427,7 +425,7 @@ public class TRPTimelineItineraryVC: TRPBaseUIViewController {
             poiPreviewBottomConstraint?.constant = collapsedOffset
             addPlanButtonBottomConstraint?.constant = -24
         }
-        
+
         poiPreviewCollectionView.reloadData()
     }
     
@@ -1038,51 +1036,37 @@ extension TRPTimelineItineraryVC: TRPTimelineCustomNavigationBarDelegate {
 
 // MARK: - UICollectionViewDataSource & UICollectionViewDelegateFlowLayout
 extension TRPTimelineItineraryVC: UICollectionViewDataSource, UICollectionViewDelegateFlowLayout {
-    
+
     public func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
-        return currentTimelineItems.count
+        return mapDisplayItems.count
     }
-    
+
     public func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
         guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: TRPTimelineMapPOIPreviewCell.reuseIdentifier, for: indexPath) as? TRPTimelineMapPOIPreviewCell else {
             return UICollectionViewCell()
         }
-        
-        let item = currentTimelineItems[indexPath.item]
-        let orderNumber = indexPath.item + 1
-        
-        switch item {
-        case .poi(let poi):
-            cell.configure(with: poi, orderNumber: orderNumber)
-        case .bookedActivity(let segment):
-            cell.configure(with: segment, orderNumber: orderNumber)
-        }
-        
+
+        let (order, item) = mapDisplayItems[indexPath.item]
+
+        // Configure cell with MapDisplayItem and unified order
+        cell.configure(with: item, order: order)
+
         return cell
     }
-    
+
     public func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAt indexPath: IndexPath) -> CGSize {
         return CGSize(width: 300, height: 104)
     }
-    
+
     public func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         // Expand the collection view when user taps on an item
         expandCollectionView()
-        
-        let item = currentTimelineItems[indexPath.item]
-        
-        switch item {
-        case .poi(let poi):
-            // Center map on selected POI
-            if let mapView = map, let coordinate = poi.coordinate {
-                mapView.setCenter(coordinate, zoomLevel: 15)
-            }
 
-        case .bookedActivity(let segment):
-            // Center map on booked activity location
-            if let coordinate = segment.coordinate, let mapView = map {
-                mapView.setCenter(coordinate, zoomLevel: 15)
-            }
+        let (_, item) = mapDisplayItems[indexPath.item]
+
+        // Center map on selected item's coordinate
+        if let coordinate = item.coordinate, let mapView = map {
+            mapView.setCenter(coordinate, zoomLevel: 15)
         }
     }
 }

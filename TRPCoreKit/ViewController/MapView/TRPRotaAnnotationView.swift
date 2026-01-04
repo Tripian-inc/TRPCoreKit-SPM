@@ -2,121 +2,89 @@ import Foundation
 import MapboxMaps
 import UIKit
 
+/// Simplified annotation view for map markers
+/// Shows only the order number in a 24x24 circular badge
 class TRPRotaAnnotationView: UIView {
-    
-//    let redColor = UIColor.black.cgColor //UIColor(red: 229.0/255.0, green: 78.0/255.0, blue: 83.0/255.0, alpha: 1.0).cgColor
-    
-    var bgView: UIView = UIView();
-    let label = UILabel()
-    let cirleShape = CAShapeLayer()
-    var imageName:String = ""
-    var order: Int?
-    var annotationOrder: Int = 0
-    var isOffer: Bool = false
-    var onTapHandler: ((String) -> Void)? = nil
+
+    var onTapHandler: ((String) -> Void)?
     var poiId: String?
-    
-    private var viewDidLoaded = false
-    
-    init(reuseIdentifier: String, imageName: String, order: Int?, isOffer: Bool = false, annotationOrder: Int = 0) {
-        super.init(frame: .zero)
-        self.imageName = imageName
-        self.order = order
-        self.isOffer = isOffer
-        self.annotationOrder = annotationOrder
+
+    private let orderLabel = UILabel()
+    private static let viewSize: CGFloat = 24
+
+    // MARK: - Intrinsic Content Size
+
+    override var intrinsicContentSize: CGSize {
+        return CGSize(width: Self.viewSize, height: Self.viewSize)
     }
-    
+
+    // MARK: - Initialization
+
+    /// Initialize with order number only (simplified version)
+    init(order: Int) {
+        super.init(frame: CGRect(x: 0, y: 0, width: Self.viewSize, height: Self.viewSize))
+        setupView(order: order)
+    }
+
+    /// Legacy initializer for backward compatibility
+    init(reuseIdentifier: String?, imageName: String?, order: Int?, isOffer: Bool = false, annotationOrder: Int = 0) {
+        super.init(frame: CGRect(x: 0, y: 0, width: Self.viewSize, height: Self.viewSize))
+        let displayOrder = order ?? 0
+        setupView(order: displayOrder)
+    }
+
     required init?(coder aDecoder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
-    
+
+    // MARK: - Setup
+
+    private func setupView(order: Int) {
+        // Set content hugging to prevent expansion
+        setContentHuggingPriority(.required, for: .horizontal)
+        setContentHuggingPriority(.required, for: .vertical)
+        setContentCompressionResistancePriority(.required, for: .horizontal)
+        setContentCompressionResistancePriority(.required, for: .vertical)
+
+        // Circular background with fg color
+        backgroundColor = ColorSet.fg.uiColor
+        layer.cornerRadius = Self.viewSize / 2
+        clipsToBounds = true
+
+        // Order label - centered using Auto Layout
+        orderLabel.translatesAutoresizingMaskIntoConstraints = false
+        orderLabel.text = "\(order)"
+        orderLabel.textColor = .white
+        orderLabel.font = FontSet.montserratSemiBold.font(18)
+        orderLabel.textAlignment = .center
+        orderLabel.adjustsFontSizeToFitWidth = true
+        orderLabel.minimumScaleFactor = 0.7
+
+        addSubview(orderLabel)
+
+        // Center label in view
+        NSLayoutConstraint.activate([
+            orderLabel.centerXAnchor.constraint(equalTo: centerXAnchor),
+            orderLabel.centerYAnchor.constraint(equalTo: centerYAnchor),
+            orderLabel.widthAnchor.constraint(lessThanOrEqualTo: widthAnchor),
+            orderLabel.heightAnchor.constraint(lessThanOrEqualTo: heightAnchor)
+        ])
+
+        // Add tap gesture
+        let tapGesture = UITapGestureRecognizer(target: self, action: #selector(handleTap))
+        addGestureRecognizer(tapGesture)
+        isUserInteractionEnabled = true
+    }
+
     override func layoutSubviews() {
         super.layoutSubviews()
-        if viewDidLoaded == true {return}
-        viewDidLoaded = true
-        layer.cornerRadius = bounds.width / 2
-        layer.backgroundColor = UIColor.clear.cgColor
-        addImageView(named: imageName)
-        
-        // Only add order label if order is not -1
-        if let orderValue = self.order, orderValue >= 0 {
-            addLabel(text: "\(orderValue)")
-        }
-        
-        self.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(handleTap)))
+        // Update corner radius based on actual size
+        layer.cornerRadius = min(bounds.width, bounds.height) / 2
     }
-    
-    @objc func handleTap() {
+
+    // MARK: - Actions
+
+    @objc private func handleTap() {
         onTapHandler?(poiId ?? "")
     }
-    
-//    func setSelected(_ selected: Bool) {
-//        let animation = CABasicAnimation(keyPath: "ClickAnim")
-//        animation.duration = 0.1
-//        bgView.layer.borderWidth = selected ? bounds.width / 7 : 1
-//        bgView.layer.add(animation, forKey: "ClickAnim")
-//        bgView.layer.borderColor = selected ? redColor : blueColor
-//        label.alpha = selected ? 0.1 : 1.0
-//        label.layer.add(animation, forKey: "ClickAnim")
-//        cirleShape.fillColor = selected ? UIColor.red.cgColor : redColor
-//        cirleShape.lineWidth = selected ? 0 : 1
-//        cirleShape.add(animation, forKey: "ClickAnim")
-//    }
-    
-    private func addImageView(named: String){
-        let img = TRPImageController().getImage(inFramework: named, inApp: nil) ?? UIImage()
-        let imgView = UIImageView(image: img)
-        
-        if isOffer {
-            let bgImage = UIImageView(image: UIImage(named: "offer_bg_annotation")!)
-            self.addSubview(bgImage)
-            self.addSubview(imgView)
-            self.frame = bgImage.frame
-            imgView.center = bgImage.center
-        }else {
-            self.addSubview(imgView)
-            self.frame = imgView.frame
-        }
-//        addSubview(imgView)
-        imgView.translatesAutoresizingMaskIntoConstraints = false
-        imgView.centerXAnchor.constraint(equalTo: centerXAnchor).isActive = true
-        imgView.centerYAnchor.constraint(equalTo: centerYAnchor).isActive = true
-    }
-    
-    private func addBGView() {
-        bgView.frame = CGRect(x: 0, y: 0, width: self.frame.width, height: self.frame.height)
-        bgView.layer.cornerRadius = bgView.frame.width / 2
-        bgView.layer.borderColor = UIColor.clear.cgColor
-        bgView.layer.borderWidth = 1
-        self.addSubview(bgView)
-    }
-    
-    private func addLabel(text: String) {
-        let circleRadius = 10
-        let circlePath = UIBezierPath(arcCenter: CGPoint(x: circleRadius/2,
-                                                         y: circleRadius/2),
-                                      radius: CGFloat(circleRadius),
-                                      startAngle: 0,
-                                      endAngle: CGFloat(Double.pi * 2),
-                                      clockwise: true)
-        cirleShape.path = circlePath.cgPath
-        cirleShape.fillColor = ColorSet.getMapColor(annotationOrder).cgColor
-        cirleShape.lineWidth = 0
-        
-        label.frame = CGRect(x: CGFloat( -1 * (circleRadius / 2)),
-                             y: CGFloat( -1 * (circleRadius / 2)),
-                             width: CGFloat(circleRadius * 2),
-                             height: CGFloat(circleRadius * 2))
-        label.text = text
-        label.textColor = UIColor.white
-        label.font = FontSet.montserratSemiBold.font(18)
-        label.adjustsFontSizeToFitWidth = true
-        label.textAlignment = .center
-        
-        self.layer.addSublayer(cirleShape)
-        self.addSubview(label)
-    }
-    
 }
-
-

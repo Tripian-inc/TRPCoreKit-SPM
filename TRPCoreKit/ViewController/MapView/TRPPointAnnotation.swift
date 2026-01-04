@@ -32,18 +32,40 @@ extension TRPPointAnnotation {
     }
     
     func asViewAnnotation(annotationOrder: Int = 0, tapHandler: ((String) -> Void)? = nil) -> ViewAnnotation {
-        guard let lat = lat, let lon = lon , let imageName = imageName else {
+        guard let lat = lat, let lon = lon else {
             return ViewAnnotation(coordinate: CLLocationCoordinate2D(latitude: 0, longitude: 0), view: UIView())
         }
-        let annotationView = TRPRotaAnnotationView(reuseIdentifier: imageName,
-                                                   imageName: imageName,
-                                                   order: order,
-                                                   annotationOrder: annotationOrder)
-        annotationView.frame = CGRect(x: 0, y: 0, width: 32, height: 32)
+
+        // Use simplified annotation view with order only (24x24)
+        let displayOrder = order ?? 0
+        let annotationView = TRPRotaAnnotationView(order: displayOrder)
         annotationView.poiId = poiId
         annotationView.onTapHandler = tapHandler
-        let pointAnnotation = ViewAnnotation(coordinate: CLLocationCoordinate2D(latitude: lat, longitude: lon), view: annotationView)
+
+        // Wrap in a container with explicit size constraints for Mapbox
+        let containerView = UIView()
+        containerView.backgroundColor = .clear
+        containerView.isUserInteractionEnabled = true
+        containerView.translatesAutoresizingMaskIntoConstraints = false
+        annotationView.translatesAutoresizingMaskIntoConstraints = false
+
+        containerView.addSubview(annotationView)
+
+        // Add explicit size constraints
+        NSLayoutConstraint.activate([
+            containerView.widthAnchor.constraint(equalToConstant: 24),
+            containerView.heightAnchor.constraint(equalToConstant: 24),
+            annotationView.widthAnchor.constraint(equalToConstant: 24),
+            annotationView.heightAnchor.constraint(equalToConstant: 24),
+            annotationView.centerXAnchor.constraint(equalTo: containerView.centerXAnchor),
+            annotationView.centerYAnchor.constraint(equalTo: containerView.centerYAnchor)
+        ])
+
+        // Create ViewAnnotation
+        let coordinate = CLLocationCoordinate2D(latitude: lat, longitude: lon)
+        let pointAnnotation = ViewAnnotation(coordinate: coordinate, view: containerView)
         pointAnnotation.allowOverlap = true
+
         return pointAnnotation
     }
 }
