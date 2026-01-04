@@ -8,11 +8,6 @@
 
 import UIKit
 
-enum TRPTimelineTimeBadgeStyle {
-    case activity  // Green background with border
-    case poi       // White background with border
-}
-
 class TRPTimelineTimeBadgeView: UIView {
 
     // MARK: - UI Components
@@ -43,8 +38,18 @@ class TRPTimelineTimeBadgeView: UIView {
         label.translatesAutoresizingMaskIntoConstraints = false
         label.font = FontSet.montserratMedium.font(14)
         label.textAlignment = .right
+        label.textColor = ColorSet.fg.uiColor
         return label
     }()
+    
+    // Vertical line between time badge and content
+    private let verticalLineView: UIView = {
+        let lineView = UIView()
+        lineView.translatesAutoresizingMaskIntoConstraints = false
+        lineView.backgroundColor = ColorSet.lineWeak.uiColor
+        return lineView
+    }()
+    
 
     // MARK: - Initialization
     override init(frame: CGRect) {
@@ -59,6 +64,7 @@ class TRPTimelineTimeBadgeView: UIView {
     // MARK: - Setup
     private func setupView() {
         addSubview(containerView)
+        addSubview(verticalLineView)
         containerView.addSubview(orderLabel)
         containerView.addSubview(timeLabel)
 
@@ -67,7 +73,6 @@ class TRPTimelineTimeBadgeView: UIView {
             containerView.topAnchor.constraint(equalTo: topAnchor),
             containerView.leadingAnchor.constraint(equalTo: leadingAnchor),
             containerView.trailingAnchor.constraint(equalTo: trailingAnchor),
-            containerView.bottomAnchor.constraint(equalTo: bottomAnchor),
             containerView.heightAnchor.constraint(equalToConstant: 32),
 
             // Order Label
@@ -80,28 +85,18 @@ class TRPTimelineTimeBadgeView: UIView {
             timeLabel.leadingAnchor.constraint(equalTo: orderLabel.trailingAnchor, constant: 10),
             timeLabel.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -10),
             timeLabel.centerYAnchor.constraint(equalTo: containerView.centerYAnchor),
+            
+            verticalLineView.topAnchor.constraint(equalTo: containerView.bottomAnchor),
+            verticalLineView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 16),
+            verticalLineView.widthAnchor.constraint(equalToConstant: 0.5),
+            verticalLineView.heightAnchor.constraint(equalToConstant: 24),
+            verticalLineView.bottomAnchor.constraint(equalTo: bottomAnchor),
         ])
     }
 
     // MARK: - Configuration
-    func configure(order: Int, startTime: String, endTime: String, style: TRPTimelineTimeBadgeStyle = .activity) {
+    func configure(order: Int, startTime: String, endTime: String) {
         orderLabel.text = "\(order)"
         timeLabel.text = "\(startTime) - \(endTime)"
-
-        switch style {
-        case .activity:
-            // Activity style: green background with border
-            containerView.backgroundColor = ColorSet.bgGreen.uiColor
-            containerView.layer.borderColor = ColorSet.green250.uiColor.cgColor
-            containerView.layer.borderWidth = 2
-            timeLabel.textColor = ColorSet.fgGreen.uiColor
-
-        case .poi:
-            // POI style: white background with border
-            containerView.backgroundColor = .white
-            containerView.layer.borderColor = ColorSet.neutral200.uiColor.cgColor
-            containerView.layer.borderWidth = 1
-            timeLabel.textColor = ColorSet.fg.uiColor
-        }
     }
 }

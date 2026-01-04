@@ -26,31 +26,18 @@ class TRPTimelineManualPoiCell: UITableViewCell {
     private var poi: TRPPoi?
 
     // MARK: - UI Components
-    private let containerView: UIView = {
-        let view = UIView()
+
+    private let timeBadgeView: TRPTimelineTimeBadgeView = {
+        let view = TRPTimelineTimeBadgeView()
         view.translatesAutoresizingMaskIntoConstraints = false
-        view.backgroundColor = .clear
-        view.clipsToBounds = true
         return view
     }()
 
-    private let timeLabel: UILabel = {
-        let label = UILabel()
-        label.translatesAutoresizingMaskIntoConstraints = false
-        label.font = FontSet.montserratMedium.font(14)
-        label.textColor = ColorSet.primaryText.uiColor
-        label.textAlignment = .center
-        label.layer.cornerRadius = 16
-        label.layer.borderColor = ColorSet.lineWeak.uiColor.cgColor
-        label.layer.borderWidth = 2
-        label.clipsToBounds = true
-        return label
-    }()
-
-    private let verticalLineView: UIView = {
+    // Content container (horizontal layout: image | info)
+    private let contentContainer: UIView = {
         let view = UIView()
         view.translatesAutoresizingMaskIntoConstraints = false
-        view.backgroundColor = ColorSet.lineWeak.uiColor
+        view.backgroundColor = .clear
         return view
     }()
 
@@ -59,37 +46,80 @@ class TRPTimelineManualPoiCell: UITableViewCell {
         imageView.translatesAutoresizingMaskIntoConstraints = false
         imageView.contentMode = .scaleAspectFill
         imageView.clipsToBounds = true
-        imageView.layer.cornerRadius = 4
-        imageView.backgroundColor = ColorSet.neutral100.uiColor
+        imageView.layer.cornerRadius = 8
+        imageView.backgroundColor = ColorSet.bgDisabled.uiColor
         return imageView
+    }()
+
+    // Right side info container - using stack view for auto height adjustment
+    private let infoStackView: UIStackView = {
+        let stack = UIStackView()
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        stack.axis = .vertical
+        stack.spacing = 4
+        stack.alignment = .leading
+        stack.distribution = .fill
+        return stack
+    }()
+
+    // Title row (title + action buttons)
+    private let titleRow: UIView = {
+        let view = UIView()
+        view.translatesAutoresizingMaskIntoConstraints = false
+        return view
     }()
 
     private let titleLabel: UILabel = {
         let label = UILabel()
         label.translatesAutoresizingMaskIntoConstraints = false
         label.font = FontSet.montserratSemiBold.font(16)
-        label.textColor = ColorSet.fg.uiColor
-        label.numberOfLines = 2
+        label.textColor = ColorSet.primaryText.uiColor
+        label.numberOfLines = 0
         return label
     }()
 
-    // Stack view for right side content (auto-adjusts height when elements are hidden)
-    private let rightContentStackView: UIStackView = {
+    // Action buttons container
+    private let actionButtonsStack: UIStackView = {
         let stack = UIStackView()
         stack.translatesAutoresizingMaskIntoConstraints = false
-        stack.axis = .vertical
-        stack.spacing = 8
-        stack.alignment = .leading
-        stack.distribution = .fill
+        stack.axis = .horizontal
+        stack.spacing = 2
+        stack.alignment = .center
         return stack
     }()
 
-    // Rating stack
+    private lazy var changeTimeButton: UIButton = {
+        let button = UIButton(type: .custom)
+        button.translatesAutoresizingMaskIntoConstraints = false
+        let icon = TRPImageController().getImage(inFramework: "ic_change_time", inApp: nil)?.withRenderingMode(.alwaysTemplate)
+        button.setImage(icon, for: .normal)
+        button.tintColor = ColorSet.primary.uiColor
+        button.imageView?.contentMode = .scaleAspectFit
+        button.contentVerticalAlignment = .center
+        button.contentHorizontalAlignment = .center
+        button.addTarget(self, action: #selector(changeTimeButtonTapped), for: .touchUpInside)
+        return button
+    }()
+
+    private lazy var removeButton: UIButton = {
+        let button = UIButton(type: .custom)
+        button.translatesAutoresizingMaskIntoConstraints = false
+        let icon = TRPImageController().getImage(inFramework: "ic_remove_step", inApp: nil)?.withRenderingMode(.alwaysTemplate)
+        button.setImage(icon, for: .normal)
+        button.tintColor = ColorSet.primary.uiColor
+        button.imageView?.contentMode = .scaleAspectFit
+        button.contentVerticalAlignment = .center
+        button.contentHorizontalAlignment = .center
+        button.addTarget(self, action: #selector(removeButtonTapped), for: .touchUpInside)
+        return button
+    }()
+
+    // Rating stack - bold 14px for rating, light 14px for reviewCount
     private let ratingStackView: UIStackView = {
         let stack = UIStackView()
         stack.translatesAutoresizingMaskIntoConstraints = false
         stack.axis = .horizontal
-        stack.spacing = 4
+        stack.spacing = 0
         stack.alignment = .center
         return stack
     }()
@@ -97,9 +127,15 @@ class TRPTimelineManualPoiCell: UITableViewCell {
     private let ratingLabel: UILabel = {
         let label = UILabel()
         label.translatesAutoresizingMaskIntoConstraints = false
-        label.font = FontSet.montserratBold.font(12)
-        label.textColor = ColorSet.fg.uiColor
+        label.font = FontSet.montserratBold.font(14)
+        label.textColor = ColorSet.primaryText.uiColor
         return label
+    }()
+
+    private let ratingSpacer1: UIView = {
+        let view = UIView()
+        view.translatesAutoresizingMaskIntoConstraints = false
+        return view
     }()
 
     private let starIcon: UIImageView = {
@@ -111,10 +147,16 @@ class TRPTimelineManualPoiCell: UITableViewCell {
         return imageView
     }()
 
+    private let ratingSpacer2: UIView = {
+        let view = UIView()
+        view.translatesAutoresizingMaskIntoConstraints = false
+        return view
+    }()
+
     private let reviewLabel: UILabel = {
         let label = UILabel()
         label.translatesAutoresizingMaskIntoConstraints = false
-        label.font = FontSet.montserratRegular.font(12)
+        label.font = FontSet.montserratLight.font(14)
         label.textColor = ColorSet.fgWeak.uiColor
         return label
     }()
@@ -136,32 +178,6 @@ class TRPTimelineManualPoiCell: UITableViewCell {
         return label
     }()
 
-    // Action buttons container
-    private let actionButtonsStack: UIStackView = {
-        let stack = UIStackView()
-        stack.translatesAutoresizingMaskIntoConstraints = false
-        stack.axis = .horizontal
-        stack.spacing = 8
-        stack.alignment = .center
-        return stack
-    }()
-
-    private lazy var changeTimeButton: UIButton = {
-        let button = UIButton(type: .custom)
-        button.translatesAutoresizingMaskIntoConstraints = false
-        button.setImage(TRPImageController().getImage(inFramework: "ic_change_time", inApp: nil), for: .normal)
-        button.addTarget(self, action: #selector(changeTimeButtonTapped), for: .touchUpInside)
-        return button
-    }()
-
-    private lazy var removeButton: UIButton = {
-        let button = UIButton(type: .custom)
-        button.translatesAutoresizingMaskIntoConstraints = false
-        button.setImage(TRPImageController().getImage(inFramework: "ic_remove_step", inApp: nil), for: .normal)
-        button.addTarget(self, action: #selector(removeButtonTapped), for: .touchUpInside)
-        return button
-    }()
-
     // MARK: - Initialization
     override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
         super.init(style: style, reuseIdentifier: reuseIdentifier)
@@ -177,30 +193,34 @@ class TRPTimelineManualPoiCell: UITableViewCell {
         selectionStyle = .none
         backgroundColor = .clear
 
-        contentView.addSubview(timeLabel)
-        contentView.addSubview(verticalLineView)
-        contentView.addSubview(containerView)
+        contentView.addSubview(timeBadgeView)
+        contentView.addSubview(contentContainer)
 
-        containerView.addSubview(poiImageView)
-        containerView.addSubview(titleLabel)
-        containerView.addSubview(actionButtonsStack)
-        containerView.addSubview(rightContentStackView)
+        contentContainer.addSubview(poiImageView)
+        contentContainer.addSubview(infoStackView)
 
-        // Build rating horizontal stack
-        ratingStackView.addArrangedSubview(ratingLabel)
-        ratingStackView.addArrangedSubview(starIcon)
-        ratingStackView.addArrangedSubview(reviewLabel)
-
-        // Build category badge
-        categoryBadge.addSubview(categoryLabel)
+        // Build title row
+        titleRow.addSubview(titleLabel)
+        titleRow.addSubview(actionButtonsStack)
 
         // Build action buttons stack
         actionButtonsStack.addArrangedSubview(changeTimeButton)
         actionButtonsStack.addArrangedSubview(removeButton)
 
-        // Build right content vertical stack (below title)
-        rightContentStackView.addArrangedSubview(ratingStackView)
-        rightContentStackView.addArrangedSubview(categoryBadge)
+        // Build rating stack
+        ratingStackView.addArrangedSubview(ratingLabel)
+        ratingStackView.addArrangedSubview(ratingSpacer1)
+        ratingStackView.addArrangedSubview(starIcon)
+        ratingStackView.addArrangedSubview(ratingSpacer2)
+        ratingStackView.addArrangedSubview(reviewLabel)
+
+        // Build category badge
+        categoryBadge.addSubview(categoryLabel)
+
+        // Build info stack view
+        infoStackView.addArrangedSubview(titleRow)
+        infoStackView.addArrangedSubview(ratingStackView)
+        infoStackView.addArrangedSubview(categoryBadge)
 
         setupConstraints()
         setupTapGesture()
@@ -208,54 +228,53 @@ class TRPTimelineManualPoiCell: UITableViewCell {
 
     private func setupConstraints() {
         NSLayoutConstraint.activate([
-            // Time Label
-            timeLabel.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 16),
-            timeLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
-            timeLabel.widthAnchor.constraint(equalToConstant: 120),
-            timeLabel.heightAnchor.constraint(equalToConstant: 32),
+            // Time Badge View
+            timeBadgeView.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 16),
+            timeBadgeView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
 
-            // Vertical Line
-            verticalLineView.topAnchor.constraint(equalTo: timeLabel.bottomAnchor),
-            verticalLineView.leadingAnchor.constraint(equalTo: timeLabel.leadingAnchor, constant: 25),
-            verticalLineView.widthAnchor.constraint(equalToConstant: 0.5),
-            verticalLineView.bottomAnchor.constraint(equalTo: containerView.topAnchor),
+            // Content Container
+            contentContainer.topAnchor.constraint(equalTo: timeBadgeView.bottomAnchor),
+            contentContainer.leadingAnchor.constraint(equalTo: timeBadgeView.leadingAnchor),
+            contentContainer.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
+            contentContainer.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -16),
 
-            // Container View
-            containerView.topAnchor.constraint(equalTo: timeLabel.bottomAnchor, constant: 24),
-            containerView.leadingAnchor.constraint(equalTo: timeLabel.leadingAnchor),
-            containerView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
-            containerView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -16),
-
-            // POI Image
-            poiImageView.topAnchor.constraint(equalTo: containerView.topAnchor),
-            poiImageView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
+            // POI Image - 80x80
+            poiImageView.topAnchor.constraint(equalTo: contentContainer.topAnchor),
+            poiImageView.leadingAnchor.constraint(equalTo: contentContainer.leadingAnchor),
             poiImageView.widthAnchor.constraint(equalToConstant: 80),
             poiImageView.heightAnchor.constraint(equalToConstant: 80),
 
-            // Title Label - top right area
-            titleLabel.topAnchor.constraint(equalTo: containerView.topAnchor),
-            titleLabel.leadingAnchor.constraint(equalTo: poiImageView.trailingAnchor, constant: 12),
+            // Info stack view - 16px from imageView, 12px from right
+            infoStackView.topAnchor.constraint(equalTo: contentContainer.topAnchor),
+            infoStackView.leadingAnchor.constraint(equalTo: poiImageView.trailingAnchor, constant: 16),
+            infoStackView.trailingAnchor.constraint(equalTo: contentContainer.trailingAnchor, constant: -12),
+
+            // Title row - full width
+            titleRow.widthAnchor.constraint(equalTo: infoStackView.widthAnchor),
+
+            // Title label inside title row - 8px margin to buttons
+            titleLabel.topAnchor.constraint(equalTo: titleRow.topAnchor),
+            titleLabel.leadingAnchor.constraint(equalTo: titleRow.leadingAnchor),
             titleLabel.trailingAnchor.constraint(equalTo: actionButtonsStack.leadingAnchor, constant: -8),
+            titleLabel.bottomAnchor.constraint(equalTo: titleRow.bottomAnchor),
 
-            // Action buttons stack - fixed to right, aligned with title
-            actionButtonsStack.topAnchor.constraint(equalTo: containerView.topAnchor),
-            actionButtonsStack.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
+            // Action buttons stack inside title row
+            actionButtonsStack.topAnchor.constraint(equalTo: titleRow.topAnchor),
+            actionButtonsStack.trailingAnchor.constraint(equalTo: titleRow.trailingAnchor),
 
-            // Button sizes
-            changeTimeButton.widthAnchor.constraint(equalToConstant: 28),
-            changeTimeButton.heightAnchor.constraint(equalToConstant: 28),
-            removeButton.widthAnchor.constraint(equalToConstant: 28),
-            removeButton.heightAnchor.constraint(equalToConstant: 28),
+            // Button sizes - 32x32
+            changeTimeButton.widthAnchor.constraint(equalToConstant: 32),
+            changeTimeButton.heightAnchor.constraint(equalToConstant: 32),
+            removeButton.widthAnchor.constraint(equalToConstant: 32),
+            removeButton.heightAnchor.constraint(equalToConstant: 32),
 
-            // Right Content Stack View - below title
-            rightContentStackView.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 8),
-            rightContentStackView.leadingAnchor.constraint(equalTo: poiImageView.trailingAnchor, constant: 12),
-            rightContentStackView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
-            rightContentStackView.bottomAnchor.constraint(lessThanOrEqualTo: containerView.bottomAnchor),
+            // Rating spacers
+            ratingSpacer1.widthAnchor.constraint(equalToConstant: 2),
+            ratingSpacer2.widthAnchor.constraint(equalToConstant: 4),
 
             // Star icon size
-            starIcon.widthAnchor.constraint(equalToConstant: 12),
-            starIcon.heightAnchor.constraint(equalToConstant: 12),
+            starIcon.widthAnchor.constraint(equalToConstant: 14),
+            starIcon.heightAnchor.constraint(equalToConstant: 14),
 
             // Category label inside badge
             categoryLabel.topAnchor.constraint(equalTo: categoryBadge.topAnchor, constant: 4),
@@ -263,27 +282,36 @@ class TRPTimelineManualPoiCell: UITableViewCell {
             categoryLabel.leadingAnchor.constraint(equalTo: categoryBadge.leadingAnchor, constant: 8),
             categoryLabel.trailingAnchor.constraint(equalTo: categoryBadge.trailingAnchor, constant: -8),
         ])
+
+        // Dynamic height constraints - content container expands to fit the taller of imageView or infoStackView
+        // Minimum height constraint (80px for imageView)
+        contentContainer.heightAnchor.constraint(greaterThanOrEqualToConstant: 80).isActive = true
+
+        // Info stack bottom constraint - when info is taller than 80px, it defines the height
+        let infoBottomConstraint = infoStackView.bottomAnchor.constraint(equalTo: contentContainer.bottomAnchor)
+        infoBottomConstraint.priority = UILayoutPriority(999)
+        infoBottomConstraint.isActive = true
     }
 
     private func setupTapGesture() {
         let tapGesture = UITapGestureRecognizer(target: self, action: #selector(cellTapped))
-        containerView.addGestureRecognizer(tapGesture)
-        containerView.isUserInteractionEnabled = true
+        contentContainer.addGestureRecognizer(tapGesture)
+        contentContainer.isUserInteractionEnabled = true
     }
 
     // MARK: - Configuration
-    func configure(with segment: TRPTimelineSegment, poi: TRPPoi?) {
+    func configure(with segment: TRPTimelineSegment, poi: TRPPoi?, order: Int = 1) {
         self.segment = segment
         self.poi = poi
 
         // Configure title from POI or segment
         titleLabel.text = poi?.name ?? segment.title ?? ""
 
-        // Configure time from segment
+        // Configure time badge from segment (with unified order)
         if let startDate = segment.startDate, let endDate = segment.endDate {
             let startTime = formatTime(from: startDate)
             let endTime = formatTime(from: endDate)
-            timeLabel.text = "\(startTime) - \(endTime)"
+            timeBadgeView.configure(order: order, startTime: startTime, endTime: endTime)
         }
 
         // Configure image from POI
@@ -299,7 +327,7 @@ class TRPTimelineManualPoiCell: UITableViewCell {
             ratingStackView.isHidden = false
 
             if let ratingCount = poi?.ratingCount {
-                reviewLabel.text = "\(ratingCount.formattedWithSeparator) opiniones"
+                reviewLabel.text = "\(ratingCount.formattedWithSeparator)"
             } else {
                 reviewLabel.text = ""
             }
@@ -327,8 +355,12 @@ class TRPTimelineManualPoiCell: UITableViewCell {
         // Title (pre-computed)
         titleLabel.text = cellData.title
 
-        // Time range (pre-computed)
-        timeLabel.text = cellData.timeRange
+        // Time badge with order and time range (using .poi style)
+        // Parse time range from "HH:mm - HH:mm" format
+        let timeParts = cellData.timeRange.components(separatedBy: " - ")
+        let startTime = timeParts.first ?? ""
+        let endTime = timeParts.count > 1 ? timeParts[1] : ""
+        timeBadgeView.configure(order: cellData.order, startTime: startTime, endTime: endTime)
 
         // Image
         if let imageUrl = cellData.imageUrl {
@@ -343,7 +375,7 @@ class TRPTimelineManualPoiCell: UITableViewCell {
             ratingStackView.isHidden = false
 
             if let ratingCount = cellData.ratingCount {
-                reviewLabel.text = "\(ratingCount.formattedWithSeparator) opiniones"
+                reviewLabel.text = "\(ratingCount.formattedWithSeparator)"
             } else {
                 reviewLabel.text = ""
             }

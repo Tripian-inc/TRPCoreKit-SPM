@@ -38,13 +38,6 @@ class TRPTimelineBookedActivityCell: UITableViewCell {
         return view
     }()
     
-    private let verticalLineView: UIView = {
-        let view = UIView()
-        view.translatesAutoresizingMaskIntoConstraints = false
-        view.backgroundColor = ColorSet.lineWeak.uiColor
-        return view
-    }()
-    
     private let activityImageView: UIImageView = {
         let imageView = UIImageView()
         imageView.translatesAutoresizingMaskIntoConstraints = false
@@ -189,7 +182,6 @@ class TRPTimelineBookedActivityCell: UITableViewCell {
         backgroundColor = .clear
 
         contentView.addSubview(timeBadgeView)
-        contentView.addSubview(verticalLineView)
         contentView.addSubview(containerView)
 
         containerView.addSubview(activityImageView)
@@ -222,14 +214,8 @@ class TRPTimelineBookedActivityCell: UITableViewCell {
             timeBadgeView.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 16),
             timeBadgeView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
 
-            // Vertical Line
-            verticalLineView.topAnchor.constraint(equalTo: timeBadgeView.bottomAnchor),
-            verticalLineView.leadingAnchor.constraint(equalTo: timeBadgeView.leadingAnchor, constant: 25),
-            verticalLineView.widthAnchor.constraint(equalToConstant: 0.5),
-            verticalLineView.bottomAnchor.constraint(equalTo: containerView.topAnchor),
-
             // Container View
-            containerView.topAnchor.constraint(equalTo: timeBadgeView.bottomAnchor, constant: 24),
+            containerView.topAnchor.constraint(equalTo: timeBadgeView.bottomAnchor),
             containerView.leadingAnchor.constraint(equalTo: timeBadgeView.leadingAnchor),
             containerView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
             containerView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -16),
@@ -307,7 +293,7 @@ class TRPTimelineBookedActivityCell: UITableViewCell {
            let endDatetime = additionalData.endDatetime {
             let startTime = formatTime(from: startDatetime)
             let endTime = formatTime(from: endDatetime)
-            timeBadgeView.configure(order: 0, startTime: startTime, endTime: endTime, style: .activity)
+            timeBadgeView.configure(order: 0, startTime: startTime, endTime: endTime)
         }
         
         // Configure person count from additionalData
@@ -371,7 +357,7 @@ class TRPTimelineBookedActivityCell: UITableViewCell {
         let timeParts = cellData.timeRange.components(separatedBy: " - ")
         let startTime = timeParts.first ?? ""
         let endTime = timeParts.count > 1 ? timeParts[1] : ""
-        timeBadgeView.configure(order: cellData.order, startTime: startTime, endTime: endTime, style: .activity)
+        timeBadgeView.configure(order: cellData.order, startTime: startTime, endTime: endTime)
 
         // Image
         if let imageUrl = cellData.imageUrl {
