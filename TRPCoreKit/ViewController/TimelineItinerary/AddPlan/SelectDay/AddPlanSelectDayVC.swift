@@ -51,11 +51,11 @@ public class AddPlanSelectDayVC: TRPBaseUIViewController {
         button.contentHorizontalAlignment = .left
         button.titleLabel?.font = FontSet.montserratMedium.font(14)
         button.setTitleColor(ColorSet.primaryText.uiColor, for: .normal)
-        button.contentEdgeInsets = UIEdgeInsets(top: 12, left: 16, bottom: 12, right: 40)
+        button.contentEdgeInsets = UIEdgeInsets(top: 16, left: 16, bottom: 16, right: 30)
         button.addTarget(self, action: #selector(cityButtonTapped), for: .touchUpInside)
         
         // Add chevron down icon
-        let chevronImageView = UIImageView(image: UIImage(systemName: "chevron.down"))
+        let chevronImageView = UIImageView(image: TRPImageController().getImage(inFramework: "ic_chevron_down", inApp: nil))
         chevronImageView.translatesAutoresizingMaskIntoConstraints = false
         chevronImageView.tintColor = ColorSet.primaryText.uiColor
         chevronImageView.contentMode = .scaleAspectFit
@@ -64,8 +64,8 @@ public class AddPlanSelectDayVC: TRPBaseUIViewController {
         NSLayoutConstraint.activate([
             chevronImageView.centerYAnchor.constraint(equalTo: button.centerYAnchor),
             chevronImageView.trailingAnchor.constraint(equalTo: button.trailingAnchor, constant: -16),
-            chevronImageView.widthAnchor.constraint(equalToConstant: 16),
-            chevronImageView.heightAnchor.constraint(equalToConstant: 16),
+            chevronImageView.widthAnchor.constraint(equalToConstant: 12),
+            chevronImageView.heightAnchor.constraint(equalToConstant: 12),
         ])
         
         return button
@@ -169,7 +169,7 @@ public class AddPlanSelectDayVC: TRPBaseUIViewController {
         let stackView = UIStackView()
         stackView.translatesAutoresizingMaskIntoConstraints = false
         stackView.axis = .horizontal
-        stackView.spacing = 12
+        stackView.spacing = 8
         stackView.distribution = .fillEqually
         stackView.alignment = .fill
         stackView.isHidden = true
@@ -210,44 +210,59 @@ public class AddPlanSelectDayVC: TRPBaseUIViewController {
         button.backgroundColor = .white
         button.layer.cornerRadius = 8
         button.layer.borderWidth = 1
-        button.layer.borderColor = ColorSet.neutral200.uiColor.cgColor
+        button.layer.borderColor = ColorSet.lineWeak.uiColor.cgColor
         button.tag = id.hashValue // Use hash for tag
-        
+
         // Store category ID in button's accessibility identifier
         button.accessibilityIdentifier = id
-        
+
+        // Container view to hold icon and label (centered in button)
+        let contentContainer = UIView()
+        contentContainer.translatesAutoresizingMaskIntoConstraints = false
+        contentContainer.isUserInteractionEnabled = false
+
         let iconImageView = UIImageView()
         iconImageView.translatesAutoresizingMaskIntoConstraints = false
-        iconImageView.image = TRPImageController().getImage(inFramework: imageName, inApp: nil)
+        iconImageView.image = TRPImageController().getImage(inFramework: imageName, inApp: nil)?.withRenderingMode(.alwaysTemplate)
         iconImageView.tintColor = ColorSet.fg.uiColor
         iconImageView.contentMode = .scaleAspectFit
-        
+
         let label = UILabel()
         label.translatesAutoresizingMaskIntoConstraints = false
         label.text = title
-        label.font = FontSet.montserratMedium.font(12)
+        label.font = FontSet.montserratLight.font(12)
         label.textColor = ColorSet.primaryText.uiColor
         label.textAlignment = .center
         label.numberOfLines = 2
         label.lineBreakMode = .byWordWrapping
-        
-        button.addSubview(iconImageView)
-        button.addSubview(label)
-        
+
+        contentContainer.addSubview(iconImageView)
+        contentContainer.addSubview(label)
+        button.addSubview(contentContainer)
+
         NSLayoutConstraint.activate([
-            iconImageView.centerXAnchor.constraint(equalTo: button.centerXAnchor),
-            iconImageView.topAnchor.constraint(equalTo: button.topAnchor, constant: 16),
+            // Center container in button
+            contentContainer.centerXAnchor.constraint(equalTo: button.centerXAnchor),
+            contentContainer.centerYAnchor.constraint(equalTo: button.centerYAnchor),
+            contentContainer.leadingAnchor.constraint(greaterThanOrEqualTo: button.leadingAnchor, constant: 10),
+            contentContainer.trailingAnchor.constraint(lessThanOrEqualTo: button.trailingAnchor, constant: -10),
+
+            // Icon at top of container
+            iconImageView.topAnchor.constraint(equalTo: contentContainer.topAnchor),
+            iconImageView.centerXAnchor.constraint(equalTo: contentContainer.centerXAnchor),
             iconImageView.widthAnchor.constraint(equalToConstant: 32),
             iconImageView.heightAnchor.constraint(equalToConstant: 32),
-            
+
+            // Label below icon
             label.topAnchor.constraint(equalTo: iconImageView.bottomAnchor, constant: 8),
-            label.leadingAnchor.constraint(equalTo: button.leadingAnchor, constant: 4),
-            label.trailingAnchor.constraint(equalTo: button.trailingAnchor, constant: -4),
+            label.leadingAnchor.constraint(equalTo: contentContainer.leadingAnchor),
+            label.trailingAnchor.constraint(equalTo: contentContainer.trailingAnchor),
+            label.bottomAnchor.constraint(equalTo: contentContainer.bottomAnchor),
         ])
-        
-        button.heightAnchor.constraint(equalToConstant: 100).isActive = true
+
+        button.heightAnchor.constraint(equalToConstant: 109).isActive = true
         button.addTarget(self, action: #selector(categoryButtonTapped(_:)), for: .touchUpInside)
-        
+
         return button
     }
     
@@ -313,7 +328,7 @@ public class AddPlanSelectDayVC: TRPBaseUIViewController {
             
             // Day Label
             dayLabel.topAnchor.constraint(equalTo: contentContainer.topAnchor),
-            dayLabel.leadingAnchor.constraint(equalTo: contentContainer.leadingAnchor, constant: 24),
+            dayLabel.leadingAnchor.constraint(equalTo: contentContainer.leadingAnchor, constant: 16),
             
             // Day Filter View
             dayFilterView.topAnchor.constraint(equalTo: dayLabel.bottomAnchor, constant: 8),
@@ -323,43 +338,43 @@ public class AddPlanSelectDayVC: TRPBaseUIViewController {
             
             // City Label
             cityLabel.topAnchor.constraint(equalTo: dayFilterView.bottomAnchor, constant: 16),
-            cityLabel.leadingAnchor.constraint(equalTo: contentContainer.leadingAnchor, constant: 24),
+            cityLabel.leadingAnchor.constraint(equalTo: contentContainer.leadingAnchor, constant: 16),
             
             // City Button
             cityButton.topAnchor.constraint(equalTo: cityLabel.bottomAnchor, constant: 8),
-            cityButton.leadingAnchor.constraint(equalTo: contentContainer.leadingAnchor, constant: 24),
-            cityButton.trailingAnchor.constraint(equalTo: contentContainer.trailingAnchor, constant: -24),
+            cityButton.leadingAnchor.constraint(equalTo: contentContainer.leadingAnchor, constant: 16),
+            cityButton.trailingAnchor.constraint(equalTo: contentContainer.trailingAnchor, constant: -16),
             cityButton.heightAnchor.constraint(equalToConstant: 48),
             
             // Selection Label
-            selectionLabel.topAnchor.constraint(equalTo: cityButton.bottomAnchor, constant: 24),
-            selectionLabel.leadingAnchor.constraint(equalTo: contentContainer.leadingAnchor, constant: 24),
-            selectionLabel.trailingAnchor.constraint(equalTo: contentContainer.trailingAnchor, constant: -24),
+            selectionLabel.topAnchor.constraint(equalTo: cityButton.bottomAnchor, constant: 32),
+            selectionLabel.leadingAnchor.constraint(equalTo: contentContainer.leadingAnchor, constant: 16),
+            selectionLabel.trailingAnchor.constraint(equalTo: contentContainer.trailingAnchor, constant: -16),
             
             // Smart Recommendations Card
-            smartRecommendationsCard.topAnchor.constraint(equalTo: selectionLabel.bottomAnchor, constant: 12),
-            smartRecommendationsCard.leadingAnchor.constraint(equalTo: contentContainer.leadingAnchor, constant: 24),
-            smartRecommendationsCard.trailingAnchor.constraint(equalTo: contentContainer.trailingAnchor, constant: -24),
+            smartRecommendationsCard.topAnchor.constraint(equalTo: selectionLabel.bottomAnchor, constant: 16),
+            smartRecommendationsCard.leadingAnchor.constraint(equalTo: contentContainer.leadingAnchor, constant: 16),
+            smartRecommendationsCard.trailingAnchor.constraint(equalTo: contentContainer.trailingAnchor, constant: -16),
             
             // Manual Add Card
-            manualAddCard.topAnchor.constraint(equalTo: smartRecommendationsCard.bottomAnchor, constant: 12),
-            manualAddCard.leadingAnchor.constraint(equalTo: contentContainer.leadingAnchor, constant: 24),
-            manualAddCard.trailingAnchor.constraint(equalTo: contentContainer.trailingAnchor, constant: -24),
+            manualAddCard.topAnchor.constraint(equalTo: smartRecommendationsCard.bottomAnchor, constant: 8),
+            manualAddCard.leadingAnchor.constraint(equalTo: contentContainer.leadingAnchor, constant: 16),
+            manualAddCard.trailingAnchor.constraint(equalTo: contentContainer.trailingAnchor, constant: -16),
             
             // Category Label (initially hidden, shown when manual mode selected)
-            categoryLabel.leadingAnchor.constraint(equalTo: contentContainer.leadingAnchor, constant: 24),
-            categoryLabel.trailingAnchor.constraint(equalTo: contentContainer.trailingAnchor, constant: -24),
+            categoryLabel.leadingAnchor.constraint(equalTo: contentContainer.leadingAnchor, constant: 16),
+            categoryLabel.trailingAnchor.constraint(equalTo: contentContainer.trailingAnchor, constant: -16),
             
             // Category Stack View (initially hidden, shown when manual mode selected)
-            categoryStackView.topAnchor.constraint(equalTo: categoryLabel.bottomAnchor, constant: 12),
-            categoryStackView.leadingAnchor.constraint(equalTo: contentContainer.leadingAnchor, constant: 24),
-            categoryStackView.trailingAnchor.constraint(equalTo: contentContainer.trailingAnchor, constant: -24),
+            categoryStackView.topAnchor.constraint(equalTo: categoryLabel.bottomAnchor, constant: 16),
+            categoryStackView.leadingAnchor.constraint(equalTo: contentContainer.leadingAnchor, constant: 16),
+            categoryStackView.trailingAnchor.constraint(equalTo: contentContainer.trailingAnchor, constant: -16),
             categoryStackView.bottomAnchor.constraint(equalTo: contentContainer.bottomAnchor),
         ])
         
         // Store constraints that need to be toggled
         manualCardBottomConstraint = manualAddCard.bottomAnchor.constraint(equalTo: contentContainer.bottomAnchor)
-        categoryLabelTopConstraint = categoryLabel.topAnchor.constraint(equalTo: manualAddCard.bottomAnchor, constant: 24)
+        categoryLabelTopConstraint = categoryLabel.topAnchor.constraint(equalTo: manualAddCard.bottomAnchor, constant: 32)
         
         // Initially, manual card is at bottom (categories hidden)
         manualCardBottomConstraint?.isActive = true
@@ -417,7 +432,7 @@ public class AddPlanSelectDayVC: TRPBaseUIViewController {
         // Single-select: deselect all others first
         for button in categoryButtons {
             let isSelected = (button.accessibilityIdentifier == categoryId)
-            updateCategoryButtonStyle(button, isSelected: isSelected)
+            updateSelectedButtonStyle(button, isSelected: isSelected)
         }
         
         // Store selected category
@@ -442,19 +457,8 @@ public class AddPlanSelectDayVC: TRPBaseUIViewController {
     }
     
     private func updateSelectionStyles() {
-        // Update smart recommendations card - only change border color
-        if selectedMode == .smartRecommendations {
-            smartRecommendationsCard.layer.borderColor = ColorSet.fg.uiColor.cgColor
-        } else {
-            smartRecommendationsCard.layer.borderColor = ColorSet.neutral200.uiColor.cgColor
-        }
-        
-        // Update manual add card - only change border color
-        if selectedMode == .manual {
-            manualAddCard.layer.borderColor = ColorSet.fg.uiColor.cgColor
-        } else {
-            manualAddCard.layer.borderColor = ColorSet.neutral200.uiColor.cgColor
-        }
+        updateSelectedButtonStyle(smartRecommendationsCard, isSelected: selectedMode == .smartRecommendations)
+        updateSelectedButtonStyle(manualAddCard, isSelected: selectedMode == .manual)
     }
     
     private func updateCategorySelectionUI() {
@@ -463,33 +467,26 @@ public class AddPlanSelectDayVC: TRPBaseUIViewController {
         categoryStackView.isHidden = !showCategories
         
         // Update constraints based on visibility
-        if showCategories {
-            // Show categories: manual card connects to category label, categories at bottom
-            manualCardBottomConstraint?.isActive = false
-            categoryLabelTopConstraint?.isActive = true
-        } else {
-            // Hide categories: manual card at bottom
-            categoryLabelTopConstraint?.isActive = false
-            manualCardBottomConstraint?.isActive = true
-        }
+        manualCardBottomConstraint?.isActive = !showCategories
+        categoryLabelTopConstraint?.isActive = showCategories
         
         // Update category button styles based on selected category
         if showCategories {
             let selectedCategoryId = viewModel.getSelectedManualCategory()
             for button in categoryButtons {
                 let isSelected = (button.accessibilityIdentifier == selectedCategoryId)
-                updateCategoryButtonStyle(button, isSelected: isSelected)
+                updateSelectedButtonStyle(button, isSelected: isSelected)
             }
         }
     }
     
-    private func updateCategoryButtonStyle(_ button: UIButton, isSelected: Bool) {
+    private func updateSelectedButtonStyle(_ view: UIView, isSelected: Bool) {
         if isSelected {
-            button.layer.borderColor = ColorSet.fg.uiColor.cgColor
-            button.layer.borderWidth = 2
+            view.layer.borderColor = ColorSet.fg.uiColor.cgColor
+            view.layer.borderWidth = 1.5
         } else {
-            button.layer.borderColor = ColorSet.neutral200.uiColor.cgColor
-            button.layer.borderWidth = 1
+            view.layer.borderColor = ColorSet.lineWeak.uiColor.cgColor
+            view.layer.borderWidth = 1
         }
     }
     

@@ -126,24 +126,6 @@ class ActivityCardCell: UITableViewCell {
         return label
     }()
 
-    private let originalPriceLabel: UILabel = {
-        let label = UILabel()
-        label.font = FontSet.montserratMedium.font(12)
-        label.textColor = ColorSet.fgWeak.uiColor
-        label.textAlignment = .right
-        label.translatesAutoresizingMaskIntoConstraints = false
-        return label
-    }()
-
-    private let discountLabel: UILabel = {
-        let label = UILabel()
-        label.font = FontSet.montserratBold.font(12)
-        label.textColor = ColorSet.primary.uiColor
-        label.textAlignment = .right
-        label.translatesAutoresizingMaskIntoConstraints = false
-        return label
-    }()
-
     private let addButton: UIButton = {
         let button = UIButton(type: .system)
         let config = UIImage.SymbolConfiguration(pointSize: 20, weight: .medium)
@@ -191,8 +173,6 @@ class ActivityCardCell: UITableViewCell {
         cardContainerView.addSubview(languageLabel)
         cardContainerView.addSubview(freeCancellationLabel)
         cardContainerView.addSubview(priceLabel)
-        cardContainerView.addSubview(originalPriceLabel)
-        cardContainerView.addSubview(discountLabel)
         cardContainerView.addSubview(addButton)
         cardContainerView.addSubview(separatorView)
 
@@ -265,14 +245,6 @@ class ActivityCardCell: UITableViewCell {
             priceLabel.trailingAnchor.constraint(equalTo: cardContainerView.trailingAnchor),
             priceLabel.bottomAnchor.constraint(lessThanOrEqualTo: cardContainerView.bottomAnchor, constant: -16),
 
-            // Original price label
-            originalPriceLabel.bottomAnchor.constraint(equalTo: priceLabel.topAnchor, constant: -2),
-            originalPriceLabel.trailingAnchor.constraint(equalTo: discountLabel.leadingAnchor, constant: -4),
-
-            // Discount label
-            discountLabel.centerYAnchor.constraint(equalTo: originalPriceLabel.centerYAnchor),
-            discountLabel.trailingAnchor.constraint(equalTo: cardContainerView.trailingAnchor),
-
             // Separator
             separatorView.leadingAnchor.constraint(equalTo: cardContainerView.leadingAnchor),
             separatorView.trailingAnchor.constraint(equalTo: cardContainerView.trailingAnchor),
@@ -332,10 +304,6 @@ class ActivityCardCell: UITableViewCell {
             priceLabel.text = ""
         }
 
-        // Handle discount and original price - hide for now as we don't have this data
-        originalPriceLabel.isHidden = true
-        discountLabel.isHidden = true
-
         // Set activity image using SDWebImage
         if let imageUrl = tour.image?.url, let url = URL(string: imageUrl) {
             activityImageView.sd_setImage(with: url, placeholderImage: nil)
@@ -392,10 +360,6 @@ class ActivityCardCell: UITableViewCell {
         } else {
             priceLabel.text = ""
         }
-
-        // Hide discount info
-        originalPriceLabel.isHidden = true
-        discountLabel.isHidden = true
 
         // Hide separator for saved plans screen
         separatorView.isHidden = true

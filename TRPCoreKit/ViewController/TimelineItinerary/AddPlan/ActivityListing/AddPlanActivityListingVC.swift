@@ -47,10 +47,10 @@ public class AddPlanActivityListingVC: TRPBaseUIViewController {
         appearance.backgroundColor = .white
         appearance.titleTextAttributes = [
             .foregroundColor: ColorSet.primaryText.uiColor, // #333333
-            .font: FontSet.montserratSemiBold.font(16)
+            .font: FontSet.montserratSemiBold.font(18)
         ]
-        appearance.shadowColor = ColorSet.lineWeak.uiColor // #CFCFCF
-        
+        appearance.shadowColor = .clear // Remove navigation bar separator line
+
         navigationController?.navigationBar.standardAppearance = appearance
         navigationController?.navigationBar.scrollEdgeAppearance = appearance
     }
@@ -66,6 +66,13 @@ public class AddPlanActivityListingVC: TRPBaseUIViewController {
         searchBar.placeholder = AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.searchActivity)
         searchBar.delegate = self
         return searchBar
+    }()
+
+    private lazy var separatorLine: UIView = {
+        let view = UIView()
+        view.translatesAutoresizingMaskIntoConstraints = false
+        view.backgroundColor = ColorSet.lineWeak.uiColor // #CFCFCF
+        return view
     }()
     
     private lazy var filterButton: UIButton = {
@@ -180,8 +187,9 @@ public class AddPlanActivityListingVC: TRPBaseUIViewController {
     public override func setupViews() {
         super.setupViews()
         view.backgroundColor = .white
-        
+
         view.addSubview(searchBar)
+        view.addSubview(separatorLine)
         view.addSubview(filterSortStackView)
         view.addSubview(categoryCollectionView)
         view.addSubview(activityCountLabel)
@@ -194,28 +202,34 @@ public class AddPlanActivityListingVC: TRPBaseUIViewController {
             searchBar.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
             searchBar.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
 
+            // Separator Line (below search bar)
+            separatorLine.topAnchor.constraint(equalTo: searchBar.bottomAnchor, constant: 12),
+            separatorLine.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            separatorLine.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            separatorLine.heightAnchor.constraint(equalToConstant: 0.5),
+
             // Filter and Sort Stack View
-            filterSortStackView.topAnchor.constraint(equalTo: searchBar.bottomAnchor, constant: 16),
+            filterSortStackView.topAnchor.constraint(equalTo: separatorLine.bottomAnchor, constant: 16),
             filterSortStackView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
             filterSortStackView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
             filterSortStackView.heightAnchor.constraint(equalToConstant: 40),
-            
+
             // Category Collection View
             categoryCollectionView.topAnchor.constraint(equalTo: filterSortStackView.bottomAnchor, constant: 16),
             categoryCollectionView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             categoryCollectionView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             categoryCollectionView.heightAnchor.constraint(equalToConstant: 88),
-            
+
             // Activity Count Label
             activityCountLabel.topAnchor.constraint(equalTo: categoryCollectionView.bottomAnchor, constant: 16),
             activityCountLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
-            
+
             // Info Button
             infoButton.centerYAnchor.constraint(equalTo: activityCountLabel.centerYAnchor),
             infoButton.leadingAnchor.constraint(equalTo: activityCountLabel.trailingAnchor, constant: 4),
             infoButton.heightAnchor.constraint(equalToConstant: 16),
             infoButton.widthAnchor.constraint(equalToConstant: 16),
-            
+
             // Table View
             tableView.topAnchor.constraint(equalTo: activityCountLabel.bottomAnchor, constant: 16),
             tableView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),

@@ -37,7 +37,7 @@ public class AddPlanTimeSelectionVC: TRPBaseUIViewController {
         label.translatesAutoresizingMaskIntoConstraints = false
         label.text = AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.selectATime)
         label.font = FontSet.montserratSemiBold.font(18)
-        label.textColor = ColorSet.fg.uiColor
+        label.textColor = ColorSet.primaryText.uiColor
         return label
     }()
 
