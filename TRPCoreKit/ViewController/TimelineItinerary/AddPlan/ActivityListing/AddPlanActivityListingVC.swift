@@ -164,6 +164,7 @@ public class AddPlanActivityListingVC: TRPBaseUIViewController {
         tableView.translatesAutoresizingMaskIntoConstraints = false
         tableView.backgroundColor = .white
         tableView.separatorStyle = .none
+        tableView.showsVerticalScrollIndicator = false
         tableView.delegate = self
         tableView.dataSource = self
         tableView.estimatedRowHeight = 120
@@ -296,6 +297,10 @@ extension AddPlanActivityListingVC: UITableViewDataSource, UITableViewDelegate {
             cell.configure(with: tour)
         }
 
+        // Hide separator for last cell
+        let isLastCell = indexPath.row == viewModel.getActivities().count - 1
+        cell.setSeparatorHidden(isLastCell)
+
         return cell
     }
 
@@ -334,14 +339,6 @@ extension AddPlanActivityListingVC: TRPSearchBarDelegate {
 
     public func searchBar(_ searchBar: TRPSearchBar, textDidChange text: String) {
         viewModel.updateSearchText(text)
-    }
-
-    public func searchBarDidBeginEditing(_ searchBar: TRPSearchBar) {
-        // Optional: Handle when user starts editing
-    }
-
-    public func searchBarDidEndEditing(_ searchBar: TRPSearchBar) {
-        // Optional: Handle when user ends editing
     }
 
     public func searchBarSearchButtonClicked(_ searchBar: TRPSearchBar) {
@@ -486,6 +483,6 @@ extension AddPlanActivityListingVC: ActivityCardCellDelegate {
         }
 
         // Present as bottom sheet using base extension
-        presentVCWithModal(timeSelectionVC, onlyLarge: true, prefersGrabberVisible: false)
+        presentVCWithModal(timeSelectionVC, onlyLarge: false, prefersGrabberVisible: false)
     }
 }

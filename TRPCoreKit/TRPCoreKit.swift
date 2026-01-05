@@ -181,11 +181,13 @@ public class TRPCoreKit {
     /// - Parameters:
     ///   - itinerary: Itinerary model with activities and trip details
     ///   - tripHash: Optional trip hash. If provided, fetches existing timeline instead of creating new one
+    ///   - uniqueId: Optional unique identifier. If not provided, uses device's identifierForVendor
     ///   - viewController: View controller to present SDK from
     ///   - canBack: Whether back button is enabled. Defaults to true
     public static func startWithItinerary(
         _ itinerary: TRPItineraryWithActivities,
         tripHash: String? = nil,
+        uniqueId: String? = nil,
         from viewController: UIViewController,
         canBack: Bool = true
     ) {
@@ -195,7 +197,7 @@ public class TRPCoreKit {
         let coordinator = TRPSDKCoordinater(navigationController: tripianNav, canBack: canBack)
         shared.sdkCoordinator = coordinator
 
-        coordinator.startWithItinerary(itinerary, tripHash: tripHash)
+        coordinator.startWithItinerary(itinerary, tripHash: tripHash, uniqueId: uniqueId)
         viewController.present(tripianNav, animated: true)
     }
 

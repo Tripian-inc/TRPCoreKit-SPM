@@ -130,7 +130,8 @@ public class TRPSDKCoordinater {
     /// - Parameters:
     ///   - itineraryModel: TRPItineraryWithActivities model containing timeline data
     ///   - tripHash: Optional trip hash. If provided, fetches existing timeline instead of creating new one
-    public func startWithItinerary(_ itineraryModel: TRPItineraryWithActivities, tripHash: String? = nil) {
+    ///   - uniqueId: Optional unique identifier. If not provided, uses device's identifierForVendor
+    public func startWithItinerary(_ itineraryModel: TRPItineraryWithActivities, tripHash: String? = nil, uniqueId: String? = nil) {
         checkAllApiKey()
         userProfile()
 
@@ -138,8 +139,18 @@ public class TRPSDKCoordinater {
         pendingItineraryModel = itineraryModel
         pendingTripHash = tripHash
 
+        // Determine uniqueId: use provided value, fall back to itinerary's uniqueId, then device ID
+        let effectiveUniqueId: String
+        if let providedId = uniqueId, !providedId.isEmpty {
+            effectiveUniqueId = providedId
+        } else if !itineraryModel.uniqueId.isEmpty {
+            effectiveUniqueId = itineraryModel.uniqueId
+        } else {
+            effectiveUniqueId = UIDevice.current.identifierForVendor?.uuidString ?? UUID().uuidString
+        }
+
         // Start with splash screen to handle translations and login
-        startWithSplashVC(uniqueId: itineraryModel.uniqueId)
+        startWithSplashVC(uniqueId: effectiveUniqueId)
     }
 
     /// Opens timeline with existing trip hash (fetch existing timeline)
