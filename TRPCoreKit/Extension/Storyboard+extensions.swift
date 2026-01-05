@@ -85,12 +85,6 @@ extension UIStoryboard {
     
     class func makeItineraryChangeTimeViewController() -> ItineraryChangeTimeVC {
         let selectHourVC = load(from: .itinerary, identifier: "ItineraryChangeTimeVC") as! ItineraryChangeTimeVC
-        selectHourVC.modalPresentationStyle = .pageSheet
-        if #available(iOS 15.0, *) {
-            if let sheet = selectHourVC.sheetPresentationController {
-                sheet.detents = [.medium()]
-            }
-        }
         return selectHourVC
     }
     
@@ -127,16 +121,6 @@ extension UIStoryboard {
         return vc
     }
     
-    class func makeOverviewContainerViewController() -> OverviewContainerVC {
-        let vc = load(from: .createTripOverview, identifier: "OverviewContainerVC") as! OverviewContainerVC
-        return vc
-    }
-    
-    class func makeOverviewViewController() -> OverviewViewController {
-        let vc = load(from: .createTripOverview, identifier: "OverviewViewController") as! OverviewViewController
-        return vc
-    }
-    
     class func makePoiDetailViewController() -> PoiDetailViewController {
         let vc = load(from: .poiDetail, identifier: "PoiDetailViewController") as! PoiDetailViewController
         vc.modalPresentationStyle = .fullScreen
@@ -161,14 +145,8 @@ extension UIStoryboard {
     
     class func makePoiCategoryViewController() -> PoiCategoryVC {
         let vc = load(from: .poiCategory, identifier: "PoiCategoryVC") as! PoiCategoryVC
-        vc.modalPresentationStyle = .pageSheet
-        if #available(iOS 15.0, *) {
-            if let sheet = vc.sheetPresentationController {
-                sheet.detents = [.large()]
-            }
-        }
         return vc
-        
+
     }
     
     class func makeMyOffersViewController() -> MyOffersVC {

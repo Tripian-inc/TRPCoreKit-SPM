@@ -25,4 +25,12 @@ extension Int {
         }
         return "\(self) m"
     }
+
+    /// Formats the integer with thousand separators (e.g., 74913 -> "74.913")
+    var formattedWithSeparator: String {
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .decimal
+        formatter.groupingSeparator = "."
+        return formatter.string(from: NSNumber(value: self)) ?? "\(self)"
+    }
 }

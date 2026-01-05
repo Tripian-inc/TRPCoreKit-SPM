@@ -7,7 +7,7 @@
 //
 
 import Foundation
-
+import TRPFoundationKit
 
 public protocol SearchPoiUseCase {
 
@@ -17,11 +17,26 @@ public protocol SearchPoiUseCase {
                           boundarySouthWest: TRPLocation,
                           completion: ((Result<[TRPPoi], Error>, TRPPagination?)-> Void)?
                             )
-    
+
     /// Eğer kullanıcı o şehirde ise çalışır.
     func executeSearchPoi(text: String,
                           categoies: [Int],
                           userLocation: TRPLocation,
+                          completion: ((Result<[TRPPoi], Error>, TRPPagination?)-> Void)?
+                            )
+
+    /// CityId ile arama yapar (boundaries yerine)
+    func executeSearchPoi(text: String,
+                          categories: [Int],
+                          cityId: Int,
+                          completion: ((Result<[TRPPoi], Error>, TRPPagination?)-> Void)?
+                            )
+
+    /// CityId ile sayfalı arama yapar
+    func executeSearchPoi(text: String,
+                          categories: [Int],
+                          cityId: Int,
+                          page: Int?,
                           completion: ((Result<[TRPPoi], Error>, TRPPagination?)-> Void)?
                             )
 }

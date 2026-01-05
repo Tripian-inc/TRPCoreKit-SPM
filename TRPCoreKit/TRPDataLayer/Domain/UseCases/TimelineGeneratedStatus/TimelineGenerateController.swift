@@ -1,0 +1,69 @@
+//
+//  TripGenerateController.swift
+//  TRPDataLayer
+//
+//  Created by Evren Yaşar on 19.08.2020.
+//  Copyright © 2020 Tripian Inc. All rights reserved.
+//
+
+import Foundation
+class TimelineGenerateController {
+    
+    private var dailyPlanGeneraterInterval: DispatchTimeInterval = .seconds(2)
+    private var dailyPlanGeneraterLimit = 30
+    private var dailyPlanGeneraterCount = 0
+    public var repository: TimelineRepository?
+    
+    
+    init() {}
+    
+    
+    public func fetchTimeline(hash: String, completion: ((Result<TRPTimeline, Error>) -> Void)?) {
+
+        repository?.fetchTimeline(tripHash: hash, completion: { [weak self] result in
+            guard let self else {
+                let errorMessage = TimelineLocalizationKeys.localized(TimelineLocalizationKeys.errorSomethingWentWrong)
+                completion?(.failure(GeneralError.customMessage(errorMessage)))
+                return
+            }
+            self.dailyPlanGeneraterCount += 1
+            if self.dailyPlanGeneraterCount > self.dailyPlanGeneraterLimit {
+                let errorMessage = TimelineLocalizationKeys.localized(TimelineLocalizationKeys.errorTimeout)
+                completion?(.failure(GeneralError.customMessage(errorMessage)))
+                self.dailyPlanGeneraterCount = 0
+                return
+            }
+            switch result {
+            case .success(let trip):
+                // If there are no plans (only booked/reserved activities), consider it as successfully generated
+                guard let plans = trip.plans, !plans.isEmpty else {
+                    completion?(.success(trip))
+                    return
+                }
+
+                let generated = plans.map({$0.generatedStatus})
+
+                if generated.contains(0) {
+                    DispatchQueue.global().asyncAfter(deadline: .now() + self.dailyPlanGeneraterInterval) { [weak self] in
+                        self?.fetchTimeline(hash: hash, completion: completion)
+                    }
+                }
+                
+                let firstNotEmptyItineraryIndex = trip.tripProfile?.segments.firstIndex(where: { $0.title != "Empty" && $0.segmentType == .itinerary}) ?? 0
+
+                let firstStatus = generated[firstNotEmptyItineraryIndex]
+                if firstStatus > 0 {
+                    completion?(.success(trip))
+                } else if firstStatus < 0 {
+                    let errorMessage = TimelineLocalizationKeys.localized(TimelineLocalizationKeys.errorGenerationFailed)
+                    completion?(.failure(GeneralError.customMessage(errorMessage)))
+                }
+            case .failure(let error):
+                completion?(.failure(error))
+            }
+        })
+
+    }
+    
+    
+}

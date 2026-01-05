@@ -7,14 +7,7 @@
 //
 
 import Foundation
-
-
-
-
-
-
-
-
+import TRPRestKit
 
 public protocol PlaceDetailVMDelegate: ViewModelDelegate {
     func viewModel(favoriteUpdated: Bool, isFavorite:Bool)
@@ -144,17 +137,18 @@ public class PlaceDetailViewModel1 {
     
     public func getGalleryWithResizered(imageWidth width: Int, imageHeight height: Int) -> [PagingImage] {
         var gallery = [PagingImage]()
-        for image in place.gallery{
-            let url = getImageLink(url: image.url, w: width, h: height)
-            let pagingModel = PagingImage(imageUrl: url, picOwner: image.imageOwner)
+        guard let placeGallery = place.gallery else { return gallery }
+        for image in placeGallery {
+            let url = getImageLink(url: image?.url ?? "", w: width, h: height)
+            let pagingModel = PagingImage(imageUrl: url, picOwner: image?.imageOwner)
             gallery.append(pagingModel)
         }
         return gallery
     }
     
     func getPictureOwner() -> (name:String?, link:String?) {
-        guard let name = place.image.imageOwner?.title,
-            let link = place.image.imageOwner?.url, name.count > 1 else {
+        guard let name = place.image?.imageOwner?.title,
+              let link = place.image?.imageOwner?.url, name.count > 1 else {
                 return (name:nil,link:nil)
         }
         return (name:name, link:link)

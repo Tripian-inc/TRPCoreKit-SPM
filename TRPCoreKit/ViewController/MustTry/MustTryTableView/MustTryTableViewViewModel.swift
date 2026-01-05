@@ -7,9 +7,7 @@
 //
 
 import Foundation
-
-
-
+import TRPRestKit
 
 public class MustTryTableViewViewModel: TableViewViewModelProtocol {
     

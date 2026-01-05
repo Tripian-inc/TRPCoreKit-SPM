@@ -70,7 +70,7 @@ public class TRPCompanionRemoteApi: CompanionRemoteApi {
                 completion(.failure(error))
                 return
             }
-            if let status = result as? TRPParentJsonModel{
+            if result is TRPParentJsonModel{
                 completion(.success(true))
             }
         }

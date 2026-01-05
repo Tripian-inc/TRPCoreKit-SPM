@@ -7,6 +7,7 @@
 //
 
 import Foundation
+import TRPFoundationKit
 
 
 public typealias OfferResultsValue = (Result<[TRPOffer], Error>, TRPPagination?)

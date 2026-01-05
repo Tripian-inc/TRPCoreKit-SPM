@@ -13,6 +13,7 @@ public protocol UserInfoRemoteApi {
     func updateUserInfo(firstName: String?,
                         lastName: String?,
                         password: String?,
+                        currentPassword: String?,
                         dateOfBirth: String?,
                         answers: [Int]?,
                         completion: @escaping (UserInfoResultValue) -> Void)

@@ -118,25 +118,6 @@ public class TRPMessage {
     
     private func calculateHeight(_ height: CGFloat) -> CGFloat {
         
-        /*var isViewAtTop = true
-        if let topController = UIApplication.topViewController() {
-                 if #available(iOS 11.0, *) {
-                     let topConstraint = topController.view.safeAreaInsets.top
-                    print("SIZE TEST \(topConstraint)")
-                    
-                     if topConstraint == 88{
-                         //check if device is inside navbar on iphone x+ devices.
-                         isViewAtTop = false
-                     }
-                 } else {
-                     // Fallback on earlier versions
-                 }
-             }
-        
-        if isViewAtTop && hasTopNotch{
-            return height + 24
-        }
-        return height*/
         if topForIphoneX && hasTopNotch {
             return height + 24
         }
@@ -227,21 +208,5 @@ public class TRPMessage {
     
     @objc func viewPressed() {
         onPressed?(self)
-    }
-}
-extension UIApplication {
-    class func topViewController(controller: UIViewController? = UIApplication.shared.keyWindow?.rootViewController) -> UIViewController? {
-        if let navigationController = controller as? UINavigationController {
-            return topViewController(controller: navigationController.visibleViewController)
-        }
-        if let tabController = controller as? UITabBarController {
-            if let selected = tabController.selectedViewController {
-                return topViewController(controller: selected)
-            }
-        }
-        if let presented = controller?.presentedViewController {
-            return topViewController(controller: presented)
-        }
-        return controller
     }
 }

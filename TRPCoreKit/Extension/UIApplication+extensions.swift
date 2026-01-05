@@ -30,7 +30,7 @@ extension UIApplication {
         }
         return nil
     }
-    private class func currentUIWindow() -> UIWindow? {
+    public class func currentUIWindow() -> UIWindow? {
         let connectedScenes = UIApplication.shared.connectedScenes
             .filter({
                 $0.activationState == .foregroundActive})

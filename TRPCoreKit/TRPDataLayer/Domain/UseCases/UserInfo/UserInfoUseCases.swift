@@ -22,6 +22,7 @@ public protocol UpdateUserInfoUseCase {
     func executeUpdateUserInfo(firstName: String?,
                                lastName: String?,
                                password: String?,
+                               currentPassword: String?,
                                dateOfBirth: String?,
                                answers: [Int]?,
                                completion: ((Result<TRPUser, Error>) -> Void)? )

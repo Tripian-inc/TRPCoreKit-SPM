@@ -7,6 +7,7 @@
 //
 
 import Foundation
+import TRPRestKit
 
 public protocol PoiLocalStorage {
     func fetchLocalPoi(completion: @escaping (PoiResultsValue) -> Void)

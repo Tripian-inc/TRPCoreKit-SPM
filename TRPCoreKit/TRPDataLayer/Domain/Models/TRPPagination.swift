@@ -17,10 +17,6 @@ public enum TRPPagination {
 
 extension TRPPagination: Hashable {
     
-    public var hashValue: Int {
-        return rawValue.hashValue
-    }
-    
     public static func == (lhs: TRPPagination, rhs: TRPPagination) -> Bool {
         return lhs.rawValue == rhs.rawValue
     }

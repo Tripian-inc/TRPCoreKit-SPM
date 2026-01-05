@@ -38,7 +38,7 @@ class NetworkStatusManager: NSObject {
         do {
             try reachability.startNotifier()
         }catch let error as NSError {
-            Log.e("\(error.localizedDescription)")
+//            Log.e("\(error.localizedDescription)")
         }
     }
     

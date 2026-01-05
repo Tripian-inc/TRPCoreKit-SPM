@@ -15,9 +15,9 @@ class PopupWebView {
         
     }
     var btnAction: (() -> Void)?
-    func show(url: String, parentViewController: UIViewController? = nil ) {
+    func show(url: String) {
         
-        guard let topViewController = getViewController(parentViewController) else {
+        guard let topViewController = UIApplication.getTopViewController() else {
             print("[Error] TopViewController is nil")
             return
         }
@@ -101,24 +101,5 @@ class PopupWebView {
                 self.container.removeFromSuperview()
             }
         }
-    }
-    
-    
-    private func getViewController(_ parent: UIViewController?) -> UIViewController? {
-        if let parent = parent {
-            return parent
-        }
-        return getTopViewController()
-    }
-    
-    private func getTopViewController() -> UIViewController? {
-        let keyWindow = UIApplication.shared.windows.filter {$0.isKeyWindow}.first
-        if var topController = keyWindow?.rootViewController {
-            while let presentedViewController = topController.presentedViewController {
-                topController = presentedViewController
-            }
-            return topController
-        }
-        return nil
     }
 }

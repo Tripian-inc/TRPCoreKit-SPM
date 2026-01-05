@@ -16,8 +16,8 @@ public class TRPQuestionsUseCases {
     }
     
     
-    /// Repository içinde soruların var olup olmadığını kontrol eder
-    /// - Parameter category: Soru tipi
+    /// Checks if the repository contains any questions of the specified category
+    /// - Parameter category: Question type
     /// - Returns: Bool
     private func contaionInRepository(category: QuestionCategory) -> Bool {
         return repository.questions.contains(where: { (key, questions) -> Bool in
@@ -30,10 +30,10 @@ public class TRPQuestionsUseCases {
     
     
     
-    /// Category e göre cevapları getirir.
-    ///  Eger cevaplar daha önce getirildiyse onları döndürür.
+    /// Retrieves answers by category.
+    /// If answers have already been fetched before, returns those.
     /// - Parameters:
-    ///   - category: Soru tipi
+    ///   - category: Question type
     ///   - completion:
     private func questionController(category: QuestionCategory,
                                     completion: @escaping ((Result<[TRPQuestion], Error>) -> Void)) {

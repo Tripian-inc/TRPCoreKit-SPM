@@ -7,9 +7,9 @@
 //
 
 import Foundation
+import TRPFoundationKit
 
 final public class TRPPoiRepository: PoiRepository {
-    
     
     private let USE_CACHE = true
     
@@ -205,7 +205,6 @@ final public class TRPPoiRepository: PoiRepository {
             switch result {
             case .success(let poiCategories):
                 strongSelf.poiCategories = poiCategories
-//                poiCategories.insert(TRPPoiCategoyGroup(name: TRPLanguagesController.shared.getLanguageValue(for: "all"), categories: []), at: -11)
                 completion((.success(poiCategories)))
             case .failure(let error):
                 completion((.failure(error)))
@@ -215,7 +214,7 @@ final public class TRPPoiRepository: PoiRepository {
 }
 
 
-//MARK: LOGİC
+//MARK: LOGIC
 extension TRPPoiRepository {
     
     
@@ -237,8 +236,6 @@ extension TRPPoiRepository {
         }
         return nil
     }
-    
-    
     
     
     /// Sadece poi id istendiğinde kullanılır. Mevcut poilere bakılarak var olanlar çıkarılır. Eksik olalar ise talep edilir.

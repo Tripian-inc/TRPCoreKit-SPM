@@ -7,10 +7,9 @@
 //
 
 import Foundation
-
-
-
 import CoreLocation
+import TRPFoundationKit
+import TRPRestKit
 
 enum MustTryCellType {
     case poi, description, whereToTrys
@@ -94,7 +93,7 @@ public final class MustTryDetailViewModel: TableViewViewModelProtocol {
         
         guard let poi = cellViewModels[indexPath.row].data as? TRPPoi else { return nil }
         
-        let mUrl = poi.image.url
+        let mUrl = poi.image?.url
         guard let link = TRPImageResizer.generate(withUrl: mUrl, standart: .small) else {
             return nil
         }

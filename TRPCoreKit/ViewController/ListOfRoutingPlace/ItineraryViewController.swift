@@ -204,13 +204,8 @@ extension ItineraryViewController {
             actionVC.itemAction = { item in
                 strongSelf.delegate?.itineraryViewControllerPoiDetail(strongSelf, poi: pois[item], parentStep: step)
             }
-            if #available(iOS 15.0, *) {
-                if let sheet = actionVC.sheetPresentationController {
-                    sheet.detents = [.medium(), .large()]
-                }
-            }
-            
-            self?.present(actionVC, animated: false, completion: nil)
+
+            self?.presentVCWithModal(actionVC)
         }
     }
 }

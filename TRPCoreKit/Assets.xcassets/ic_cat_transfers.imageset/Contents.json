@@ -1,0 +1,12 @@
+{
+  "images" : [
+    {
+      "filename" : "ic_cat_transfers.svg",
+      "idiom" : "universal"
+    }
+  ],
+  "info" : {
+    "author" : "xcode",
+    "version" : 1
+  }
+}

@@ -22,8 +22,6 @@ public class TRPProvider {
         }
     }
     
-    /// Api keyi döndüren methodudur.
-    /// Eğer api key Info.Plist üzerinden döndürülürmesi gerekirse diye eklendi.
     func getGygApiKey() -> String {
         return TRPProvider.shared.gygApiKey ?? ""
     }

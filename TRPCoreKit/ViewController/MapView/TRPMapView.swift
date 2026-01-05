@@ -7,11 +7,14 @@
 //
 
 import UIKit
-import Mapbox
+import MapboxMaps
 import MapboxDirections
+import TRPFoundationKit
 
 
 public class TRPMapView: UIView {
+    private var cancelables = Set<AnyCancelable>()
+    private var locationTrackingCancellation: AnyCancelable?
     
     public enum StyleAnnotatoin: String {
         case alternativePois = "alternativePoisAnnotation"
@@ -39,62 +42,77 @@ public class TRPMapView: UIView {
     }
     
     private var drawStyle: DrawStyle = .dotted
-    private var mapView: MGLMapView?;
+    private var mapView: MapView?;
     private var startLocation: CLLocationCoordinate2D?
+    
+    fileprivate var isImagesAdded = false
+//    fileprivate var pointsSource: MGLShapeSource?
+    public weak var delegate: TRPMapViewDelegate?
+    public var clickableLayerTags = [String]()
+    private var startZoomLevel: Double = 12
+    private var viewDidLoad = false
+    
+    private var addedAnnotations = [String: [ViewAnnotation]]()
+    private var addedRoutes = [String: [Route]]()
+    
+    
     private var didMapLoaded: Bool = false {
         didSet {
             runMap()
         }
     }
-    //private var rotaAnnotations = [TRPPointAnnotation]();
-    fileprivate var runTimeRoute: CustomPolyLine?
+    
+//    fileprivate var runTimeRoute: CustomPolyLine?
     
     public var showUserLocation: Bool = true{
         didSet {
-            mapView?.showsUserLocation = showUserLocation
+            mapView?.location.options.puckType = showUserLocation ? .puck2D() : nil
+            mapView?.location.options.puckBearingEnabled = showUserLocation
         }
     }
     
     public var userLocation: TRPLocation? {
         get {
-            guard let location = mapView?.userLocation else {
-                return nil
+            guard let center = mapView?.mapboxMap.cameraState.center else {
+                return TRPLocation(lat: 0, lon: 0)
             }
-            return TRPLocation(lat: location.coordinate.latitude, lon: location.coordinate.longitude)
+            return TRPLocation(lat: center.latitude, lon: center.longitude)
         }
     }
     
     public var centerCoordinate: TRPLocation {
-        get{return TRPLocation(lat: mapView?.centerCoordinate.latitude ?? 0, lon: mapView?.centerCoordinate.longitude ?? 0)}
+        get {
+            guard let center = mapView?.mapboxMap.cameraState.center else {
+                return TRPLocation(lat: 0, lon: 0)
+            }
+            return TRPLocation(lat: center.latitude, lon: center.longitude)
+        }
     }
     
-    public var visibleCoordinateBounds:  (nE:TRPLocation, sW: TRPLocation)? {
-        guard let ne = mapView?.visibleCoordinateBounds.ne, let sw = mapView?.visibleCoordinateBounds.sw else {return nil}
-        let northEast = TRPLocation(lat: ne.latitude, lon: ne.longitude)
-        let southWest = TRPLocation(lat: sw.latitude, lon: sw.longitude)
-        return (nE: northEast, sW: southWest)
+    public var visibleCoordinateBounds: (nE: TRPLocation, sW: TRPLocation)? {
+        guard let mapView = mapView else { return nil }
+        let bounds = mapView.mapboxMap.coordinateBounds(for: mapView.bounds)
+        let ne = TRPLocation(lat: bounds.northeast.latitude, lon: bounds.northeast.longitude)
+        let sw = TRPLocation(lat: bounds.southwest.latitude, lon: bounds.southwest.longitude)
+        
+        return (nE: ne, sW: sw)
     }
-    
     
     public var zoomLevel: Double {
-        get {return mapView?.zoomLevel ?? 0}
+        get {return Double(mapView?.mapboxMap.cameraState.zoom ?? 0)}
     }
     
     public var showRadius: Double {
         get {
             guard let mapView = mapView else {return 3}
-            let currentLocation = CLLocation(latitude: mapView.centerCoordinate.latitude, longitude: mapView.centerCoordinate.longitude)
-            let neLocation = CLLocation(latitude: mapView.visibleCoordinateBounds.ne.latitude, longitude: mapView.visibleCoordinateBounds.ne.longitude)
+            let bounds = mapView.mapboxMap.coordinateBounds(for: mapView.bounds)
+            let currentLocation = CLLocation(latitude: mapView.mapboxMap.cameraState.center.latitude,
+                                             longitude: mapView.mapboxMap.cameraState.center.longitude)
+            let neLocation = CLLocation(latitude: bounds.northeast.latitude,
+                                      longitude: bounds.northeast.longitude)
             return neLocation.distance(from: currentLocation) / 1000
         }
     }
-    
-    fileprivate var isImagesAdded = false
-    fileprivate var pointsSource: MGLShapeSource?
-    public weak var delegate: TRPMapViewDelegate?
-    public var clickableLayerTags = [String]()
-    private var startZoomLevel: Double = 12
-    private var viewDidLoad = false
     
     
     init(frame: CGRect, startLocation: LocationCoordinate? = nil, zoomLevel: Double? = nil) {
@@ -118,16 +136,70 @@ public class TRPMapView: UIView {
     }
     
     // Add Route Annotations with order Label (Kullancının gideceği mekanların olduğu)
-    public func addAnnotations(_ annotations: [TRPPointAnnotation]){
-        //rotaAnnotations.append(contentsOf: annotations)
-        mapView?.addAnnotations(annotations)
+    public func addViewAnnotations(_ annotations: [TRPPointAnnotation], annotationOrder: Int = 0) -> [ViewAnnotation] {
+        
+        let viewAnnotations = annotations.map { $0.asViewAnnotation(annotationOrder: annotationOrder, tapHandler: { [weak self, placeId = $0.poiId] _ in
+            if let placeId = placeId {
+                self?.delegate?.mapView(annotationPressed: placeId, type: .styleAnnotation)
+            }
+        })}
+        addAnnotationToMap(viewAnnotations)
+        return viewAnnotations
     }
     
+    private func addAnnotationToMap(_ viewAnnotations: [ViewAnnotation]) {
+        viewAnnotations.forEach {
+            mapView?.viewAnnotations.add($0)
+        }
+    }
     
-    //Remove all annotation on MapView
-    public func clearAnnotation()  {
-        if let annotations = mapView?.annotations {
-            mapView?.removeAnnotations(annotations)
+    // Add Route Annotations with order Label (Kullancının gideceği mekanların olduğu)
+    public func addViewAnnotations(_ annotations: [TRPPointAnnotation], segmentId: String, annotationOrder: Int){
+        let viewAnnotations = self.addViewAnnotations(annotations, annotationOrder: annotationOrder)
+        addedAnnotations[segmentId] = viewAnnotations
+    }
+    
+    public func cleanAllAnnotations() {
+        addedAnnotations.removeAll()
+        clearViewAnnotation()
+//        addedRoutes.keys.forEach { removeRoute(segmentId: $0) }
+//        addedRoutes.removeAll()
+    }
+    
+    public func cleanAnnotationList(for segmentId: String) {
+        addedAnnotations.removeValue(forKey: segmentId)
+        clearViewAnnotation()
+        // Yeniden ekle
+        for annos in addedAnnotations.values {
+            addAnnotationToMap(annos)
+        }
+        
+//        removeRoute(segmentId: segmentId)
+    }
+
+    public func clearViewAnnotation()  {
+        mapView?.viewAnnotations.removeAll()
+    }
+    
+    public func showHideMapLayers(isShow: Bool)  {
+        mapView?.viewAnnotations.allAnnotations.forEach { anno in
+            anno.visible = isShow
+        }
+        do {
+            try addedRoutes.keys.forEach { key in
+                try mapView?.mapboxMap.updateLayer(withId: key + "_line", type: LineLayer.self) { layer in
+                    layer.visibility = .constant(isShow ? .visible : .none)
+                }
+            }
+          // Where LAYER_ID is the layer ID for an existing layer
+            try mapView?.mapboxMap.updateLayer(withId: TRPMapView.DrawRouteStyle.runtime.rawValue, type: LineLayer.self) { layer in
+                layer.visibility = .constant(isShow ? .visible : .none)
+            }
+            try mapView?.mapboxMap.updateLayer(withId: TRPMapView.DrawRouteStyle.rota.rawValue, type: LineLayer.self) { layer in
+                layer.visibility = .constant(isShow ? .visible : .none)
+            }
+        } catch {
+          print("Failed to hide layer due to error: (error)")
         }
     }
     
@@ -136,45 +208,40 @@ public class TRPMapView: UIView {
     }
     
     public func getVisibleCoordBounds() -> (LocationCoordinate, LocationCoordinate)? {
-        guard let mapView = mapView else {return nil}
-        let ne = LocationCoordinate(mapView.visibleCoordinateBounds.ne.latitude, mapView.visibleCoordinateBounds.ne.longitude)
-        let sw = LocationCoordinate(mapView.visibleCoordinateBounds.sw.latitude, mapView.visibleCoordinateBounds.sw.longitude)
-        return (ne,sw)
+        guard let mapView = mapView else { return nil }
+        let bounds = mapView.mapboxMap.coordinateBounds(for: mapView.bounds)
+        let ne = LocationCoordinate(bounds.northeast.latitude, bounds.northeast.longitude)
+        let sw = LocationCoordinate(bounds.southwest.latitude, bounds.southwest.longitude)
+        return (ne, sw)
     }
     
     public func setTrackingMode(_ mode: TRPUserTrackingMode, animated:Bool) {
         guard let mapView = mapView else {return}
-        var trackingMode = MGLUserTrackingMode.none
         switch mode {
         case .none:
-            trackingMode = .none
+            locationTrackingCancellation = nil
             break
-        case .follow:
-            trackingMode = .follow
-            break
-        case .followWithCourse:
-            trackingMode = .followWithCourse
-            break
-        case .followWithHeading:
-            trackingMode = .followWithHeading
+        case .follow, .followWithCourse, .followWithHeading:
+            locationTrackingCancellation = mapView.location.onLocationChange.observe { [weak mapView] newLocation in
+                guard let location = newLocation.last, let mapView else { return }
+                mapView.camera.ease(
+                    to: CameraOptions(center: location.coordinate, zoom: 12),
+                    duration: 1.3)
+            }
             break
         }
-        mapView.setUserTrackingMode(trackingMode, animated: animated, completionHandler: nil)
-        mapView.showsUserHeadingIndicator = true
     }
     
     public func setCenter(_ location: TRPLocation, zoomLevel: Double? = nil){
         guard let mapView = mapView else { return }
         if let zoom = zoomLevel {
-            mapView.setCenter(CLLocationCoordinate2D(latitude: location.lat, longitude: location.lon), zoomLevel: zoom, animated: true)
-        }else {
-            mapView.setCenter(CLLocationCoordinate2D(latitude: location.lat, longitude: location.lon), animated: true)
+            mapView.setMapCenter(latitude: location.lat, longitude: location.lon, zoomLevel: zoom)
         }
     }
     
     public func setZoomLevel(_ zoomLevel: Double) {
         if let map = mapView {
-            map.zoomLevel = zoomLevel
+            map.camera.ease(to: CameraOptions(zoom: zoomLevel), duration: 0)
         }
     }
     
@@ -185,29 +252,71 @@ public class TRPMapView: UIView {
 
 
 // MARK: - MapBox settings
-extension TRPMapView: MGLMapViewDelegate{
+extension TRPMapView {
     
     //Setup Map View
     func setupMapView() {
-        //styleURL:MGLStyle.outdoorsStyleURL
-        // MGLStyle.streetsStyleURL
-        // let style = URL(string: "mapbox://styles/evrenyasar/ckg6adve327t719qiw9276go1")
+        let camera = CameraOptions(center: startLocation, zoom: startZoomLevel)
         
-        mapView = MGLMapView(frame: self.bounds,
-                             styleURL: MGLStyle.streetsStyleURL)
-        guard let mapView = mapView else {return}
+        // Use light style for white/light roads
+        let styleURI = StyleURI.streets
+        let options = MapInitOptions(cameraOptions: camera, styleURI: styleURI)
+        
+        mapView = MapView(frame: self.bounds, mapInitOptions: options)
+        
+        guard let mapView = mapView else { return }
         mapView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
-        if let start = startLocation {
-            mapView.setCenter(start, zoomLevel: startZoomLevel, animated: false)
-        }
         
-        mapView.delegate = self
-        mapView.compassView.isHidden = true
-        mapView.showsUserLocation = showUserLocation
+        mapView.camera.ease(to: camera, duration: 0)
+        
+        mapView.location.options.puckType = .puck2D()
+        mapView.location.options.puckBearingEnabled = true
+        
+        // Hide Mapbox attribution, logo, and scale bar by moving them off screen
+        mapView.ornaments.options.logo.margins = CGPoint(x: -1000, y: -1000)
+        mapView.ornaments.options.attributionButton.margins = CGPoint(x: -1000, y: -1000)
+        mapView.ornaments.options.scaleBar.visibility = .hidden
+        
+        // Setup delegates and gestures
+        mapView.gestures.delegate = self
+        mapView.mapboxMap.onMapLoaded.observeNext {  [weak self] _ in
+            self?.didMapLoaded = true
+        }.store(in: &cancelables)
+
+        // Hide POI labels after style loads for a cleaner map
+        mapView.mapboxMap.onStyleLoaded.observeNext { [weak self] _ in
+            self?.hidePOILayers()
+        }.store(in: &cancelables)
+
         addClickPropetyForAnnotations()
         addSubview(mapView)
     }
-    
+
+    /// Hide POI and place label layers for a cleaner map appearance
+    private func hidePOILayers() {
+        guard let mapView = mapView else { return }
+
+        // Layer IDs to hide (POI labels, transit labels, place labels)
+        let layersToHide = [
+            "poi-label",
+            "transit-label",
+            "airport-label",
+            "settlement-subdivision-label",
+            "settlement-minor-label",
+            "settlement-major-label"
+        ]
+
+        for layerId in layersToHide {
+            do {
+                try mapView.mapboxMap.updateLayer(withId: layerId, type: SymbolLayer.self) { layer in
+                    layer.visibility = .constant(.none)
+                }
+            } catch {
+                // Layer might not exist in this style, ignore
+            }
+        }
+    }
+
     /// Tüm maps üzerine clickable yapı haline getirir.
     /// Style ikonlarının İDlerini almak için kullanılır.
     private func addClickPropetyForAnnotations() {
@@ -221,94 +330,26 @@ extension TRPMapView: MGLMapViewDelegate{
     }
     
     @objc fileprivate func handleMapTap(sender: UITapGestureRecognizer) {
-        guard let mapView =  mapView else {return}
+        delegate?.mapViewCloseAnnotation(self)
+        guard let mapView = mapView else {return}
+        let coordinate = mapView.mapboxMap.coordinate(for: sender.location(in: mapView))
+        delegate?.mapView(clickedLocation: TRPLocation(lat: coordinate.latitude, lon: coordinate.longitude))
+    }
+}
+
+extension TRPMapView: GestureManagerDelegate {
+    public func gestureManager(_ gestureManager: MapboxMaps.GestureManager, didBegin gestureType: MapboxMaps.GestureType) {
         
-        let spot = sender.location(in: mapView)
-        let features = mapView.visibleFeatures(at: spot, styleLayerIdentifiers: Set(clickableLayerTags))
-        let f1 = mapView.visibleAnnotations(in: CGRect(x: spot.x - 10, y: spot.y - 10, width: 20, height: 20))
+    }
+    
+    public func gestureManager(_ gestureManager: MapboxMaps.GestureManager, didEndAnimatingFor gestureType: MapboxMaps.GestureType) {
+        if gestureType == .pan {
+            delegate?.mapView(self, regionDidChangeAnimated: true)
+        }
+    }
+    
+    public func gestureManager(_ gestureManager: MapboxMaps.GestureManager, didEnd gestureType: MapboxMaps.GestureType, willAnimate: Bool) {
         
-        if let annotation = f1?.first, let trpAnnotation = annotation as? TRPPointAnnotation, let id = trpAnnotation.poiId {
-            delegate?.mapView(self, annotationPressed: id, type: .viewAnnotation)
-        }else if let feature = features.first, let placeId = feature.attribute(forKey: "placeId") as? String {
-            if (feature.attribute(forKey: "image") as? String) == "NexusTour" {
-                delegate?.mapView(self, annotationPressed: placeId, type: .tourAnnotation)
-            } else {
-                delegate?.mapView(self, annotationPressed: placeId, type: .styleAnnotation)
-            }
-        } else {
-            
-            delegate?.mapViewCloseAnnotation(self)
-        }
-    }
-    
-    public func mapViewDidFinishLoadingMap(_ mapView: MGLMapView) {
-        if didMapLoaded == false {
-            addRouteSource(features: [])
-            delegate?.mapViewDidFinishLoading(self)
-        }
-        didMapLoaded = true
-    }
-    
-    public func mapView(_ mapView: MGLMapView, regionDidChangeAnimated animated: Bool) {
-        delegate?.mapView(self, regionDidChangeAnimated: animated)
-    }
-    
-    public func mapView(_ mapView: MGLMapView, didSelect annotation: MGLAnnotation) {
-        if let trpAnnotation = annotation as? TRPPointAnnotation, let id = trpAnnotation.poiId {
-            delegate?.mapView(self, annotationPressed: id, type: .viewAnnotation)
-        }
-    }
-    
-    public func mapView(_ mapView: MGLMapView, viewFor annotation: MGLAnnotation) -> MGLAnnotationView? {
-        guard let castAnnotation = annotation as? TRPPointAnnotation,
-              let imageName = castAnnotation.imageName else {
-            return nil
-        }
-        let reuseIdentifier = imageName
-        let annotationView = TRPRotaAnnotationView(reuseIdentifier: reuseIdentifier,
-                                                   imageName: imageName,
-                                                   order: castAnnotation.order,
-                                                   isOffer: castAnnotation.isOffer)
-        annotationView.frame = CGRect(x: 0, y: 0, width: 44, height: 44)
-        return annotationView
-    }
-    
-    public func mapView(_ mapView: MGLMapView, didChange mode: MGLUserTrackingMode, animated: Bool) {
-        switch mode {
-        case .follow:
-            delegate?.mapView(self, didChange: TRPUserTrackingMode.follow)
-        case .followWithCourse:
-            delegate?.mapView(self, didChange: TRPUserTrackingMode.followWithCourse)
-        case .followWithHeading:
-            delegate?.mapView(self, didChange: TRPUserTrackingMode.followWithHeading)
-        case .none:
-            delegate?.mapView(self, didChange: TRPUserTrackingMode.none)
-        @unknown default:
-            ()
-        }
-    }
-    
-    public func mapView(_ mapView: MGLMapView, didUpdate userLocation: MGLUserLocation?) {
-        if let location = userLocation?.coordinate {
-            delegate?.mapView(self, userLocationUpdate: TRPLocation(lat: location.latitude, lon: location.longitude))
-        }
-    }
-    
-    public func mapViewWillStartLocatingUser(_ mapView: MGLMapView) {
-        delegate?.mapViewWillStartLocationingUser(self)
-    }
-    
-    public func mapViewDidStopLocatingUser(_ mapView: MGLMapView) {
-        delegate?.mapViewDidStopLocationingUser(self)
-    }
-    
-    public func mapView(_ mapView: MGLMapView, strokeColorForShapeAnnotation annotation: MGLShape) -> UIColor {
-        if let annotation = annotation as? CustomPolyLine {
-            // Return orange if the polyline does not have a custom color.
-            return annotation.color ?? .blue
-        }
-        // Fallback to the default tint color.
-        return mapView.tintColor
     }
 }
 
@@ -318,9 +359,8 @@ extension TRPMapView {
     //To add Image on mapview
     fileprivate func addSyleImages() {
         if isImagesAdded == true {return}
-        guard let style = mapView?.style else {return}
         for image in delegate?.mapViewImagesForFilteringLayers(self) ?? [] {
-            style.setImage(image.uiImage, forName: image.tag)
+            try? mapView?.mapboxMap.addImage(image.uiImage, id: image.tag)
         }
         isImagesAdded = true
     }
@@ -336,98 +376,57 @@ extension TRPMapView {
     /// Her point in tıklandığında ID sini dondururlur
     /// - Parameter points: Eklenecek Pointlerini ozelliklerini dizisi
     public func addPointsForAlternative(_ points: [TRPPointAnnotationFeature],
-                                        styleAnnotation:StyleAnnotatoin,
-                                        clickAble: Bool = true) {
-        let points = points.map{trpPointToMGLPointsFeature($0)}
-        if clickAble {
+                                        styleAnnotation: StyleAnnotatoin,
+                                        clickable: Bool = true) {
+        if clickable {
             clickableLayerTags.append(styleAnnotation.rawValue)
         }
         addItemsToMap(features: points, sourseIdentifier: styleAnnotation.rawValue)
     }
     
-    public func removePointsForAlternative(styleAnnotation:StyleAnnotatoin) {
-        guard let style = mapView?.style else {return}
-        if let source = style.source(withIdentifier: styleAnnotation.rawValue) as? MGLShapeSource{
-            source.shape = MGLShapeCollectionFeature(shapes: [])
-            let symbols = MGLSymbolStyleLayer(identifier: styleAnnotation.rawValue, source: source)
-            style.removeLayer(symbols)
-            style.removeSource(source)
-        }
-    }
-    public func addPointsForNexusTours(_ points: [JuniperProduct],
-                                        styleAnnotation:StyleAnnotatoin,
-                                        clickAble: Bool = true) {
-        var mglPoints = [MGLPointFeature]()
-        for point in points {
-            if let lat = point.serviceInfo?.latitude, let lon = point.serviceInfo?.longitude {
-                let pointFeature = MGLPointFeature()
-                pointFeature.coordinate = CLLocationCoordinate2D(latitude: lat, longitude: lon)
-                pointFeature.attributes = ["image":"NexusTour", "placeId": point.code, "title": point.serviceInfo?.name ?? "" ]
-                mglPoints.append(pointFeature)
-            }
-        }
-//        let points = points.map{trpPointToMGLPointsFeature($0)}
-        if clickAble {
-            clickableLayerTags.append(styleAnnotation.rawValue)
-        }
-        addItemsToMap(features: mglPoints, sourseIdentifier: styleAnnotation.rawValue)
-    }
-    
-    public func removePointsForNexusTours(styleAnnotation:StyleAnnotatoin) {
-        guard let style = mapView?.style else {return}
-        if let source = style.source(withIdentifier: styleAnnotation.rawValue) as? MGLShapeSource{
-            source.shape = MGLShapeCollectionFeature(shapes: [])
-            let symbols = MGLSymbolStyleLayer(identifier: styleAnnotation.rawValue, source: source)
-            style.removeLayer(symbols)
-            style.removeSource(source)
+    public func removePointsForAlternative(styleAnnotation: StyleAnnotatoin) {
+        guard let mapView = mapView else {return}
+        do {
+            try mapView.mapboxMap.removeLayer(withId: styleAnnotation.rawValue)
+        } catch {
+            Log.e("Failed to remove layer due to error: (error)")
         }
     }
     
-    private func trpPointToMGLPointsFeature(_ trpPoint: TRPPointAnnotationFeature) -> MGLPointFeature {
-        let mgl = MGLPointFeature()
-        mgl.coordinate = CLLocationCoordinate2D(latitude: trpPoint.lat, longitude: trpPoint.lon)
-        mgl.attributes = ["image":trpPoint.iconType, "placeId":trpPoint.id, "title":trpPoint.name]
-        return mgl
-    }
-    
-    private func addItemsToMap(features: [MGLPointFeature], sourseIdentifier sourceId: String) {
-        guard let style = mapView?.style else {return}
+    private func addItemsToMap(features: [TRPPointAnnotationFeature], sourseIdentifier sourceId: String) {
+        guard let mapView = mapView else { return }
         
-        if let source = style.source(withIdentifier: sourceId) as? MGLShapeSource{
-            source.shape = MGLShapeCollectionFeature(shapes: features)
-        }else {
+        let featureList = features.map { feature -> Feature in
+            let properties = ["image": feature.iconType,
+                              "placeId": feature.id,
+                              "title": feature.name]
+            var feature = Feature(geometry: .point(Point(CLLocationCoordinate2D(latitude: feature.lat, longitude: feature.lon))))
+            feature.properties = JSONObject(rawValue: properties)
+            return feature
+        }
+        
+        let featureCollection = FeatureCollection(features: featureList)
+        
+        if isMapSourceExist(id: sourceId) {
+            mapView.mapboxMap.updateGeoJSONSource(withId: sourceId, geoJSON: .featureCollection(featureCollection))
+        } else {
+            var source = GeoJSONSource(id: sourceId)
+            source.data = .featureCollection(featureCollection)
+            try? mapView.mapboxMap.addSource(source)
             
-            let newSource = MGLShapeSource(identifier: sourceId,
-                                           features: features,
-                                           options: [.clustered: false])
-            style.addSource(newSource)
-            let symbols = MGLSymbolStyleLayer(identifier: sourceId, source: newSource)
-            symbols.iconImageName = NSExpression(format: "image")
-            symbols.iconAllowsOverlap = NSExpression(forConstantValue: "true")
-            //symbols.predicate = NSPredicate(format: "cluster != YES")
-            style.addLayer(symbols)
-            
-            //Cluster Layer stili. Yeni  oluşacak annotation.
-//            let clusterLayer = MGLSymbolStyleLayer(identifier: "\(sourceId)clustered", source: newSource)
-//            clusterLayer.textColor = NSExpression(forConstantValue: UIColor.white)
-//            clusterLayer.textFontSize = NSExpression(forConstantValue: NSNumber(value: 14))
-//            clusterLayer.iconAllowsOverlap = NSExpression(forConstantValue: true)
-//            
-//            // Style image clusters
-//            if let blueAnnotation = TRPImageController().getImage(inFramework: TRPAppearanceSettings.MapAnnotations.clustersImage.imageName, inApp: nil) {
-//                style.setImage(blueAnnotation, forName: TRPAppearanceSettings.MapAnnotations.clustersImage.tag)
-//            }
-//            
-//            //Zoom levelda görüntülenecek annotationlar
-//            let stops = [
-//                100: NSExpression(forConstantValue: TRPAppearanceSettings.MapAnnotations.clustersImage.tag)
-//            ]
-//            
-//            //Default annotation
-//            let defaultShape = NSExpression(forConstantValue: TRPAppearanceSettings.MapAnnotations.clustersImage.tag)
-//            clusterLayer.iconImageName = NSExpression(format: "mgl_step:from:stops:(point_count, %@, %@)", defaultShape, stops)
-//            clusterLayer.text = NSExpression(format: "CAST(point_count, 'NSString')")
-//            style.addLayer(clusterLayer)
+            var layer = SymbolLayer(id: sourceId, source: sourceId)
+            layer.iconImage = .expression(
+                Exp(.get) { "image" }
+            )
+            layer.iconAllowOverlap = .constant(true)
+            try? mapView.mapboxMap.addLayer(layer)
+            mapView.gestures.onLayerTap(layer.id) { [weak self] queriedFeature, _ in
+                if let selectedFeatureProperties = queriedFeature.feature.properties?.dictionary, let placeId = selectedFeatureProperties["placeId"] as? String {
+                    self?.delegate?.mapView(annotationPressed: placeId, type: .styleAnnotation)
+                    return true
+                }
+                return false
+            }.store(in: &cancelables)
         }
     }
     
@@ -437,137 +436,100 @@ extension TRPMapView {
 // MARK: calculateRoute
 extension TRPMapView {
     
-    public func drawRuntimeRoute(_ route: Route, color: UIColor = UIColor.blue, edge: UIEdgeInsets = UIEdgeInsets(top: 20, left: 20, bottom: 20, right: 20)) {
-        if runTimeRoute != nil {
-            self.mapView?.removeAnnotation(runTimeRoute!)
-        }
-        
-        guard var routeCoordinates = route.shape?.coordinates, routeCoordinates.count > 0 else {
+    public func drawRoute(_ route: Route, style: DrawRouteStyle? = nil, segmentId: String? = nil, segmentOrder: Int = 0) {
+        guard let routeCoordinates = route.shape?.coordinates, routeCoordinates.count > 0 else {
             return
         }
-        let routeCount = UInt(routeCoordinates.count)
         
-        
-        let routeLine = CustomPolyLine(coordinates: &routeCoordinates, count: routeCount)
-        routeLine.color = color
-        runTimeRoute = routeLine
-        self.mapView?.addAnnotation(routeLine)
-        self.mapView?.setVisibleCoordinates(&routeCoordinates, count: routeCount, edgePadding: edge, animated: true)
-    }
-    
-    public func drawRoute(_ route: Route, style: DrawRouteStyle, edge: UIEdgeInsets = UIEdgeInsets(top: 40, left: 40, bottom: 80, right: 40)) {
-        guard var routeCoordinates = route.shape?.coordinates, routeCoordinates.count > 0 else {
-            return
-        }
-        let routeCount = UInt(routeCoordinates.count)
-        
-        drawRouteDottedLine(route, tag: style.rawValue, color: style.getColor())
-        
-        self.mapView?.setVisibleCoordinates(&routeCoordinates,
-                                            count: routeCount,
-                                            edgePadding: edge,
-                                            animated: true)
-    }
-    
-    public func drawCarRoute(_ route: Route, edge: UIEdgeInsets = UIEdgeInsets(top: 40, left: 40, bottom: 80, right: 40)) {
-        //TODO: - EVREN
-        guard var routeCoordinates = route.shape?.coordinates, routeCoordinates.count > 0 else {
-            return
-        }
-        let routeCount = UInt(routeCoordinates.count)
-       
-        drawRouteLine(route, color: DrawRouteStyle.rota.getColor())
-        
-        self.mapView?.setVisibleCoordinates(&routeCoordinates,
-                                            count: routeCount,
-                                            edgePadding: edge,
-                                            animated: true)
-    }
-    public func removeRoute(style: DrawRouteStyle) {
-        guard let map = mapView else {return}
-        if let source = map.style?.source(withIdentifier: style.rawValue) as? MGLShapeSource {
+//        if let style {
+//            drawRouteDottedLine(route, tag: style.rawValue, color: style.getColor())
+//        }
+        if let segmentId {
+            var routes = [route]
+            if let addedRoute = addedRoutes[segmentId] {
+                routes.append(contentsOf: addedRoute)
+            }
             
-            source.shape = MGLShapeCollectionFeature(shapes: [])
+            addedRoutes[segmentId] = routes
+            
+            if routes.count > 1 {
+                
+            }
+//            drawRouteDottedLine(route, tag: segmentId + "_line", color: ColorSet.getMapColor(segmentOrder))
+        }
+        
+        let referenceCamera = CameraOptions(zoom: zoomLevel, bearing: 0)
+        
+        // Fit camera to the given coordinates.
+        if let camera = try? mapView?.mapboxMap.camera(
+            for: routeCoordinates,
+            camera: referenceCamera,
+            coordinatesPadding: .zero,
+            maxZoom: nil,
+            offset: nil) {
+            mapView?.mapboxMap.setCamera(to: camera)
         }
     }
     
-    //Todo: - mapView guard yapılacak
-    private func drawRouteDottedLine(_ route: Route, tag: String, color: UIColor = UIColor.blue) {
-        
-        guard route.legs.count > 0 else {return}
-        guard var routeCoordinates = route.shape?.coordinates, routeCoordinates.count > 0 else {return}
-        
-        let polyLine = MGLPolylineFeature(coordinates: &routeCoordinates, count: UInt(routeCoordinates.count))
-        if let source = mapView!.style?.source(withIdentifier: tag) as? MGLShapeSource {
-            source.shape = polyLine
-        }else {
-            let source = MGLShapeSource(identifier: tag, features: [polyLine], options: nil)
-            let lineStyle = MGLLineStyleLayer(identifier: "\(tag)-style", source: source)
-            lineStyle.lineJoin = NSExpression(forConstantValue: "round")
-            lineStyle.lineCap = NSExpression(forConstantValue: "round")
-            lineStyle.lineColor = NSExpression(forConstantValue: color)
-            lineStyle.lineWidth = NSExpression(forConstantValue: 4)
-            lineStyle.lineDashPattern = NSExpression(forConstantValue: [1, 2.0])
-            mapView?.style?.addSource(source)
-            mapView?.style?.addLayer(lineStyle)
+    public func removeRoute(style: DrawRouteStyle) {
+        if isMapSourceExist(id: style.rawValue) {
+            try? mapView?.mapboxMap.removeSource(withId: style.rawValue)
         }
-        
     }
     
+//    public func removeRoute(segmentId: String) {
+//        let id = segmentId + "_line"
+//        let layersUsingSource = mapView?.mapboxMap.allLayerIdentifiers
+//            .filter { $0.id == id }
+//            .map { $0.id } ?? []
+//        // Remove top-most first to avoid dependency complaints
+//        for id in layersUsingSource.reversed() {
+//            do { try mapView?.mapboxMap?.removeLayer(withId: id) }
+//            catch { print("Could not remove layer \(id): \(error)") }
+//        }
+//        if isMapSourceExist(id: id) {
+//            try? mapView?.mapboxMap.removeSource(withId: id)
+//            //            try? mapView?.mapboxMap?.removeLayer(withId: id)
+//        }
+//    }
     
-    public func drawRouteLine(_ route: Route, color: UIColor = UIColor.blue ) {
-        
-        guard var routeCoordinates = route.shape?.coordinates, routeCoordinates.count > 0 else {
-            return
-        }
-        let routeCount = UInt(routeCoordinates.count)
-        
-        let routeLine = CustomPolyLine(coordinates: &routeCoordinates, count: routeCount)
-        routeLine.color = color
-        let edge = UIEdgeInsets(top: 40, left: 40, bottom: 40, right: 40)
-        self.mapView?.addAnnotation(routeLine)
-        self.mapView?.setVisibleCoordinates(&routeCoordinates,
-                                            count: routeCount,
-                                            edgePadding: edge,
-                                            animated: true)
-        
+    private func isMapSourceExist(id: String) -> Bool {
+        return (mapView?.mapboxMap.sourceExists(withId: id)) ?? false
     }
     
-    
-    private func routeToPoints(_ route: Route) -> [CLLocationCoordinate2D] {
-        guard let steps = route.legs.first?.steps else { return []}
-        var points = [CLLocationCoordinate2D]()
-        for step in steps {
-            points.append(step.maneuverLocation)
-        }
-        return points
-    }
-    
-    
-    /**
-     Rota cizildiğinde Z INDEX sorunu oluyor.
-     Z Index sorunun çözmek için öncelikle direk rota source haritaya ekleniyor.
-     Note: this code is an alternative for DrawRoute
-     */
-    fileprivate func addRouteSource(features : [MGLPolylineFeature]) {
-        
-        let source = MGLShapeSource(identifier: "route-source", features: features, options: nil)
-        let lineStyle = MGLLineStyleLayer(identifier: "route-style", source: source)
-        lineStyle.lineColor = NSExpression(forConstantValue: #colorLiteral(red: 0.1115320227, green: 1, blue: 1, alpha: 1))
-        lineStyle.lineWidth = NSExpression(forConstantValue: 4)
-        lineStyle.lineOpacity = NSExpression(forConstantValue: 5)
-        
-        //lineStyle.lineJoin = MGLStyleValue(rawValue: NSValue(mglLineJoin: .round))
-        //lineStyle.lineCap = MGLStyleValue(rawValue: NSValue(mglLineCap: .round))
-        // lineStyle.lineJoin = NSExpression(forConstantValue: "round")
-        // lineStyle.lineCap = NSExpression(forConstantValue: "round")
-        // lineStyle.lineDashPattern = NSExpression(forConstantValue: [0, 1.5])
-        mapView?.style?.addSource(source)
-        mapView?.style?.addLayer(lineStyle)
-    }
+//    private func drawRouteDottedLine(_ route: Route, tag: String, color: UIColor = UIColor.blue) {
+//        
+//        guard let mapView = mapView else { return }
+//        guard route.legs.count > 0 else {return}
+//        guard let routeCoordinates = route.shape?.coordinates, routeCoordinates.count > 0 else {return}
+//        
+//        let lineString = LineString(routeCoordinates.compactMap({$0}))
+//        let geoJsonObject: GeoJSONObject = .feature(Feature(geometry: lineString))
+//        if isMapSourceExist(id: tag) {
+//            mapView.mapboxMap.updateGeoJSONSource(withId: tag, geoJSON: geoJsonObject)
+//        } else {
+//            
+//            var source = GeoJSONSource(id: tag)
+//            source.data = .feature(Feature(geometry: lineString))
+//            try? mapView.mapboxMap.addSource(source)
+//            
+//            var layer = LineLayer(id: tag, source: source.id)
+//            layer.lineJoin = .constant(.round)
+//            layer.lineCap = .constant(.round)
+//            layer.lineColor = .constant(StyleColor(color))
+//            layer.lineWidth = .constant(4)
+//            layer.lineDasharray = .constant([1, 2.0])
+//            try? mapView.mapboxMap.addLayer(layer)
+//        }
+//        
+//    }
 }
-//TODO: Rozeri Report a Problem da a title a message geliyor 
 
-class CustomPolyLine: MGLPolyline {
-    var color: UIColor?
+
+extension MapView {
+    func setMapCenter(latitude: Double, longitude: Double, zoomLevel: Double? = nil) {
+        if let zoom = zoomLevel {
+            camera.ease(to: CameraOptions(center: CLLocationCoordinate2D(latitude: latitude, longitude: longitude), zoom: zoom), duration: 0)
+        }
+    }
 }

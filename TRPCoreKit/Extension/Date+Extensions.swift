@@ -39,6 +39,14 @@ extension Date {
         return formatter.string(from: self)
     }
     
+    static func fromString(_ string: String?, format: String) -> Date? {
+        guard let string = string else { return nil }
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = format
+        dateFormatter.timeZone = TimeZone(identifier: "UTC")
+        return dateFormatter.date(from: string)
+    }
+    
     func toStringWithoutTimeZone(format: String? = nil, dateStyle: DateFormatter.Style? = nil, timeStyle: DateFormatter.Style? = nil) -> String {
         return toString(format: format, timeZone: nil)
     }

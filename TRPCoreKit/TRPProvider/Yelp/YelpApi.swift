@@ -8,15 +8,10 @@
 
 import Foundation
 public class YelpApi {
-    //rC5mIHMNF5C1Jtpb2obSkA
     var network: Networking?
-    //TODO: TAŞINACAK
-    internal let sandboxToken =
-    "lKSyNooZ4m6EnK7530z9Enx2GAuym6UJxCwLVv82pjhB67LU_l89iQtfj-5pMasL7kt4AnjF_oW_gHAXiz84IQXcMLJVNFhc2aMRyd9YUAb3zv0K63voptIgbItlXXYx"
+    internal let sandboxToken = "sandbox"
     
-    //TODO: TAŞINACAK
-    internal let productToken =
-    "SyqU9E_sGpBMUoViM6DBQkpLpRu5sCEvlqxs0-xAuTREuDoiIjf1TsPC-0PoWeK6O2_TSaDOdCoLMeoj5khI16DDMLqhvHSsFeTi9UHWwtTsu5kZBNOiHkBGxnVmXXYx"
+    internal let productToken = "product"
     private var networkController: NetworkController?
     
     internal var token = ""

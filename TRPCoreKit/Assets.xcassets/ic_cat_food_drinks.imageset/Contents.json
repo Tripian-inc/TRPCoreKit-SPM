@@ -1,0 +1,12 @@
+{
+  "images" : [
+    {
+      "filename" : "ic_cat_food_drinks.svg",
+      "idiom" : "universal"
+    }
+  ],
+  "info" : {
+    "author" : "xcode",
+    "version" : 1
+  }
+}

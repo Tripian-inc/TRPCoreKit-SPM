@@ -11,6 +11,7 @@ import UIKit
 
 public class TRPLoaderView: UIView {
     var loaderView: Loader?
+    var backgroundBtn: UIButton?
     let superView: UIView
     var isAdded = false
     
@@ -32,6 +33,11 @@ public class TRPLoaderView: UIView {
                                           y: (superView.frame.height - height) / 3,
                                           width: widht,
                                           height: height))
+        backgroundBtn = UIButton(frame: .init(x: 0, y: 0, width: superView.frame.width, height: superView.frame.height))
+        backgroundBtn!.setTitle("", for: .normal)
+        backgroundBtn!.backgroundColor = .clear
+        
+        superView.addSubview(backgroundBtn!)
         superView.addSubview(loaderView!)
         isAdded = true
     }
@@ -40,6 +46,9 @@ public class TRPLoaderView: UIView {
         if isAdded == false {return}
         if loaderView != nil {
             loaderView!.removeFromSuperview()
+        }
+        if backgroundBtn != nil {
+            backgroundBtn!.removeFromSuperview()
         }
         isAdded = false
     }

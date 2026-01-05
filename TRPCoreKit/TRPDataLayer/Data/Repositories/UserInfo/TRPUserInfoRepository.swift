@@ -23,10 +23,17 @@ final public class TRPUserInfoRepository: UserInfoRepository {
         remoteApi.fetchUserInfo(completion: completion)
     }
     
-    public func updateUserInfo(firstName: String?, lastName: String?, password: String?, dateOfBirth: String?, answers: [Int]?, completion: @escaping (UserInfoResultValue) -> Void) {
+    public func updateUserInfo(firstName: String?,
+                               lastName: String?,
+                               password: String?,
+                               currentPassword: String?,
+                               dateOfBirth: String?,
+                               answers: [Int]?,
+                               completion: @escaping (UserInfoResultValue) -> Void) {
         remoteApi.updateUserInfo(firstName: firstName,
                                  lastName: lastName,
                                  password: password,
+                                 currentPassword: currentPassword,
                                  dateOfBirth: dateOfBirth,
                                  answers: answers,
                                  completion: completion)

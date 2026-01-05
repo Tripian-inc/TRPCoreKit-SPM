@@ -7,6 +7,7 @@
 //
 
 import Foundation
+import TRPFoundationKit
 
 public typealias PoiResultValue = (Result<TRPPoi, Error>)
 
@@ -47,5 +48,3 @@ public protocol PoiRepository {
     
     func fetchPoiCategories(completion: @escaping (PoiCategoriesResultValue) -> Void)
 }
-
-

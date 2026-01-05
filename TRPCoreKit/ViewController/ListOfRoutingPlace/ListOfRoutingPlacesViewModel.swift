@@ -7,11 +7,10 @@
 //
 
 import Foundation
-
 import CoreLocation
-
-
 import MapboxDirections
+import TRPRestKit
+import TRPFoundationKit
 
 protocol ListOfRoutingPoisViewModelDelete: ViewModelDelegate {
     func showEmptyMessage(_ message: String)
@@ -161,22 +160,22 @@ public class ListOfRoutingPoisViewModel {
  
     
     func createUberInfo(indexPath:IndexPath) -> UberModel? {
-        if(indexPath.row + 1 <= steps.count){
-            let pick = steps[indexPath.row].poi
-            let drop = steps[indexPath.row + 1].poi
-            
-            return UberModel(pickupLocation: pick.coordinate,
-                      pickupName: pick.name,
-                      pickupAddress: pick.address ?? "",
-                      dropoffLocation: drop.coordinate,
-                      dropOffName: drop.name,
-                      dropOffAddress: drop.address ?? "")
-        }
+//        if(indexPath.row + 1 <= steps.count){
+//            let pick = steps[indexPath.row].poi
+//            let drop = steps[indexPath.row + 1].poi
+//            
+//            return UberModel(pickupLocation: pick.coordinate,
+//                      pickupName: pick.name,
+//                      pickupAddress: pick.address ?? "",
+//                      dropoffLocation: drop.coordinate,
+//                      dropOffName: drop.name,
+//                      dropOffAddress: drop.address ?? "")
+//        }
         return nil
     }
     
     public func getPlaceImage(indexPath:IndexPath) -> URL? {
-        let url = getStep(index: indexPath).poi.image.url
+        let url = getStep(index: indexPath).poi.image?.url
         guard let link = TRPImageResizer.generate(withUrl: url, standart: .small2) else {
             return nil
         }
