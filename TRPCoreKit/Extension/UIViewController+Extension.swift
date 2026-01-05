@@ -8,28 +8,55 @@
 
 import Foundation
 import UIKit
+
+// MARK: - Dynamic Height Protocol
+public protocol DynamicHeightPresentable: UIViewController {
+    /// Returns the preferred content height for the sheet
+    var preferredContentHeight: CGFloat { get }
+
+    /// Called when the sheet height needs to be updated
+    func updateSheetHeight()
+}
+
+extension DynamicHeightPresentable {
+    /// Updates the sheet presentation controller's detent to match the preferred content height
+    public func updateSheetHeight() {
+        guard #available(iOS 16.0, *),
+              let sheet = sheetPresentationController else { return }
+
+        let height = preferredContentHeight
+        let customDetent = UISheetPresentationController.Detent.custom(identifier: .init("dynamicHeight")) { _ in
+            return height
+        }
+
+        sheet.animateChanges {
+            sheet.detents = [customDetent]
+        }
+    }
+}
+
 extension UIViewController {
-    
+
     func hiddenBackButtonTitle() {
         navigationItem.backBarButtonItem = UIBarButtonItem(title: "", style: .plain, target: nil, action: nil)
     }
-    
+
     func hideNavigationBar(){
         self.navigationController?.setNavigationBarHidden(true, animated: true)
     }
-    
+
     func showNavigationBar() {
         self.navigationController?.setNavigationBarHidden(false, animated: true)
     }
-    
+
     func hideToolBar() {
         self.navigationController?.setToolbarHidden(true, animated: true)
     }
-    
+
     func showToolBar() {
         self.navigationController?.setToolbarHidden(false, animated: true)
     }
-    
+
     func presentVCWithModal(_ vc: UIViewController,
                             onlyLarge: Bool = false,
                             prefersGrabberVisible: Bool = true,
@@ -48,6 +75,47 @@ extension UIViewController {
                 sheet.largestUndimmedDetentIdentifier = isDimmed ? nil : .large
             }
         }
+        present(vc, animated: true)
+    }
+
+    /// Presents a view controller as a bottom sheet with dynamic height based on content
+    /// - Parameters:
+    ///   - vc: The view controller to present (should conform to DynamicHeightPresentable)
+    ///   - prefersGrabberVisible: Whether to show the grabber handle
+    ///   - isDimmed: Whether to dim the background
+    func presentVCWithDynamicHeight(_ vc: UIViewController,
+                                    prefersGrabberVisible: Bool = true,
+                                    isDimmed: Bool = true) {
+        vc.modalPresentationStyle = .pageSheet
+
+        if #available(iOS 16.0, *) {
+            if let sheet = vc.sheetPresentationController {
+                // Get initial height from the VC if it conforms to DynamicHeightPresentable
+                if let dynamicVC = vc as? DynamicHeightPresentable {
+                    let height = dynamicVC.preferredContentHeight
+                    let customDetent = UISheetPresentationController.Detent.custom(identifier: .init("dynamicHeight")) { _ in
+                        return height
+                    }
+                    sheet.detents = [customDetent]
+                } else {
+                    // Fallback to medium if not conforming
+                    sheet.detents = [.medium(), .large()]
+                }
+
+                sheet.prefersGrabberVisible = prefersGrabberVisible
+                sheet.prefersScrollingExpandsWhenScrolledToEdge = false
+                sheet.largestUndimmedDetentIdentifier = isDimmed ? nil : .medium
+            }
+        } else if #available(iOS 15.0, *) {
+            // Fallback for iOS 15 - use medium detent
+            if let sheet = vc.sheetPresentationController {
+                sheet.detents = [.medium(), .large()]
+                sheet.prefersGrabberVisible = prefersGrabberVisible
+                sheet.prefersScrollingExpandsWhenScrolledToEdge = false
+                sheet.largestUndimmedDetentIdentifier = isDimmed ? nil : .medium
+            }
+        }
+
         present(vc, animated: true)
     }
 }

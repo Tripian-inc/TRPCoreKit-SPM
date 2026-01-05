@@ -1125,8 +1125,8 @@ extension TRPTimelineItineraryVC {
         containerVC.addViewController(timeAndTravelersVC)
         containerVC.addViewController(categoryVC)
 
-        // Present as bottom sheet modal
-        presentVCWithModal(containerVC, onlyLarge: true)
+        // Present as bottom sheet modal with dynamic height
+        presentVCWithDynamicHeight(containerVC)
     }
 }
 

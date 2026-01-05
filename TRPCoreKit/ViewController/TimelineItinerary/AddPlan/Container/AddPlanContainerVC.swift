@@ -17,8 +17,20 @@ public protocol AddPlanContainerVCDelegate: AnyObject {
     func addPlanContainerSegmentCreated(_ viewController: AddPlanContainerVC)
 }
 
+/// Protocol for child view controllers to provide their preferred content height
+public protocol AddPlanChildViewController: UIViewController {
+    /// The preferred height for this step's content (excluding header and footer)
+    var preferredContentHeight: CGFloat { get }
+}
+
 @objc(SPMAddPlanContainerVC)
-public class AddPlanContainerVC: TRPBaseUIViewController {
+public class AddPlanContainerVC: TRPBaseUIViewController, DynamicHeightPresentable {
+
+    // MARK: - Constants
+    private let headerHeight: CGFloat = 44
+    private let headerTopPadding: CGFloat = 16
+    private let footerHeight: CGFloat = 64 // 16pt spacing + ~48pt button
+    private let safeAreaBottomPadding: CGFloat = 0 // Approximate safe area for devices with home indicator
     
     // MARK: - Properties
     public var viewModel: AddPlanContainerViewModel!
@@ -59,13 +71,23 @@ public class AddPlanContainerVC: TRPBaseUIViewController {
         return button
     }()
     
-    // MARK: - Content Container
+    // MARK: - Content Container with Scroll
+    private let contentScrollView: UIScrollView = {
+        let scrollView = UIScrollView()
+        scrollView.translatesAutoresizingMaskIntoConstraints = false
+        scrollView.showsVerticalScrollIndicator = false
+        scrollView.alwaysBounceVertical = false
+        return scrollView
+    }()
+
     private let contentContainerView: UIView = {
         let view = UIView()
         view.translatesAutoresizingMaskIntoConstraints = false
         view.backgroundColor = .white
         return view
     }()
+
+    private var contentHeightConstraint: NSLayoutConstraint?
     
     // MARK: - Sticky Footer
     private let footerView: UIView = {
@@ -105,6 +127,10 @@ public class AddPlanContainerVC: TRPBaseUIViewController {
     // MARK: - Lifecycle
     public override func viewDidLoad() {
         super.viewDidLoad()
+
+        // Prevent dismissal by tapping outside (X button is available for closing)
+        isModalInPresentation = true
+
         viewModel.delegate = self
         viewModel.start()
     }
@@ -154,13 +180,26 @@ public class AddPlanContainerVC: TRPBaseUIViewController {
     }
     
     private func setupContentContainer() {
-        view.addSubview(contentContainerView)
+        view.addSubview(contentScrollView)
+        contentScrollView.addSubview(contentContainerView)
+
+        // Content height constraint - will be updated based on child VC
+        contentHeightConstraint = contentContainerView.heightAnchor.constraint(equalToConstant: 400)
 
         NSLayoutConstraint.activate([
-            contentContainerView.topAnchor.constraint(equalTo: headerView.bottomAnchor),
-            contentContainerView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            contentContainerView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            contentContainerView.bottomAnchor.constraint(equalTo: footerView.topAnchor)
+            // ScrollView fills the space between header and footer
+            contentScrollView.topAnchor.constraint(equalTo: headerView.bottomAnchor),
+            contentScrollView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            contentScrollView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            contentScrollView.bottomAnchor.constraint(equalTo: footerView.topAnchor),
+
+            // Content container inside scroll view
+            contentContainerView.topAnchor.constraint(equalTo: contentScrollView.topAnchor),
+            contentContainerView.leadingAnchor.constraint(equalTo: contentScrollView.leadingAnchor),
+            contentContainerView.trailingAnchor.constraint(equalTo: contentScrollView.trailingAnchor),
+            contentContainerView.bottomAnchor.constraint(equalTo: contentScrollView.bottomAnchor),
+            contentContainerView.widthAnchor.constraint(equalTo: contentScrollView.widthAnchor),
+            contentHeightConstraint!
         ])
     }
 
@@ -177,12 +216,12 @@ public class AddPlanContainerVC: TRPBaseUIViewController {
             footerView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
             footerView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
             footerView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor),
-            footerView.heightAnchor.constraint(equalToConstant: 80),
 
-            // Stack View
+            // Stack View - 16pt from top of footer (which is bottom of content)
+            buttonStackView.topAnchor.constraint(equalTo: footerView.topAnchor, constant: 16),
             buttonStackView.leadingAnchor.constraint(equalTo: footerView.leadingAnchor),
             buttonStackView.trailingAnchor.constraint(equalTo: footerView.trailingAnchor),
-            buttonStackView.centerYAnchor.constraint(equalTo: footerView.centerYAnchor)
+            buttonStackView.bottomAnchor.constraint(equalTo: footerView.bottomAnchor)
         ])
     }
     
@@ -193,19 +232,41 @@ public class AddPlanContainerVC: TRPBaseUIViewController {
         continueButton.addTarget(self, action: #selector(continueButtonTapped), for: .touchUpInside)
     }
     
+    // MARK: - DynamicHeightPresentable
+    public var preferredContentHeight: CGFloat {
+        // Get content height from current child VC
+        let contentHeight: CGFloat
+        if let childVC = currentChildVC as? AddPlanChildViewController {
+            contentHeight = childVC.preferredContentHeight
+        } else {
+            // Default content height if child doesn't conform
+            contentHeight = 400
+        }
+
+        // Total height = header + content + footer + safe area
+        let totalHeight = headerTopPadding + headerHeight + contentHeight + footerHeight + safeAreaBottomPadding
+        return totalHeight
+    }
+
     // MARK: - Public Methods
     public func addViewController(_ viewController: UIViewController) {
         viewControllers.append(viewController)
     }
-    
+
     public func setContinueButtonEnabled(_ enabled: Bool) {
         continueButton.setEnabled(enabled)
     }
-    
+
     public func updateContinueButtonState() {
         let currentStep = viewModel.getCurrentStep()
         let canProceed = canContinue(currentStep: currentStep)
         setContinueButtonEnabled(canProceed)
+    }
+
+    /// Call this method when content height changes (e.g., when showing/hiding category buttons)
+    public func notifyContentHeightChanged() {
+        updateContentHeight()
+        updateSheetHeight()
     }
     
     private func showViewController(at index: Int) {
@@ -239,10 +300,22 @@ public class AddPlanContainerVC: TRPBaseUIViewController {
         ])
         
         newVC.didMove(toParent: self)
-        
+
         currentChildVC = newVC
+
+        // Update content height constraint based on child VC
+        updateContentHeight()
+
+        // Update sheet height when child VC changes
+        updateSheetHeight()
     }
-    
+
+    private func updateContentHeight() {
+        guard let childVC = currentChildVC as? AddPlanChildViewController else { return }
+        contentHeightConstraint?.constant = childVC.preferredContentHeight
+        view.layoutIfNeeded()
+    }
+
     // MARK: - Actions
     @objc private func backButtonTapped() {
         viewModel.backStepAction()

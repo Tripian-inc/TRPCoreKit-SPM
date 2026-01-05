@@ -10,12 +10,22 @@ import UIKit
 import TRPFoundationKit
 
 @objc(SPMAddPlanSelectDayVC)
-public class AddPlanSelectDayVC: TRPBaseUIViewController {
-    
+public class AddPlanSelectDayVC: TRPBaseUIViewController, AddPlanChildViewController {
+
+    // MARK: - Height Constants (Static heights from design)
+    private let baseContentHeight: CGFloat = 464 // Base height without categories
+    private let manualModeContentHeight: CGFloat = 632 // Height when manual mode is selected (shows categories)
+
     // MARK: - Properties
     public var viewModel: AddPlanSelectDayViewModel!
     public weak var containerVC: AddPlanContainerVC?
     private var selectedDayIndex: Int = 0
+
+    // MARK: - AddPlanChildViewController
+    public var preferredContentHeight: CGFloat {
+        let showCategories = (viewModel?.getSelectedMode() == .manual)
+        return showCategories ? manualModeContentHeight : baseContentHeight
+    }
     
     // MARK: - UI Components
     private lazy var dayLabel: UILabel = {
@@ -260,7 +270,7 @@ public class AddPlanSelectDayVC: TRPBaseUIViewController {
             label.bottomAnchor.constraint(equalTo: contentContainer.bottomAnchor),
         ])
 
-        button.heightAnchor.constraint(equalToConstant: 109).isActive = true
+        button.heightAnchor.constraint(equalToConstant: 96).isActive = true
         button.addTarget(self, action: #selector(categoryButtonTapped(_:)), for: .touchUpInside)
 
         return button
@@ -277,113 +287,99 @@ public class AddPlanSelectDayVC: TRPBaseUIViewController {
     
     private var manualCardBottomConstraint: NSLayoutConstraint?
     private var categoryLabelTopConstraint: NSLayoutConstraint?
+    private var categoryStackViewBottomConstraint: NSLayoutConstraint?
     
     // MARK: - Lifecycle
     public override func setupViews() {
         super.setupViews()
         view.backgroundColor = .white
-        
-        // Create scroll view for flexible height
-        let scrollView = UIScrollView()
-        scrollView.translatesAutoresizingMaskIntoConstraints = false
-        scrollView.showsVerticalScrollIndicator = false
-        scrollView.contentInset = UIEdgeInsets(top: 20, left: 0, bottom: 24, right: 0)
-        
-        // Create a content container
-        let contentContainer = UIView()
-        contentContainer.translatesAutoresizingMaskIntoConstraints = false
-        
-        // Add all subviews to container
-        contentContainer.addSubview(dayLabel)
-        contentContainer.addSubview(dayFilterView)
-        contentContainer.addSubview(cityLabel)
-        contentContainer.addSubview(cityButton)
-        contentContainer.addSubview(selectionLabel)
-        contentContainer.addSubview(smartRecommendationsCard)
-        contentContainer.addSubview(manualAddCard)
-        contentContainer.addSubview(categoryLabel)
-        contentContainer.addSubview(categoryStackView)
-        
+
+        // Add all subviews directly to view (scroll is handled by container)
+        view.addSubview(dayLabel)
+        view.addSubview(dayFilterView)
+        view.addSubview(cityLabel)
+        view.addSubview(cityButton)
+        view.addSubview(selectionLabel)
+        view.addSubview(smartRecommendationsCard)
+        view.addSubview(manualAddCard)
+        view.addSubview(categoryLabel)
+        view.addSubview(categoryStackView)
+
         // Add category buttons to stack view
         categoryStackView.addArrangedSubview(activitiesCategoryButton)
         categoryStackView.addArrangedSubview(placesOfInterestCategoryButton)
         categoryStackView.addArrangedSubview(eatAndDrinkCategoryButton)
-        
-        scrollView.addSubview(contentContainer)
-        view.addSubview(scrollView)
-        
+
         NSLayoutConstraint.activate([
-            // Scroll View - fills entire view
-            scrollView.topAnchor.constraint(equalTo: view.topAnchor),
-            scrollView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            scrollView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            scrollView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-            
-            // Content Container - with padding inside scroll view
-            contentContainer.topAnchor.constraint(equalTo: scrollView.topAnchor),
-            contentContainer.leadingAnchor.constraint(equalTo: scrollView.leadingAnchor),
-            contentContainer.trailingAnchor.constraint(equalTo: scrollView.trailingAnchor),
-            contentContainer.bottomAnchor.constraint(equalTo: scrollView.bottomAnchor),
-            contentContainer.widthAnchor.constraint(equalTo: scrollView.widthAnchor),
-            
-            // Day Label
-            dayLabel.topAnchor.constraint(equalTo: contentContainer.topAnchor),
-            dayLabel.leadingAnchor.constraint(equalTo: contentContainer.leadingAnchor, constant: 16),
-            
-            // Day Filter View
-            dayFilterView.topAnchor.constraint(equalTo: dayLabel.bottomAnchor, constant: 8),
-            dayFilterView.leadingAnchor.constraint(equalTo: contentContainer.leadingAnchor),
-            dayFilterView.trailingAnchor.constraint(equalTo: contentContainer.trailingAnchor),
-            dayFilterView.heightAnchor.constraint(equalToConstant: 56),
-            
-            // City Label
-            cityLabel.topAnchor.constraint(equalTo: dayFilterView.bottomAnchor, constant: 16),
-            cityLabel.leadingAnchor.constraint(equalTo: contentContainer.leadingAnchor, constant: 16),
-            
-            // City Button
-            cityButton.topAnchor.constraint(equalTo: cityLabel.bottomAnchor, constant: 8),
-            cityButton.leadingAnchor.constraint(equalTo: contentContainer.leadingAnchor, constant: 16),
-            cityButton.trailingAnchor.constraint(equalTo: contentContainer.trailingAnchor, constant: -16),
+            // Day Label - top 12, height 16
+            dayLabel.topAnchor.constraint(equalTo: view.topAnchor, constant: 12),
+            dayLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
+            dayLabel.heightAnchor.constraint(equalToConstant: 16),
+
+            // Day Filter View - top 12, height 44
+            dayFilterView.topAnchor.constraint(equalTo: dayLabel.bottomAnchor, constant: 12),
+            dayFilterView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            dayFilterView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            dayFilterView.heightAnchor.constraint(equalToConstant: 44),
+
+            // City Label - top 24, height 16
+            cityLabel.topAnchor.constraint(equalTo: dayFilterView.bottomAnchor, constant: 24),
+            cityLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
+            cityLabel.heightAnchor.constraint(equalToConstant: 16),
+
+            // City Button - top 4, height 48
+            cityButton.topAnchor.constraint(equalTo: cityLabel.bottomAnchor, constant: 4),
+            cityButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
+            cityButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
             cityButton.heightAnchor.constraint(equalToConstant: 48),
-            
-            // Selection Label
+
+            // Selection Label (How do you add plans) - top 32, height 24
             selectionLabel.topAnchor.constraint(equalTo: cityButton.bottomAnchor, constant: 32),
-            selectionLabel.leadingAnchor.constraint(equalTo: contentContainer.leadingAnchor, constant: 16),
-            selectionLabel.trailingAnchor.constraint(equalTo: contentContainer.trailingAnchor, constant: -16),
-            
-            // Smart Recommendations Card
+            selectionLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
+            selectionLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
+            selectionLabel.heightAnchor.constraint(equalToConstant: 24),
+
+            // Smart Recommendations Card - top 16, height 88
             smartRecommendationsCard.topAnchor.constraint(equalTo: selectionLabel.bottomAnchor, constant: 16),
-            smartRecommendationsCard.leadingAnchor.constraint(equalTo: contentContainer.leadingAnchor, constant: 16),
-            smartRecommendationsCard.trailingAnchor.constraint(equalTo: contentContainer.trailingAnchor, constant: -16),
-            
-            // Manual Add Card
+            smartRecommendationsCard.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
+            smartRecommendationsCard.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
+            smartRecommendationsCard.heightAnchor.constraint(equalToConstant: 88),
+
+            // Manual Add Card - top 8, height 88
             manualAddCard.topAnchor.constraint(equalTo: smartRecommendationsCard.bottomAnchor, constant: 8),
-            manualAddCard.leadingAnchor.constraint(equalTo: contentContainer.leadingAnchor, constant: 16),
-            manualAddCard.trailingAnchor.constraint(equalTo: contentContainer.trailingAnchor, constant: -16),
-            
-            // Category Label (initially hidden, shown when manual mode selected)
-            categoryLabel.leadingAnchor.constraint(equalTo: contentContainer.leadingAnchor, constant: 16),
-            categoryLabel.trailingAnchor.constraint(equalTo: contentContainer.trailingAnchor, constant: -16),
-            
-            // Category Stack View (initially hidden, shown when manual mode selected)
+            manualAddCard.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
+            manualAddCard.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
+            manualAddCard.heightAnchor.constraint(equalToConstant: 88),
+
+            // Category Label - height 24 (top constraint is dynamic)
+            categoryLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
+            categoryLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
+            categoryLabel.heightAnchor.constraint(equalToConstant: 24),
+
+            // Category Stack View - top 16, height 96
             categoryStackView.topAnchor.constraint(equalTo: categoryLabel.bottomAnchor, constant: 16),
-            categoryStackView.leadingAnchor.constraint(equalTo: contentContainer.leadingAnchor, constant: 16),
-            categoryStackView.trailingAnchor.constraint(equalTo: contentContainer.trailingAnchor, constant: -16),
-            categoryStackView.bottomAnchor.constraint(equalTo: contentContainer.bottomAnchor),
+            categoryStackView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
+            categoryStackView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
+            categoryStackView.heightAnchor.constraint(equalToConstant: 96),
         ])
-        
-        // Store constraints that need to be toggled
-        manualCardBottomConstraint = manualAddCard.bottomAnchor.constraint(equalTo: contentContainer.bottomAnchor)
+
+        // Store constraints that need to be toggled based on category visibility
+        // When manual not selected: manualAddCard bottom = view.bottom - 32
+        manualCardBottomConstraint = manualAddCard.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -32)
+        // When manual selected: categoryLabel top = manualAddCard.bottom + 32
         categoryLabelTopConstraint = categoryLabel.topAnchor.constraint(equalTo: manualAddCard.bottomAnchor, constant: 32)
-        
+        // When manual selected: categoryStackView bottom = view.bottom - 32
+        categoryStackViewBottomConstraint = categoryStackView.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -32)
+
         // Initially, manual card is at bottom (categories hidden)
         manualCardBottomConstraint?.isActive = true
-        
+        categoryStackViewBottomConstraint?.isActive = false
+
         configureDayFilterView()
         updateCityButton()
         updateSelectionStyles()
         updateCategorySelectionUI()
-        
+
         // Restore continue button state if mode was already selected
         updateContinueButtonState()
     }
@@ -465,11 +461,12 @@ public class AddPlanSelectDayVC: TRPBaseUIViewController {
         let showCategories = (selectedMode == .manual)
         categoryLabel.isHidden = !showCategories
         categoryStackView.isHidden = !showCategories
-        
+
         // Update constraints based on visibility
         manualCardBottomConstraint?.isActive = !showCategories
         categoryLabelTopConstraint?.isActive = showCategories
-        
+        categoryStackViewBottomConstraint?.isActive = showCategories
+
         // Update category button styles based on selected category
         if showCategories {
             let selectedCategoryId = viewModel.getSelectedManualCategory()
@@ -478,6 +475,9 @@ public class AddPlanSelectDayVC: TRPBaseUIViewController {
                 updateSelectedButtonStyle(button, isSelected: isSelected)
             }
         }
+
+        // Notify container to update sheet height
+        containerVC?.notifyContentHeightChanged()
     }
     
     private func updateSelectedButtonStyle(_ view: UIView, isSelected: Bool) {
