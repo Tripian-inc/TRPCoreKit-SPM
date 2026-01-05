@@ -31,6 +31,8 @@ public class AddPlanActivityListingViewModel {
     private var searchWorkItem: DispatchWorkItem?
     private var currentPagination: TRPTourPagination?
     private var isLoadingMore: Bool = false
+    private var searchRetryCount: Int = 0
+    private let maxRetryCount: Int = 1
 
     // MARK: - Initialization
     public init(planData: AddPlanData, tourUseCases: TRPTourUseCases? = nil) {
@@ -190,6 +192,12 @@ public class AddPlanActivityListingViewModel {
             return
         }
 
+        // Reset retry count for new search
+        searchRetryCount = 0
+        executeSearch()
+    }
+
+    private func executeSearch() {
         delegate?.showLoading(true)
 
         // Build keywords combining search text and category name
@@ -210,18 +218,44 @@ public class AddPlanActivityListingViewModel {
     }
 
     private func handleSearchResult(result: Result<[TRPTourProduct], Error>, pagination: TRPTourPagination?) {
-        delegate?.showLoading(false)
         isLoadingMore = false
 
         switch result {
         case .success(let tours):
+            delegate?.showLoading(false)
             allTours = tours
             currentPagination = pagination
             filterTours()
             delegate?.activitiesDidLoad()
         case .failure(let error):
+            // Check for 504 Gateway Timeout and retry once
+            if is504Error(error) && searchRetryCount < maxRetryCount {
+                searchRetryCount += 1
+                executeSearch()
+                return
+            }
+            delegate?.showLoading(false)
             delegate?.activitiesDidFail(error: error)
         }
+    }
+
+    private func is504Error(_ error: Error) -> Bool {
+        // Check if error contains 504 status code
+        if let nsError = error as NSError? {
+            if nsError.code == 504 {
+                return true
+            }
+            // Check userInfo for status code
+            if let statusCode = nsError.userInfo["statusCode"] as? Int, statusCode == 504 {
+                return true
+            }
+        }
+        // Check error description for 504
+        let errorDescription = error.localizedDescription.lowercased()
+        if errorDescription.contains("504") || errorDescription.contains("gateway timeout") {
+            return true
+        }
+        return false
     }
 
     // MARK: - Pagination

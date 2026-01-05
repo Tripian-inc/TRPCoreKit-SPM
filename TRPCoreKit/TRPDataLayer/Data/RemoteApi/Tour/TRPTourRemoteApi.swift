@@ -27,8 +27,6 @@ public class TRPTourRemoteApi: TourRemoteApi {
 
         // Always require instant availability
         request.instantAvailability = 1
-        request.sortingBy = "distance"
-        request.sortingType = "asc"
 
         // Set city center coordinates from cache
         if let cityCoordinate = TRPCityCache.shared.getCityCoordinate(cityId: cityId) {
@@ -55,6 +53,21 @@ public class TRPTourRemoteApi: TourRemoteApi {
         // Map pagination
         request.limit = parameters.limit ?? 10
         request.offset = parameters.offset ?? 0
+
+        // Map price filters
+        request.minPrice = parameters.minPrice
+        request.maxPrice = parameters.maxPrice
+
+        // Map rating filter
+        request.minRating = parameters.minRating
+
+        // Map duration filters
+        request.minDuration = parameters.minDuration
+        request.maxDuration = parameters.maxDuration
+
+        // Map sorting (default to score descending)
+        request.sortingBy = parameters.sortingBy ?? "score"
+        request.sortingType = parameters.sortingType ?? "desc"
 
         TRPRestKit().searchTours(request: request) { (result, error) in
 
@@ -93,8 +106,6 @@ public class TRPTourRemoteApi: TourRemoteApi {
 
         // Always require instant availability
         request.instantAvailability = 1
-        request.sortingBy = "distance"
-        request.sortingType = "asc"
 
         // Set location coordinates
         request.lat = coordinate.lat
@@ -119,6 +130,21 @@ public class TRPTourRemoteApi: TourRemoteApi {
         // Map pagination
         request.limit = parameters.limit ?? 10
         request.offset = parameters.offset ?? 0
+
+        // Map price filters
+        request.minPrice = parameters.minPrice
+        request.maxPrice = parameters.maxPrice
+
+        // Map rating filter
+        request.minRating = parameters.minRating
+
+        // Map duration filters
+        request.minDuration = parameters.minDuration
+        request.maxDuration = parameters.maxDuration
+
+        // Map sorting (default to score descending)
+        request.sortingBy = parameters.sortingBy ?? "score"
+        request.sortingType = parameters.sortingType ?? "desc"
 
         TRPRestKit().searchTours(request: request) { (result, error) in
 

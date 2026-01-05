@@ -354,6 +354,7 @@ public class AddPlanTimeAndTravelersVC: TRPBaseUIViewController, AddPlanChildVie
     @objc private func startingPointButtonTapped() {
         let poiSelectionViewModel = AddPlanPOISelectionViewModel(
             cityName: viewModel.getCityName(),
+            cityId: viewModel.getCityId(),
             cityCenterPOI: viewModel.getCityCenterPOI(),
             bookedActivities: viewModel.getBookedActivities(),
             boundarySW: viewModel.getBoundarySW(),

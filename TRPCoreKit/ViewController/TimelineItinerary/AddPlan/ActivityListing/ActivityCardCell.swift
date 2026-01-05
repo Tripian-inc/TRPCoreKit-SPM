@@ -144,6 +144,10 @@ class ActivityCardCell: UITableViewCell {
         return view
     }()
 
+    // Constraint references for dynamic layout
+    private var priceLabelTopToCancellationConstraint: NSLayoutConstraint?
+    private var priceLabelTopToDurationConstraint: NSLayoutConstraint?
+
     // MARK: - Initialization
 
     override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
@@ -240,8 +244,7 @@ class ActivityCardCell: UITableViewCell {
             freeCancellationLabel.topAnchor.constraint(equalTo: durationIconImageView.bottomAnchor, constant: 6),
             freeCancellationLabel.leadingAnchor.constraint(equalTo: activityImageView.trailingAnchor, constant: 16),
 
-            // Price label
-            priceLabel.topAnchor.constraint(equalTo: freeCancellationLabel.bottomAnchor, constant: 12),
+            // Price label (trailing and bottom only - top constraint is dynamic)
             priceLabel.trailingAnchor.constraint(equalTo: cardContainerView.trailingAnchor),
             priceLabel.bottomAnchor.constraint(lessThanOrEqualTo: cardContainerView.bottomAnchor, constant: -16),
 
@@ -251,6 +254,13 @@ class ActivityCardCell: UITableViewCell {
             separatorView.bottomAnchor.constraint(equalTo: cardContainerView.bottomAnchor),
             separatorView.heightAnchor.constraint(equalToConstant: 0.5)
         ])
+
+        // Create dynamic constraints for price label
+        priceLabelTopToCancellationConstraint = priceLabel.topAnchor.constraint(equalTo: freeCancellationLabel.bottomAnchor, constant: 12)
+        priceLabelTopToDurationConstraint = priceLabel.topAnchor.constraint(equalTo: durationIconImageView.bottomAnchor, constant: 6)
+
+        // Default: show with cancellation label
+        priceLabelTopToCancellationConstraint?.isActive = true
     }
 
     // MARK: - Actions
@@ -258,6 +268,23 @@ class ActivityCardCell: UITableViewCell {
     @objc private func addButtonTapped() {
         guard let tour = tour else { return }
         delegate?.activityCardCellDidTapAdd(self, tour: tour)
+    }
+
+    // MARK: - Private Methods
+
+    private func updateCancellationLabelVisibility(isCancellable: Bool) {
+        if isCancellable {
+            freeCancellationLabel.text = AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.freeCancellation)
+            freeCancellationLabel.isHidden = false
+            // Price label below cancellation label
+            priceLabelTopToDurationConstraint?.isActive = false
+            priceLabelTopToCancellationConstraint?.isActive = true
+        } else {
+            freeCancellationLabel.isHidden = true
+            // Price label below duration (moves up)
+            priceLabelTopToCancellationConstraint?.isActive = false
+            priceLabelTopToDurationConstraint?.isActive = true
+        }
     }
 
     // MARK: - Configuration
@@ -294,12 +321,12 @@ class ActivityCardCell: UITableViewCell {
         languageIconImageView.isHidden = true
         languageLabel.isHidden = true
 
-        // Free cancellation - hide for now as we don't have this data
-        freeCancellationLabel.isHidden = true
+        // Free cancellation - show if tour is cancellable
+        updateCancellationLabelVisibility(isCancellable: tour.isCancellable)
 
         // Set price
         if let price = tour.price {
-            priceLabel.text = "$\(price)"
+            priceLabel.text = "\(AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.from)) $\(price)"
         } else {
             priceLabel.text = ""
         }
@@ -343,20 +370,19 @@ class ActivityCardCell: UITableViewCell {
         languageLabel.isHidden = true
 
         // Free cancellation - show only if NOT non_refundable
+        let isCancellable: Bool
         if let cancellation = favoriteItem.cancellation,
-           !cancellation.isEmpty,
-           cancellation.lowercased() != "non_refundable" {
-            // Show localized "Free cancellation" text
-            freeCancellationLabel.text = AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.freeCancellation)
-            freeCancellationLabel.isHidden = false
+           !cancellation.isEmpty {
+            isCancellable = cancellation.lowercased() != "non_refundable"
         } else {
-            freeCancellationLabel.isHidden = true
+            isCancellable = true // Default to cancellable if no cancellation info
         }
+        updateCancellationLabelVisibility(isCancellable: isCancellable)
 
         // Set price with currency
         if let price = favoriteItem.price {
             let currencySymbol = getCurrencySymbol(for: price.currency)
-            priceLabel.text = "\(currencySymbol)\(String(format: "%.2f", price.value))"
+            priceLabel.text = "\(AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.from)) \(currencySymbol)\(String(format: "%.2f", price.value))"
         } else {
             priceLabel.text = ""
         }

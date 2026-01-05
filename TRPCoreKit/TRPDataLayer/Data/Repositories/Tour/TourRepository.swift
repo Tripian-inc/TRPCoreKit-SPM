@@ -48,6 +48,13 @@ public struct TourParameters: Hashable {
     public var limit: Int?
     public var offset: Int?
     public var date: String? // Format: "yyyy-MM-dd"
+    public var minPrice: Double?
+    public var maxPrice: Double?
+    public var minRating: Double?
+    public var minDuration: Double?
+    public var maxDuration: Double?
+    public var sortingBy: String?
+    public var sortingType: String?
 
     public init(search: String? = nil) {
         self.search = search
