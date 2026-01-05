@@ -254,7 +254,7 @@ extension AddPlanActivityListingVC: UICollectionViewDataSource, UICollectionView
         
         let categoryNames = viewModel.getCategoryNames()
         let iconName = viewModel.getCategoryIconName(at: indexPath.item)
-        let isSelected = indexPath.item == viewModel.selectedCategoryIndex
+        let isSelected = viewModel.isCategorySelected(at: indexPath.item)
         cell.configure(title: categoryNames[indexPath.item], iconName: iconName, isSelected: isSelected)
         
         return cell

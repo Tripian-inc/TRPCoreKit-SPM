@@ -21,7 +21,7 @@ public class AddPlanActivityListingViewModel {
     public let planData: AddPlanData
     public weak var delegate: AddPlanActivityListingViewModelDelegate?
 
-    public var selectedCategoryIndex: Int = 0 // 0 = "All"
+    public var selectedCategoryIndices: Set<Int> = [0] // 0 = "All", multiple selection allowed except "All"
     public var searchText: String = ""
 
     private var allTours: [TRPTourProduct] = []
@@ -104,8 +104,31 @@ public class AddPlanActivityListingViewModel {
     }
     
     public func selectCategory(at index: Int) {
-        selectedCategoryIndex = index
+        if index == 0 {
+            // "All" selected - clear others and select only "All"
+            selectedCategoryIndices = [0]
+        } else {
+            // Other category selected
+            // Remove "All" from selection
+            selectedCategoryIndices.remove(0)
+
+            // Toggle the selected category
+            if selectedCategoryIndices.contains(index) {
+                selectedCategoryIndices.remove(index)
+            } else {
+                selectedCategoryIndices.insert(index)
+            }
+
+            // If no categories selected, select "All"
+            if selectedCategoryIndices.isEmpty {
+                selectedCategoryIndices = [0]
+            }
+        }
         performSearch()
+    }
+
+    public func isCategorySelected(at index: Int) -> Bool {
+        return selectedCategoryIndices.contains(index)
     }
 
     public func updateSearchText(_ text: String) {
@@ -113,33 +136,47 @@ public class AddPlanActivityListingViewModel {
         performSearchWithDebounce()
     }
     
-    /// Returns the selected category ID. Returns nil if "All" is selected (index 0).
-    public func getSelectedCategoryId() -> String? {
-        guard selectedCategoryIndex > 0 else {
-            return nil // "All" selected
+    /// Returns the selected category IDs. Returns nil if "All" is selected (index 0).
+    public func getSelectedCategoryIds() -> [String]? {
+        // If "All" is selected, return nil
+        if selectedCategoryIndices.contains(0) {
+            return nil
         }
+
         let categories = PlanCategory.allCategories()
-        let categoryIndex = selectedCategoryIndex - 1 // Subtract 1 because "All" is at index 0
-        if categoryIndex >= 0 && categoryIndex < categories.count {
-            return categories[categoryIndex].id
+        var ids: [String] = []
+
+        for index in selectedCategoryIndices {
+            let categoryIndex = index - 1 // Subtract 1 because "All" is at index 0
+            if categoryIndex >= 0 && categoryIndex < categories.count {
+                ids.append(categories[categoryIndex].id)
+            }
         }
-        return nil
+
+        return ids.isEmpty ? nil : ids
     }
 
-    /// Returns the selected category name. Returns nil if "All" is selected (index 0).
-    private func getSelectedCategoryName() -> String? {
-        guard selectedCategoryIndex > 0 else {
-            return nil // "All" selected
+    /// Returns the selected category names combined. Returns nil if "All" is selected (index 0).
+    private func getSelectedCategoryNames() -> [String]? {
+        // If "All" is selected, return nil
+        if selectedCategoryIndices.contains(0) {
+            return nil
         }
+
         let categories = PlanCategory.allCategories()
-        let categoryIndex = selectedCategoryIndex - 1 // Subtract 1 because "All" is at index 0
-        if categoryIndex >= 0 && categoryIndex < categories.count {
-            return categories[categoryIndex].name.replacingOccurrences(of: "\n", with: " ")
+        var names: [String] = []
+
+        for index in selectedCategoryIndices.sorted() {
+            let categoryIndex = index - 1 // Subtract 1 because "All" is at index 0
+            if categoryIndex >= 0 && categoryIndex < categories.count {
+                names.append(categories[categoryIndex].name.replacingOccurrences(of: "\n", with: " "))
+            }
         }
-        return nil
+
+        return names.isEmpty ? nil : names
     }
 
-    /// Combines search text and category name for keywords parameter
+    /// Combines search text and category names for keywords parameter
     private func buildKeywords() -> String {
         var keywords: [String] = []
 
@@ -148,9 +185,9 @@ public class AddPlanActivityListingViewModel {
             keywords.append(searchText)
         }
 
-        // Add category name if a specific category is selected
-        if let categoryName = getSelectedCategoryName() {
-            keywords.append(categoryName)
+        // Add category names if specific categories are selected
+        if let categoryNames = getSelectedCategoryNames() {
+            keywords.append(contentsOf: categoryNames)
         }
 
         return keywords.joined(separator: " ")
