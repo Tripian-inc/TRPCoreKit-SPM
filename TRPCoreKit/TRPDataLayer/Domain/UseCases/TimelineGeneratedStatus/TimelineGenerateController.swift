@@ -36,7 +36,7 @@ class TimelineGenerateController {
             switch result {
             case .success(let trip):
                 // If there are no plans (only booked/reserved activities), consider it as successfully generated
-                guard let plans = trip.plans, !plans.isEmpty, plans.first?.name != "Empty" else {
+                guard let plans = trip.plans, !plans.isEmpty else {
                     completion?(.success(trip))
                     return
                 }
@@ -48,8 +48,10 @@ class TimelineGenerateController {
                         self?.fetchTimeline(hash: hash, completion: completion)
                     }
                 }
+                
+                let firstNotEmptyItineraryIndex = trip.tripProfile?.segments.firstIndex(where: { $0.title != "Empty" && $0.segmentType == .itinerary}) ?? 0
 
-                guard let firstStatus = generated.first else { return }
+                let firstStatus = generated[firstNotEmptyItineraryIndex]
                 if firstStatus > 0 {
                     completion?(.success(trip))
                 } else if firstStatus < 0 {

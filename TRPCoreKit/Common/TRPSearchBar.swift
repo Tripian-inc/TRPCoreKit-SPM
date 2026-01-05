@@ -17,6 +17,11 @@ public protocol TRPSearchBarDelegate: AnyObject {
     func searchBarSearchButtonClicked(_ searchBar: TRPSearchBar)
 }
 
+extension TRPSearchBarDelegate {
+    public func searchBarDidBeginEditing(_ searchBar: TRPSearchBar) { }
+    public func searchBarDidEndEditing(_ searchBar: TRPSearchBar) { }
+}
+
 /// Custom search bar component with consistent styling
 public class TRPSearchBar: UIView {
 
@@ -85,6 +90,10 @@ public class TRPSearchBar: UIView {
         return button
     }()
 
+    // Constraint references for dynamic layout
+    private var textFieldLeadingToIconConstraint: NSLayoutConstraint?
+    private var textFieldLeadingToContainerConstraint: NSLayoutConstraint?
+
     // MARK: - Initialization
     public override init(frame: CGRect) {
         super.init(frame: frame)
@@ -105,6 +114,10 @@ public class TRPSearchBar: UIView {
         containerView.addSubview(textField)
         containerView.addSubview(clearButton)
 
+        // Create constraint references for dynamic layout
+        textFieldLeadingToIconConstraint = textField.leadingAnchor.constraint(equalTo: searchIconImageView.trailingAnchor, constant: 12)
+        textFieldLeadingToContainerConstraint = textField.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 16)
+
         NSLayoutConstraint.activate([
             // Container
             containerView.topAnchor.constraint(equalTo: topAnchor),
@@ -119,8 +132,8 @@ public class TRPSearchBar: UIView {
             searchIconImageView.widthAnchor.constraint(equalToConstant: 20),
             searchIconImageView.heightAnchor.constraint(equalToConstant: 20),
 
-            // Text Field
-            textField.leadingAnchor.constraint(equalTo: searchIconImageView.trailingAnchor, constant: 12),
+            // Text Field - initially leading to icon
+            textFieldLeadingToIconConstraint!,
             textField.centerYAnchor.constraint(equalTo: containerView.centerYAnchor),
             textField.trailingAnchor.constraint(equalTo: clearButton.leadingAnchor, constant: -8),
 
@@ -136,14 +149,30 @@ public class TRPSearchBar: UIView {
     @objc private func clearButtonTapped() {
         textField.text = ""
         clearButton.isHidden = true
-        textFieldDidChange()
+        updateSearchIconVisibility(hasText: false)
+        delegate?.searchBar(self, textDidChange: "")
         textField.resignFirstResponder()
     }
 
     @objc private func textFieldDidChange() {
         let text = textField.text ?? ""
-        clearButton.isHidden = text.isEmpty
+        let hasText = !text.isEmpty
+        clearButton.isHidden = !hasText
+        updateSearchIconVisibility(hasText: hasText)
         delegate?.searchBar(self, textDidChange: text)
+    }
+
+    private func updateSearchIconVisibility(hasText: Bool) {
+        searchIconImageView.isHidden = hasText
+
+        // Update text field leading constraint
+        textFieldLeadingToIconConstraint?.isActive = !hasText
+        textFieldLeadingToContainerConstraint?.isActive = hasText
+
+        // Animate the layout change
+        UIView.animate(withDuration: 0.2) {
+            self.layoutIfNeeded()
+        }
     }
 
     // MARK: - Public Methods

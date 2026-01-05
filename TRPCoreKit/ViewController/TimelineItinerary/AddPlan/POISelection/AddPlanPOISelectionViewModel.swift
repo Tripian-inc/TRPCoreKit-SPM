@@ -23,8 +23,12 @@ public class AddPlanPOISelectionViewModel {
     public weak var delegate: AddPlanPOISelectionViewModelDelegate?
 
     private let cityName: String?
+    private let cityId: Int?
     private let cityCenterPOI: TRPPoi?
     private let bookedActivities: [TRPTimelineSegment]
+
+    // Filtered activities for selected city
+    private var filteredActivities: [TRPTimelineSegment] = []
 
     // Google Places Search
     private var googleApiKey: String?
@@ -35,11 +39,13 @@ public class AddPlanPOISelectionViewModel {
 
     // MARK: - Initialization
     public init(cityName: String?,
+                cityId: Int? = nil,
                 cityCenterPOI: TRPPoi?,
                 bookedActivities: [TRPTimelineSegment],
                 boundarySW: TRPLocation? = nil,
                 boundaryNE: TRPLocation? = nil) {
         self.cityName = cityName
+        self.cityId = cityId
         self.cityCenterPOI = cityCenterPOI
         self.bookedActivities = bookedActivities
         self.boundarySW = boundarySW
@@ -48,6 +54,29 @@ public class AddPlanPOISelectionViewModel {
         // Get Google API key
         if let key = TRPApiKeyController.getKey(TRPApiKeys.trpGooglePlace) {
             googleApiKey = key
+        }
+
+        // Filter activities by selected city
+        filterActivitiesByCity()
+    }
+
+    private func filterActivitiesByCity() {
+        // If no cityId or cityName provided, show all activities
+        guard cityId != nil || cityName != nil else {
+            filteredActivities = bookedActivities
+            return
+        }
+
+        filteredActivities = bookedActivities.filter { segment in
+            // Filter by cityId if available
+            if let cityId = self.cityId, let segmentCityId = segment.city?.id {
+                return segmentCityId == cityId
+            }
+            // Fallback to city name matching
+            if let cityName = self.cityName, let segmentCityName = segment.city?.name {
+                return segmentCityName.lowercased() == cityName.lowercased()
+            }
+            return false
         }
     }
 
@@ -70,17 +99,35 @@ public class AddPlanPOISelectionViewModel {
     }
 
     // MARK: - Booked Activities Methods
+    public func getFilteredActivitiesCount() -> Int {
+        return filteredActivities.count
+    }
+
+    public func getFilteredActivity(at index: Int) -> TRPTimelineSegment? {
+        guard index < filteredActivities.count else { return nil }
+        return filteredActivities[index]
+    }
+
+    public func getFilteredActivities() -> [TRPTimelineSegment] {
+        return filteredActivities
+    }
+
+    public func hasFilteredActivities() -> Bool {
+        return !filteredActivities.isEmpty
+    }
+
+    // Keep old methods for backward compatibility
     public func getBookedActivitiesCount() -> Int {
-        return bookedActivities.count
+        return filteredActivities.count
     }
 
     public func getBookedActivity(at index: Int) -> TRPTimelineSegment? {
-        guard index < bookedActivities.count else { return nil }
-        return bookedActivities[index]
+        guard index < filteredActivities.count else { return nil }
+        return filteredActivities[index]
     }
 
     public func getBookedActivities() -> [TRPTimelineSegment] {
-        return bookedActivities
+        return filteredActivities
     }
 
     // MARK: - Google Places Search

@@ -94,6 +94,10 @@ public class AddPlanTimeAndTravelersViewModel {
         return containerViewModel?.planData.selectedCity?.name
     }
 
+    public func getCityId() -> Int? {
+        return containerViewModel?.planData.selectedCity?.id
+    }
+
     public func getCityCenterDisplayName() -> String? {
         guard let city = containerViewModel?.planData.selectedCity else { return nil }
         return "\(city.name) - \(AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.cityCenter))"

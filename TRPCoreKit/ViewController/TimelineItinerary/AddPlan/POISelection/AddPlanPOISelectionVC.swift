@@ -117,6 +117,7 @@ public class AddPlanPOISelectionVC: TRPBaseUIViewController {
 
         viewModel.delegate = self
         updateCityCenterButton()
+        updateActivitiesSectionVisibility()
     }
 
     // MARK: - Setup
@@ -151,18 +152,19 @@ public class AddPlanPOISelectionVC: TRPBaseUIViewController {
             defaultContentView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
 
             nearMeButton.topAnchor.constraint(equalTo: defaultContentView.topAnchor),
-            nearMeButton.leadingAnchor.constraint(equalTo: defaultContentView.leadingAnchor, constant: 16),
+            nearMeButton.leadingAnchor.constraint(equalTo: defaultContentView.leadingAnchor, constant: 24),
             nearMeButton.trailingAnchor.constraint(equalTo: defaultContentView.trailingAnchor, constant: -16),
-            nearMeButton.heightAnchor.constraint(equalToConstant: 48),
+            nearMeButton.heightAnchor.constraint(equalToConstant: 56),
 
             cityCenterButton.topAnchor.constraint(equalTo: nearMeButton.bottomAnchor),
-            cityCenterButton.leadingAnchor.constraint(equalTo: defaultContentView.leadingAnchor, constant: 16),
+            cityCenterButton.leadingAnchor.constraint(equalTo: defaultContentView.leadingAnchor, constant: 24),
             cityCenterButton.trailingAnchor.constraint(equalTo: defaultContentView.trailingAnchor, constant: -16),
-            cityCenterButton.heightAnchor.constraint(equalToConstant: 48),
+            cityCenterButton.heightAnchor.constraint(equalToConstant: 56),
 
-            sectionTitleLabel.topAnchor.constraint(equalTo: cityCenterButton.bottomAnchor, constant: 24),
+            sectionTitleLabel.topAnchor.constraint(equalTo: cityCenterButton.bottomAnchor, constant: 8),
             sectionTitleLabel.leadingAnchor.constraint(equalTo: defaultContentView.leadingAnchor, constant: 16),
             sectionTitleLabel.trailingAnchor.constraint(equalTo: defaultContentView.trailingAnchor, constant: -16),
+            sectionTitleLabel.heightAnchor.constraint(equalToConstant: 40),
 
             activitiesTableView.topAnchor.constraint(equalTo: sectionTitleLabel.bottomAnchor, constant: 8),
             activitiesTableView.leadingAnchor.constraint(equalTo: defaultContentView.leadingAnchor),
@@ -198,16 +200,12 @@ public class AddPlanPOISelectionVC: TRPBaseUIViewController {
         iconImageView.tintColor = ColorSet.primaryText.uiColor
         iconImageView.contentMode = .scaleAspectFit
 
-        if let customImage = TRPImageController().getImage(inFramework: icon, inApp: nil) {
-            iconImageView.image = customImage.withRenderingMode(.alwaysTemplate)
-        } else if let systemImage = UIImage(systemName: "location.fill") {
-            iconImageView.image = systemImage
-        }
+        iconImageView.image = TRPImageController().getImage(inFramework: icon, inApp: nil)?.withRenderingMode(.alwaysTemplate)
 
         let titleLabel = UILabel()
         titleLabel.translatesAutoresizingMaskIntoConstraints = false
         titleLabel.text = title
-        titleLabel.font = FontSet.montserratRegular.font(16)
+        titleLabel.font = FontSet.montserratMedium.font(16)
         titleLabel.textColor = ColorSet.primaryText.uiColor
         titleLabel.tag = 100 // Tag to find it later for updates
 
@@ -220,7 +218,7 @@ public class AddPlanPOISelectionVC: TRPBaseUIViewController {
             iconImageView.widthAnchor.constraint(equalToConstant: 24),
             iconImageView.heightAnchor.constraint(equalToConstant: 24),
 
-            titleLabel.leadingAnchor.constraint(equalTo: iconImageView.trailingAnchor, constant: 12),
+            titleLabel.leadingAnchor.constraint(equalTo: iconImageView.trailingAnchor, constant: 24),
             titleLabel.centerYAnchor.constraint(equalTo: container.centerYAnchor),
             titleLabel.trailingAnchor.constraint(lessThanOrEqualTo: container.trailingAnchor),
         ])
@@ -234,6 +232,12 @@ public class AddPlanPOISelectionVC: TRPBaseUIViewController {
                 label.text = displayName
             }
         }
+    }
+
+    private func updateActivitiesSectionVisibility() {
+        let hasActivities = viewModel.hasFilteredActivities()
+        sectionTitleLabel.isHidden = !hasActivities
+        activitiesTableView.isHidden = !hasActivities
     }
 
     // MARK: - State Management
@@ -363,14 +367,6 @@ extension AddPlanPOISelectionVC: TRPSearchBarDelegate {
         }
     }
 
-    public func searchBarDidBeginEditing(_ searchBar: TRPSearchBar) {
-        // Optional: Handle focus
-    }
-
-    public func searchBarDidEndEditing(_ searchBar: TRPSearchBar) {
-        // Optional: Handle blur
-    }
-
     public func searchBarSearchButtonClicked(_ searchBar: TRPSearchBar) {
         searchBar.resignFirstResponder()
     }
@@ -418,6 +414,14 @@ extension AddPlanPOISelectionVC: CLLocationManagerDelegate {
 // MARK: - POISelectionCell
 private class POISelectionCell: UITableViewCell {
 
+    private let iconContainerView: UIView = {
+        let view = UIView()
+        view.translatesAutoresizingMaskIntoConstraints = false
+        view.backgroundColor = ColorSet.neutral100.uiColor
+        view.layer.cornerRadius = 20
+        return view
+    }()
+
     private let iconImageView: UIImageView = {
         let imageView = UIImageView()
         imageView.translatesAutoresizingMaskIntoConstraints = false
@@ -452,17 +456,25 @@ private class POISelectionCell: UITableViewCell {
     }
 
     private func setupViews() {
-        contentView.addSubview(iconImageView)
+        contentView.addSubview(iconContainerView)
+        iconContainerView.addSubview(iconImageView)
         contentView.addSubview(nameLabel)
         contentView.addSubview(locationLabel)
 
         NSLayoutConstraint.activate([
-            iconImageView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
-            iconImageView.centerYAnchor.constraint(equalTo: contentView.centerYAnchor),
-            iconImageView.widthAnchor.constraint(equalToConstant: 24),
-            iconImageView.heightAnchor.constraint(equalToConstant: 24),
+            // Icon container (40x40 with background)
+            iconContainerView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
+            iconContainerView.centerYAnchor.constraint(equalTo: contentView.centerYAnchor),
+            iconContainerView.widthAnchor.constraint(equalToConstant: 40),
+            iconContainerView.heightAnchor.constraint(equalToConstant: 40),
 
-            nameLabel.leadingAnchor.constraint(equalTo: iconImageView.trailingAnchor, constant: 12),
+            // Icon image with 8pt inset (24x24)
+            iconImageView.topAnchor.constraint(equalTo: iconContainerView.topAnchor, constant: 8),
+            iconImageView.leadingAnchor.constraint(equalTo: iconContainerView.leadingAnchor, constant: 8),
+            iconImageView.trailingAnchor.constraint(equalTo: iconContainerView.trailingAnchor, constant: -8),
+            iconImageView.bottomAnchor.constraint(equalTo: iconContainerView.bottomAnchor, constant: -8),
+
+            nameLabel.leadingAnchor.constraint(equalTo: iconContainerView.trailingAnchor, constant: 12),
             nameLabel.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 8),
             nameLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
 
@@ -500,3 +512,4 @@ private class POISelectionCell: UITableViewCell {
         locationLabel.text = place.secondaryAddress
     }
 }
+

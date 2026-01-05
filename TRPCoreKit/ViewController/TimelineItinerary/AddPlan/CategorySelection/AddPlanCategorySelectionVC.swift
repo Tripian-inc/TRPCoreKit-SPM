@@ -10,8 +10,13 @@ import UIKit
 import TRPFoundationKit
 
 @objc(SPMAddPlanCategorySelectionVC)
-public class AddPlanCategorySelectionVC: TRPBaseUIViewController {
-    
+public class AddPlanCategorySelectionVC: TRPBaseUIViewController, AddPlanChildViewController {
+
+    // MARK: - AddPlanChildViewController
+    public var preferredContentHeight: CGFloat {
+        return 388 // Static height from design
+    }
+
     // MARK: - Properties
     public var viewModel: AddPlanCategorySelectionViewModel!
     public weak var containerVC: AddPlanContainerVC?
@@ -26,16 +31,8 @@ public class AddPlanCategorySelectionVC: TRPBaseUIViewController {
         label.textColor = ColorSet.primaryText.uiColor
         return label
     }()
-    
-    private let scrollView: UIScrollView = {
-        let scrollView = UIScrollView()
-        scrollView.translatesAutoresizingMaskIntoConstraints = false
-        scrollView.showsVerticalScrollIndicator = false
-        scrollView.contentInset = UIEdgeInsets(top: 0, left: 0, bottom: 24, right: 0)
-        return scrollView
-    }()
-    
-    private let categoriesContainer: UIView = {
+
+    private let gridContainer: UIView = {
         let view = UIView()
         view.translatesAutoresizingMaskIntoConstraints = false
         return view
@@ -45,44 +42,27 @@ public class AddPlanCategorySelectionVC: TRPBaseUIViewController {
     public override func setupViews() {
         super.setupViews()
         view.backgroundColor = .white
-        
-        view.addSubview(scrollView)
-        scrollView.addSubview(categoriesContainer)
-        categoriesContainer.addSubview(descriptionLabel)
-        
+
+        // Add all subviews directly to view (scroll is handled by container)
+        view.addSubview(descriptionLabel)
+        view.addSubview(gridContainer)
+
         NSLayoutConstraint.activate([
-            scrollView.topAnchor.constraint(equalTo: view.topAnchor),
-            scrollView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            scrollView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            scrollView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-            
-            categoriesContainer.topAnchor.constraint(equalTo: scrollView.topAnchor),
-            categoriesContainer.leadingAnchor.constraint(equalTo: scrollView.leadingAnchor),
-            categoriesContainer.trailingAnchor.constraint(equalTo: scrollView.trailingAnchor),
-            categoriesContainer.bottomAnchor.constraint(equalTo: scrollView.bottomAnchor),
-            categoriesContainer.widthAnchor.constraint(equalTo: scrollView.widthAnchor),
-            
-            descriptionLabel.topAnchor.constraint(equalTo: categoriesContainer.topAnchor, constant: 24),
-            descriptionLabel.leadingAnchor.constraint(equalTo: categoriesContainer.leadingAnchor, constant: 24),
-            descriptionLabel.trailingAnchor.constraint(equalTo: categoriesContainer.trailingAnchor, constant: -24),
+            descriptionLabel.topAnchor.constraint(equalTo: view.topAnchor, constant: 24),
+            descriptionLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 24),
+            descriptionLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -24),
+
+            gridContainer.topAnchor.constraint(equalTo: descriptionLabel.bottomAnchor, constant: 16),
+            gridContainer.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 24),
+            gridContainer.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -24),
         ])
-        
+
         setupCategoryButtons()
     }
-    
+
     // MARK: - Setup
     private func setupCategoryButtons() {
-        // Create grid container
-        let gridContainer = UIView()
-        gridContainer.translatesAutoresizingMaskIntoConstraints = false
-        categoriesContainer.addSubview(gridContainer)
-        
-        NSLayoutConstraint.activate([
-            gridContainer.topAnchor.constraint(equalTo: descriptionLabel.bottomAnchor, constant: 16),
-            gridContainer.leadingAnchor.constraint(equalTo: categoriesContainer.leadingAnchor, constant: 24),
-            gridContainer.trailingAnchor.constraint(equalTo: categoriesContainer.trailingAnchor, constant: -24),
-            gridContainer.bottomAnchor.constraint(equalTo: categoriesContainer.bottomAnchor)
-        ])
+        // Grid container already added to view
         
         let itemsPerRow = 3
         let spacing: CGFloat = 8

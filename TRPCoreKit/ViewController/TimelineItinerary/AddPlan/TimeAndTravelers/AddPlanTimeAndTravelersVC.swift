@@ -10,8 +10,13 @@ import UIKit
 import TRPFoundationKit
 
 @objc(SPMAddPlanTimeAndTravelersVC)
-public class AddPlanTimeAndTravelersVC: TRPBaseUIViewController {
-    
+public class AddPlanTimeAndTravelersVC: TRPBaseUIViewController, AddPlanChildViewController {
+
+    // MARK: - AddPlanChildViewController
+    public var preferredContentHeight: CGFloat {
+        return 412 // Static height from design
+    }
+
     // MARK: - Properties
     public var viewModel: AddPlanTimeAndTravelersViewModel!
     public weak var containerVC: AddPlanContainerVC?
@@ -182,138 +187,111 @@ public class AddPlanTimeAndTravelersVC: TRPBaseUIViewController {
     public override func setupViews() {
         super.setupViews()
         view.backgroundColor = .white
-        
-        // Create scroll view for flexible height
-        let scrollView = UIScrollView()
-        scrollView.translatesAutoresizingMaskIntoConstraints = false
-        scrollView.showsVerticalScrollIndicator = false
-        scrollView.contentInset = UIEdgeInsets(top: 24, left: 0, bottom: 24, right: 0)
-        
-        // Create content container
-        let contentContainer = UIView()
-        contentContainer.translatesAutoresizingMaskIntoConstraints = false
-        
-        // Add all subviews to container
-        contentContainer.addSubview(startingPointLabel)
-        contentContainer.addSubview(startingPointButton)
-        contentContainer.addSubview(startingPointClearButton)
-        contentContainer.addSubview(separator1)
-        contentContainer.addSubview(timeLabel)
-        contentContainer.addSubview(startTimeLabel)
-        contentContainer.addSubview(startTimeButton)
-        contentContainer.addSubview(endTimeLabel)
-        contentContainer.addSubview(endTimeButton)
-        contentContainer.addSubview(separator2)
-        contentContainer.addSubview(travelersLabel)
-        contentContainer.addSubview(travelersContainer)
-        
+
+        // Add all subviews directly to view (scroll is handled by container)
+        view.addSubview(startingPointLabel)
+        view.addSubview(startingPointButton)
+        view.addSubview(startingPointClearButton)
+        view.addSubview(separator1)
+        view.addSubview(timeLabel)
+        view.addSubview(startTimeLabel)
+        view.addSubview(startTimeButton)
+        view.addSubview(endTimeLabel)
+        view.addSubview(endTimeButton)
+        view.addSubview(separator2)
+        view.addSubview(travelersLabel)
+        view.addSubview(travelersContainer)
+
         travelersContainer.addSubview(travelersTextLabel)
         travelersContainer.addSubview(decrementButton)
         travelersContainer.addSubview(travelerCountLabel)
         travelersContainer.addSubview(incrementButton)
-        
-        scrollView.addSubview(contentContainer)
-        view.addSubview(scrollView)
-        
-        setupConstraints(scrollView: scrollView, contentContainer: contentContainer)
+
+        setupConstraints()
         setupActions()
         updateUI()
     }
-    
+
     // MARK: - Setup
-    private func setupConstraints(scrollView: UIScrollView, contentContainer: UIView) {
+    private func setupConstraints() {
         NSLayoutConstraint.activate([
-            // Scroll View
-            scrollView.topAnchor.constraint(equalTo: view.topAnchor),
-            scrollView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            scrollView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            scrollView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-            
-            // Content Container
-            contentContainer.topAnchor.constraint(equalTo: scrollView.topAnchor),
-            contentContainer.leadingAnchor.constraint(equalTo: scrollView.leadingAnchor),
-            contentContainer.trailingAnchor.constraint(equalTo: scrollView.trailingAnchor),
-            contentContainer.bottomAnchor.constraint(equalTo: scrollView.bottomAnchor),
-            contentContainer.widthAnchor.constraint(equalTo: scrollView.widthAnchor),
-            
             // Starting Point Label
-            startingPointLabel.topAnchor.constraint(equalTo: contentContainer.topAnchor),
-            startingPointLabel.leadingAnchor.constraint(equalTo: contentContainer.leadingAnchor, constant: 16),
-            startingPointLabel.trailingAnchor.constraint(equalTo: contentContainer.trailingAnchor, constant: -16),
-            
+            startingPointLabel.topAnchor.constraint(equalTo: view.topAnchor, constant: 24),
+            startingPointLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
+            startingPointLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
+
             // Starting Point Button
             startingPointButton.topAnchor.constraint(equalTo: startingPointLabel.bottomAnchor, constant: 16),
-            startingPointButton.leadingAnchor.constraint(equalTo: contentContainer.leadingAnchor, constant: 16),
-            startingPointButton.trailingAnchor.constraint(equalTo: contentContainer.trailingAnchor, constant: -16),
+            startingPointButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
+            startingPointButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
             startingPointButton.heightAnchor.constraint(equalToConstant: 48),
-            
+
             // Starting Point Clear Button
             startingPointClearButton.centerYAnchor.constraint(equalTo: startingPointButton.centerYAnchor),
             startingPointClearButton.trailingAnchor.constraint(equalTo: startingPointButton.trailingAnchor, constant: -12),
             startingPointClearButton.widthAnchor.constraint(equalToConstant: 24),
             startingPointClearButton.heightAnchor.constraint(equalToConstant: 24),
-            
+
             // Separator 1
             separator1.topAnchor.constraint(equalTo: startingPointButton.bottomAnchor, constant: 24),
-            separator1.leadingAnchor.constraint(equalTo: contentContainer.leadingAnchor),
-            separator1.trailingAnchor.constraint(equalTo: contentContainer.trailingAnchor),
+            separator1.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            separator1.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             separator1.heightAnchor.constraint(equalToConstant: 1),
-            
+
             // Time Label
             timeLabel.topAnchor.constraint(equalTo: separator1.bottomAnchor, constant: 24),
-            timeLabel.leadingAnchor.constraint(equalTo: contentContainer.leadingAnchor, constant: 16),
-            timeLabel.trailingAnchor.constraint(equalTo: contentContainer.trailingAnchor, constant: -16),
-            
+            timeLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
+            timeLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
+
             // Start Time Label
             startTimeLabel.topAnchor.constraint(equalTo: timeLabel.bottomAnchor, constant: 16),
-            startTimeLabel.leadingAnchor.constraint(equalTo: contentContainer.leadingAnchor, constant: 16),
-            
+            startTimeLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
+
             // End Time Label
             endTimeLabel.topAnchor.constraint(equalTo: timeLabel.bottomAnchor, constant: 16),
-            endTimeLabel.leadingAnchor.constraint(equalTo: contentContainer.centerXAnchor, constant: 4),
-            
+            endTimeLabel.leadingAnchor.constraint(equalTo: view.centerXAnchor, constant: 4),
+
             // Start Time Button
             startTimeButton.topAnchor.constraint(equalTo: startTimeLabel.bottomAnchor, constant: 4),
-            startTimeButton.leadingAnchor.constraint(equalTo: contentContainer.leadingAnchor, constant: 16),
-            startTimeButton.trailingAnchor.constraint(equalTo: contentContainer.centerXAnchor, constant: -4),
+            startTimeButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
+            startTimeButton.trailingAnchor.constraint(equalTo: view.centerXAnchor, constant: -4),
             startTimeButton.heightAnchor.constraint(equalToConstant: 48),
-            
+
             // End Time Button
             endTimeButton.topAnchor.constraint(equalTo: endTimeLabel.bottomAnchor, constant: 4),
-            endTimeButton.leadingAnchor.constraint(equalTo: contentContainer.centerXAnchor, constant: 4),
-            endTimeButton.trailingAnchor.constraint(equalTo: contentContainer.trailingAnchor, constant: -24),
+            endTimeButton.leadingAnchor.constraint(equalTo: view.centerXAnchor, constant: 4),
+            endTimeButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -24),
             endTimeButton.heightAnchor.constraint(equalToConstant: 48),
-            
+
             // Separator 2
             separator2.topAnchor.constraint(equalTo: endTimeButton.bottomAnchor, constant: 24),
-            separator2.leadingAnchor.constraint(equalTo: contentContainer.leadingAnchor),
-            separator2.trailingAnchor.constraint(equalTo: contentContainer.trailingAnchor),
+            separator2.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            separator2.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             separator2.heightAnchor.constraint(equalToConstant: 1),
-            
+
             // Travelers Label
             travelersLabel.topAnchor.constraint(equalTo: separator2.bottomAnchor, constant: 24),
-            travelersLabel.leadingAnchor.constraint(equalTo: contentContainer.leadingAnchor, constant: 16),
-            travelersLabel.trailingAnchor.constraint(equalTo: contentContainer.trailingAnchor, constant: -16),
-            
+            travelersLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
+            travelersLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
+
             // Travelers Container
             travelersContainer.topAnchor.constraint(equalTo: travelersLabel.bottomAnchor, constant: 16),
-            travelersContainer.leadingAnchor.constraint(equalTo: contentContainer.leadingAnchor, constant: 16),
-            travelersContainer.trailingAnchor.constraint(equalTo: contentContainer.trailingAnchor, constant: -16),
+            travelersContainer.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
+            travelersContainer.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
             travelersContainer.heightAnchor.constraint(equalToConstant: 32),
-            travelersContainer.bottomAnchor.constraint(equalTo: contentContainer.bottomAnchor),
-            
+
             travelersTextLabel.leadingAnchor.constraint(equalTo: travelersContainer.leadingAnchor),
             travelersTextLabel.centerYAnchor.constraint(equalTo: travelersContainer.centerYAnchor),
-            
+
             incrementButton.trailingAnchor.constraint(equalTo: travelersContainer.trailingAnchor),
             incrementButton.centerYAnchor.constraint(equalTo: travelersContainer.centerYAnchor),
             incrementButton.widthAnchor.constraint(equalToConstant: 32),
             incrementButton.heightAnchor.constraint(equalToConstant: 32),
-            
+
             travelerCountLabel.trailingAnchor.constraint(equalTo: incrementButton.leadingAnchor, constant: -16),
             travelerCountLabel.centerYAnchor.constraint(equalTo: travelersContainer.centerYAnchor),
             travelerCountLabel.widthAnchor.constraint(equalToConstant: 20),
-            
+
             decrementButton.trailingAnchor.constraint(equalTo: travelerCountLabel.leadingAnchor, constant: -16),
             decrementButton.centerYAnchor.constraint(equalTo: travelersContainer.centerYAnchor),
             decrementButton.widthAnchor.constraint(equalToConstant: 32),
@@ -376,6 +354,7 @@ public class AddPlanTimeAndTravelersVC: TRPBaseUIViewController {
     @objc private func startingPointButtonTapped() {
         let poiSelectionViewModel = AddPlanPOISelectionViewModel(
             cityName: viewModel.getCityName(),
+            cityId: viewModel.getCityId(),
             cityCenterPOI: viewModel.getCityCenterPOI(),
             bookedActivities: viewModel.getBookedActivities(),
             boundarySW: viewModel.getBoundarySW(),

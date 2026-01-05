@@ -68,6 +68,7 @@ public struct AddPlanLocalizationKeys {
     public static let sortBy = "addPlan.button.sortBy"
     public static let opinions = "addPlan.label.opinions"
     public static let freeCancellation = "addPlan.label.freeCancellation"
+    public static let from = "addPlan.label.from"
     public static let activity = "addPlan.label.activity"
     public static let activities = "addPlan.label.activities"
 
@@ -133,6 +134,7 @@ public struct AddPlanLocalizationKeys {
         sortBy: "Sort by",
         opinions: "opinions",
         freeCancellation: "Free cancellation",
+        from: "From",
         activity: "activity",
         activities: "activities",
         searchPOIPlace: "Search for a place or address",

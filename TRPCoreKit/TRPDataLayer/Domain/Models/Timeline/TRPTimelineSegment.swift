@@ -48,6 +48,7 @@ public class TRPTimelineSegment: Codable {
     public var activityIds: [String]?
     public var smartRecommendation: Bool?
     public var excludedActivityIds: [String]?
+    public var doNotGenerate: Int = 0
 
     // Manual POI properties
     public var poiId: String?
@@ -80,7 +81,6 @@ public class TRPCreateEditTimelineSegmentProfile: TRPTimelineSegment {
     
     public var tripHash: String = ""
     public var segmentIndex: Int?
-    public var doNotGenerate: Int?
     
     public init(tripHash: String) {
         super.init()
@@ -128,6 +128,7 @@ extension TRPCreateEditTimelineSegmentProfile {
         self.activityIds           = base.activityIds
         self.smartRecommendation   = base.smartRecommendation
         self.excludedActivityIds   = base.excludedActivityIds
+        self.doNotGenerate         = base.doNotGenerate
 
         // Manual POI properties
         self.poiId                 = base.poiId

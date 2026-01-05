@@ -66,6 +66,14 @@ extension TRPTourProduct {
         guard let category = categories.first else { return "" }
         return category.name ?? ""
     }
+
+    /// Returns true if the tour is cancellable (does not have "non_refundable" tag)
+    public var isCancellable: Bool {
+        let nonRefundableTag = tags.first { tag in
+            tag.lowercased() == "non_refundable" || tag.lowercased() == "non-refundable"
+        }
+        return nonRefundableTag == nil
+    }
 }
 
 extension [TRPTourProduct] {

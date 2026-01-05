@@ -51,7 +51,7 @@ public class AddPlanPOIListingVC: TRPBaseUIViewController {
         appearance.shadowColor = .clear
         appearance.titleTextAttributes = [
             .foregroundColor: ColorSet.primaryText.uiColor,
-            .font: FontSet.montserratSemiBold.font(16)
+            .font: FontSet.montserratSemiBold.font(18)
         ]
 
         navigationController?.navigationBar.standardAppearance = appearance
