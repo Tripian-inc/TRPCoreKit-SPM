@@ -72,6 +72,14 @@ public struct AddPlanLocalizationKeys {
     public static let activity = "addPlan.label.activity"
     public static let activities = "addPlan.label.activities"
 
+    // MARK: - Sort Options
+    public static let sortPopularity = "addPlan.sort.popularity"
+    public static let sortRating = "addPlan.sort.rating"
+    public static let sortPriceLowToHigh = "addPlan.sort.priceLowToHigh"
+    public static let sortNewest = "addPlan.sort.newest"
+    public static let sortDurationShortToLong = "addPlan.sort.durationShortToLong"
+    public static let sortDurationLongToShort = "addPlan.sort.durationLongToShort"
+
     // MARK: - POI Listing
     public static let searchPOIPlace = "addPlan.search.poiPlace"
     public static let placesOfInterest = "addPlan.title.placesOfInterest"
@@ -132,6 +140,12 @@ public struct AddPlanLocalizationKeys {
         searchActivity: "Search for an activity",
         filters: "Filters",
         sortBy: "Sort by",
+        sortPopularity: "Popularity",
+        sortRating: "Rating",
+        sortPriceLowToHigh: "Price (lowest first)",
+        sortNewest: "Newest",
+        sortDurationShortToLong: "Duration (shortest to longest)",
+        sortDurationLongToShort: "Duration (longest to shortest)",
         opinions: "opinions",
         freeCancellation: "Free cancellation",
         from: "From",

@@ -23,6 +23,7 @@ public class AddPlanActivityListingViewModel {
 
     public var selectedCategoryIndices: Set<Int> = [0] // 0 = "All", multiple selection allowed except "All"
     public var searchText: String = ""
+    public var selectedSortOption: SortOption = .popularity
 
     private var allTours: [TRPTourProduct] = []
     private var filteredTours: [TRPTourProduct] = []
@@ -134,6 +135,11 @@ public class AddPlanActivityListingViewModel {
     public func updateSearchText(_ text: String) {
         searchText = text
         performSearchWithDebounce()
+    }
+
+    public func updateSortOption(_ option: SortOption) {
+        selectedSortOption = option
+        performSearch()
     }
     
     /// Returns the selected category IDs. Returns nil if "All" is selected (index 0).
@@ -248,9 +254,19 @@ public class AddPlanActivityListingViewModel {
             dateString = dateFormatter.string(from: selectedDay)
         }
 
-        // Use city-based search with date parameter
-        tourUseCases?.executeSearchTour(text: keywords, categories: [], date: dateString) { [weak self] result, pagination in
-            self?.handleSearchResult(result: result, pagination: pagination)
+        // Build parameters with sorting
+        var params = TourParameters(search: keywords.isEmpty ? nil : keywords)
+        params.date = dateString
+
+        // Apply sorting parameters
+        let sortParams = selectedSortOption.apiParameters
+        params.sortingBy = sortParams.sortingBy
+        params.sortingType = sortParams.sortingType
+
+        // Use repository directly to support sorting
+        guard let cityId = planData.selectedCity?.id else { return }
+        tourUseCases?.tourRepository.fetchTours(cityId: cityId, parameters: params) { [weak self] result in
+            self?.handleSearchResult(result: result.0, pagination: result.1)
         }
     }
 
@@ -313,10 +329,15 @@ public class AddPlanActivityListingViewModel {
         let keywords = buildKeywords()
 
         // Create parameters with next offset
-        var params = TourParameters(search: keywords)
+        var params = TourParameters(search: keywords.isEmpty ? nil : keywords)
         params.tourCategories = nil // Don't send tagIds, only use keywords
         params.limit = pagination.limit
         params.offset = nextOffset
+
+        // Apply sorting parameters (same as initial search)
+        let sortParams = selectedSortOption.apiParameters
+        params.sortingBy = sortParams.sortingBy
+        params.sortingType = sortParams.sortingType
 
         // Use repository directly for pagination
         if let cityId = planData.selectedCity?.id {

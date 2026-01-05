@@ -237,6 +237,23 @@ public class AddPlanActivityListingVC: TRPBaseUIViewController {
             tableView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
             tableView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor)
         ])
+
+        // Add button actions
+        sortButton.addTarget(self, action: #selector(sortButtonTapped), for: .touchUpInside)
+    }
+
+    // MARK: - Actions
+    @objc private func sortButtonTapped() {
+        let sortVC = AddPlanSortByVC(selectedOption: viewModel.selectedSortOption)
+        sortVC.onSortOptionSelected = { [weak self] option in
+            self?.viewModel.updateSortOption(option)
+
+            // Scroll table to top when sort changes
+            if self?.tableView.numberOfRows(inSection: 0) ?? 0 > 0 {
+                self?.tableView.scrollToRow(at: IndexPath(row: 0, section: 0), at: .top, animated: true)
+            }
+        }
+        presentVCWithModal(sortVC, onlyLarge: false, prefersGrabberVisible: true)
     }
 }
 
