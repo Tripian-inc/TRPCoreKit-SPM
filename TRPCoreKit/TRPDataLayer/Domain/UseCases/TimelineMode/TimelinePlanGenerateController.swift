@@ -70,17 +70,8 @@ class TimelinePlanGenerateController {
             }else {
                 print("[Error] Plan couldn't generated")
             }
-        }else if generate > 0 { //TRİP YARATILDI VE
-            //Eğer dizinin eleman sayısı 0 ise plan tekrar bir kereliğe mahsus çekilr
-            print("[info] generated 1")
-            // TODO : - RETURN
-            //changeCurrentDailyPlan(dailyPlan)
+        } else {
             completed(generate, dailyPlan)
-        }else if generate < 0 {//Trip generate edildi ancak, saatden dolayı hiç bir mekan döndüremedi
-            print("[info] generated -1")
-            completed(generate, dailyPlan)
-            // TODO : - RETURN
-            //changeCurrentDailyPlan(dailyPlan)
         }
     }
     
