@@ -1104,6 +1104,35 @@ public class TRPTimelineItineraryViewModel {
         }
     }
 
+    // MARK: - Segment Route Calculation
+
+    /// Returns itinerary segments with multiple steps for route calculation
+    /// - Returns: Array of segment index and POI locations tuples
+    public func getItinerarySegmentsForRouteCalculation() -> [(segmentIndex: Int, locations: [TRPLocation])] {
+        var result: [(segmentIndex: Int, locations: [TRPLocation])] = []
+        var segmentIndex = 0
+
+        for cityGroup in displayItems {
+            for item in cityGroup.items {
+                // Only itinerary type segments
+                if item.isItinerary {
+                    // Only segments with more than 1 step
+                    let steps = item.steps
+                    if steps.count > 1 {
+                        // Collect POI coordinates
+                        let locations = steps.compactMap { $0.poi?.coordinate }
+                        if locations.count > 1 {
+                            result.append((segmentIndex: segmentIndex, locations: locations))
+                        }
+                    }
+                }
+                segmentIndex += 1
+            }
+        }
+
+        return result
+    }
+
     // MARK: - Timeline Creation/Fetch Methods
 
     /// Creates a new timeline from itinerary model

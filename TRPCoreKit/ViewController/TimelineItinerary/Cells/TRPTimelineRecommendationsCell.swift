@@ -17,7 +17,11 @@ protocol TRPTimelineRecommendationsCellDelegate: AnyObject {
     func recommendationsCellDidTapChangeTime(_ cell: TRPTimelineRecommendationsCell, step: TRPTimelineStep)
     func recommendationsCellDidTapRemoveStep(_ cell: TRPTimelineRecommendationsCell, step: TRPTimelineStep)
     func recommendationsCellDidTapReservation(_ cell: TRPTimelineRecommendationsCell, step: TRPTimelineStep)
-    func recommendationsCellNeedsRouteCalculation(_ cell: TRPTimelineRecommendationsCell, from: TRPLocation, to: TRPLocation, index: Int)
+    /// Request route calculation for all waypoints at once
+    /// - Parameters:
+    ///   - locations: Array of all POI locations in order
+    ///   - cellIndexPath: The cell's index path for updating distances
+    func recommendationsCellNeedsRouteCalculation(_ cell: TRPTimelineRecommendationsCell, locations: [TRPLocation], cellIndexPath: IndexPath)
 }
 
 class TRPTimelineRecommendationsCell: UITableViewCell {
@@ -30,6 +34,7 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
     private var isExpanded: Bool = true
     private var distanceViews: [Int: UIView] = [:] // Track distance views by index
     private var startingOrder: Int = 1 // Unified day order for first step
+    private var currentIndexPath: IndexPath? // Store indexPath for delegate calls
     
     // MARK: - UI Components
     private let containerView: UIStackView = {
@@ -189,11 +194,12 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
     }
     
     // MARK: - Configuration
-    func configure(with steps: [TRPTimelineStep], segment: TRPTimelineSegment?, isExpanded: Bool = true, startingOrder: Int = 1) {
+    func configure(with steps: [TRPTimelineStep], segment: TRPTimelineSegment?, isExpanded: Bool = true, startingOrder: Int = 1, indexPath: IndexPath) {
         self.steps = steps
         self.segment = segment
         self.isExpanded = isExpanded
         self.startingOrder = startingOrder
+        self.currentIndexPath = indexPath
 
         // Set segment title
         titleLabel.text = segment?.title ?? TimelineLocalizationKeys.localized(TimelineLocalizationKeys.recommendations)
@@ -214,14 +220,6 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
                 let distanceView = createDistanceView(for: index)
                 distanceViews[index] = distanceView
                 recommendationsStackView.addArrangedSubview(distanceView)
-
-                // Request route calculation if both POIs have coordinates
-                if let fromCoordinate = step.poi?.coordinate, let toCoordinate = steps[index + 1].poi?.coordinate {
-                    delegate?.recommendationsCellNeedsRouteCalculation(self,
-                                                                       from: fromCoordinate,
-                                                                       to: toCoordinate,
-                                                                       index: index)
-                }
             }
         }
 
@@ -230,16 +228,26 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
         // Set UI based on collapse state - UIStackView handles layout automatically
         recommendationsStackView.isHidden = !isExpanded
         recommendationsStackView.alpha = isExpanded ? 1.0 : 0.0
+
+        // Request route calculation for all waypoints at once (if more than 1 step with coordinates)
+        let locations = steps.compactMap { $0.poi?.coordinate }
+        if locations.count > 1 {
+            delegate?.recommendationsCellNeedsRouteCalculation(self, locations: locations, cellIndexPath: indexPath)
+        }
     }
 
     // MARK: - Configuration with Pre-computed Data
 
     /// Configure cell with pre-computed RecommendationsCellData
-    func configure(with cellData: RecommendationsCellData) {
+    /// - Parameters:
+    ///   - cellData: Pre-computed cell data
+    ///   - indexPath: The cell's index path for delegate callbacks
+    func configure(with cellData: RecommendationsCellData, indexPath: IndexPath) {
         self.steps = cellData.steps
         self.segment = cellData.segment
         self.isExpanded = cellData.isExpanded
         self.startingOrder = cellData.startingOrder
+        self.currentIndexPath = indexPath
 
         // Title (pre-computed)
         titleLabel.text = cellData.title
@@ -260,17 +268,6 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
                 let distanceView = createDistanceView(for: index)
                 distanceViews[index] = distanceView
                 recommendationsStackView.addArrangedSubview(distanceView)
-
-                // Request route calculation if both POIs have coordinates
-                if let fromCoordinate = step.poi?.coordinate,
-                   let toCoordinate = cellData.steps[index + 1].poi?.coordinate {
-                    delegate?.recommendationsCellNeedsRouteCalculation(
-                        self,
-                        from: fromCoordinate,
-                        to: toCoordinate,
-                        index: index
-                    )
-                }
             }
         }
 
@@ -279,6 +276,12 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
         // Set UI based on collapse state
         recommendationsStackView.isHidden = !cellData.isExpanded
         recommendationsStackView.alpha = cellData.isExpanded ? 1.0 : 0.0
+
+        // Request route calculation for all waypoints at once (if more than 1 step with coordinates)
+        let locations = cellData.steps.compactMap { $0.poi?.coordinate }
+        if locations.count > 1 {
+            delegate?.recommendationsCellNeedsRouteCalculation(self, locations: locations, cellIndexPath: indexPath)
+        }
     }
 
     private func createRecommendationView(for step: TRPTimelineStep, order: Int) -> UIView {
