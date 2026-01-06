@@ -75,37 +75,14 @@ public class AddPlanActivityListingVC: TRPBaseUIViewController {
         return view
     }()
     
-    private lazy var filterButton: UIButton = {
-        let button = UIButton(type: .system)
-        button.translatesAutoresizingMaskIntoConstraints = false
-        button.setTitle(AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.filters), for: .normal)
-        button.setTitleColor(ColorSet.primaryText.uiColor, for: .normal)
-        button.titleLabel?.font = FontSet.montserratMedium.font(14)
-        button.backgroundColor = .white
-        button.layer.cornerRadius = 20
-        button.layer.borderWidth = 0.5
-        button.layer.borderColor = ColorSet.lineWeak.uiColor.cgColor
-        button.contentEdgeInsets = UIEdgeInsets(top: 6, left: 12, bottom: 6, right: 12)
-
-        // Add filter icon
-        let image = TRPImageController().getImage(inFramework: "ic_filter_activity", inApp: nil)
-        button.setImage(image, for: .normal)
-        button.tintColor = ColorSet.fgWeak.uiColor
-        button.imageEdgeInsets = UIEdgeInsets(top: 0, left: -8, bottom: 0, right: 8)
-
-        return button
-    }()
-
-    /// Badge indicator for active filter (8x8, primary color, white border)
-    private lazy var filterActiveBadge: UIView = {
-        let badge = UIView()
-        badge.translatesAutoresizingMaskIntoConstraints = false
-        badge.backgroundColor = ColorSet.primary.uiColor
-        badge.layer.cornerRadius = 4 // 8/2 = 4
-        badge.layer.borderWidth = 0.5
-        badge.layer.borderColor = UIColor.white.cgColor
-        badge.isHidden = true
-        return badge
+    private lazy var filterButtonView: FilterButtonView = {
+        let view = FilterButtonView()
+        view.translatesAutoresizingMaskIntoConstraints = false
+        view.configure(
+            icon: TRPImageController().getImage(inFramework: "ic_filter_activity", inApp: nil),
+            title: AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.filters)
+        )
+        return view
     }()
 
     private lazy var sortButton: UIButton = {
@@ -130,7 +107,7 @@ public class AddPlanActivityListingVC: TRPBaseUIViewController {
     }()
 
     private lazy var filterSortStackView: UIStackView = {
-        let stackView = UIStackView(arrangedSubviews: [filterButton, sortButton])
+        let stackView = UIStackView(arrangedSubviews: [filterButtonView, sortButton])
         stackView.translatesAutoresizingMaskIntoConstraints = false
         stackView.axis = .horizontal
         stackView.spacing = 16
@@ -253,23 +230,14 @@ public class AddPlanActivityListingVC: TRPBaseUIViewController {
         ])
 
         // Add button actions
-        filterButton.addTarget(self, action: #selector(filterButtonTapped), for: .touchUpInside)
+        filterButtonView.onTap = { [weak self] in
+            self?.filterButtonTapped()
+        }
         sortButton.addTarget(self, action: #selector(sortButtonTapped), for: .touchUpInside)
-
-        // Add filter active badge positioned on filter icon (left side of button)
-        // Icon is positioned with left padding ~12 and imageEdgeInsets left: -8
-        // Badge should be at the top-right corner of the icon
-        filterButton.addSubview(filterActiveBadge)
-        NSLayoutConstraint.activate([
-            filterActiveBadge.widthAnchor.constraint(equalToConstant: 8),
-            filterActiveBadge.heightAnchor.constraint(equalToConstant: 8),
-            filterActiveBadge.topAnchor.constraint(equalTo: filterButton.topAnchor, constant: 11),
-            filterActiveBadge.leadingAnchor.constraint(equalTo: filterButton.leadingAnchor, constant: 22)
-        ])
     }
 
     // MARK: - Actions
-    @objc private func filterButtonTapped() {
+    private func filterButtonTapped() {
         let filterVC = AddPlanFilterVC(filterData: viewModel.filterData)
         filterVC.onFilterApplied = { [weak self] filterData in
             self?.viewModel.updateFilterData(filterData)
@@ -280,7 +248,7 @@ public class AddPlanActivityListingVC: TRPBaseUIViewController {
                 self?.tableView.scrollToRow(at: IndexPath(row: 0, section: 0), at: .top, animated: true)
             }
         }
-        presentVCWithModal(filterVC, onlyLarge: false, prefersGrabberVisible: true)
+        presentVCWithModal(filterVC, onlyLarge: false, prefersGrabberVisible: true, disableSwipeToDismiss: true)
     }
 
     @objc private func sortButtonTapped() {
@@ -298,7 +266,7 @@ public class AddPlanActivityListingVC: TRPBaseUIViewController {
 
     private func updateFilterButtonAppearance() {
         // Show/hide the active filter badge (positioned on filter icon)
-        filterActiveBadge.isHidden = !viewModel.hasActiveFilters()
+        filterButtonView.setBadgeVisible(viewModel.hasActiveFilters())
     }
 }
 
@@ -323,10 +291,6 @@ extension AddPlanActivityListingVC: UICollectionViewDataSource, UICollectionView
     }
     
     public func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAt indexPath: IndexPath) -> CGSize {
-//        let categoryNames = viewModel.getCategoryNames()
-//        let title = categoryNames[indexPath.item]
-        // Calculate width based on title (matching Figma design)
-//        let width: CGFloat = title.contains("\n") ? 88 : (title == "All" || title == "Otros" ? 64 : 72)
         return CGSize(width: 80, height: 72)
     }
     
@@ -546,5 +510,108 @@ extension AddPlanActivityListingVC: ActivityCardCellDelegate {
 
         // Present as bottom sheet using base extension
         presentVCWithModal(timeSelectionVC, onlyLarge: false, prefersGrabberVisible: false)
+    }
+}
+
+// MARK: - FilterButtonView
+private class FilterButtonView: UIView {
+
+    // MARK: - Properties
+    var onTap: (() -> Void)?
+
+    // MARK: - UI Components
+    private let iconImageView: UIImageView = {
+        let imageView = UIImageView()
+        imageView.translatesAutoresizingMaskIntoConstraints = false
+        imageView.contentMode = .scaleAspectFit
+        imageView.tintColor = ColorSet.fgWeak.uiColor
+        return imageView
+    }()
+
+    private let titleLabel: UILabel = {
+        let label = UILabel()
+        label.translatesAutoresizingMaskIntoConstraints = false
+        label.font = FontSet.montserratMedium.font(14)
+        label.textColor = ColorSet.primaryText.uiColor
+        return label
+    }()
+
+    /// Badge indicator for active filter (8x8, primary color, 0.5px white border)
+    private let badge: UIView = {
+        let view = UIView()
+        view.translatesAutoresizingMaskIntoConstraints = false
+        view.backgroundColor = ColorSet.primary.uiColor
+        view.layer.cornerRadius = 4 // 8/2 = 4
+        view.layer.borderWidth = 0.5
+        view.layer.borderColor = UIColor.white.cgColor
+        view.isHidden = true
+        return view
+    }()
+
+    // MARK: - Initialization
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        setupUI()
+        setupGesture()
+    }
+
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    // MARK: - Setup
+    private func setupUI() {
+        // Button appearance
+        backgroundColor = .white
+        layer.cornerRadius = 20
+        layer.borderWidth = 0.5
+        layer.borderColor = ColorSet.lineWeak.uiColor.cgColor
+
+        // Container to center icon + label together
+        let contentStack = UIStackView(arrangedSubviews: [iconImageView, titleLabel])
+        contentStack.translatesAutoresizingMaskIntoConstraints = false
+        contentStack.axis = .horizontal
+        contentStack.spacing = 8
+        contentStack.alignment = .center
+
+        addSubview(contentStack)
+        addSubview(badge)
+
+        NSLayoutConstraint.activate([
+            // Icon size
+            iconImageView.widthAnchor.constraint(equalToConstant: 16),
+            iconImageView.heightAnchor.constraint(equalToConstant: 16),
+
+            // Center content stack in view
+            contentStack.centerXAnchor.constraint(equalTo: centerXAnchor),
+            contentStack.centerYAnchor.constraint(equalTo: centerYAnchor),
+
+            // Badge at top-right corner of icon
+            badge.widthAnchor.constraint(equalToConstant: 8),
+            badge.heightAnchor.constraint(equalToConstant: 8),
+            badge.topAnchor.constraint(equalTo: iconImageView.topAnchor, constant: -2),
+            badge.trailingAnchor.constraint(equalTo: iconImageView.trailingAnchor, constant: 4)
+        ])
+    }
+
+    private func setupGesture() {
+        let tapGesture = UITapGestureRecognizer(target: self, action: #selector(handleTap))
+        addGestureRecognizer(tapGesture)
+        isUserInteractionEnabled = true
+    }
+
+    // MARK: - Actions
+    @objc private func handleTap() {
+        onTap?()
+    }
+
+    // MARK: - Public Methods
+    func configure(icon: UIImage?, title: String) {
+        iconImageView.image = icon?.withRenderingMode(.alwaysTemplate)
+        titleLabel.text = title
+    }
+
+    func setBadgeVisible(_ visible: Bool) {
+        badge.isHidden = !visible
     }
 }
