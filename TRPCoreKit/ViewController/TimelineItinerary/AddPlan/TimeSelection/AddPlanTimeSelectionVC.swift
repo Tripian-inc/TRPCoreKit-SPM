@@ -59,7 +59,7 @@ public class AddPlanTimeSelectionVC: TRPBaseUIViewController {
 
     private lazy var continueButton: TRPButton = {
         let button = TRPButton(
-            title: AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.continueButton),
+            title: CommonLocalizationKeys.localized(CommonLocalizationKeys.continueButton),
             style: .primary
         )
         button.setEnabled(false)

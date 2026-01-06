@@ -17,7 +17,11 @@ protocol TRPTimelineRecommendationsCellDelegate: AnyObject {
     func recommendationsCellDidTapChangeTime(_ cell: TRPTimelineRecommendationsCell, step: TRPTimelineStep)
     func recommendationsCellDidTapRemoveStep(_ cell: TRPTimelineRecommendationsCell, step: TRPTimelineStep)
     func recommendationsCellDidTapReservation(_ cell: TRPTimelineRecommendationsCell, step: TRPTimelineStep)
-    func recommendationsCellNeedsRouteCalculation(_ cell: TRPTimelineRecommendationsCell, from: TRPLocation, to: TRPLocation, index: Int)
+    /// Request route calculation for all waypoints at once
+    /// - Parameters:
+    ///   - locations: Array of all POI locations in order
+    ///   - cellIndexPath: The cell's index path for updating distances
+    func recommendationsCellNeedsRouteCalculation(_ cell: TRPTimelineRecommendationsCell, locations: [TRPLocation], cellIndexPath: IndexPath)
 }
 
 class TRPTimelineRecommendationsCell: UITableViewCell {
@@ -30,7 +34,9 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
     private var isExpanded: Bool = true
     private var distanceViews: [Int: UIView] = [:] // Track distance views by index
     private var startingOrder: Int = 1 // Unified day order for first step
-    
+    private var currentIndexPath: IndexPath? // Store indexPath for delegate calls
+    private var hasAccommodation: Bool = false // Track if accommodation is displayed
+
     // MARK: - UI Components
     private let containerView: UIStackView = {
         let stack = UIStackView()
@@ -189,11 +195,12 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
     }
     
     // MARK: - Configuration
-    func configure(with steps: [TRPTimelineStep], segment: TRPTimelineSegment?, isExpanded: Bool = true, startingOrder: Int = 1) {
+    func configure(with steps: [TRPTimelineStep], segment: TRPTimelineSegment?, isExpanded: Bool = true, startingOrder: Int = 1, indexPath: IndexPath, city: TRPCity? = nil) {
         self.steps = steps
         self.segment = segment
         self.isExpanded = isExpanded
         self.startingOrder = startingOrder
+        self.currentIndexPath = indexPath
 
         // Set segment title
         titleLabel.text = segment?.title ?? TimelineLocalizationKeys.localized(TimelineLocalizationKeys.recommendations)
@@ -201,6 +208,50 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
         // Clear existing views and distance views
         recommendationsStackView.arrangedSubviews.forEach { $0.removeFromSuperview() }
         distanceViews.removeAll()
+
+        // Track distance view index
+        var distanceIndex = 0
+
+        // Determine starting point: accommodation or city center
+        // Priority: accommodation > city parameter > segment.city
+        var startingPointName: String?
+        var startingPointCoordinate: TRPLocation?
+        let effectiveCity = city ?? segment?.city
+
+        if let accommodation = segment?.accommodation,
+           accommodation.coordinate.lat != 0 || accommodation.coordinate.lon != 0 {
+            // Use accommodation as starting point (with valid coordinates)
+            startingPointName = accommodation.name ?? accommodation.address ?? "Starting Point"
+            startingPointCoordinate = accommodation.coordinate
+            hasAccommodation = true
+        } else if let effectiveCity = effectiveCity {
+            // Use city center as starting point
+            let cityCenter = AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.cityCenter)
+            startingPointName = "\(effectiveCity.name) | \(cityCenter)"
+            hasAccommodation = false
+
+            // Try to get coordinates from cache first (more reliable), then fallback to city object
+            if let cachedCity = TRPCityCache.shared.getCity(byId: effectiveCity.id),
+               cachedCity.coordinate.lat != 0 || cachedCity.coordinate.lon != 0 {
+                startingPointCoordinate = cachedCity.coordinate
+            } else if effectiveCity.coordinate.lat != 0 || effectiveCity.coordinate.lon != 0 {
+                startingPointCoordinate = effectiveCity.coordinate
+            }
+        }
+
+        // Add starting point view if exists
+        if let displayName = startingPointName {
+            let startingPointView = createAccommodationView(name: displayName)
+            recommendationsStackView.addArrangedSubview(startingPointView)
+
+            // Add distance view between starting point and first step (only if we have valid coordinates)
+            if !steps.isEmpty && startingPointCoordinate != nil {
+                let distanceView = createDistanceView(for: distanceIndex)
+                distanceViews[distanceIndex] = distanceView
+                recommendationsStackView.addArrangedSubview(distanceView)
+                distanceIndex += 1
+            }
+        }
 
         // Add recommendation views for each step with distance info between them
         for (index, step) in steps.enumerated() {
@@ -211,17 +262,10 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
 
             // Add distance view between POIs (except after the last one)
             if index < steps.count - 1 {
-                let distanceView = createDistanceView(for: index)
-                distanceViews[index] = distanceView
+                let distanceView = createDistanceView(for: distanceIndex)
+                distanceViews[distanceIndex] = distanceView
                 recommendationsStackView.addArrangedSubview(distanceView)
-
-                // Request route calculation if both POIs have coordinates
-                if let fromCoordinate = step.poi?.coordinate, let toCoordinate = steps[index + 1].poi?.coordinate {
-                    delegate?.recommendationsCellNeedsRouteCalculation(self,
-                                                                       from: fromCoordinate,
-                                                                       to: toCoordinate,
-                                                                       index: index)
-                }
+                distanceIndex += 1
             }
         }
 
@@ -230,16 +274,32 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
         // Set UI based on collapse state - UIStackView handles layout automatically
         recommendationsStackView.isHidden = !isExpanded
         recommendationsStackView.alpha = isExpanded ? 1.0 : 0.0
+
+        // Build locations with starting point prepended for route calculation
+        var locations: [TRPLocation] = []
+        if let coord = startingPointCoordinate {
+            locations.append(coord)
+        }
+        locations.append(contentsOf: steps.compactMap { $0.poi?.coordinate })
+
+        // Request route calculation for all waypoints at once (if more than 1 location)
+        if locations.count > 1 {
+            delegate?.recommendationsCellNeedsRouteCalculation(self, locations: locations, cellIndexPath: indexPath)
+        }
     }
 
     // MARK: - Configuration with Pre-computed Data
 
     /// Configure cell with pre-computed RecommendationsCellData
-    func configure(with cellData: RecommendationsCellData) {
+    /// - Parameters:
+    ///   - cellData: Pre-computed cell data
+    ///   - indexPath: The cell's index path for delegate callbacks
+    func configure(with cellData: RecommendationsCellData, indexPath: IndexPath) {
         self.steps = cellData.steps
         self.segment = cellData.segment
         self.isExpanded = cellData.isExpanded
         self.startingOrder = cellData.startingOrder
+        self.currentIndexPath = indexPath
 
         // Title (pre-computed)
         titleLabel.text = cellData.title
@@ -247,6 +307,48 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
         // Clear existing views and distance views
         recommendationsStackView.arrangedSubviews.forEach { $0.removeFromSuperview() }
         distanceViews.removeAll()
+
+        // Track distance view index
+        var distanceIndex = 0
+
+        // Determine starting point: accommodation or city center
+        var startingPointName: String?
+        var startingPointCoordinate: TRPLocation?
+
+        if let accommodation = cellData.segment.accommodation,
+           accommodation.coordinate.lat != 0 || accommodation.coordinate.lon != 0 {
+            // Use accommodation as starting point (with valid coordinates)
+            startingPointName = accommodation.name ?? accommodation.address ?? "Starting Point"
+            startingPointCoordinate = accommodation.coordinate
+            hasAccommodation = true
+        } else if let city = cellData.city {
+            // Use city center as starting point
+            let cityCenter = AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.cityCenter)
+            startingPointName = "\(city.name) | \(cityCenter)"
+            hasAccommodation = false
+
+            // Try to get coordinates from cache first (more reliable), then fallback to city object
+            if let cachedCity = TRPCityCache.shared.getCity(byId: city.id),
+               cachedCity.coordinate.lat != 0 || cachedCity.coordinate.lon != 0 {
+                startingPointCoordinate = cachedCity.coordinate
+            } else if city.coordinate.lat != 0 || city.coordinate.lon != 0 {
+                startingPointCoordinate = city.coordinate
+            }
+        }
+
+        // Add starting point view if exists
+        if let displayName = startingPointName {
+            let startingPointView = createAccommodationView(name: displayName)
+            recommendationsStackView.addArrangedSubview(startingPointView)
+
+            // Add distance view between starting point and first step (only if we have valid coordinates)
+            if !cellData.steps.isEmpty && startingPointCoordinate != nil {
+                let distanceView = createDistanceView(for: distanceIndex)
+                distanceViews[distanceIndex] = distanceView
+                recommendationsStackView.addArrangedSubview(distanceView)
+                distanceIndex += 1
+            }
+        }
 
         // Add recommendation views for each step with distance info between them
         for (index, step) in cellData.steps.enumerated() {
@@ -257,20 +359,10 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
 
             // Add distance view between POIs (except after the last one)
             if index < cellData.steps.count - 1 {
-                let distanceView = createDistanceView(for: index)
-                distanceViews[index] = distanceView
+                let distanceView = createDistanceView(for: distanceIndex)
+                distanceViews[distanceIndex] = distanceView
                 recommendationsStackView.addArrangedSubview(distanceView)
-
-                // Request route calculation if both POIs have coordinates
-                if let fromCoordinate = step.poi?.coordinate,
-                   let toCoordinate = cellData.steps[index + 1].poi?.coordinate {
-                    delegate?.recommendationsCellNeedsRouteCalculation(
-                        self,
-                        from: fromCoordinate,
-                        to: toCoordinate,
-                        index: index
-                    )
-                }
+                distanceIndex += 1
             }
         }
 
@@ -279,6 +371,18 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
         // Set UI based on collapse state
         recommendationsStackView.isHidden = !cellData.isExpanded
         recommendationsStackView.alpha = cellData.isExpanded ? 1.0 : 0.0
+
+        // Build locations with starting point prepended for route calculation
+        var locations: [TRPLocation] = []
+        if let coord = startingPointCoordinate {
+            locations.append(coord)
+        }
+        locations.append(contentsOf: cellData.steps.compactMap { $0.poi?.coordinate })
+
+        // Request route calculation for all waypoints at once (if more than 1 location)
+        if locations.count > 1 {
+            delegate?.recommendationsCellNeedsRouteCalculation(self, locations: locations, cellIndexPath: indexPath)
+        }
     }
 
     private func createRecommendationView(for step: TRPTimelineStep, order: Int) -> UIView {
@@ -528,7 +632,7 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
             let fromLabel = UILabel()
             fromLabel.font = FontSet.montserratMedium.font(14)
             fromLabel.textColor = ColorSet.primaryText.uiColor
-            fromLabel.text = TimelineLocalizationKeys.localized(TimelineLocalizationKeys.from)
+            fromLabel.text = CommonLocalizationKeys.localized(CommonLocalizationKeys.from)
 
             // Price label - bold 16px primaryText
             let priceLabel = UILabel()
@@ -692,6 +796,55 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
         delegate?.recommendationsCellDidTapReservation(self, step: steps[tag])
     }
 
+    // MARK: - Accommodation View
+    private func createAccommodationView(name: String) -> UIView {
+        let containerView = UIView()
+        containerView.translatesAutoresizingMaskIntoConstraints = false
+        containerView.backgroundColor = .clear
+        containerView.layer.borderWidth = 1
+        containerView.layer.borderColor = ColorSet.lineWeak.uiColor.cgColor
+        containerView.layer.cornerRadius = 18
+
+        // Icon
+        let iconImageView = UIImageView()
+        iconImageView.translatesAutoresizingMaskIntoConstraints = false
+        if let pinIcon = TRPImageController().getImage(inFramework: "ic_pin", inApp: nil) {
+            iconImageView.image = pinIcon.withRenderingMode(.alwaysTemplate)
+        }
+        iconImageView.tintColor = ColorSet.fg.uiColor
+        iconImageView.contentMode = .scaleAspectFit
+
+        // Name label
+        let nameLabel = UILabel()
+        nameLabel.translatesAutoresizingMaskIntoConstraints = false
+        nameLabel.font = FontSet.montserratMedium.font(14)
+        nameLabel.textColor = ColorSet.primaryText.uiColor
+        nameLabel.text = name
+        nameLabel.numberOfLines = 0
+
+        containerView.addSubview(iconImageView)
+        containerView.addSubview(nameLabel)
+
+        NSLayoutConstraint.activate([
+            // Icon: 12px from left, vertically centered
+            iconImageView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 12),
+            iconImageView.centerYAnchor.constraint(equalTo: containerView.centerYAnchor),
+            iconImageView.widthAnchor.constraint(equalToConstant: 20),
+            iconImageView.heightAnchor.constraint(equalToConstant: 20),
+
+            // Text: 13px after icon, 12px from right, vertically centered with padding
+            nameLabel.leadingAnchor.constraint(equalTo: iconImageView.trailingAnchor, constant: 13),
+            nameLabel.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -12),
+            nameLabel.topAnchor.constraint(equalTo: containerView.topAnchor, constant: 8),
+            nameLabel.bottomAnchor.constraint(equalTo: containerView.bottomAnchor, constant: -8),
+
+            // Height: min 36px
+            containerView.heightAnchor.constraint(greaterThanOrEqualToConstant: 36)
+        ])
+
+        return containerView
+    }
+
     // MARK: - Distance View
     private func createDistanceView(for index: Int) -> UIView {
         let containerView = UIView()
@@ -701,14 +854,13 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
         // Icon
         let iconImageView = UIImageView()
         iconImageView.translatesAutoresizingMaskIntoConstraints = false
-        iconImageView.image = UIImage(systemName: "figure.walk")
-        iconImageView.tintColor = ColorSet.fgWeak.uiColor
+        iconImageView.image = TRPImageController().getImage(inFramework: "ic_walk", inApp: nil)
         iconImageView.contentMode = .scaleAspectFit
         
         // Distance label
         let distanceLabel = UILabel()
         distanceLabel.translatesAutoresizingMaskIntoConstraints = false
-        distanceLabel.font = FontSet.montserratRegular.font(14)
+        distanceLabel.font = FontSet.montserratMedium.font(12)
         distanceLabel.textColor = ColorSet.fgWeak.uiColor
 //        distanceLabel.text = "Calculating..."
         distanceLabel.tag = 1000 + index // Tag to identify label for updates
@@ -725,23 +877,23 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
         
         NSLayoutConstraint.activate([
             // Icon
-            iconImageView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 16),
+            iconImageView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 4),
             iconImageView.centerYAnchor.constraint(equalTo: containerView.centerYAnchor),
-            iconImageView.widthAnchor.constraint(equalToConstant: 20),
-            iconImageView.heightAnchor.constraint(equalToConstant: 20),
+            iconImageView.widthAnchor.constraint(equalToConstant: 13),
+            iconImageView.heightAnchor.constraint(equalToConstant: 16),
             
             // Distance label
-            distanceLabel.leadingAnchor.constraint(equalTo: iconImageView.trailingAnchor, constant: 8),
+            distanceLabel.leadingAnchor.constraint(equalTo: iconImageView.trailingAnchor, constant: 6),
             distanceLabel.centerYAnchor.constraint(equalTo: containerView.centerYAnchor),
             
             // Horizontal line
-            horizontalLine.leadingAnchor.constraint(equalTo: distanceLabel.trailingAnchor, constant: 12),
-            horizontalLine.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -16),
+            horizontalLine.leadingAnchor.constraint(equalTo: distanceLabel.trailingAnchor, constant: 4),
+            horizontalLine.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
             horizontalLine.centerYAnchor.constraint(equalTo: containerView.centerYAnchor),
-            horizontalLine.heightAnchor.constraint(equalToConstant: 1),
+            horizontalLine.heightAnchor.constraint(equalToConstant: 0.5),
             
             // Container height
-            containerView.heightAnchor.constraint(equalToConstant: 32)
+            containerView.heightAnchor.constraint(equalToConstant: 24)
         ])
         
         return containerView

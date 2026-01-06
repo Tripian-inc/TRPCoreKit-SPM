@@ -100,7 +100,7 @@ class TRPTimeRangeSelectionViewController: UIViewController {
 
     private let fromTimeLabel: UILabel = {
         let label = UILabel()
-        label.text = AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.select)
+        label.text = CommonLocalizationKeys.localized(CommonLocalizationKeys.select)
         label.font = UIFont.systemFont(ofSize: 16, weight: .regular)
         label.textColor = ColorSet.fgWeak.uiColor
         label.translatesAutoresizingMaskIntoConstraints = false
@@ -137,7 +137,7 @@ class TRPTimeRangeSelectionViewController: UIViewController {
 
     private let toTimeLabel: UILabel = {
         let label = UILabel()
-        label.text = AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.select)
+        label.text = CommonLocalizationKeys.localized(CommonLocalizationKeys.select)
         label.font = UIFont.systemFont(ofSize: 16, weight: .regular)
         label.textColor = ColorSet.fgWeak.uiColor
         label.translatesAutoresizingMaskIntoConstraints = false
@@ -165,7 +165,7 @@ class TRPTimeRangeSelectionViewController: UIViewController {
 
     private lazy var confirmButton: TRPButton = {
         let button = TRPButton(
-            title: AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.confirm),
+            title: CommonLocalizationKeys.localized(CommonLocalizationKeys.confirm),
             style: .primary
         )
         button.setEnabled(false)
@@ -401,7 +401,7 @@ class TRPTimeRangeSelectionViewController: UIViewController {
             fromTimeLabel.textColor = TRPColor.textColor
             fromClearButton.isHidden = false
         } else {
-            fromTimeLabel.text = AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.select)
+            fromTimeLabel.text = CommonLocalizationKeys.localized(CommonLocalizationKeys.select)
             fromTimeLabel.textColor = ColorSet.fgWeak.uiColor
             fromClearButton.isHidden = true
         }
@@ -413,7 +413,7 @@ class TRPTimeRangeSelectionViewController: UIViewController {
             toTimeLabel.textColor = TRPColor.textColor
             toClearButton.isHidden = false
         } else {
-            toTimeLabel.text = AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.select)
+            toTimeLabel.text = CommonLocalizationKeys.localized(CommonLocalizationKeys.select)
             toTimeLabel.textColor = ColorSet.fgWeak.uiColor
             toClearButton.isHidden = true
         }

@@ -142,6 +142,9 @@ public class TRPTimelineItineraryVC: TRPBaseUIViewController {
 
     // Step being edited for time change
     private var stepBeingEdited: TRPTimelineStep?
+
+    // Segment being edited for time change (manual POI)
+    private var segmentBeingEdited: TRPTimelineSegment?
     
     // Collection view state
     private var isCollectionViewExpanded: Bool = false
@@ -476,11 +479,14 @@ public class TRPTimelineItineraryVC: TRPBaseUIViewController {
         routeCache.removeAll()
         calculatedDistances.removeAll()
         dayFilterView.configure(with: viewModel.getAvailableDates(), selectedDay: viewModel.selectedDayIndex)
-        
+
         // Update saved plans button visibility and count
         updateSavedPlansButton()
-        
+
         tableView.reloadData()
+
+        // Pre-calculate routes for itinerary segments with multiple steps
+        calculateRoutesForItinerarySegments()
     }
     
     private func updateSavedPlansButton() {
@@ -516,7 +522,52 @@ public class TRPTimelineItineraryVC: TRPBaseUIViewController {
     public func getNavigationTitle() -> String? {
         return customNavigationBar.getTitle()
     }
-    
+
+    // MARK: - Segment Route Pre-calculation
+
+    /// Starts route calculations for itinerary segments with multiple steps
+    private func calculateRoutesForItinerarySegments() {
+        let segments = viewModel.getItinerarySegmentsForRouteCalculation()
+
+        for segmentData in segments {
+            calculateRouteForSegment(locations: segmentData.locations)
+        }
+    }
+
+    /// Calculates routes for a single segment and caches the results
+    private func calculateRouteForSegment(locations: [TRPLocation]) {
+        guard locations.count > 1 else { return }
+
+        // Check if all routes are already cached
+        var needsCalculation = false
+        for i in 0..<(locations.count - 1) {
+            let cacheKey = generateRouteCacheKey(from: locations[i], to: locations[i + 1])
+            if routeCache[cacheKey] == nil {
+                needsCalculation = true
+                break
+            }
+        }
+
+        // Skip if all routes already cached
+        guard needsCalculation else { return }
+
+        // Calculate route for all waypoints at once
+        viewModel.calculateRoute(for: locations) { [weak self] route, error in
+            guard let self = self, let route = route else { return }
+
+            DispatchQueue.main.async {
+                // Cache each leg separately
+                for (index, leg) in route.legs.enumerated() {
+                    if index < locations.count - 1 {
+                        let cacheKey = self.generateRouteCacheKey(from: locations[index], to: locations[index + 1])
+                        let readable = ReadableDistance.calculate(distance: Float(leg.distance), time: leg.expectedTravelTime)
+                        self.routeCache[cacheKey] = (distance: readable.distance, time: readable.time)
+                    }
+                }
+            }
+        }
+    }
+
     /// Debug helper to print timeline information
 }
 
@@ -577,8 +628,9 @@ extension TRPTimelineItineraryVC: UITableViewDataSource {
             guard let cell = tableView.dequeueReusableCell(withIdentifier: TRPTimelineRecommendationsCell.reuseIdentifier, for: indexPath) as? TRPTimelineRecommendationsCell else {
                 return UITableViewCell()
             }
-            cell.configure(with: cellData)
+            // Set delegate BEFORE configure so route calculation delegate calls work
             cell.delegate = self
+            cell.configure(with: cellData, indexPath: indexPath)
 
             // Apply any pre-calculated distances
             if let distances = calculatedDistances[indexPath] {
@@ -786,7 +838,7 @@ extension TRPTimelineItineraryVC: TRPTimelineBookedActivityCellDelegate {
             title: TimelineLocalizationKeys.localized(TimelineLocalizationKeys.removeActivityTitle),
             message: TimelineLocalizationKeys.localized(TimelineLocalizationKeys.removeActivityMessage),
             confirmTitle: TimelineLocalizationKeys.localized(TimelineLocalizationKeys.remove),
-            cancelTitle: TimelineLocalizationKeys.localized(TimelineLocalizationKeys.cancel),
+            cancelTitle: CommonLocalizationKeys.localized(CommonLocalizationKeys.cancel),
             btnConfirmAction: { [weak self] in
                 self?.viewModel.removeSegment(segment)
             }
@@ -814,7 +866,41 @@ extension TRPTimelineItineraryVC: TRPTimelineActivityStepCellDelegate {
 extension TRPTimelineItineraryVC: TRPTimelineManualPoiCellDelegate {
 
     func manualPoiCellDidTapChangeTime(_ cell: TRPTimelineManualPoiCell, segment: TRPTimelineSegment) {
-        // TODO: Implement time change for manual POI
+        // Store the segment being edited
+        segmentBeingEdited = segment
+
+        // Get current start and end times from segment
+        let timeRangeVC = TRPTimeRangeSelectionViewController()
+        timeRangeVC.delegate = self
+
+        // Parse segment times and set as initial values
+        if let startDateStr = segment.startDate,
+           let endDateStr = segment.endDate,
+           let startDate = parseSegmentDateTime(startDateStr),
+           let endDate = parseSegmentDateTime(endDateStr) {
+            timeRangeVC.setInitialTimes(from: startDate, to: endDate)
+        }
+
+        // Present the time selection view controller
+        timeRangeVC.show(from: self)
+    }
+
+    /// Parses segment datetime string to Date without timezone conversion
+    /// Supports formats: "yyyy-MM-dd HH:mm:ss" and "yyyy-MM-dd HH:mm"
+    /// Uses current timezone to avoid UTC conversion issues
+    private func parseSegmentDateTime(_ dateTimeString: String) -> Date? {
+        let dateFormatter = DateFormatter()
+        dateFormatter.timeZone = TimeZone.current
+
+        // Try format with seconds first (server format)
+        dateFormatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
+        if let date = dateFormatter.date(from: dateTimeString) {
+            return date
+        }
+
+        // Try format without seconds
+        dateFormatter.dateFormat = "yyyy-MM-dd HH:mm"
+        return dateFormatter.date(from: dateTimeString)
     }
 
     func manualPoiCellDidTapRemove(_ cell: TRPTimelineManualPoiCell, segment: TRPTimelineSegment) {
@@ -822,7 +908,7 @@ extension TRPTimelineItineraryVC: TRPTimelineManualPoiCellDelegate {
             title: TimelineLocalizationKeys.localized(TimelineLocalizationKeys.removeActivityTitle),
             message: TimelineLocalizationKeys.localized(TimelineLocalizationKeys.removeActivityMessage),
             confirmTitle: TimelineLocalizationKeys.localized(TimelineLocalizationKeys.remove),
-            cancelTitle: TimelineLocalizationKeys.localized(TimelineLocalizationKeys.cancel),
+            cancelTitle: CommonLocalizationKeys.localized(CommonLocalizationKeys.cancel),
             btnConfirmAction: { [weak self] in
                 self?.viewModel.removeSegment(segment)
             }
@@ -871,7 +957,7 @@ extension TRPTimelineItineraryVC: TRPTimelineRecommendationsCellDelegate {
             title: TimelineLocalizationKeys.localized(TimelineLocalizationKeys.removeRecommendationsTitle),
             message: TimelineLocalizationKeys.localized(TimelineLocalizationKeys.removeRecommendationsMessage),
             confirmTitle: TimelineLocalizationKeys.localized(TimelineLocalizationKeys.remove),
-            cancelTitle: TimelineLocalizationKeys.localized(TimelineLocalizationKeys.cancel),
+            cancelTitle: CommonLocalizationKeys.localized(CommonLocalizationKeys.cancel),
             btnConfirmAction: { [weak self] in
                 self?.viewModel.removeSegment(segment)
             }
@@ -965,54 +1051,65 @@ extension TRPTimelineItineraryVC: TRPTimelineRecommendationsCellDelegate {
         delegate?.timelineItineraryDidRequestActivityReservation(self, activityId: activityId)
     }
 
-    func recommendationsCellNeedsRouteCalculation(_ cell: TRPTimelineRecommendationsCell, from: TRPLocation, to: TRPLocation, index: Int) {
-        // Get the index path of the cell
-        guard let indexPath = tableView.indexPath(for: cell) else { return }
-        
-        // Generate cache key from coordinates
-        let cacheKey = generateRouteCacheKey(from: from, to: to)
-        
-        // Check if we have this route cached
-        if let cachedResult = routeCache[cacheKey] {
-            // Use cached result immediately
-            if calculatedDistances[indexPath] == nil {
-                calculatedDistances[indexPath] = [:]
+    func recommendationsCellNeedsRouteCalculation(_ cell: TRPTimelineRecommendationsCell, locations: [TRPLocation], cellIndexPath: IndexPath) {
+        guard locations.count > 1 else { return }
+
+        // Check if all routes are already cached
+        var allCached = true
+        var cachedResults: [(index: Int, data: (distance: Float, time: Int))] = []
+
+        for i in 0..<(locations.count - 1) {
+            let cacheKey = generateRouteCacheKey(from: locations[i], to: locations[i + 1])
+            if let cachedResult = routeCache[cacheKey] {
+                cachedResults.append((index: i, data: cachedResult))
+            } else {
+                allCached = false
+                break
             }
-            calculatedDistances[indexPath]?[index] = cachedResult
-            
-            // Update the cell
-            cell.updateDistance(at: index, distance: cachedResult.distance, time: cachedResult.time)
+        }
+
+        // If all cached, apply immediately
+        if allCached {
+            if calculatedDistances[cellIndexPath] == nil {
+                calculatedDistances[cellIndexPath] = [:]
+            }
+            for result in cachedResults {
+                calculatedDistances[cellIndexPath]?[result.index] = result.data
+                cell.updateDistance(at: result.index, distance: result.data.distance, time: result.data.time)
+            }
             return
         }
-        
-        // Calculate route between two POIs
-        viewModel.calculateRoute(for: [from, to]) { [weak self] route, error in
+
+        // Calculate route for all waypoints at once
+        viewModel.calculateRoute(for: locations) { [weak self] route, error in
             guard let self = self else { return }
-            
+
             DispatchQueue.main.async {
-                let distanceData: (distance: Float, time: Int)
-                
-                if let route = route {
-                    // Convert distance and time to readable format
-                    let readable = ReadableDistance.calculate(distance: Float(route.distance), time: route.expectedTravelTime)
-                    distanceData = (distance: readable.distance, time: readable.time)
-                } else {
-                    // Store failed calculation
-                    distanceData = (distance: 0, time: 0)
+                guard let route = route else { return }
+
+                // Initialize distances dictionary for this cell
+                if self.calculatedDistances[cellIndexPath] == nil {
+                    self.calculatedDistances[cellIndexPath] = [:]
                 }
-                
-                // Cache the result
-                self.routeCache[cacheKey] = distanceData
-                
-                // Store the calculated distance for this cell
-                if self.calculatedDistances[indexPath] == nil {
-                    self.calculatedDistances[indexPath] = [:]
-                }
-                self.calculatedDistances[indexPath]?[index] = distanceData
-                
-                // Update the cell if it's still visible
-                if let currentCell = self.tableView.cellForRow(at: indexPath) as? TRPTimelineRecommendationsCell {
-                    currentCell.updateDistance(at: index, distance: distanceData.distance, time: distanceData.time)
+
+                // Process each leg - legs[i] corresponds to route from locations[i] to locations[i+1]
+                for (index, leg) in route.legs.enumerated() {
+                    let readable = ReadableDistance.calculate(distance: Float(leg.distance), time: leg.expectedTravelTime)
+                    let distanceData = (distance: readable.distance, time: readable.time)
+
+                    // Cache each leg separately
+                    if index < locations.count - 1 {
+                        let cacheKey = self.generateRouteCacheKey(from: locations[index], to: locations[index + 1])
+                        self.routeCache[cacheKey] = distanceData
+                    }
+
+                    // Store and update cell
+                    self.calculatedDistances[cellIndexPath]?[index] = distanceData
+
+                    // Update the cell if it's still visible
+                    if let currentCell = self.tableView.cellForRow(at: cellIndexPath) as? TRPTimelineRecommendationsCell {
+                        currentCell.updateDistance(at: index, distance: distanceData.distance, time: distanceData.time)
+                    }
                 }
             }
         }
@@ -1278,6 +1375,26 @@ extension TRPTimelineItineraryVC: TRPTimelineSavedPlansButtonDelegate {
 extension TRPTimelineItineraryVC: TRPTimeRangeSelectionDelegate {
 
     func timeRangeSelected(fromTime: String, toTime: String) {
+        // Check if we're editing a segment (manual POI)
+        if let segment = segmentBeingEdited {
+            // fromTime and toTime are already in "HH:mm" format from TRPTimeRangeSelectionViewController
+            viewModel.updateSegmentTime(segment: segment, startTime: fromTime, endTime: toTime) { [weak self] result in
+                guard let self = self else { return }
+
+                switch result {
+                case .success:
+                    // Clear the segment being edited
+                    self.segmentBeingEdited = nil
+
+                case .failure:
+                    // Error is already handled by ViewModel (shows error via delegate)
+                    self.segmentBeingEdited = nil
+                }
+            }
+            return
+        }
+
+        // Otherwise, we're editing a step (recommendation)
         guard let step = stepBeingEdited else { return }
 
         // fromTime and toTime are already in "HH:mm" format from TRPTimeRangeSelectionViewController

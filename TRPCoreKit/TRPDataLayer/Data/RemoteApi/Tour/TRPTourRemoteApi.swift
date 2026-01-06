@@ -66,7 +66,7 @@ public class TRPTourRemoteApi: TourRemoteApi {
         request.maxDuration = parameters.maxDuration
 
         // Map sorting (default to score descending)
-        request.sortingBy = parameters.sortingBy ?? "score"
+        request.sortingBy = parameters.sortingBy ?? "rating"
         request.sortingType = parameters.sortingType ?? "desc"
 
         TRPRestKit().searchTours(request: request) { (result, error) in

@@ -61,8 +61,15 @@ extension UIViewController {
                             onlyLarge: Bool = false,
                             prefersGrabberVisible: Bool = true,
                             prefersScrollingExpandsWhenScrolledToEdge: Bool = false,
-                            isDimmed: Bool = true) {
+                            isDimmed: Bool = true,
+                            disableSwipeToDismiss: Bool = false) {
         vc.modalPresentationStyle = .pageSheet
+
+        // Disable swipe-to-dismiss if requested (only close button can dismiss)
+        if disableSwipeToDismiss {
+            vc.isModalInPresentation = true
+        }
+
         if #available(iOS 15.0, *) {
             if let sheet = vc.sheetPresentationController {
                 if onlyLarge {
@@ -83,10 +90,17 @@ extension UIViewController {
     ///   - vc: The view controller to present (should conform to DynamicHeightPresentable)
     ///   - prefersGrabberVisible: Whether to show the grabber handle
     ///   - isDimmed: Whether to dim the background
+    ///   - disableSwipeToDismiss: Whether to disable swipe-to-dismiss (only close button can dismiss)
     func presentVCWithDynamicHeight(_ vc: UIViewController,
                                     prefersGrabberVisible: Bool = true,
-                                    isDimmed: Bool = true) {
+                                    isDimmed: Bool = true,
+                                    disableSwipeToDismiss: Bool = false) {
         vc.modalPresentationStyle = .pageSheet
+
+        // Disable swipe-to-dismiss if requested (only close button can dismiss)
+        if disableSwipeToDismiss {
+            vc.isModalInPresentation = true
+        }
 
         if #available(iOS 16.0, *) {
             if let sheet = vc.sheetPresentationController {

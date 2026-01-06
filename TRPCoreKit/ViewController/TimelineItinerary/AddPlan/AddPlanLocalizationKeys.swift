@@ -17,11 +17,11 @@ public struct AddPlanLocalizationKeys {
     public static let selectCity = "addPlan.title.selectCity"
     public static let startTime = "addPlan.label.startTime"
     public static let endTime = "addPlan.label.endTime"
-    public static let select = "addPlan.button.select"
     public static let clearSelection = "addPlan.button.clearSelection"
-    public static let continueButton = "addPlan.button.continue"
-    public static let cancel = "addPlan.button.cancel"
-    public static let confirm = "addPlan.button.confirm"
+
+    // MARK: - Common Keys (use CommonLocalizationKeys)
+    // cancel, confirm, continueButton, select, from, freeCancellation
+    // are now in CommonLocalizationKeys
 
     // MARK: - Time Range Selection
     public static let timeTitle = "addPlan.title.time"
@@ -67,10 +67,22 @@ public struct AddPlanLocalizationKeys {
     public static let filters = "addPlan.button.filters"
     public static let sortBy = "addPlan.button.sortBy"
     public static let opinions = "addPlan.label.opinions"
-    public static let freeCancellation = "addPlan.label.freeCancellation"
-    public static let from = "addPlan.label.from"
     public static let activity = "addPlan.label.activity"
     public static let activities = "addPlan.label.activities"
+
+    // MARK: - Sort Options
+    public static let sortPopularity = "addPlan.sort.popularity"
+    public static let sortRating = "addPlan.sort.rating"
+    public static let sortPriceLowToHigh = "addPlan.sort.priceLowToHigh"
+    public static let sortNewest = "addPlan.sort.newest"
+    public static let sortDurationShortToLong = "addPlan.sort.durationShortToLong"
+    public static let sortDurationLongToShort = "addPlan.sort.durationLongToShort"
+
+    // MARK: - Filter Options
+    public static let filterPrice = "addPlan.filter.price"
+    public static let filterDuration = "addPlan.filter.duration"
+    public static let filterFree = "addPlan.filter.free"
+    public static let filterDays = "addPlan.filter.days"
 
     // MARK: - POI Listing
     public static let searchPOIPlace = "addPlan.search.poiPlace"
@@ -97,11 +109,7 @@ public struct AddPlanLocalizationKeys {
         selectCity: "Select City",
         startTime: "Start Time",
         endTime: "End Time",
-        select: "Select",
         clearSelection: "Clear Selection",
-        continueButton: "Continue",
-        cancel: "Cancel",
-        confirm: "Confirm",
         timeTitle: "Time",
         howToAddPlans: "How do you want to add plans?",
         smartRecommendations: "Smart Recommendations",
@@ -132,9 +140,17 @@ public struct AddPlanLocalizationKeys {
         searchActivity: "Search for an activity",
         filters: "Filters",
         sortBy: "Sort by",
+        sortPopularity: "Popularity",
+        sortRating: "Rating",
+        sortPriceLowToHigh: "Price (lowest first)",
+        sortNewest: "Newest",
+        sortDurationShortToLong: "Duration (shortest to longest)",
+        sortDurationLongToShort: "Duration (longest to shortest)",
+        filterPrice: "Price",
+        filterDuration: "Duration",
+        filterFree: "Free",
+        filterDays: "days",
         opinions: "opinions",
-        freeCancellation: "Free cancellation",
-        from: "From",
         activity: "activity",
         activities: "activities",
         searchPOIPlace: "Search for a place or address",

@@ -85,7 +85,7 @@ public class AddPlanTimeAndTravelersVC: TRPBaseUIViewController, AddPlanChildVie
         button.translatesAutoresizingMaskIntoConstraints = false
         button.backgroundColor = ColorSet.neutral100.uiColor
         button.layer.cornerRadius = 4
-        button.setTitle(AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.select), for: .normal)
+        button.setTitle(CommonLocalizationKeys.localized(CommonLocalizationKeys.select), for: .normal)
         button.setTitleColor(ColorSet.primaryText.uiColor, for: .normal)
         button.titleLabel?.font = FontSet.montserratMedium.font(14)
         button.contentHorizontalAlignment = .left
@@ -108,7 +108,7 @@ public class AddPlanTimeAndTravelersVC: TRPBaseUIViewController, AddPlanChildVie
         button.translatesAutoresizingMaskIntoConstraints = false
         button.backgroundColor = ColorSet.neutral100.uiColor
         button.layer.cornerRadius = 4
-        button.setTitle(AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.select), for: .normal)
+        button.setTitle(CommonLocalizationKeys.localized(CommonLocalizationKeys.select), for: .normal)
         button.setTitleColor(ColorSet.primaryText.uiColor, for: .normal)
         button.titleLabel?.font = FontSet.montserratMedium.font(14)
         button.contentHorizontalAlignment = .left
@@ -319,7 +319,7 @@ public class AddPlanTimeAndTravelersVC: TRPBaseUIViewController, AddPlanChildVie
             startingPointButton.setTitle(startingPointName, for: .normal)
             startingPointClearButton.isHidden = false
         } else {
-            startingPointButton.setTitle(AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.select), for: .normal)
+            startingPointButton.setTitle(CommonLocalizationKeys.localized(CommonLocalizationKeys.select), for: .normal)
             startingPointClearButton.isHidden = true
         }
 
@@ -372,7 +372,7 @@ public class AddPlanTimeAndTravelersVC: TRPBaseUIViewController, AddPlanChildVie
 
     @objc private func clearStartingPoint() {
         viewModel.setStartingPoint(location: nil, name: nil)
-        startingPointButton.setTitle(AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.select), for: .normal)
+        startingPointButton.setTitle(CommonLocalizationKeys.localized(CommonLocalizationKeys.select), for: .normal)
         startingPointClearButton.isHidden = true
         containerVC?.updateContinueButtonState()
     }
@@ -447,7 +447,7 @@ public class AddPlanTimeAndTravelersVC: TRPBaseUIViewController, AddPlanChildVie
     // MARK: - Public Methods
     public func clearSelection() {
         viewModel.clearSelection()
-        let selectText = AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.select)
+        let selectText = CommonLocalizationKeys.localized(CommonLocalizationKeys.select)
         startingPointButton.setTitle(selectText, for: .normal)
         startingPointClearButton.isHidden = true
         startTimeButton.setTitle(selectText, for: .normal)

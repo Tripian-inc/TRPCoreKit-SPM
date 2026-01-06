@@ -1266,7 +1266,7 @@ private class ProductCardCell: UICollectionViewCell {
         label.translatesAutoresizingMaskIntoConstraints = false
         label.font = FontSet.montserratRegular.font(12)
         label.textColor = ColorSet.greenAdvantage.uiColor
-        label.text = PoiDetailLocalizationKeys.localized(PoiDetailLocalizationKeys.freeCancellation)
+        label.text = CommonLocalizationKeys.localized(CommonLocalizationKeys.freeCancellation)
         return label
     }()
 
@@ -1384,7 +1384,7 @@ private class ProductCardCell: UICollectionViewCell {
         freeCancellationLabel.isHidden = hasNonRefundable
 
         // Configure Price with "From:" prefix
-        let fromText = PoiDetailLocalizationKeys.localized(PoiDetailLocalizationKeys.from)
+        let fromText = CommonLocalizationKeys.localized(CommonLocalizationKeys.from)
 
         if let price = product.price, let currency = product.currency {
             let priceText = "\(currency) \(String(format: "%.2f", price))"
