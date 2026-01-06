@@ -136,7 +136,7 @@ class ActivityCardCell: UITableViewCell {
 
     private let freeCancellationLabel: UILabel = {
         let label = UILabel()
-        label.text = AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.freeCancellation)
+        label.text = CommonLocalizationKeys.localized(CommonLocalizationKeys.freeCancellation)
         label.font = FontSet.montserratMedium.font(14)
         label.textColor = ColorSet.fgGreen.uiColor
         return label
@@ -305,12 +305,12 @@ class ActivityCardCell: UITableViewCell {
         // Free cancellation - show if tour is cancellable
         freeCancellationLabel.isHidden = !tour.isCancellable
         if tour.isCancellable {
-            freeCancellationLabel.text = AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.freeCancellation)
+            freeCancellationLabel.text = CommonLocalizationKeys.localized(CommonLocalizationKeys.freeCancellation)
         }
 
         // Set price with attributed string
         if let price = tour.price {
-            let fromText = AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.from) + " "
+            let fromText = CommonLocalizationKeys.localized(CommonLocalizationKeys.from) + " "
             let priceText = "$\(price)"
 
             let attributedString = NSMutableAttributedString()
@@ -381,13 +381,13 @@ class ActivityCardCell: UITableViewCell {
         }
         freeCancellationLabel.isHidden = !isCancellable
         if isCancellable {
-            freeCancellationLabel.text = AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.freeCancellation)
+            freeCancellationLabel.text = CommonLocalizationKeys.localized(CommonLocalizationKeys.freeCancellation)
         }
 
         // Set price with currency using attributed string
         if let price = favoriteItem.price {
             let currencySymbol = getCurrencySymbol(for: price.currency)
-            let fromText = AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.from) + " "
+            let fromText = CommonLocalizationKeys.localized(CommonLocalizationKeys.from) + " "
             let priceText = "\(currencySymbol)\(String(format: "%.2f", price.value))"
 
             let attributedString = NSMutableAttributedString()

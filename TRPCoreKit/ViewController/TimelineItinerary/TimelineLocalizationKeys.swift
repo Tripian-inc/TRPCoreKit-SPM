@@ -15,7 +15,7 @@ public struct TimelineLocalizationKeys {
     // MARK: - Booked Activity Cell
     public static let reservation = "timeline.bookedActivity.reservation"
     public static let confirmed = "timeline.bookedActivity.confirmed"
-    public static let freeCancellation = "timeline.bookedActivity.freeCancellation"
+    // freeCancellation is now in CommonLocalizationKeys
     public static let adults = "timeline.bookedActivity.adults"
     public static let child = "timeline.bookedActivity.child"
     public static let children = "timeline.bookedActivity.children"
@@ -24,7 +24,7 @@ public struct TimelineLocalizationKeys {
     public static let removeActivityTitle = "timeline.removeActivity.title"
     public static let removeActivityMessage = "timeline.removeActivity.message"
     public static let remove = "timeline.removeActivity.remove"
-    public static let cancel = "timeline.removeActivity.cancel"
+    // cancel is now in CommonLocalizationKeys
 
     // MARK: - Remove Recommendations Alert
     public static let removeRecommendationsTitle = "timeline.removeRecommendations.title"
@@ -40,7 +40,7 @@ public struct TimelineLocalizationKeys {
     public static let pointOfInterest = "timeline.label.pointOfInterest"
     public static let unknown = "timeline.label.unknown"
     public static let unknownLocation = "timeline.label.unknownLocation"
-    public static let from = "timeline.label.from"
+    // from is now in CommonLocalizationKeys
 
     // MARK: - Duration & Distance Formats
     public static let durationHours = "timeline.format.hours"
@@ -59,14 +59,12 @@ public struct TimelineLocalizationKeys {
         navigationTitle: "Plan Your Itinerary",
         reservation: "Reservation",
         confirmed: "Confirmed",
-        freeCancellation: "Free cancellation",
         adults: "Adults",
         child: "Child",
         children: "Children",
         removeActivityTitle: "Remove Activity",
         removeActivityMessage: "Are you sure you want to remove this activity from your itinerary?",
         remove: "Remove",
-        cancel: "Cancel",
         removeRecommendationsTitle: "Remove Recommendations",
         removeRecommendationsMessage: "Are you sure you want to remove these recommendations from your itinerary?",
         noPlansYet: "No Plans Yet",
@@ -76,7 +74,6 @@ public struct TimelineLocalizationKeys {
         pointOfInterest: "Point of interest",
         unknown: "Unknown",
         unknownLocation: "Unknown Location",
-        from: "From",
         durationHours: "%dh",
         durationMinutes: "%dm",
         durationCombined: "%dh %dm",

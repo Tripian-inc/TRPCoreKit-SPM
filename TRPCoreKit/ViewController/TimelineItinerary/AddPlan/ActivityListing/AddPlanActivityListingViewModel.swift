@@ -24,6 +24,7 @@ public class AddPlanActivityListingViewModel {
     public var selectedCategoryIndices: Set<Int> = [0] // 0 = "All", multiple selection allowed except "All"
     public var searchText: String = ""
     public var selectedSortOption: SortOption = .popularity
+    public var filterData: FilterData = FilterData()
 
     private var allTours: [TRPTourProduct] = []
     private var filteredTours: [TRPTourProduct] = []
@@ -141,6 +142,15 @@ public class AddPlanActivityListingViewModel {
         selectedSortOption = option
         performSearch()
     }
+
+    public func updateFilterData(_ data: FilterData) {
+        filterData = data
+        performSearch()
+    }
+
+    public func hasActiveFilters() -> Bool {
+        return !filterData.isEmpty
+    }
     
     /// Returns the selected category IDs. Returns nil if "All" is selected (index 0).
     public func getSelectedCategoryIds() -> [String]? {
@@ -240,9 +250,7 @@ public class AddPlanActivityListingViewModel {
         executeSearch()
     }
 
-    private func executeSearch() {
-        delegate?.showLoading(true)
-
+    private func buildSearchParameters(limit: Int? = nil, offset: Int? = nil) -> TourParameters {
         // Build keywords combining search text and category name
         let keywords = buildKeywords()
 
@@ -254,16 +262,31 @@ public class AddPlanActivityListingViewModel {
             dateString = dateFormatter.string(from: selectedDay)
         }
 
-        // Build parameters with sorting
+        // Build parameters
         var params = TourParameters(search: keywords.isEmpty ? nil : keywords)
         params.date = dateString
+        params.limit = limit
+        params.offset = offset
 
         // Apply sorting parameters
         let sortParams = selectedSortOption.apiParameters
         params.sortingBy = sortParams.sortingBy
         params.sortingType = sortParams.sortingType
 
-        // Use repository directly to support sorting
+        // Apply filter parameters
+        params.minPrice = filterData.minPrice
+        params.maxPrice = filterData.maxPrice
+        params.minDuration = filterData.minDuration
+        params.maxDuration = filterData.maxDuration
+
+        return params
+    }
+
+    private func executeSearch() {
+        delegate?.showLoading(true)
+
+        let params = buildSearchParameters()
+
         guard let cityId = planData.selectedCity?.id else { return }
         tourUseCases?.tourRepository.fetchTours(cityId: cityId, parameters: params) { [weak self] result in
             self?.handleSearchResult(result: result.0, pagination: result.1)
@@ -325,21 +348,8 @@ public class AddPlanActivityListingViewModel {
 
         isLoadingMore = true
 
-        // Build keywords combining search text and category name
-        let keywords = buildKeywords()
+        let params = buildSearchParameters(limit: pagination.limit, offset: nextOffset)
 
-        // Create parameters with next offset
-        var params = TourParameters(search: keywords.isEmpty ? nil : keywords)
-        params.tourCategories = nil // Don't send tagIds, only use keywords
-        params.limit = pagination.limit
-        params.offset = nextOffset
-
-        // Apply sorting parameters (same as initial search)
-        let sortParams = selectedSortOption.apiParameters
-        params.sortingBy = sortParams.sortingBy
-        params.sortingType = sortParams.sortingType
-
-        // Use repository directly for pagination
         if let cityId = planData.selectedCity?.id {
             tourUseCases?.tourRepository.fetchTours(cityId: cityId, parameters: params) { [weak self] result in
                 self?.handleLoadMoreResult(result: result.0, pagination: result.1)

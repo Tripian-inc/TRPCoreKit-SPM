@@ -528,7 +528,7 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
             let fromLabel = UILabel()
             fromLabel.font = FontSet.montserratMedium.font(14)
             fromLabel.textColor = ColorSet.primaryText.uiColor
-            fromLabel.text = TimelineLocalizationKeys.localized(TimelineLocalizationKeys.from)
+            fromLabel.text = CommonLocalizationKeys.localized(CommonLocalizationKeys.from)
 
             // Price label - bold 16px primaryText
             let priceLabel = UILabel()

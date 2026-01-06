@@ -786,7 +786,7 @@ extension TRPTimelineItineraryVC: TRPTimelineBookedActivityCellDelegate {
             title: TimelineLocalizationKeys.localized(TimelineLocalizationKeys.removeActivityTitle),
             message: TimelineLocalizationKeys.localized(TimelineLocalizationKeys.removeActivityMessage),
             confirmTitle: TimelineLocalizationKeys.localized(TimelineLocalizationKeys.remove),
-            cancelTitle: TimelineLocalizationKeys.localized(TimelineLocalizationKeys.cancel),
+            cancelTitle: CommonLocalizationKeys.localized(CommonLocalizationKeys.cancel),
             btnConfirmAction: { [weak self] in
                 self?.viewModel.removeSegment(segment)
             }
@@ -822,7 +822,7 @@ extension TRPTimelineItineraryVC: TRPTimelineManualPoiCellDelegate {
             title: TimelineLocalizationKeys.localized(TimelineLocalizationKeys.removeActivityTitle),
             message: TimelineLocalizationKeys.localized(TimelineLocalizationKeys.removeActivityMessage),
             confirmTitle: TimelineLocalizationKeys.localized(TimelineLocalizationKeys.remove),
-            cancelTitle: TimelineLocalizationKeys.localized(TimelineLocalizationKeys.cancel),
+            cancelTitle: CommonLocalizationKeys.localized(CommonLocalizationKeys.cancel),
             btnConfirmAction: { [weak self] in
                 self?.viewModel.removeSegment(segment)
             }
@@ -871,7 +871,7 @@ extension TRPTimelineItineraryVC: TRPTimelineRecommendationsCellDelegate {
             title: TimelineLocalizationKeys.localized(TimelineLocalizationKeys.removeRecommendationsTitle),
             message: TimelineLocalizationKeys.localized(TimelineLocalizationKeys.removeRecommendationsMessage),
             confirmTitle: TimelineLocalizationKeys.localized(TimelineLocalizationKeys.remove),
-            cancelTitle: TimelineLocalizationKeys.localized(TimelineLocalizationKeys.cancel),
+            cancelTitle: CommonLocalizationKeys.localized(CommonLocalizationKeys.cancel),
             btnConfirmAction: { [weak self] in
                 self?.viewModel.removeSegment(segment)
             }

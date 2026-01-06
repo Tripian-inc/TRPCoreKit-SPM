@@ -322,7 +322,7 @@ class TRPTimelineBookedActivityCell: UITableViewCell {
             cancellationLabel.isHidden = false
         } else {
             // Show default free cancellation text
-            cancellationLabel.text = TimelineLocalizationKeys.localized(TimelineLocalizationKeys.freeCancellation)
+            cancellationLabel.text = CommonLocalizationKeys.localized(CommonLocalizationKeys.freeCancellation)
             cancellationLabel.isHidden = false
         }
 
@@ -401,7 +401,7 @@ class TRPTimelineBookedActivityCell: UITableViewCell {
             cancellationLabel.text = cancellation
             cancellationLabel.isHidden = false
         } else {
-            cancellationLabel.text = TimelineLocalizationKeys.localized(TimelineLocalizationKeys.freeCancellation)
+            cancellationLabel.text = CommonLocalizationKeys.localized(CommonLocalizationKeys.freeCancellation)
             cancellationLabel.isHidden = false
         }
 

@@ -152,11 +152,13 @@ public class AddPlanActivityListingVC: TRPBaseUIViewController {
         return label
     }()
     
-    private lazy var infoButton: UIButton = {
-        let button = UIButton(type: .infoLight)
-        button.tintColor = ColorSet.fgWeak.uiColor // #666666
-        button.translatesAutoresizingMaskIntoConstraints = false
-        return button
+    private lazy var infoImageView: UIImageView = {
+        let imageView = UIImageView()
+        imageView.image = UIImage(systemName: "info.circle")
+        imageView.tintColor = ColorSet.fgWeak.uiColor // #666666
+        imageView.contentMode = .scaleAspectFit
+        imageView.translatesAutoresizingMaskIntoConstraints = false
+        return imageView
     }()
     
     private lazy var tableView: UITableView = {
@@ -194,7 +196,7 @@ public class AddPlanActivityListingVC: TRPBaseUIViewController {
         view.addSubview(filterSortStackView)
         view.addSubview(categoryCollectionView)
         view.addSubview(activityCountLabel)
-        view.addSubview(infoButton)
+        view.addSubview(infoImageView)
         view.addSubview(tableView)
 
         NSLayoutConstraint.activate([
@@ -225,11 +227,11 @@ public class AddPlanActivityListingVC: TRPBaseUIViewController {
             activityCountLabel.topAnchor.constraint(equalTo: categoryCollectionView.bottomAnchor, constant: 16),
             activityCountLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
 
-            // Info Button
-            infoButton.centerYAnchor.constraint(equalTo: activityCountLabel.centerYAnchor),
-            infoButton.leadingAnchor.constraint(equalTo: activityCountLabel.trailingAnchor, constant: 4),
-            infoButton.heightAnchor.constraint(equalToConstant: 16),
-            infoButton.widthAnchor.constraint(equalToConstant: 16),
+            // Info ImageView
+            infoImageView.centerYAnchor.constraint(equalTo: activityCountLabel.centerYAnchor),
+            infoImageView.leadingAnchor.constraint(equalTo: activityCountLabel.trailingAnchor, constant: 4),
+            infoImageView.heightAnchor.constraint(equalToConstant: 16),
+            infoImageView.widthAnchor.constraint(equalToConstant: 16),
 
             // Table View
             tableView.topAnchor.constraint(equalTo: activityCountLabel.bottomAnchor, constant: 16),
@@ -239,10 +241,25 @@ public class AddPlanActivityListingVC: TRPBaseUIViewController {
         ])
 
         // Add button actions
+        filterButton.addTarget(self, action: #selector(filterButtonTapped), for: .touchUpInside)
         sortButton.addTarget(self, action: #selector(sortButtonTapped), for: .touchUpInside)
     }
 
     // MARK: - Actions
+    @objc private func filterButtonTapped() {
+        let filterVC = AddPlanFilterVC(filterData: viewModel.filterData)
+        filterVC.onFilterApplied = { [weak self] filterData in
+            self?.viewModel.updateFilterData(filterData)
+            self?.updateFilterButtonAppearance()
+
+            // Scroll table to top when filter changes
+            if self?.tableView.numberOfRows(inSection: 0) ?? 0 > 0 {
+                self?.tableView.scrollToRow(at: IndexPath(row: 0, section: 0), at: .top, animated: true)
+            }
+        }
+        presentVCWithModal(filterVC, onlyLarge: false, prefersGrabberVisible: true)
+    }
+
     @objc private func sortButtonTapped() {
         let sortVC = AddPlanSortByVC(selectedOption: viewModel.selectedSortOption)
         sortVC.onSortOptionSelected = { [weak self] option in
@@ -254,6 +271,18 @@ public class AddPlanActivityListingVC: TRPBaseUIViewController {
             }
         }
         presentVCWithModal(sortVC, onlyLarge: false, prefersGrabberVisible: true)
+    }
+
+    private func updateFilterButtonAppearance() {
+        if viewModel.hasActiveFilters() {
+            filterButton.layer.borderColor = ColorSet.primary.uiColor.cgColor
+            filterButton.setTitleColor(ColorSet.primary.uiColor, for: .normal)
+            filterButton.tintColor = ColorSet.primary.uiColor
+        } else {
+            filterButton.layer.borderColor = ColorSet.lineWeak.uiColor.cgColor
+            filterButton.setTitleColor(ColorSet.primaryText.uiColor, for: .normal)
+            filterButton.tintColor = ColorSet.fgWeak.uiColor
+        }
     }
 }
 
