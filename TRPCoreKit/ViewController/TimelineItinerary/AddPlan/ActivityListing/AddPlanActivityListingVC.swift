@@ -96,6 +96,18 @@ public class AddPlanActivityListingVC: TRPBaseUIViewController {
         return button
     }()
 
+    /// Badge indicator for active filter (8x8, primary color, white border)
+    private lazy var filterActiveBadge: UIView = {
+        let badge = UIView()
+        badge.translatesAutoresizingMaskIntoConstraints = false
+        badge.backgroundColor = ColorSet.primary.uiColor
+        badge.layer.cornerRadius = 4 // 8/2 = 4
+        badge.layer.borderWidth = 0.5
+        badge.layer.borderColor = UIColor.white.cgColor
+        badge.isHidden = true
+        return badge
+    }()
+
     private lazy var sortButton: UIButton = {
         let button = UIButton(type: .system)
         button.translatesAutoresizingMaskIntoConstraints = false
@@ -243,6 +255,17 @@ public class AddPlanActivityListingVC: TRPBaseUIViewController {
         // Add button actions
         filterButton.addTarget(self, action: #selector(filterButtonTapped), for: .touchUpInside)
         sortButton.addTarget(self, action: #selector(sortButtonTapped), for: .touchUpInside)
+
+        // Add filter active badge positioned on filter icon (left side of button)
+        // Icon is positioned with left padding ~12 and imageEdgeInsets left: -8
+        // Badge should be at the top-right corner of the icon
+        filterButton.addSubview(filterActiveBadge)
+        NSLayoutConstraint.activate([
+            filterActiveBadge.widthAnchor.constraint(equalToConstant: 8),
+            filterActiveBadge.heightAnchor.constraint(equalToConstant: 8),
+            filterActiveBadge.topAnchor.constraint(equalTo: filterButton.topAnchor, constant: 4),
+            filterActiveBadge.leadingAnchor.constraint(equalTo: filterButton.leadingAnchor, constant: 22)
+        ])
     }
 
     // MARK: - Actions
@@ -274,15 +297,8 @@ public class AddPlanActivityListingVC: TRPBaseUIViewController {
     }
 
     private func updateFilterButtonAppearance() {
-        if viewModel.hasActiveFilters() {
-            filterButton.layer.borderColor = ColorSet.primary.uiColor.cgColor
-            filterButton.setTitleColor(ColorSet.primary.uiColor, for: .normal)
-            filterButton.tintColor = ColorSet.primary.uiColor
-        } else {
-            filterButton.layer.borderColor = ColorSet.lineWeak.uiColor.cgColor
-            filterButton.setTitleColor(ColorSet.primaryText.uiColor, for: .normal)
-            filterButton.tintColor = ColorSet.fgWeak.uiColor
-        }
+        // Show/hide the active filter badge (positioned on filter icon)
+        filterActiveBadge.isHidden = !viewModel.hasActiveFilters()
     }
 }
 

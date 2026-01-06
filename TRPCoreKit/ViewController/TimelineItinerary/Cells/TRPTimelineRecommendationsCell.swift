@@ -35,7 +35,8 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
     private var distanceViews: [Int: UIView] = [:] // Track distance views by index
     private var startingOrder: Int = 1 // Unified day order for first step
     private var currentIndexPath: IndexPath? // Store indexPath for delegate calls
-    
+    private var hasAccommodation: Bool = false // Track if accommodation is displayed
+
     // MARK: - UI Components
     private let containerView: UIStackView = {
         let stack = UIStackView()
@@ -208,6 +209,27 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
         recommendationsStackView.arrangedSubviews.forEach { $0.removeFromSuperview() }
         distanceViews.removeAll()
 
+        // Track accommodation state
+        hasAccommodation = segment?.accommodation != nil
+
+        // Track distance view index
+        var distanceIndex = 0
+
+        // Add accommodation view if exists
+        if let accommodation = segment?.accommodation {
+            let displayName = accommodation.name ?? accommodation.address ?? "Starting Point"
+            let accommodationView = createAccommodationView(name: displayName)
+            recommendationsStackView.addArrangedSubview(accommodationView)
+
+            // Add distance view between accommodation and first step
+            if !steps.isEmpty {
+                let distanceView = createDistanceView(for: distanceIndex)
+                distanceViews[distanceIndex] = distanceView
+                recommendationsStackView.addArrangedSubview(distanceView)
+                distanceIndex += 1
+            }
+        }
+
         // Add recommendation views for each step with distance info between them
         for (index, step) in steps.enumerated() {
             // Calculate unified order: startingOrder + index (0-based)
@@ -217,9 +239,10 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
 
             // Add distance view between POIs (except after the last one)
             if index < steps.count - 1 {
-                let distanceView = createDistanceView(for: index)
-                distanceViews[index] = distanceView
+                let distanceView = createDistanceView(for: distanceIndex)
+                distanceViews[distanceIndex] = distanceView
                 recommendationsStackView.addArrangedSubview(distanceView)
+                distanceIndex += 1
             }
         }
 
@@ -229,8 +252,14 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
         recommendationsStackView.isHidden = !isExpanded
         recommendationsStackView.alpha = isExpanded ? 1.0 : 0.0
 
-        // Request route calculation for all waypoints at once (if more than 1 step with coordinates)
-        let locations = steps.compactMap { $0.poi?.coordinate }
+        // Build locations with accommodation prepended for route calculation
+        var locations: [TRPLocation] = []
+        if let coord = segment?.accommodation?.coordinate {
+            locations.append(coord)
+        }
+        locations.append(contentsOf: steps.compactMap { $0.poi?.coordinate })
+
+        // Request route calculation for all waypoints at once (if more than 1 location)
         if locations.count > 1 {
             delegate?.recommendationsCellNeedsRouteCalculation(self, locations: locations, cellIndexPath: indexPath)
         }
@@ -256,6 +285,27 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
         recommendationsStackView.arrangedSubviews.forEach { $0.removeFromSuperview() }
         distanceViews.removeAll()
 
+        // Track accommodation state
+        hasAccommodation = cellData.segment.accommodation != nil
+
+        // Track distance view index
+        var distanceIndex = 0
+
+        // Add accommodation view if exists
+        if let accommodation = cellData.segment.accommodation {
+            let displayName = accommodation.name ?? accommodation.address ?? "Starting Point"
+            let accommodationView = createAccommodationView(name: displayName)
+            recommendationsStackView.addArrangedSubview(accommodationView)
+
+            // Add distance view between accommodation and first step
+            if !cellData.steps.isEmpty {
+                let distanceView = createDistanceView(for: distanceIndex)
+                distanceViews[distanceIndex] = distanceView
+                recommendationsStackView.addArrangedSubview(distanceView)
+                distanceIndex += 1
+            }
+        }
+
         // Add recommendation views for each step with distance info between them
         for (index, step) in cellData.steps.enumerated() {
             // Calculate unified order: startingOrder + index (0-based)
@@ -265,9 +315,10 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
 
             // Add distance view between POIs (except after the last one)
             if index < cellData.steps.count - 1 {
-                let distanceView = createDistanceView(for: index)
-                distanceViews[index] = distanceView
+                let distanceView = createDistanceView(for: distanceIndex)
+                distanceViews[distanceIndex] = distanceView
                 recommendationsStackView.addArrangedSubview(distanceView)
+                distanceIndex += 1
             }
         }
 
@@ -277,8 +328,14 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
         recommendationsStackView.isHidden = !cellData.isExpanded
         recommendationsStackView.alpha = cellData.isExpanded ? 1.0 : 0.0
 
-        // Request route calculation for all waypoints at once (if more than 1 step with coordinates)
-        let locations = cellData.steps.compactMap { $0.poi?.coordinate }
+        // Build locations with accommodation prepended for route calculation
+        var locations: [TRPLocation] = []
+        if let coord = cellData.segment.accommodation?.coordinate {
+            locations.append(coord)
+        }
+        locations.append(contentsOf: cellData.steps.compactMap { $0.poi?.coordinate })
+
+        // Request route calculation for all waypoints at once (if more than 1 location)
         if locations.count > 1 {
             delegate?.recommendationsCellNeedsRouteCalculation(self, locations: locations, cellIndexPath: indexPath)
         }
@@ -695,6 +752,55 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
         delegate?.recommendationsCellDidTapReservation(self, step: steps[tag])
     }
 
+    // MARK: - Accommodation View
+    private func createAccommodationView(name: String) -> UIView {
+        let containerView = UIView()
+        containerView.translatesAutoresizingMaskIntoConstraints = false
+        containerView.backgroundColor = .clear
+        containerView.layer.borderWidth = 1
+        containerView.layer.borderColor = ColorSet.lineWeak.uiColor.cgColor
+        containerView.layer.cornerRadius = 18
+
+        // Icon
+        let iconImageView = UIImageView()
+        iconImageView.translatesAutoresizingMaskIntoConstraints = false
+        if let pinIcon = TRPImageController().getImage(inFramework: "ic_pin", inApp: nil) {
+            iconImageView.image = pinIcon.withRenderingMode(.alwaysTemplate)
+        }
+        iconImageView.tintColor = ColorSet.fg.uiColor
+        iconImageView.contentMode = .scaleAspectFit
+
+        // Name label
+        let nameLabel = UILabel()
+        nameLabel.translatesAutoresizingMaskIntoConstraints = false
+        nameLabel.font = FontSet.montserratMedium.font(14)
+        nameLabel.textColor = ColorSet.primaryText.uiColor
+        nameLabel.text = name
+        nameLabel.numberOfLines = 0
+
+        containerView.addSubview(iconImageView)
+        containerView.addSubview(nameLabel)
+
+        NSLayoutConstraint.activate([
+            // Icon: 12px from left, vertically centered
+            iconImageView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 12),
+            iconImageView.centerYAnchor.constraint(equalTo: containerView.centerYAnchor),
+            iconImageView.widthAnchor.constraint(equalToConstant: 20),
+            iconImageView.heightAnchor.constraint(equalToConstant: 20),
+
+            // Text: 13px after icon, 12px from right, vertically centered with padding
+            nameLabel.leadingAnchor.constraint(equalTo: iconImageView.trailingAnchor, constant: 13),
+            nameLabel.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -12),
+            nameLabel.topAnchor.constraint(equalTo: containerView.topAnchor, constant: 8),
+            nameLabel.bottomAnchor.constraint(equalTo: containerView.bottomAnchor, constant: -8),
+
+            // Height: min 36px
+            containerView.heightAnchor.constraint(greaterThanOrEqualToConstant: 36)
+        ])
+
+        return containerView
+    }
+
     // MARK: - Distance View
     private func createDistanceView(for index: Int) -> UIView {
         let containerView = UIView()
@@ -704,14 +810,13 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
         // Icon
         let iconImageView = UIImageView()
         iconImageView.translatesAutoresizingMaskIntoConstraints = false
-        iconImageView.image = UIImage(systemName: "figure.walk")
-        iconImageView.tintColor = ColorSet.fgWeak.uiColor
+        iconImageView.image = TRPImageController().getImage(inFramework: "ic_walk", inApp: nil)
         iconImageView.contentMode = .scaleAspectFit
         
         // Distance label
         let distanceLabel = UILabel()
         distanceLabel.translatesAutoresizingMaskIntoConstraints = false
-        distanceLabel.font = FontSet.montserratRegular.font(14)
+        distanceLabel.font = FontSet.montserratMedium.font(12)
         distanceLabel.textColor = ColorSet.fgWeak.uiColor
 //        distanceLabel.text = "Calculating..."
         distanceLabel.tag = 1000 + index // Tag to identify label for updates
@@ -728,23 +833,23 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
         
         NSLayoutConstraint.activate([
             // Icon
-            iconImageView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 16),
+            iconImageView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 4),
             iconImageView.centerYAnchor.constraint(equalTo: containerView.centerYAnchor),
-            iconImageView.widthAnchor.constraint(equalToConstant: 20),
-            iconImageView.heightAnchor.constraint(equalToConstant: 20),
+            iconImageView.widthAnchor.constraint(equalToConstant: 13),
+            iconImageView.heightAnchor.constraint(equalToConstant: 16),
             
             // Distance label
-            distanceLabel.leadingAnchor.constraint(equalTo: iconImageView.trailingAnchor, constant: 8),
+            distanceLabel.leadingAnchor.constraint(equalTo: iconImageView.trailingAnchor, constant: 6),
             distanceLabel.centerYAnchor.constraint(equalTo: containerView.centerYAnchor),
             
             // Horizontal line
-            horizontalLine.leadingAnchor.constraint(equalTo: distanceLabel.trailingAnchor, constant: 12),
-            horizontalLine.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -16),
+            horizontalLine.leadingAnchor.constraint(equalTo: distanceLabel.trailingAnchor, constant: 4),
+            horizontalLine.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
             horizontalLine.centerYAnchor.constraint(equalTo: containerView.centerYAnchor),
-            horizontalLine.heightAnchor.constraint(equalToConstant: 1),
+            horizontalLine.heightAnchor.constraint(equalToConstant: 0.5),
             
             // Container height
-            containerView.heightAnchor.constraint(equalToConstant: 32)
+            containerView.heightAnchor.constraint(equalToConstant: 24)
         ])
         
         return containerView
