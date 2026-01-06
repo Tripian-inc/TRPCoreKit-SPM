@@ -209,19 +209,32 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
         recommendationsStackView.arrangedSubviews.forEach { $0.removeFromSuperview() }
         distanceViews.removeAll()
 
-        // Track accommodation state
-        hasAccommodation = segment?.accommodation != nil
-
         // Track distance view index
         var distanceIndex = 0
 
-        // Add accommodation view if exists
-        if let accommodation = segment?.accommodation {
-            let displayName = accommodation.name ?? accommodation.address ?? "Starting Point"
-            let accommodationView = createAccommodationView(name: displayName)
-            recommendationsStackView.addArrangedSubview(accommodationView)
+        // Determine starting point: accommodation or city center
+        var startingPointName: String?
+        var startingPointCoordinate: TRPLocation?
 
-            // Add distance view between accommodation and first step
+        if let accommodation = segment?.accommodation {
+            // Use accommodation as starting point
+            startingPointName = accommodation.name ?? accommodation.address ?? "Starting Point"
+            startingPointCoordinate = accommodation.coordinate
+            hasAccommodation = true
+        } else if let city = segment?.city {
+            // Use city center as starting point
+            let cityCenter = AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.cityCenter)
+            startingPointName = "\(city.name) | \(cityCenter)"
+            startingPointCoordinate = city.coordinate
+            hasAccommodation = false
+        }
+
+        // Add starting point view if exists
+        if let displayName = startingPointName {
+            let startingPointView = createAccommodationView(name: displayName)
+            recommendationsStackView.addArrangedSubview(startingPointView)
+
+            // Add distance view between starting point and first step
             if !steps.isEmpty {
                 let distanceView = createDistanceView(for: distanceIndex)
                 distanceViews[distanceIndex] = distanceView
@@ -252,9 +265,9 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
         recommendationsStackView.isHidden = !isExpanded
         recommendationsStackView.alpha = isExpanded ? 1.0 : 0.0
 
-        // Build locations with accommodation prepended for route calculation
+        // Build locations with starting point prepended for route calculation
         var locations: [TRPLocation] = []
-        if let coord = segment?.accommodation?.coordinate {
+        if let coord = startingPointCoordinate {
             locations.append(coord)
         }
         locations.append(contentsOf: steps.compactMap { $0.poi?.coordinate })
@@ -285,19 +298,32 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
         recommendationsStackView.arrangedSubviews.forEach { $0.removeFromSuperview() }
         distanceViews.removeAll()
 
-        // Track accommodation state
-        hasAccommodation = cellData.segment.accommodation != nil
-
         // Track distance view index
         var distanceIndex = 0
 
-        // Add accommodation view if exists
-        if let accommodation = cellData.segment.accommodation {
-            let displayName = accommodation.name ?? accommodation.address ?? "Starting Point"
-            let accommodationView = createAccommodationView(name: displayName)
-            recommendationsStackView.addArrangedSubview(accommodationView)
+        // Determine starting point: accommodation or city center
+        var startingPointName: String?
+        var startingPointCoordinate: TRPLocation?
 
-            // Add distance view between accommodation and first step
+        if let accommodation = cellData.segment.accommodation {
+            // Use accommodation as starting point
+            startingPointName = accommodation.name ?? accommodation.address ?? "Starting Point"
+            startingPointCoordinate = accommodation.coordinate
+            hasAccommodation = true
+        } else if let city = cellData.segment.city {
+            // Use city center as starting point
+            let cityCenter = AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.cityCenter)
+            startingPointName = "\(city.name) | \(cityCenter)"
+            startingPointCoordinate = city.coordinate
+            hasAccommodation = false
+        }
+
+        // Add starting point view if exists
+        if let displayName = startingPointName {
+            let startingPointView = createAccommodationView(name: displayName)
+            recommendationsStackView.addArrangedSubview(startingPointView)
+
+            // Add distance view between starting point and first step
             if !cellData.steps.isEmpty {
                 let distanceView = createDistanceView(for: distanceIndex)
                 distanceViews[distanceIndex] = distanceView
@@ -328,9 +354,9 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
         recommendationsStackView.isHidden = !cellData.isExpanded
         recommendationsStackView.alpha = cellData.isExpanded ? 1.0 : 0.0
 
-        // Build locations with accommodation prepended for route calculation
+        // Build locations with starting point prepended for route calculation
         var locations: [TRPLocation] = []
-        if let coord = cellData.segment.accommodation?.coordinate {
+        if let coord = startingPointCoordinate {
             locations.append(coord)
         }
         locations.append(contentsOf: cellData.steps.compactMap { $0.poi?.coordinate })
