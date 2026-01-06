@@ -108,14 +108,6 @@ public class AddPlanFilterVC: UIViewController {
         return label
     }()
 
-    private let priceRangeLabel: UILabel = {
-        let label = UILabel()
-        label.font = FontSet.montserratRegular.font(14)
-        label.textColor = ColorSet.fgWeak.uiColor
-        label.translatesAutoresizingMaskIntoConstraints = false
-        return label
-    }()
-
     private let priceSlider: TRPRangeSlider = {
         let slider = TRPRangeSlider()
         slider.translatesAutoresizingMaskIntoConstraints = false
@@ -128,14 +120,6 @@ public class AddPlanFilterVC: UIViewController {
         label.text = AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.filterDuration)
         label.font = FontSet.montserratSemiBold.font(16)
         label.textColor = ColorSet.primaryText.uiColor
-        label.translatesAutoresizingMaskIntoConstraints = false
-        return label
-    }()
-
-    private let durationRangeLabel: UILabel = {
-        let label = UILabel()
-        label.font = FontSet.montserratRegular.font(14)
-        label.textColor = ColorSet.fgWeak.uiColor
         label.translatesAutoresizingMaskIntoConstraints = false
         return label
     }()
@@ -170,8 +154,6 @@ public class AddPlanFilterVC: UIViewController {
         super.viewDidLoad()
         setupUI()
         setupSliders()
-        updatePriceLabel()
-        updateDurationLabel()
     }
 
     // MARK: - Setup
@@ -186,10 +168,8 @@ public class AddPlanFilterVC: UIViewController {
         scrollView.addSubview(contentView)
 
         contentView.addSubview(priceTitleLabel)
-        contentView.addSubview(priceRangeLabel)
         contentView.addSubview(priceSlider)
         contentView.addSubview(durationTitleLabel)
-        contentView.addSubview(durationRangeLabel)
         contentView.addSubview(durationSlider)
 
         view.addSubview(buttonContainerView)
@@ -199,9 +179,6 @@ public class AddPlanFilterVC: UIViewController {
         closeButton.addTarget(self, action: #selector(closeButtonTapped), for: .touchUpInside)
         clearButton.addTarget(self, action: #selector(clearButtonTapped), for: .touchUpInside)
         applyButton.addTarget(self, action: #selector(applyButtonTapped), for: .touchUpInside)
-
-        priceSlider.addTarget(self, action: #selector(priceSliderChanged), for: .valueChanged)
-        durationSlider.addTarget(self, action: #selector(durationSliderChanged), for: .valueChanged)
 
         NSLayoutConstraint.activate([
             // Header view
@@ -237,25 +214,19 @@ public class AddPlanFilterVC: UIViewController {
             priceTitleLabel.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 24),
             priceTitleLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
 
-            priceRangeLabel.centerYAnchor.constraint(equalTo: priceTitleLabel.centerYAnchor),
-            priceRangeLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
-
             priceSlider.topAnchor.constraint(equalTo: priceTitleLabel.bottomAnchor, constant: 16),
             priceSlider.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
             priceSlider.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
-            priceSlider.heightAnchor.constraint(equalToConstant: 32),
+            priceSlider.heightAnchor.constraint(equalToConstant: 50),
 
             // Duration section
             durationTitleLabel.topAnchor.constraint(equalTo: priceSlider.bottomAnchor, constant: 32),
             durationTitleLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
 
-            durationRangeLabel.centerYAnchor.constraint(equalTo: durationTitleLabel.centerYAnchor),
-            durationRangeLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
-
             durationSlider.topAnchor.constraint(equalTo: durationTitleLabel.bottomAnchor, constant: 16),
             durationSlider.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
             durationSlider.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
-            durationSlider.heightAnchor.constraint(equalToConstant: 32),
+            durationSlider.heightAnchor.constraint(equalToConstant: 50),
             durationSlider.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -24),
 
             // Button container view
@@ -282,12 +253,22 @@ public class AddPlanFilterVC: UIViewController {
         priceSlider.maximumValue = priceMaxValue
         priceSlider.lowerValue = Double(filterData.minPrice ?? Int(priceMinValue))
         priceSlider.upperValue = Double(filterData.maxPrice ?? Int(priceMaxValue))
+        priceSlider.valueLabelFormatter = { value in
+            let intValue = Int(value)
+            if intValue == 0 {
+                return AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.filterFree)
+            }
+            return "\(intValue)€"
+        }
 
         // Duration slider
         durationSlider.minimumValue = durationMinValue
         durationSlider.maximumValue = durationMaxValue
         durationSlider.lowerValue = Double(filterData.minDuration ?? Int(durationMinValue))
         durationSlider.upperValue = Double(filterData.maxDuration ?? Int(durationMaxValue))
+        durationSlider.valueLabelFormatter = { [weak self] value in
+            return self?.formatDuration(minutes: Int(value)) ?? "\(Int(value))m"
+        }
     }
 
     // MARK: - Actions
@@ -301,9 +282,6 @@ public class AddPlanFilterVC: UIViewController {
         priceSlider.upperValue = priceMaxValue
         durationSlider.lowerValue = durationMinValue
         durationSlider.upperValue = durationMaxValue
-
-        updatePriceLabel()
-        updateDurationLabel()
     }
 
     @objc private func applyButtonTapped() {
@@ -330,35 +308,7 @@ public class AddPlanFilterVC: UIViewController {
         dismiss(animated: true)
     }
 
-    @objc private func priceSliderChanged() {
-        updatePriceLabel()
-    }
-
-    @objc private func durationSliderChanged() {
-        updateDurationLabel()
-    }
-
     // MARK: - Helpers
-    private func updatePriceLabel() {
-        let minPrice = Int(priceSlider.lowerValue)
-        let maxPrice = Int(priceSlider.upperValue)
-
-        let minText = minPrice == 0 ? AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.filterFree) : "\(minPrice)€"
-        let maxText = "\(maxPrice)€"
-
-        priceRangeLabel.text = "\(minText) - \(maxText)"
-    }
-
-    private func updateDurationLabel() {
-        let minMinutes = Int(durationSlider.lowerValue)
-        let maxMinutes = Int(durationSlider.upperValue)
-
-        let minText = formatDuration(minutes: minMinutes)
-        let maxText = formatDuration(minutes: maxMinutes)
-
-        durationRangeLabel.text = "\(minText) - \(maxText)"
-    }
-
     private func formatDuration(minutes: Int) -> String {
         if minutes == 0 {
             return "0h"

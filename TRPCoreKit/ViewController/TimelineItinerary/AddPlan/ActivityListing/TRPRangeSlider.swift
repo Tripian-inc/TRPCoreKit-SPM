@@ -34,7 +34,12 @@ public class TRPRangeSlider: UIControl {
         }
     }
 
-    public var trackTintColor: UIColor = ColorSet.neutral100.uiColor {
+    /// Format closure for value labels (default: integer format)
+    public var valueLabelFormatter: ((Double) -> String) = { value in
+        return "\(Int(value))"
+    }
+
+    public var trackTintColor: UIColor = ColorSet.lineWeak.uiColor {
         didSet { trackLayer.setNeedsDisplay() }
     }
 
@@ -42,30 +47,46 @@ public class TRPRangeSlider: UIControl {
         didSet { trackLayer.setNeedsDisplay() }
     }
 
-    public var thumbTintColor: UIColor = .white {
-        didSet {
-            lowerThumbLayer.setNeedsDisplay()
-            upperThumbLayer.setNeedsDisplay()
-        }
-    }
-
     private let trackLayer = RangeSliderTrackLayer()
     private let lowerThumbLayer = RangeSliderThumbLayer()
     private let upperThumbLayer = RangeSliderThumbLayer()
     private var previousLocation = CGPoint()
 
-    private let thumbWidth: CGFloat = 24
-    private let trackHeight: CGFloat = 4
+    // Value labels above thumbs
+    private let lowerValueLabel: UILabel = {
+        let label = UILabel()
+        label.font = FontSet.montserratMedium.font(12)
+        label.textColor = ColorSet.primaryText.uiColor
+        label.textAlignment = .center
+        return label
+    }()
+
+    private let upperValueLabel: UILabel = {
+        let label = UILabel()
+        label.font = FontSet.montserratMedium.font(12)
+        label.textColor = ColorSet.primaryText.uiColor
+        label.textAlignment = .center
+        return label
+    }()
+
+    // Constants
+    private let thumbSize: CGFloat = 25
+    private let trackHeight: CGFloat = 8
+    private let thumbBorderWidth: CGFloat = 7
+    private let valueLabelHeight: CGFloat = 18
+    private let valueLabelSpacing: CGFloat = 4 // Space between label and thumb
 
     // MARK: - Initialization
     override init(frame: CGRect) {
         super.init(frame: frame)
         setupLayers()
+        setupLabels()
     }
 
     required init?(coder: NSCoder) {
         super.init(coder: coder)
         setupLayers()
+        setupLabels()
     }
 
     // MARK: - Setup
@@ -83,9 +104,16 @@ public class TRPRangeSlider: UIControl {
         layer.addSublayer(upperThumbLayer)
     }
 
+    private func setupLabels() {
+        addSubview(lowerValueLabel)
+        addSubview(upperValueLabel)
+    }
+
     // MARK: - Layout
     public override var intrinsicContentSize: CGSize {
-        return CGSize(width: UIView.noIntrinsicMetric, height: thumbWidth)
+        // Height = value label + spacing + thumb size
+        let totalHeight = valueLabelHeight + valueLabelSpacing + thumbSize
+        return CGSize(width: UIView.noIntrinsicMetric, height: totalHeight)
     }
 
     public override func layoutSubviews() {
@@ -97,34 +125,82 @@ public class TRPRangeSlider: UIControl {
         CATransaction.begin()
         CATransaction.setDisableActions(true)
 
-        let trackY = (bounds.height - trackHeight) / 2
-        trackLayer.frame = CGRect(x: thumbWidth / 2, y: trackY, width: bounds.width - thumbWidth, height: trackHeight)
+        // Calculate vertical positions
+        let thumbY = valueLabelHeight + valueLabelSpacing
+        let trackY = thumbY + (thumbSize - trackHeight) / 2
+
+        // Track frame (centered between thumbs area)
+        trackLayer.frame = CGRect(
+            x: thumbSize / 2,
+            y: trackY,
+            width: bounds.width - thumbSize,
+            height: trackHeight
+        )
         trackLayer.setNeedsDisplay()
 
+        // Lower thumb
         let lowerThumbCenter = positionForValue(lowerValue)
-        lowerThumbLayer.frame = CGRect(x: lowerThumbCenter - thumbWidth / 2, y: 0, width: thumbWidth, height: thumbWidth)
+        lowerThumbLayer.frame = CGRect(
+            x: lowerThumbCenter - thumbSize / 2,
+            y: thumbY,
+            width: thumbSize,
+            height: thumbSize
+        )
         lowerThumbLayer.setNeedsDisplay()
 
+        // Upper thumb
         let upperThumbCenter = positionForValue(upperValue)
-        upperThumbLayer.frame = CGRect(x: upperThumbCenter - thumbWidth / 2, y: 0, width: thumbWidth, height: thumbWidth)
+        upperThumbLayer.frame = CGRect(
+            x: upperThumbCenter - thumbSize / 2,
+            y: thumbY,
+            width: thumbSize,
+            height: thumbSize
+        )
         upperThumbLayer.setNeedsDisplay()
+
+        // Update value labels
+        updateValueLabels()
 
         CATransaction.commit()
     }
 
+    private func updateValueLabels() {
+        // Lower value label
+        lowerValueLabel.text = valueLabelFormatter(lowerValue)
+        lowerValueLabel.sizeToFit()
+        let lowerThumbCenter = positionForValue(lowerValue)
+        lowerValueLabel.center = CGPoint(
+            x: lowerThumbCenter,
+            y: valueLabelHeight / 2
+        )
+
+        // Upper value label
+        upperValueLabel.text = valueLabelFormatter(upperValue)
+        upperValueLabel.sizeToFit()
+        let upperThumbCenter = positionForValue(upperValue)
+        upperValueLabel.center = CGPoint(
+            x: upperThumbCenter,
+            y: valueLabelHeight / 2
+        )
+    }
+
     private func positionForValue(_ value: Double) -> CGFloat {
-        let trackWidth = bounds.width - thumbWidth
-        return thumbWidth / 2 + CGFloat((value - minimumValue) / (maximumValue - minimumValue)) * trackWidth
+        let trackWidth = bounds.width - thumbSize
+        return thumbSize / 2 + CGFloat((value - minimumValue) / (maximumValue - minimumValue)) * trackWidth
     }
 
     // MARK: - Touch Handling
     public override func beginTracking(_ touch: UITouch, with event: UIEvent?) -> Bool {
         previousLocation = touch.location(in: self)
 
+        // Expand touch area for better UX
+        let lowerThumbFrame = lowerThumbLayer.frame.insetBy(dx: -10, dy: -10)
+        let upperThumbFrame = upperThumbLayer.frame.insetBy(dx: -10, dy: -10)
+
         // Determine which thumb to track
-        if lowerThumbLayer.frame.contains(previousLocation) {
+        if lowerThumbFrame.contains(previousLocation) {
             lowerThumbLayer.highlighted = true
-        } else if upperThumbLayer.frame.contains(previousLocation) {
+        } else if upperThumbFrame.contains(previousLocation) {
             upperThumbLayer.highlighted = true
         }
 
@@ -136,7 +212,7 @@ public class TRPRangeSlider: UIControl {
 
         // Calculate delta
         let deltaLocation = Double(location.x - previousLocation.x)
-        let deltaValue = (maximumValue - minimumValue) * deltaLocation / Double(bounds.width - thumbWidth)
+        let deltaValue = (maximumValue - minimumValue) * deltaLocation / Double(bounds.width - thumbSize)
 
         previousLocation = location
 
@@ -170,14 +246,14 @@ private class RangeSliderTrackLayer: CALayer {
     override func draw(in ctx: CGContext) {
         guard let slider = rangeSlider else { return }
 
-        // Draw track background
+        // Draw track background (unselected - lineWeak)
         let cornerRadius = bounds.height / 2
         let path = UIBezierPath(roundedRect: bounds, cornerRadius: cornerRadius)
         ctx.addPath(path.cgPath)
         ctx.setFillColor(slider.trackTintColor.cgColor)
         ctx.fillPath()
 
-        // Draw highlighted range
+        // Draw highlighted range (selected - primary)
         let lowerValuePosition = CGFloat((slider.lowerValue - slider.minimumValue) / (slider.maximumValue - slider.minimumValue)) * bounds.width
         let upperValuePosition = CGFloat((slider.upperValue - slider.minimumValue) / (slider.maximumValue - slider.minimumValue)) * bounds.width
         let highlightRect = CGRect(x: lowerValuePosition, y: 0, width: upperValuePosition - lowerValuePosition, height: bounds.height)
@@ -195,24 +271,30 @@ private class RangeSliderThumbLayer: CALayer {
     weak var rangeSlider: TRPRangeSlider?
 
     override func draw(in ctx: CGContext) {
-        guard let slider = rangeSlider else { return }
-
-        let thumbFrame = bounds.insetBy(dx: 2, dy: 2)
-        let cornerRadius = thumbFrame.height / 2
+        // 25x25 thumb with 7px primary border and white center
+        let thumbRect = bounds
+        let cornerRadius = thumbRect.height / 2
 
         // Draw shadow
-        ctx.setShadow(offset: CGSize(width: 0, height: 1), blur: 2, color: UIColor.black.withAlphaComponent(0.2).cgColor)
+        ctx.setShadow(offset: CGSize(width: 0, height: 1), blur: 3, color: UIColor.black.withAlphaComponent(0.15).cgColor)
 
-        // Draw thumb circle
-        let thumbPath = UIBezierPath(roundedRect: thumbFrame, cornerRadius: cornerRadius)
-        ctx.addPath(thumbPath.cgPath)
-        ctx.setFillColor(slider.thumbTintColor.cgColor)
+        // Draw outer circle (primary color border)
+        let outerPath = UIBezierPath(roundedRect: thumbRect, cornerRadius: cornerRadius)
+        ctx.addPath(outerPath.cgPath)
+        ctx.setFillColor(ColorSet.primary.uiColor.cgColor)
         ctx.fillPath()
 
-        // Draw border
-        ctx.addPath(thumbPath.cgPath)
-        ctx.setStrokeColor(ColorSet.lineWeak.uiColor.cgColor)
-        ctx.setLineWidth(0.5)
-        ctx.strokePath()
+        // Reset shadow for inner circle
+        ctx.setShadow(offset: .zero, blur: 0, color: nil)
+
+        // Draw inner circle (white center)
+        // Border width is 7px, so inner circle inset is 7 from each side
+        let borderWidth: CGFloat = 7
+        let innerRect = thumbRect.insetBy(dx: borderWidth, dy: borderWidth)
+        let innerCornerRadius = innerRect.height / 2
+        let innerPath = UIBezierPath(roundedRect: innerRect, cornerRadius: innerCornerRadius)
+        ctx.addPath(innerPath.cgPath)
+        ctx.setFillColor(UIColor.white.cgColor)
+        ctx.fillPath()
     }
 }

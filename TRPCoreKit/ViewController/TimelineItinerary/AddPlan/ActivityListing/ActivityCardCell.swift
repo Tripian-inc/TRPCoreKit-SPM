@@ -257,7 +257,7 @@ class ActivityCardCell: UITableViewCell {
             priceLabel.trailingAnchor.constraint(equalTo: cardContainerView.trailingAnchor),
 
             // Separator (16px padding from left and right)
-            separatorView.topAnchor.constraint(equalTo: priceLabel.bottomAnchor, constant: 24),
+            separatorView.topAnchor.constraint(equalTo: priceLabel.bottomAnchor, constant: 14),
             separatorView.leadingAnchor.constraint(equalTo: cardContainerView.leadingAnchor),
             separatorView.trailingAnchor.constraint(equalTo: cardContainerView.trailingAnchor),
             separatorView.bottomAnchor.constraint(equalTo: cardContainerView.bottomAnchor),

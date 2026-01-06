@@ -14,7 +14,7 @@ public enum SortOption: Int, CaseIterable {
     case popularity = 0
     case rating
     case priceLowToHigh
-    case newest
+//    case newest
     case durationShortToLong
     case durationLongToShort
 
@@ -26,8 +26,8 @@ public enum SortOption: Int, CaseIterable {
             return AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.sortRating)
         case .priceLowToHigh:
             return AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.sortPriceLowToHigh)
-        case .newest:
-            return AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.sortNewest)
+//        case .newest:
+//            return AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.sortNewest)
         case .durationShortToLong:
             return AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.sortDurationShortToLong)
         case .durationLongToShort:
@@ -44,8 +44,8 @@ public enum SortOption: Int, CaseIterable {
             return ("rating", "desc")
         case .priceLowToHigh:
             return ("price", "asc")
-        case .newest:
-            return ("date", "desc")
+//        case .newest:
+//            return ("date", "desc")
         case .durationShortToLong:
             return ("duration", "asc")
         case .durationLongToShort:
@@ -81,9 +81,8 @@ public class AddPlanSortByVC: UIViewController {
 
     private let closeButton: UIButton = {
         let button = UIButton(type: .system)
-        let image = UIImage(systemName: "xmark")
-        button.setImage(image, for: .normal)
-        button.tintColor = ColorSet.primaryText.uiColor
+        button.setImage(TRPImageController().getImage(inFramework: "ic_close", inApp: nil), for: .normal)
+        button.tintColor = ColorSet.fg.uiColor
         button.translatesAutoresizingMaskIntoConstraints = false
         return button
     }()

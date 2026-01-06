@@ -236,7 +236,7 @@ public class AddPlanActivityListingVC: TRPBaseUIViewController {
             categoryCollectionView.heightAnchor.constraint(equalToConstant: 88),
 
             // Activity Count Label
-            activityCountLabel.topAnchor.constraint(equalTo: categoryCollectionView.bottomAnchor, constant: 16),
+            activityCountLabel.topAnchor.constraint(equalTo: categoryCollectionView.bottomAnchor, constant: 22),
             activityCountLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
 
             // Info ImageView
@@ -246,7 +246,7 @@ public class AddPlanActivityListingVC: TRPBaseUIViewController {
             infoImageView.widthAnchor.constraint(equalToConstant: 16),
 
             // Table View
-            tableView.topAnchor.constraint(equalTo: activityCountLabel.bottomAnchor, constant: 16),
+            tableView.topAnchor.constraint(equalTo: activityCountLabel.bottomAnchor, constant: 8),
             tableView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
             tableView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
             tableView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor)
@@ -263,7 +263,7 @@ public class AddPlanActivityListingVC: TRPBaseUIViewController {
         NSLayoutConstraint.activate([
             filterActiveBadge.widthAnchor.constraint(equalToConstant: 8),
             filterActiveBadge.heightAnchor.constraint(equalToConstant: 8),
-            filterActiveBadge.topAnchor.constraint(equalTo: filterButton.topAnchor, constant: 4),
+            filterActiveBadge.topAnchor.constraint(equalTo: filterButton.topAnchor, constant: 11),
             filterActiveBadge.leadingAnchor.constraint(equalTo: filterButton.leadingAnchor, constant: 22)
         ])
     }
