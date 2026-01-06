@@ -180,6 +180,11 @@ public struct RecommendationsCellData: TimelineCellData {
     public let steps: [TRPTimelineStep]
     public var isExpanded: Bool
 
+    // MARK: - Location Data
+    /// City for this segment (from plan?.city ?? segment.city)
+    /// Used for city center fallback when accommodation is nil
+    public let city: TRPCity?
+
     // MARK: - Raw Data (for delegate callbacks)
     public let segment: TRPTimelineSegment
 
@@ -191,7 +196,8 @@ public struct RecommendationsCellData: TimelineCellData {
         title: String,
         steps: [TRPTimelineStep],
         isExpanded: Bool,
-        segment: TRPTimelineSegment
+        segment: TRPTimelineSegment,
+        city: TRPCity? = nil
     ) {
         self.segmentIndex = segmentIndex
         self.startingOrder = startingOrder
@@ -199,6 +205,7 @@ public struct RecommendationsCellData: TimelineCellData {
         self.steps = steps
         self.isExpanded = isExpanded
         self.segment = segment
+        self.city = city ?? segment.city
     }
 
     /// Create from TRPMergedTimelineItem with unified starting order
@@ -209,6 +216,7 @@ public struct RecommendationsCellData: TimelineCellData {
         self.steps = item.steps
         self.isExpanded = isExpanded
         self.segment = item.segment
+        self.city = item.city
     }
 }
 

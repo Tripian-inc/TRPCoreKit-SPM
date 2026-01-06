@@ -195,7 +195,7 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
     }
     
     // MARK: - Configuration
-    func configure(with steps: [TRPTimelineStep], segment: TRPTimelineSegment?, isExpanded: Bool = true, startingOrder: Int = 1, indexPath: IndexPath) {
+    func configure(with steps: [TRPTimelineStep], segment: TRPTimelineSegment?, isExpanded: Bool = true, startingOrder: Int = 1, indexPath: IndexPath, city: TRPCity? = nil) {
         self.steps = steps
         self.segment = segment
         self.isExpanded = isExpanded
@@ -213,20 +213,30 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
         var distanceIndex = 0
 
         // Determine starting point: accommodation or city center
+        // Priority: accommodation > city parameter > segment.city
         var startingPointName: String?
         var startingPointCoordinate: TRPLocation?
+        let effectiveCity = city ?? segment?.city
 
-        if let accommodation = segment?.accommodation {
-            // Use accommodation as starting point
+        if let accommodation = segment?.accommodation,
+           accommodation.coordinate.lat != 0 || accommodation.coordinate.lon != 0 {
+            // Use accommodation as starting point (with valid coordinates)
             startingPointName = accommodation.name ?? accommodation.address ?? "Starting Point"
             startingPointCoordinate = accommodation.coordinate
             hasAccommodation = true
-        } else if let city = segment?.city {
+        } else if let effectiveCity = effectiveCity {
             // Use city center as starting point
             let cityCenter = AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.cityCenter)
-            startingPointName = "\(city.name) | \(cityCenter)"
-            startingPointCoordinate = city.coordinate
+            startingPointName = "\(effectiveCity.name) | \(cityCenter)"
             hasAccommodation = false
+
+            // Try to get coordinates from cache first (more reliable), then fallback to city object
+            if let cachedCity = TRPCityCache.shared.getCity(byId: effectiveCity.id),
+               cachedCity.coordinate.lat != 0 || cachedCity.coordinate.lon != 0 {
+                startingPointCoordinate = cachedCity.coordinate
+            } else if effectiveCity.coordinate.lat != 0 || effectiveCity.coordinate.lon != 0 {
+                startingPointCoordinate = effectiveCity.coordinate
+            }
         }
 
         // Add starting point view if exists
@@ -234,8 +244,8 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
             let startingPointView = createAccommodationView(name: displayName)
             recommendationsStackView.addArrangedSubview(startingPointView)
 
-            // Add distance view between starting point and first step
-            if !steps.isEmpty {
+            // Add distance view between starting point and first step (only if we have valid coordinates)
+            if !steps.isEmpty && startingPointCoordinate != nil {
                 let distanceView = createDistanceView(for: distanceIndex)
                 distanceViews[distanceIndex] = distanceView
                 recommendationsStackView.addArrangedSubview(distanceView)
@@ -305,17 +315,25 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
         var startingPointName: String?
         var startingPointCoordinate: TRPLocation?
 
-        if let accommodation = cellData.segment.accommodation {
-            // Use accommodation as starting point
+        if let accommodation = cellData.segment.accommodation,
+           accommodation.coordinate.lat != 0 || accommodation.coordinate.lon != 0 {
+            // Use accommodation as starting point (with valid coordinates)
             startingPointName = accommodation.name ?? accommodation.address ?? "Starting Point"
             startingPointCoordinate = accommodation.coordinate
             hasAccommodation = true
-        } else if let city = cellData.segment.city {
+        } else if let city = cellData.city {
             // Use city center as starting point
             let cityCenter = AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.cityCenter)
             startingPointName = "\(city.name) | \(cityCenter)"
-            startingPointCoordinate = city.coordinate
             hasAccommodation = false
+
+            // Try to get coordinates from cache first (more reliable), then fallback to city object
+            if let cachedCity = TRPCityCache.shared.getCity(byId: city.id),
+               cachedCity.coordinate.lat != 0 || cachedCity.coordinate.lon != 0 {
+                startingPointCoordinate = cachedCity.coordinate
+            } else if city.coordinate.lat != 0 || city.coordinate.lon != 0 {
+                startingPointCoordinate = city.coordinate
+            }
         }
 
         // Add starting point view if exists
@@ -323,8 +341,8 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
             let startingPointView = createAccommodationView(name: displayName)
             recommendationsStackView.addArrangedSubview(startingPointView)
 
-            // Add distance view between starting point and first step
-            if !cellData.steps.isEmpty {
+            // Add distance view between starting point and first step (only if we have valid coordinates)
+            if !cellData.steps.isEmpty && startingPointCoordinate != nil {
                 let distanceView = createDistanceView(for: distanceIndex)
                 distanceViews[distanceIndex] = distanceView
                 recommendationsStackView.addArrangedSubview(distanceView)
