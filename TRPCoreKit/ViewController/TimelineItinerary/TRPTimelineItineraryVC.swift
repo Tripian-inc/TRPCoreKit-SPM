@@ -142,6 +142,9 @@ public class TRPTimelineItineraryVC: TRPBaseUIViewController {
 
     // Step being edited for time change
     private var stepBeingEdited: TRPTimelineStep?
+
+    // Segment being edited for time change (manual POI)
+    private var segmentBeingEdited: TRPTimelineSegment?
     
     // Collection view state
     private var isCollectionViewExpanded: Bool = false
@@ -814,7 +817,41 @@ extension TRPTimelineItineraryVC: TRPTimelineActivityStepCellDelegate {
 extension TRPTimelineItineraryVC: TRPTimelineManualPoiCellDelegate {
 
     func manualPoiCellDidTapChangeTime(_ cell: TRPTimelineManualPoiCell, segment: TRPTimelineSegment) {
-        // TODO: Implement time change for manual POI
+        // Store the segment being edited
+        segmentBeingEdited = segment
+
+        // Get current start and end times from segment
+        let timeRangeVC = TRPTimeRangeSelectionViewController()
+        timeRangeVC.delegate = self
+
+        // Parse segment times and set as initial values
+        if let startDateStr = segment.startDate,
+           let endDateStr = segment.endDate,
+           let startDate = parseSegmentDateTime(startDateStr),
+           let endDate = parseSegmentDateTime(endDateStr) {
+            timeRangeVC.setInitialTimes(from: startDate, to: endDate)
+        }
+
+        // Present the time selection view controller
+        timeRangeVC.show(from: self)
+    }
+
+    /// Parses segment datetime string to Date without timezone conversion
+    /// Supports formats: "yyyy-MM-dd HH:mm:ss" and "yyyy-MM-dd HH:mm"
+    /// Uses current timezone to avoid UTC conversion issues
+    private func parseSegmentDateTime(_ dateTimeString: String) -> Date? {
+        let dateFormatter = DateFormatter()
+        dateFormatter.timeZone = TimeZone.current
+
+        // Try format with seconds first (server format)
+        dateFormatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
+        if let date = dateFormatter.date(from: dateTimeString) {
+            return date
+        }
+
+        // Try format without seconds
+        dateFormatter.dateFormat = "yyyy-MM-dd HH:mm"
+        return dateFormatter.date(from: dateTimeString)
     }
 
     func manualPoiCellDidTapRemove(_ cell: TRPTimelineManualPoiCell, segment: TRPTimelineSegment) {
@@ -1278,6 +1315,26 @@ extension TRPTimelineItineraryVC: TRPTimelineSavedPlansButtonDelegate {
 extension TRPTimelineItineraryVC: TRPTimeRangeSelectionDelegate {
 
     func timeRangeSelected(fromTime: String, toTime: String) {
+        // Check if we're editing a segment (manual POI)
+        if let segment = segmentBeingEdited {
+            // fromTime and toTime are already in "HH:mm" format from TRPTimeRangeSelectionViewController
+            viewModel.updateSegmentTime(segment: segment, startTime: fromTime, endTime: toTime) { [weak self] result in
+                guard let self = self else { return }
+
+                switch result {
+                case .success:
+                    // Clear the segment being edited
+                    self.segmentBeingEdited = nil
+
+                case .failure:
+                    // Error is already handled by ViewModel (shows error via delegate)
+                    self.segmentBeingEdited = nil
+                }
+            }
+            return
+        }
+
+        // Otherwise, we're editing a step (recommendation)
         guard let step = stepBeingEdited else { return }
 
         // fromTime and toTime are already in "HH:mm" format from TRPTimeRangeSelectionViewController

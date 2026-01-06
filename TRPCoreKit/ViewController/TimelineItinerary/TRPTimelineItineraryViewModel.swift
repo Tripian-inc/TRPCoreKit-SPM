@@ -1859,6 +1859,112 @@ public class TRPTimelineItineraryViewModel {
         // Reprocess timeline data to update UI
         processTimelineData()
     }
+
+    // MARK: - Segment Time Update
+
+    /// Updates a segment's start and end times
+    /// - Parameters:
+    ///   - segment: The segment to update
+    ///   - startTime: New start time in "HH:mm" format
+    ///   - endTime: New end time in "HH:mm" format
+    ///   - completion: Completion handler with success/failure result
+    public func updateSegmentTime(segment: TRPTimelineSegment, startTime: String, endTime: String, completion: @escaping (Result<Bool, Error>) -> Void) {
+        guard let timeline = timeline,
+              let segments = timeline.tripProfile?.segments else {
+            completion(.failure(NSError(domain: "Timeline", code: -1, userInfo: [NSLocalizedDescriptionKey: "Timeline not available"])))
+            return
+        }
+
+        // Find segment index
+        guard let segmentIndex = segments.firstIndex(where: { $0 === segment }) else {
+            completion(.failure(NSError(domain: "Timeline", code: -1, userInfo: [NSLocalizedDescriptionKey: "Segment not found"])))
+            return
+        }
+
+        // Extract date from existing segment startDate/endDate (format: "yyyy-MM-dd HH:mm")
+        guard let existingStartDate = segment.startDate,
+              let datePart = extractDatePart(from: existingStartDate) else {
+            completion(.failure(NSError(domain: "Timeline", code: -1, userInfo: [NSLocalizedDescriptionKey: "Invalid segment date"])))
+            return
+        }
+
+        // Build new datetime strings (format: "yyyy-MM-dd HH:mm")
+        let newStartDateTime = "\(datePart) \(startTime)"
+        let newEndDateTime = "\(datePart) \(endTime)"
+
+        // Show loading
+        delegate?.viewModel(showPreloader: true)
+
+        // Create edit profile from existing segment with updated times
+        let profile = TRPCreateEditTimelineSegmentProfile(from: segment, tripHash: timeline.tripHash, segmentIndex: segmentIndex)
+        profile.startDate = newStartDateTime
+        profile.endDate = newEndDateTime
+
+        // Update segment via repository
+        let repository = TRPTimelineRepository()
+        repository.createEditTimelineSegment(profile: profile) { [weak self] result in
+            guard let self = self else { return }
+
+            DispatchQueue.main.async {
+                switch result {
+                case .success(let success):
+                    if success {
+                        // Refresh timeline to get updated data with correct ordering
+                        self.refreshTimelineAfterSegmentUpdate(completion: completion)
+                    } else {
+                        self.delegate?.viewModel(showPreloader: false)
+                        let error = NSError(domain: "Timeline", code: -1, userInfo: [NSLocalizedDescriptionKey: "Failed to update segment time"])
+                        self.delegate?.viewModel(error: error)
+                        completion(.failure(error))
+                    }
+                case .failure(let error):
+                    self.delegate?.viewModel(showPreloader: false)
+                    self.delegate?.viewModel(error: error)
+                    completion(.failure(error))
+                }
+            }
+        }
+    }
+
+    /// Refreshes timeline after segment update to get correct ordering
+    private func refreshTimelineAfterSegmentUpdate(completion: @escaping (Result<Bool, Error>) -> Void) {
+        guard let tripHash = timeline?.tripHash else {
+            self.delegate?.viewModel(showPreloader: false)
+            completion(.success(true))
+            return
+        }
+
+        let repository = TRPTimelineRepository()
+        repository.fetchTimeline(tripHash: tripHash) { [weak self] result in
+            guard let self = self else { return }
+
+            DispatchQueue.main.async {
+                self.delegate?.viewModel(showPreloader: false)
+
+                switch result {
+                case .success(let timeline):
+                    self.timeline = timeline
+                    self.processTimelineData()
+                    self.delegate?.timelineItineraryViewModel(didUpdateTimeline: true)
+                    completion(.success(true))
+
+                case .failure:
+                    // Even if refresh fails, the segment was updated successfully
+                    // Just notify UI to reload with local data
+                    self.delegate?.timelineItineraryViewModel(didUpdateTimeline: true)
+                    completion(.success(true))
+                }
+            }
+        }
+    }
+
+    /// Extracts date part from datetime string
+    /// - Parameter dateTimeString: Format "yyyy-MM-dd HH:mm" or "yyyy-MM-dd HH:mm:ss"
+    /// - Returns: Date part in "yyyy-MM-dd" format
+    private func extractDatePart(from dateTimeString: String) -> String? {
+        let components = dateTimeString.components(separatedBy: " ")
+        return components.first
+    }
 }
 
 
