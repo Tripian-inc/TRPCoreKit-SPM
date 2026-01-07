@@ -354,14 +354,13 @@ public class TimelinePoiDetailViewController: UIViewController {
         return label
     }()
 
-    private lazy var hoursValueLabel: UILabel = {
-        let label = UILabel()
-        label.translatesAutoresizingMaskIntoConstraints = false
-        label.font = FontSet.montserratRegular.font(14)
-        label.textColor = ColorSet.fgWeaker.uiColor
-        label.numberOfLines = 0
-        label.lineBreakMode = .byWordWrapping
-        return label
+    private lazy var hoursListStackView: UIStackView = {
+        let stack = UIStackView()
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        stack.axis = .vertical
+        stack.spacing = 12
+        stack.alignment = .fill
+        return stack
     }()
 
     // Meeting Point Section
@@ -625,25 +624,53 @@ public class TimelinePoiDetailViewController: UIViewController {
         hoursHeaderStack.addArrangedSubview(hoursIconContainerView)
         hoursHeaderStack.addArrangedSubview(hoursTitleLabel)
 
-        // Create container for hours value with left padding (aligned with title)
-        let hoursValueContainer = UIView()
-        hoursValueContainer.translatesAutoresizingMaskIntoConstraints = false
-        hoursValueContainer.addSubview(hoursValueLabel)
+        // Create container for hours list with left padding (aligned with title)
+        let hoursListContainer = UIView()
+        hoursListContainer.translatesAutoresizingMaskIntoConstraints = false
+        hoursListContainer.addSubview(hoursListStackView)
 
-        // Main stack: header + hours value container (vertical)
+        // Main stack: header + hours list container (vertical)
         openingHoursStackView.addArrangedSubview(hoursHeaderStack)
-        openingHoursStackView.addArrangedSubview(hoursValueContainer)
+        openingHoursStackView.addArrangedSubview(hoursListContainer)
 
         NSLayoutConstraint.activate([
             hoursIconContainerView.widthAnchor.constraint(equalToConstant: 40),
             hoursIconContainerView.heightAnchor.constraint(equalToConstant: 40),
 
-            // Hours value label with left padding (40px icon + 12px spacing = 52px)
-            hoursValueLabel.topAnchor.constraint(equalTo: hoursValueContainer.topAnchor),
-            hoursValueLabel.leadingAnchor.constraint(equalTo: hoursValueContainer.leadingAnchor, constant: 52),
-            hoursValueLabel.trailingAnchor.constraint(equalTo: hoursValueContainer.trailingAnchor),
-            hoursValueLabel.bottomAnchor.constraint(equalTo: hoursValueContainer.bottomAnchor)
+            // Hours list with left padding (40px icon + 12px spacing = 52px)
+            hoursListStackView.topAnchor.constraint(equalTo: hoursListContainer.topAnchor),
+            hoursListStackView.leadingAnchor.constraint(equalTo: hoursListContainer.leadingAnchor, constant: 52),
+            hoursListStackView.trailingAnchor.constraint(equalTo: hoursListContainer.trailingAnchor),
+            hoursListStackView.bottomAnchor.constraint(equalTo: hoursListContainer.bottomAnchor)
         ])
+    }
+
+    private func createHoursRowView(day: String, hours: String) -> UIView {
+        let rowStack = UIStackView()
+        rowStack.translatesAutoresizingMaskIntoConstraints = false
+        rowStack.axis = .horizontal
+        rowStack.spacing = 14
+        rowStack.alignment = .center
+
+        let dayLabel = UILabel()
+        dayLabel.translatesAutoresizingMaskIntoConstraints = false
+        dayLabel.text = day
+        dayLabel.font = FontSet.montserratMedium.font(16)
+        dayLabel.textColor = ColorSet.fgWeak.uiColor
+
+        let hoursLabel = UILabel()
+        hoursLabel.translatesAutoresizingMaskIntoConstraints = false
+        hoursLabel.text = hours
+        hoursLabel.font = FontSet.montserratMedium.font(16)
+        hoursLabel.textColor = ColorSet.fgWeak.uiColor
+
+        rowStack.addArrangedSubview(dayLabel)
+        rowStack.addArrangedSubview(hoursLabel)
+
+        // Fixed width for day label to ensure alignment
+        dayLabel.widthAnchor.constraint(equalToConstant: 42).isActive = true
+
+        return rowStack
     }
 
     private func setupLocationStack() {
@@ -776,7 +803,7 @@ public class TimelinePoiDetailViewController: UIViewController {
             keyDataHeaderLabel.isHidden = false
 
             let hasPhone = viewModel.getPhone() != nil
-            let hasHours = viewModel.getFormattedOpeningHours() != nil
+            let hasHours = viewModel.getOpeningHoursList() != nil
 
             phoneStackView.isHidden = !hasPhone
             openingHoursStackView.isHidden = !hasHours
@@ -802,17 +829,15 @@ public class TimelinePoiDetailViewController: UIViewController {
                 phoneValueLabel.attributedText = attributedString
             }
 
-            if hasHours, let hoursText = viewModel.getFormattedOpeningHours() {
-                // Create attributed string with line spacing
-                let paragraphStyle = NSMutableParagraphStyle()
-                paragraphStyle.lineSpacing = 12
+            if hasHours, let hoursList = viewModel.getOpeningHoursList() {
+                // Clear previous rows
+                hoursListStackView.arrangedSubviews.forEach { $0.removeFromSuperview() }
 
-                let attributedString = NSMutableAttributedString(string: hoursText)
-                attributedString.addAttribute(.paragraphStyle, value: paragraphStyle, range: NSRange(location: 0, length: hoursText.count))
-                attributedString.addAttribute(.font, value: FontSet.montserratMedium.font(16), range: NSRange(location: 0, length: hoursText.count))
-                attributedString.addAttribute(.foregroundColor, value: ColorSet.fgWeak.uiColor, range: NSRange(location: 0, length: hoursText.count))
-
-                hoursValueLabel.attributedText = attributedString
+                // Add row for each day
+                for item in hoursList {
+                    let rowView = createHoursRowView(day: item.day, hours: item.hours)
+                    hoursListStackView.addArrangedSubview(rowView)
+                }
             }
         }
 

@@ -74,6 +74,84 @@ public class TimelinePoiDetailViewModel {
         return parsedHours
     }
 
+    /// Returns opening hours as array of (day, hours) tuples for list display
+    public func getOpeningHoursList() -> [(day: String, hours: String)]? {
+        guard let hours = poi.hours, !hours.isEmpty else { return nil }
+        return parseOpeningHoursToList(hours)
+    }
+
+    private func parseOpeningHoursToList(_ hoursString: String) -> [(day: String, hours: String)] {
+        // Get localized day names from languages service
+        let localizedDays = getLocalizedDayNames()
+        let localizedDayAbbrs = getLocalizedDayAbbreviations()
+
+        // Initialize all days as closed
+        let closedText = PoiDetailLocalizationKeys.localized(PoiDetailLocalizationKeys.closed)
+        var dayHours: [Int: String] = [:]
+        for i in 0..<7 {
+            dayHours[i] = closedText
+        }
+
+        // Split by pipe (|) to get different day groups
+        let groups = hoursString.components(separatedBy: "|")
+
+        for group in groups {
+            let trimmedGroup = group.trimmingCharacters(in: .whitespaces)
+
+            // Split by colon to separate days from hours (only first colon)
+            guard let colonIndex = trimmedGroup.firstIndex(of: ":") else { continue }
+            let daysString = String(trimmedGroup[..<colonIndex]).trimmingCharacters(in: .whitespaces)
+            let timeString = String(trimmedGroup[trimmedGroup.index(after: colonIndex)...]).trimmingCharacters(in: .whitespaces)
+
+            // Convert time to 24h format
+            let convertedTimeString = convertTo24HourFormat(timeString)
+
+            // Parse days (can be comma-separated)
+            let days = daysString.components(separatedBy: ",").map { $0.trimmingCharacters(in: .whitespaces) }
+
+            // Assign time to each day
+            for day in days {
+                if day.contains("-") {
+                    let rangeParts = day.components(separatedBy: "-")
+                    if rangeParts.count == 2 {
+                        let startDay = rangeParts[0].trimmingCharacters(in: .whitespaces)
+                        let endDay = rangeParts[1].trimmingCharacters(in: .whitespaces)
+
+                        if let startIndex = getDayIndex(startDay, localizedDays: localizedDays),
+                           let endIndex = getDayIndex(endDay, localizedDays: localizedDays) {
+                            if startIndex <= endIndex {
+                                for i in startIndex...endIndex {
+                                    dayHours[i] = convertedTimeString
+                                }
+                            } else {
+                                for i in startIndex..<7 {
+                                    dayHours[i] = convertedTimeString
+                                }
+                                for i in 0...endIndex {
+                                    dayHours[i] = convertedTimeString
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    if let dayIndex = getDayIndex(day, localizedDays: localizedDays) {
+                        dayHours[dayIndex] = convertedTimeString
+                    }
+                }
+            }
+        }
+
+        // Build result array
+        var result: [(day: String, hours: String)] = []
+        for (index, abbr) in localizedDayAbbrs.enumerated() {
+            if let hours = dayHours[index] {
+                result.append((day: abbr, hours: hours))
+            }
+        }
+
+        return result
+    }
+
     private func parseOpeningHours(_ hoursString: String) -> String {
         // Get localized day names from languages service
         let localizedDays = getLocalizedDayNames()
