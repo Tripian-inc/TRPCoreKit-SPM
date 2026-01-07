@@ -1697,39 +1697,43 @@ public class TRPTimelineItineraryViewModel {
         }
     }
 
-    /// Refreshes the timeline after segment generation completes
+    // MARK: - Timeline Refresh (Unified)
+
+    /// Refreshes the timeline from server
+    /// Use this after any operation that might affect timeline ordering
     public func refreshTimeline() {
-        guard let timeline = timeline else { return }
+        fetchAndRefreshTimeline(completion: nil)
+    }
 
-        let tripHash = timeline.tripHash
+    /// Unified method for fetching and refreshing timeline from server
+    /// - Parameter completion: Optional completion handler called after refresh (success: Bool)
+    private func fetchAndRefreshTimeline(completion: ((Bool) -> Void)?) {
+        guard let tripHash = timeline?.tripHash else {
+            delegate?.viewModel(showPreloader: false)
+            completion?(true)
+            return
+        }
 
-        // Fetch updated timeline
         let repository = TRPTimelineRepository()
         repository.fetchTimeline(tripHash: tripHash) { [weak self] result in
             guard let self = self else { return }
 
             DispatchQueue.main.async {
-                // Hide loading after timeline refresh completes (or fails)
                 self.delegate?.viewModel(showPreloader: false)
 
                 switch result {
                 case .success(var updatedTimeline):
-                    // NOTE: Do NOT sync segments - use the API response as-is
-                    // tripProfile.segments is the single source of truth
                     // Populate city information in segments BEFORE processing
                     self.populateCitiesInSegments(&updatedTimeline)
-
-                    // Update timeline data with fresh response (replaces old data completely)
                     self.timeline = updatedTimeline
                     self.processTimelineData()
-
-                    // Notify delegate
                     self.delegate?.timelineItineraryViewModel(didUpdateTimeline: true)
+                    completion?(true)
 
-                case .failure(let error):
-                    // Don't show error - segment was created and generated, just couldn't refresh
-                    // User can manually refresh or restart
-                    break
+                case .failure:
+                    // Even if refresh fails, notify UI to reload with local data
+                    self.delegate?.timelineItineraryViewModel(didUpdateTimeline: true)
+                    completion?(true)
                 }
             }
         }
@@ -1794,19 +1798,16 @@ public class TRPTimelineItineraryViewModel {
             guard let self = self else { return }
 
             DispatchQueue.main.async {
-                self.delegate?.viewModel(showPreloader: false)
-
                 switch result {
                 case .success(let updatedStep):
-                    // Update the step in timeline locally
-                    self.updateStepInTimeline(updatedStep)
-
-                    // Notify delegate to reload UI
-                    self.delegate?.timelineItineraryViewModel(didUpdateTimeline: true)
-
-                    completion(.success(updatedStep))
+                    // Refresh timeline from server to get correct ordering
+                    // (first step time change can affect segment position)
+                    self.fetchAndRefreshTimeline { _ in
+                        completion(.success(updatedStep))
+                    }
 
                 case .failure(let error):
+                    self.delegate?.viewModel(showPreloader: false)
                     self.delegate?.viewModel(error: error)
                     completion(.failure(error))
                 }
@@ -1849,19 +1850,15 @@ public class TRPTimelineItineraryViewModel {
             guard let self = self else { return }
 
             DispatchQueue.main.async {
-                self.delegate?.viewModel(showPreloader: false)
-
                 switch result {
                 case .success:
-                    // Remove the step from timeline locally
-                    self.removeStepFromTimeline(step)
-
-                    // Notify delegate to reload UI
-                    self.delegate?.timelineItineraryViewModel(didUpdateTimeline: true)
-
-                    completion?(.success(true))
+                    // Refresh timeline from server to get correct ordering
+                    self.fetchAndRefreshTimeline { _ in
+                        completion?(.success(true))
+                    }
 
                 case .failure(let error):
+                    self.delegate?.viewModel(showPreloader: false)
                     self.delegate?.viewModel(error: error)
                     completion?(.failure(error))
                 }
@@ -1939,7 +1936,9 @@ public class TRPTimelineItineraryViewModel {
                 case .success(let success):
                     if success {
                         // Refresh timeline to get updated data with correct ordering
-                        self.refreshTimelineAfterSegmentUpdate(completion: completion)
+                        self.fetchAndRefreshTimeline { _ in
+                            completion(.success(true))
+                        }
                     } else {
                         self.delegate?.viewModel(showPreloader: false)
                         let error = NSError(domain: "Timeline", code: -1, userInfo: [NSLocalizedDescriptionKey: "Failed to update segment time"])
@@ -1950,38 +1949,6 @@ public class TRPTimelineItineraryViewModel {
                     self.delegate?.viewModel(showPreloader: false)
                     self.delegate?.viewModel(error: error)
                     completion(.failure(error))
-                }
-            }
-        }
-    }
-
-    /// Refreshes timeline after segment update to get correct ordering
-    private func refreshTimelineAfterSegmentUpdate(completion: @escaping (Result<Bool, Error>) -> Void) {
-        guard let tripHash = timeline?.tripHash else {
-            self.delegate?.viewModel(showPreloader: false)
-            completion(.success(true))
-            return
-        }
-
-        let repository = TRPTimelineRepository()
-        repository.fetchTimeline(tripHash: tripHash) { [weak self] result in
-            guard let self = self else { return }
-
-            DispatchQueue.main.async {
-                self.delegate?.viewModel(showPreloader: false)
-
-                switch result {
-                case .success(let timeline):
-                    self.timeline = timeline
-                    self.processTimelineData()
-                    self.delegate?.timelineItineraryViewModel(didUpdateTimeline: true)
-                    completion(.success(true))
-
-                case .failure:
-                    // Even if refresh fails, the segment was updated successfully
-                    // Just notify UI to reload with local data
-                    self.delegate?.timelineItineraryViewModel(didUpdateTimeline: true)
-                    completion(.success(true))
                 }
             }
         }
