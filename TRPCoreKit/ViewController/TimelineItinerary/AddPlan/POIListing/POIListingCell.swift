@@ -89,13 +89,16 @@ class POIListingCell: UITableViewCell {
         label.textColor = ColorSet.fgWeak.uiColor
         return label
     }()
-
-    private lazy var addButton: UIButton = {
-        let button = UIButton(type: .custom)
-        button.translatesAutoresizingMaskIntoConstraints = false
-        button.setImage(UIImage(systemName: "plus.circle"), for: .normal)
+    
+    private let addButton: UIButton = {
+        let button = UIButton(type: .system)
+        let image = TRPImageController().getImage(inFramework: "ic_add_to_plan", inApp: nil)
+        button.setImage(image, for: .normal)
         button.tintColor = ColorSet.primary.uiColor
-        button.addTarget(self, action: #selector(addButtonTapped), for: .touchUpInside)
+        button.imageView?.contentMode = .scaleAspectFit
+        // Center 20x20 image in 32x32 button (6px padding on each side)
+        button.imageEdgeInsets = UIEdgeInsets(top: 6, left: 6, bottom: 6, right: 6)
+        button.translatesAutoresizingMaskIntoConstraints = false
         return button
     }()
 
@@ -155,8 +158,8 @@ class POIListingCell: UITableViewCell {
             // Add Button
             addButton.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
             contentStackView.topAnchor.constraint(equalTo: poiImageView.topAnchor),
-            addButton.widthAnchor.constraint(equalToConstant: 24),
-            addButton.heightAnchor.constraint(equalToConstant: 24),
+            addButton.widthAnchor.constraint(equalToConstant: 32),
+            addButton.heightAnchor.constraint(equalToConstant: 32),
 
             // Star Image
             starImageView.widthAnchor.constraint(equalToConstant: 12),

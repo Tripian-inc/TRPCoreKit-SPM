@@ -144,6 +144,9 @@ public class TRPTimelineItineraryViewModel {
     // Filtered favorite items (excludes items that are already booked or reserved)
     private var filteredFavoriteItems: [TRPSegmentFavoriteItem] = []
 
+    // Destination items from itinerary (for date-city mapping in AddPlan)
+    private var destinationItems: [TRPSegmentDestinationItem] = []
+
     // Track if initial data has been loaded (prevents showing empty state during loading)
     private var hasLoadedData: Bool = false
 
@@ -193,6 +196,9 @@ public class TRPTimelineItineraryViewModel {
     public init(timeline: TRPTimeline, itineraryModel: TRPItineraryWithActivities) {
         var mutableTimeline = timeline
 
+        // Store destination items for date-city mapping in AddPlan
+        self.destinationItems = itineraryModel.destinationItems
+
         // NOTE: Do NOT sync segments - use API response as-is
         // tripProfile.segments is the single source of truth
         // Populate city information in segments BEFORE processing
@@ -217,6 +223,9 @@ public class TRPTimelineItineraryViewModel {
     ///   - itineraryModel: Itinerary model containing trip items
     ///   - tripHash: Optional trip hash for fetching existing timeline
     public init(itineraryModel: TRPItineraryWithActivities, tripHash: String? = nil) {
+        // Store destination items for date-city mapping in AddPlan
+        self.destinationItems = itineraryModel.destinationItems
+
         // Defer timeline creation/fetch to allow delegate to be set up first
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
@@ -837,9 +846,47 @@ public class TRPTimelineItineraryViewModel {
             }
         }
 
+        // 4. Extract cities from destinationItems (for date-city mapping)
+        for item in destinationItems {
+            let coordinate = parseCoordinate(from: item.coordinate)
+
+            // Try to find city by cityId first
+            if let cityId = item.cityId, cityId > 0 {
+                if cityIds.contains(cityId) { continue }
+                if let city = TRPCityCache.shared.getCity(byId: cityId) {
+                    if !cityNames.contains(city.name.lowercased()) {
+                        cities.append(city)
+                        cityIds.insert(city.id)
+                        cityNames.insert(city.name.lowercased())
+                    }
+                    continue
+                }
+            }
+
+            // Fallback: Find city by coordinate
+            if let city = TRPCityCache.shared.getCityByCoordinate(coordinate) {
+                if cityIds.contains(city.id) { continue }
+                if cityNames.contains(city.name.lowercased()) { continue }
+                cities.append(city)
+                cityIds.insert(city.id)
+                cityNames.insert(city.name.lowercased())
+            }
+        }
+
         return cities
     }
-    
+
+    /// Parse coordinate string (e.g., "41.3851,2.1734") to TRPLocation
+    private func parseCoordinate(from coordinateString: String) -> TRPLocation {
+        let parts = coordinateString.components(separatedBy: ",")
+        guard parts.count >= 2,
+              let lat = Double(parts[0].trimmingCharacters(in: .whitespaces)),
+              let lon = Double(parts[1].trimmingCharacters(in: .whitespaces)) else {
+            return TRPLocation(lat: 0, lon: 0)
+        }
+        return TRPLocation(lat: lat, lon: lon)
+    }
+
     // MARK: - TableView Data Methods
 
     /// Get number of sections
@@ -1697,39 +1744,43 @@ public class TRPTimelineItineraryViewModel {
         }
     }
 
-    /// Refreshes the timeline after segment generation completes
+    // MARK: - Timeline Refresh (Unified)
+
+    /// Refreshes the timeline from server
+    /// Use this after any operation that might affect timeline ordering
     public func refreshTimeline() {
-        guard let timeline = timeline else { return }
+        fetchAndRefreshTimeline(completion: nil)
+    }
 
-        let tripHash = timeline.tripHash
+    /// Unified method for fetching and refreshing timeline from server
+    /// - Parameter completion: Optional completion handler called after refresh (success: Bool)
+    private func fetchAndRefreshTimeline(completion: ((Bool) -> Void)?) {
+        guard let tripHash = timeline?.tripHash else {
+            delegate?.viewModel(showPreloader: false)
+            completion?(true)
+            return
+        }
 
-        // Fetch updated timeline
         let repository = TRPTimelineRepository()
         repository.fetchTimeline(tripHash: tripHash) { [weak self] result in
             guard let self = self else { return }
 
             DispatchQueue.main.async {
-                // Hide loading after timeline refresh completes (or fails)
                 self.delegate?.viewModel(showPreloader: false)
 
                 switch result {
                 case .success(var updatedTimeline):
-                    // NOTE: Do NOT sync segments - use the API response as-is
-                    // tripProfile.segments is the single source of truth
                     // Populate city information in segments BEFORE processing
                     self.populateCitiesInSegments(&updatedTimeline)
-
-                    // Update timeline data with fresh response (replaces old data completely)
                     self.timeline = updatedTimeline
                     self.processTimelineData()
-
-                    // Notify delegate
                     self.delegate?.timelineItineraryViewModel(didUpdateTimeline: true)
+                    completion?(true)
 
-                case .failure(let error):
-                    // Don't show error - segment was created and generated, just couldn't refresh
-                    // User can manually refresh or restart
-                    break
+                case .failure:
+                    // Even if refresh fails, notify UI to reload with local data
+                    self.delegate?.timelineItineraryViewModel(didUpdateTimeline: true)
+                    completion?(true)
                 }
             }
         }
@@ -1794,19 +1845,16 @@ public class TRPTimelineItineraryViewModel {
             guard let self = self else { return }
 
             DispatchQueue.main.async {
-                self.delegate?.viewModel(showPreloader: false)
-
                 switch result {
                 case .success(let updatedStep):
-                    // Update the step in timeline locally
-                    self.updateStepInTimeline(updatedStep)
-
-                    // Notify delegate to reload UI
-                    self.delegate?.timelineItineraryViewModel(didUpdateTimeline: true)
-
-                    completion(.success(updatedStep))
+                    // Refresh timeline from server to get correct ordering
+                    // (first step time change can affect segment position)
+                    self.fetchAndRefreshTimeline { _ in
+                        completion(.success(updatedStep))
+                    }
 
                 case .failure(let error):
+                    self.delegate?.viewModel(showPreloader: false)
                     self.delegate?.viewModel(error: error)
                     completion(.failure(error))
                 }
@@ -1849,19 +1897,15 @@ public class TRPTimelineItineraryViewModel {
             guard let self = self else { return }
 
             DispatchQueue.main.async {
-                self.delegate?.viewModel(showPreloader: false)
-
                 switch result {
                 case .success:
-                    // Remove the step from timeline locally
-                    self.removeStepFromTimeline(step)
-
-                    // Notify delegate to reload UI
-                    self.delegate?.timelineItineraryViewModel(didUpdateTimeline: true)
-
-                    completion?(.success(true))
+                    // Refresh timeline from server to get correct ordering
+                    self.fetchAndRefreshTimeline { _ in
+                        completion?(.success(true))
+                    }
 
                 case .failure(let error):
+                    self.delegate?.viewModel(showPreloader: false)
                     self.delegate?.viewModel(error: error)
                     completion?(.failure(error))
                 }
@@ -1939,7 +1983,9 @@ public class TRPTimelineItineraryViewModel {
                 case .success(let success):
                     if success {
                         // Refresh timeline to get updated data with correct ordering
-                        self.refreshTimelineAfterSegmentUpdate(completion: completion)
+                        self.fetchAndRefreshTimeline { _ in
+                            completion(.success(true))
+                        }
                     } else {
                         self.delegate?.viewModel(showPreloader: false)
                         let error = NSError(domain: "Timeline", code: -1, userInfo: [NSLocalizedDescriptionKey: "Failed to update segment time"])
@@ -1955,44 +2001,77 @@ public class TRPTimelineItineraryViewModel {
         }
     }
 
-    /// Refreshes timeline after segment update to get correct ordering
-    private func refreshTimelineAfterSegmentUpdate(completion: @escaping (Result<Bool, Error>) -> Void) {
-        guard let tripHash = timeline?.tripHash else {
-            self.delegate?.viewModel(showPreloader: false)
-            completion(.success(true))
-            return
-        }
-
-        let repository = TRPTimelineRepository()
-        repository.fetchTimeline(tripHash: tripHash) { [weak self] result in
-            guard let self = self else { return }
-
-            DispatchQueue.main.async {
-                self.delegate?.viewModel(showPreloader: false)
-
-                switch result {
-                case .success(let timeline):
-                    self.timeline = timeline
-                    self.processTimelineData()
-                    self.delegate?.timelineItineraryViewModel(didUpdateTimeline: true)
-                    completion(.success(true))
-
-                case .failure:
-                    // Even if refresh fails, the segment was updated successfully
-                    // Just notify UI to reload with local data
-                    self.delegate?.timelineItineraryViewModel(didUpdateTimeline: true)
-                    completion(.success(true))
-                }
-            }
-        }
-    }
-
     /// Extracts date part from datetime string
     /// - Parameter dateTimeString: Format "yyyy-MM-dd HH:mm" or "yyyy-MM-dd HH:mm:ss"
     /// - Returns: Date part in "yyyy-MM-dd" format
     private func extractDatePart(from dateTimeString: String) -> String? {
         let components = dateTimeString.components(separatedBy: " ")
         return components.first
+    }
+
+    // MARK: - Date-City Mapping
+
+    /// Get destination items for AddPlan flow (date-city mapping)
+    /// - Returns: Array of destination items from itinerary
+    public func getDestinationItems() -> [TRPSegmentDestinationItem] {
+        return destinationItems
+    }
+
+    /// Get cities filtered by date for AddPlan
+    /// - Parameter date: The selected date
+    /// - Returns: Tuple with (mapped: cities mapped to this date, other: remaining cities)
+    public func getCitiesForDate(_ date: Date) -> (mapped: [TRPCity], other: [TRPCity]) {
+        let allCities = getCities()
+
+        // If no destination items, return all as other
+        guard !destinationItems.isEmpty else {
+            return (mapped: [], other: allCities)
+        }
+
+        // Format date for comparison
+        let dateString = date.toString(format: "yyyy-MM-dd")
+
+        // Find city IDs mapped to this date (by cityId or coordinate)
+        var mappedCityIds = Set<Int>()
+        for item in destinationItems {
+            guard let dates = item.dates, dates.contains(dateString) else { continue }
+
+            // Try cityId first
+            if let cityId = item.cityId, cityId > 0 {
+                mappedCityIds.insert(cityId)
+                continue
+            }
+
+            // Fallback: Find city by coordinate
+            let coordinate = parseCoordinate(from: item.coordinate)
+            if let city = TRPCityCache.shared.getCityByCoordinate(coordinate) {
+                mappedCityIds.insert(city.id)
+            }
+        }
+
+        // No mapping for this date → return all as other
+        guard !mappedCityIds.isEmpty else {
+            return (mapped: [], other: allCities)
+        }
+
+        // Split cities into mapped and other
+        var mapped: [TRPCity] = []
+        var other: [TRPCity] = []
+        for city in allCities {
+            if mappedCityIds.contains(city.id) {
+                mapped.append(city)
+            } else {
+                other.append(city)
+            }
+        }
+
+        return (mapped: mapped, other: other)
+    }
+
+    /// Check if any destination items have date mappings
+    /// - Returns: True if at least one destination has dates property set
+    public func hasDateCityMapping() -> Bool {
+        return destinationItems.contains { $0.dates != nil && !($0.dates?.isEmpty ?? true) }
     }
 }
 

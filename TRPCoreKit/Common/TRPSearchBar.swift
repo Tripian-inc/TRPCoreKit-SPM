@@ -39,8 +39,8 @@ public class TRPSearchBar: UIView {
             textField.attributedPlaceholder = NSAttributedString(
                 string: newValue ?? "",
                 attributes: [
-                    .foregroundColor: ColorSet.fgWeak.uiColor,
-                    .font: FontSet.montserratRegular.font(16)
+                    .foregroundColor: ColorSet.primaryText.uiColor,
+                    .font: FontSet.montserratLight.font(14)
                 ]
             )
         }
@@ -61,7 +61,7 @@ public class TRPSearchBar: UIView {
     private let searchIconImageView: UIImageView = {
         let imageView = UIImageView()
         imageView.translatesAutoresizingMaskIntoConstraints = false
-        imageView.image = UIImage(systemName: "magnifyingglass")
+        imageView.image = TRPImageController().getImage(inFramework: "search_black", inApp: nil)?.withRenderingMode(.alwaysTemplate)
         imageView.tintColor = ColorSet.fgWeak.uiColor
         imageView.contentMode = .scaleAspectFit
         return imageView

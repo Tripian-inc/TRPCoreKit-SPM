@@ -101,6 +101,9 @@ public class TRPSDKCoordinater {
     }
     
     private func startWithSplashVC(uniqueId: String? = nil, email: String? = nil, password: String? = nil) {
+        // Fetch cities for coordinate-based city lookup (async, no auth required)
+        TRPCityCache.shared.fetchCitiesIfNeeded()
+
         let vc = SplashViewController()
         vc.delegate = self
         vc.uniqueId = uniqueId
@@ -134,6 +137,8 @@ public class TRPSDKCoordinater {
     public func startWithItinerary(_ itineraryModel: TRPItineraryWithActivities, tripHash: String? = nil, uniqueId: String? = nil) {
         checkAllApiKey()
         userProfile()
+        // Fetch cities for coordinate-based city lookup (async, no auth required)
+        TRPCityCache.shared.fetchCitiesIfNeeded()
 
         // Store itinerary data to be used after splash completes
         pendingItineraryModel = itineraryModel
@@ -211,6 +216,8 @@ public class TRPSDKCoordinater {
         checkAllApiKey()
         userProfile()
 //        getLanguages()
+        // Fetch cities for coordinate-based city lookup (async, no auth required)
+        TRPCityCache.shared.fetchCitiesIfNeeded()
         startFirstVC()
     }
     
@@ -228,6 +235,8 @@ public class TRPSDKCoordinater {
     public func startForNexus(bookingDetailUrl: String, startDate: String?, endDate: String?, meetingPoint: String?, numberOfAdults: Int?, numberOfChildren: Int?) {
         checkAllApiKey()
         userProfile()
+        // Fetch cities for coordinate-based city lookup (async, no auth required)
+        TRPCityCache.shared.fetchCitiesIfNeeded()
         let vc = myTrip
         vc.bookingDetailUrl = bookingDetailUrl
         //navigationController.pushViewController(vc, animated: true)

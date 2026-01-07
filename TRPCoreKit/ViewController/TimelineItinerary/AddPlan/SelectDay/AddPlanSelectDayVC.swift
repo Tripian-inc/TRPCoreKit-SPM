@@ -44,41 +44,11 @@ public class AddPlanSelectDayVC: TRPBaseUIViewController, AddPlanChildViewContro
         return view
     }()
     
-    private lazy var cityLabel: UILabel = {
-        let label = UILabel()
-        label.translatesAutoresizingMaskIntoConstraints = false
-        label.text = AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.city)
-        label.font = FontSet.montserratLight.font(12)
-        label.textColor = ColorSet.primaryText.uiColor
-        return label
-    }()
-    
-    private lazy var cityButton: UIButton = {
-        let button = UIButton(type: .system)
-        button.translatesAutoresizingMaskIntoConstraints = false
-        button.backgroundColor = ColorSet.neutral100.uiColor
-        button.layer.cornerRadius = 8
-        button.contentHorizontalAlignment = .left
-        button.titleLabel?.font = FontSet.montserratMedium.font(14)
-        button.setTitleColor(ColorSet.primaryText.uiColor, for: .normal)
-        button.contentEdgeInsets = UIEdgeInsets(top: 16, left: 16, bottom: 16, right: 30)
-        button.addTarget(self, action: #selector(cityButtonTapped), for: .touchUpInside)
-        
-        // Add chevron down icon
-        let chevronImageView = UIImageView(image: TRPImageController().getImage(inFramework: "ic_chevron_down", inApp: nil))
-        chevronImageView.translatesAutoresizingMaskIntoConstraints = false
-        chevronImageView.tintColor = ColorSet.primaryText.uiColor
-        chevronImageView.contentMode = .scaleAspectFit
-        button.addSubview(chevronImageView)
-        
-        NSLayoutConstraint.activate([
-            chevronImageView.centerYAnchor.constraint(equalTo: button.centerYAnchor),
-            chevronImageView.trailingAnchor.constraint(equalTo: button.trailingAnchor, constant: -16),
-            chevronImageView.widthAnchor.constraint(equalToConstant: 12),
-            chevronImageView.heightAnchor.constraint(equalToConstant: 12),
-        ])
-        
-        return button
+    private lazy var citySelectionButton: AddPlanCitySelectionButton = {
+        let view = AddPlanCitySelectionButton()
+        view.translatesAutoresizingMaskIntoConstraints = false
+        view.delegate = self
+        return view
     }()
     
     // Selection section
@@ -290,6 +260,14 @@ public class AddPlanSelectDayVC: TRPBaseUIViewController, AddPlanChildViewContro
     private var categoryStackViewBottomConstraint: NSLayoutConstraint?
     
     // MARK: - Lifecycle
+    public override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+
+        // Refresh day filter and city to show current selections (in case changed in another screen)
+        configureDayFilterView()
+        updateCityButton()
+    }
+
     public override func setupViews() {
         super.setupViews()
         view.backgroundColor = .white
@@ -297,8 +275,7 @@ public class AddPlanSelectDayVC: TRPBaseUIViewController, AddPlanChildViewContro
         // Add all subviews directly to view (scroll is handled by container)
         view.addSubview(dayLabel)
         view.addSubview(dayFilterView)
-        view.addSubview(cityLabel)
-        view.addSubview(cityButton)
+        view.addSubview(citySelectionButton)
         view.addSubview(selectionLabel)
         view.addSubview(smartRecommendationsCard)
         view.addSubview(manualAddCard)
@@ -322,19 +299,13 @@ public class AddPlanSelectDayVC: TRPBaseUIViewController, AddPlanChildViewContro
             dayFilterView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             dayFilterView.heightAnchor.constraint(equalToConstant: 44),
 
-            // City Label - top 24, height 16
-            cityLabel.topAnchor.constraint(equalTo: dayFilterView.bottomAnchor, constant: 24),
-            cityLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
-            cityLabel.heightAnchor.constraint(equalToConstant: 16),
-
-            // City Button - top 4, height 48
-            cityButton.topAnchor.constraint(equalTo: cityLabel.bottomAnchor, constant: 4),
-            cityButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
-            cityButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
-            cityButton.heightAnchor.constraint(equalToConstant: 48),
+            // City Selection Button - top 24, height 68 (16 label + 4 gap + 48 button)
+            citySelectionButton.topAnchor.constraint(equalTo: dayFilterView.bottomAnchor, constant: 24),
+            citySelectionButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
+            citySelectionButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
 
             // Selection Label (How do you add plans) - top 32, height 24
-            selectionLabel.topAnchor.constraint(equalTo: cityButton.bottomAnchor, constant: 32),
+            selectionLabel.topAnchor.constraint(equalTo: citySelectionButton.bottomAnchor, constant: 32),
             selectionLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
             selectionLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
             selectionLabel.heightAnchor.constraint(equalToConstant: 24),
@@ -398,12 +369,7 @@ public class AddPlanSelectDayVC: TRPBaseUIViewController, AddPlanChildViewContro
     }
     
     private func updateCityButton() {
-        cityButton.setTitle(viewModel.getSelectedCity()?.name ?? "Select City", for: .normal)
-    }
-    
-    // MARK: - Actions
-    @objc private func cityButtonTapped() {
-        showCityPicker()
+        citySelectionButton.configure(cityName: viewModel.getSelectedCity()?.name)
     }
     
     @objc private func smartRecommendationsTapped() {
@@ -437,19 +403,23 @@ public class AddPlanSelectDayVC: TRPBaseUIViewController, AddPlanChildViewContro
     }
     
     private func showCityPicker() {
-        let cities = viewModel.getAvailableCities()
+        let citiesForDay = viewModel.getCitiesForSelectedDay()
+        let hasMappings = viewModel.hasDateCityMapping()
 
-        guard !cities.isEmpty else { return }
+        // Check if we have any cities to show
+        guard !citiesForDay.mapped.isEmpty || !citiesForDay.other.isEmpty else { return }
 
         let citySelectionVC = AddPlanCitySelectionVC()
-        citySelectionVC.cities = cities
+        citySelectionVC.mappedCities = citiesForDay.mapped
+        citySelectionVC.otherCities = citiesForDay.other
+        citySelectionVC.showSections = hasMappings && !citiesForDay.mapped.isEmpty
         citySelectionVC.selectedCity = viewModel.getSelectedCity()
         citySelectionVC.onCitySelected = { [weak self] city in
             self?.viewModel.selectCity(city)
             self?.updateCityButton()
         }
 
-        presentVCWithModal(citySelectionVC)
+        presentVCWithDynamicHeight(citySelectionVC, prefersGrabberVisible: false)
     }
     
     private func updateSelectionStyles() {
@@ -522,12 +492,21 @@ public class AddPlanSelectDayVC: TRPBaseUIViewController, AddPlanChildViewContro
 
 // MARK: - TRPTimelineDayFilterViewDelegate
 extension AddPlanSelectDayVC: TRPTimelineDayFilterViewDelegate {
-    
+
     public func dayFilterViewDidSelectDay(_ view: TRPTimelineDayFilterView, dayIndex: Int) {
         selectedDayIndex = dayIndex
         let days = viewModel.getAvailableDays()
         if dayIndex < days.count {
             viewModel.selectDay(days[dayIndex])
+            updateCityButton()  // Update city when day changes (for date-city mapping)
         }
+    }
+}
+
+// MARK: - AddPlanCitySelectionButtonDelegate
+extension AddPlanSelectDayVC: AddPlanCitySelectionButtonDelegate {
+
+    public func citySelectionButtonDidTap(_ view: AddPlanCitySelectionButton) {
+        showCityPicker()
     }
 }

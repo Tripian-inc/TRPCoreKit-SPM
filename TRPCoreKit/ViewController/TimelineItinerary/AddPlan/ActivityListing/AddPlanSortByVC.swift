@@ -55,7 +55,13 @@ public enum SortOption: Int, CaseIterable {
 }
 
 // MARK: - AddPlanSortByVC
-public class AddPlanSortByVC: UIViewController {
+public class AddPlanSortByVC: UIViewController, DynamicHeightPresentable {
+
+    // MARK: - DynamicHeightPresentable
+    public var preferredContentHeight: CGFloat {
+        // Header (56) + rows (5 * 52) + bottom padding (24)
+        return 56 + CGFloat(SortOption.allCases.count * 52) + 24
+    }
 
     // MARK: - Properties
     private var selectedOption: SortOption
@@ -72,7 +78,7 @@ public class AddPlanSortByVC: UIViewController {
     private let titleLabel: UILabel = {
         let label = UILabel()
         label.text = AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.sortBy)
-        label.font = FontSet.montserratSemiBold.font(18)
+        label.font = FontSet.montserratBold.font(18)
         label.textColor = ColorSet.primaryText.uiColor
         label.textAlignment = .center
         label.translatesAutoresizingMaskIntoConstraints = false
@@ -85,6 +91,13 @@ public class AddPlanSortByVC: UIViewController {
         button.tintColor = ColorSet.fg.uiColor
         button.translatesAutoresizingMaskIntoConstraints = false
         return button
+    }()
+
+    private let separatorView: UIView = {
+        let view = UIView()
+        view.translatesAutoresizingMaskIntoConstraints = false
+        view.backgroundColor = ColorSet.neutral200.uiColor
+        return view
     }()
 
     private let tableView: UITableView = {
@@ -119,6 +132,7 @@ public class AddPlanSortByVC: UIViewController {
         view.addSubview(headerView)
         headerView.addSubview(titleLabel)
         headerView.addSubview(closeButton)
+        view.addSubview(separatorView)
         view.addSubview(tableView)
 
         closeButton.addTarget(self, action: #selector(closeButtonTapped), for: .touchUpInside)
@@ -144,11 +158,17 @@ public class AddPlanSortByVC: UIViewController {
             closeButton.widthAnchor.constraint(equalToConstant: 24),
             closeButton.heightAnchor.constraint(equalToConstant: 24),
 
+            // Separator view
+            separatorView.topAnchor.constraint(equalTo: headerView.bottomAnchor),
+            separatorView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            separatorView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            separatorView.heightAnchor.constraint(equalToConstant: 0.5),
+
             // Table view
-            tableView.topAnchor.constraint(equalTo: headerView.bottomAnchor, constant: 8),
+            tableView.topAnchor.constraint(equalTo: separatorView.bottomAnchor, constant: 8),
             tableView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             tableView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            tableView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor)
+            tableView.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -24)
         ])
     }
 

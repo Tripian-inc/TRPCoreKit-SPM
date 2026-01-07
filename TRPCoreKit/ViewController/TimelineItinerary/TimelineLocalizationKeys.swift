@@ -33,6 +33,7 @@ public struct TimelineLocalizationKeys {
     // MARK: - Empty State
     public static let noPlansYet = "timeline.emptyState.noPlansYet"
     public static let noPlansDescription = "timeline.emptyState.noPlansDescription"
+    public static let addPlansButton = "timeline.emptyState.addPlansButton"
 
     // MARK: - Segment/Cell Labels
     public static let recommendations = "timeline.label.recommendations"
@@ -69,6 +70,7 @@ public struct TimelineLocalizationKeys {
         removeRecommendationsMessage: "Are you sure you want to remove these recommendations from your itinerary?",
         noPlansYet: "No Plans Yet",
         noPlansDescription: "Add must see attractions, restaurants and cafes or block time to rest and recharge.",
+        addPlansButton: "Add Plans",
         recommendations: "Recommendations",
         activityBadge: "Activity",
         pointOfInterest: "Point of interest",

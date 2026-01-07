@@ -15,6 +15,8 @@ public struct AddPlanLocalizationKeys {
     public static let addToDay = "addPlan.label.addToDay"
     public static let city = "addPlan.label.city"
     public static let selectCity = "addPlan.title.selectCity"
+    public static let citiesForSelectedDate = "addPlan.section.citiesForSelectedDate"
+    public static let otherCities = "addPlan.section.otherCities"
     public static let startTime = "addPlan.label.startTime"
     public static let endTime = "addPlan.label.endTime"
     public static let clearSelection = "addPlan.button.clearSelection"
@@ -107,6 +109,8 @@ public struct AddPlanLocalizationKeys {
         addToDay: "Add to Day",
         city: "City",
         selectCity: "Select City",
+        citiesForSelectedDate: "Cities for this date",
+        otherCities: "Other cities",
         startTime: "Start Time",
         endTime: "End Time",
         clearSelection: "Clear Selection",

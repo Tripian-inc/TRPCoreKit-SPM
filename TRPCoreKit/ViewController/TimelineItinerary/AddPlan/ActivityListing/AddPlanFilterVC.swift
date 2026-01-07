@@ -26,6 +26,18 @@ public struct FilterData {
     public var isEmpty: Bool {
         return minPrice == nil && maxPrice == nil && minDuration == nil && maxDuration == nil
     }
+
+    /// Returns the count of active filter types (price = 1, duration = 1, max = 2)
+    public var activeFilterCount: Int {
+        var count = 0
+        if minPrice != nil || maxPrice != nil {
+            count += 1
+        }
+        if minDuration != nil || maxDuration != nil {
+            count += 1
+        }
+        return count
+    }
 }
 
 // MARK: - AddPlanFilterVC

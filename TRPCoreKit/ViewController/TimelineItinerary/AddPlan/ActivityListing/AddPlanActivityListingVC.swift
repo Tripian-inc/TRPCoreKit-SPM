@@ -68,13 +68,6 @@ public class AddPlanActivityListingVC: TRPBaseUIViewController {
         return searchBar
     }()
 
-    private lazy var separatorLine: UIView = {
-        let view = UIView()
-        view.translatesAutoresizingMaskIntoConstraints = false
-        view.backgroundColor = ColorSet.lineWeak.uiColor // #CFCFCF
-        return view
-    }()
-    
     private lazy var filterButtonView: FilterButtonView = {
         let view = FilterButtonView()
         view.translatesAutoresizingMaskIntoConstraints = false
@@ -181,7 +174,6 @@ public class AddPlanActivityListingVC: TRPBaseUIViewController {
         view.backgroundColor = .white
 
         view.addSubview(searchBar)
-        view.addSubview(separatorLine)
         view.addSubview(filterSortStackView)
         view.addSubview(categoryCollectionView)
         view.addSubview(activityCountLabel)
@@ -194,14 +186,8 @@ public class AddPlanActivityListingVC: TRPBaseUIViewController {
             searchBar.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
             searchBar.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
 
-            // Separator Line (below search bar)
-            separatorLine.topAnchor.constraint(equalTo: searchBar.bottomAnchor, constant: 12),
-            separatorLine.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            separatorLine.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            separatorLine.heightAnchor.constraint(equalToConstant: 0.5),
-
             // Filter and Sort Stack View
-            filterSortStackView.topAnchor.constraint(equalTo: separatorLine.bottomAnchor, constant: 16),
+            filterSortStackView.topAnchor.constraint(equalTo: searchBar.bottomAnchor, constant: 24),
             filterSortStackView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
             filterSortStackView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
             filterSortStackView.heightAnchor.constraint(equalToConstant: 40),
@@ -261,12 +247,20 @@ public class AddPlanActivityListingVC: TRPBaseUIViewController {
                 self?.tableView.scrollToRow(at: IndexPath(row: 0, section: 0), at: .top, animated: true)
             }
         }
-        presentVCWithModal(sortVC, onlyLarge: false, prefersGrabberVisible: true)
+        presentVCWithDynamicHeight(sortVC, prefersGrabberVisible: false, isDimmed: false)
     }
 
     private func updateFilterButtonAppearance() {
-        // Show/hide the active filter badge (positioned on filter icon)
-        filterButtonView.setBadgeVisible(viewModel.hasActiveFilters())
+        let filterCount = viewModel.filterData.activeFilterCount
+        let hasFilters = filterCount > 0
+
+        // Update badge visibility
+        filterButtonView.setBadgeVisible(hasFilters)
+
+        // Update title with count
+        let baseTitle = AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.filters)
+        let title = hasFilters ? "\(baseTitle) (\(filterCount))" : baseTitle
+        filterButtonView.updateTitle(title)
     }
 }
 
@@ -608,6 +602,10 @@ private class FilterButtonView: UIView {
     // MARK: - Public Methods
     func configure(icon: UIImage?, title: String) {
         iconImageView.image = icon?.withRenderingMode(.alwaysTemplate)
+        titleLabel.text = title
+    }
+
+    func updateTitle(_ title: String) {
         titleLabel.text = title
     }
 

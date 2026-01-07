@@ -51,7 +51,7 @@ public class AddPlanPOIListingVC: TRPBaseUIViewController {
         appearance.shadowColor = .clear
         appearance.titleTextAttributes = [
             .foregroundColor: ColorSet.primaryText.uiColor,
-            .font: FontSet.montserratSemiBold.font(18)
+            .font: FontSet.montserratSemiBold.font(16)
         ]
 
         navigationController?.navigationBar.standardAppearance = appearance
@@ -143,12 +143,14 @@ public class AddPlanPOIListingVC: TRPBaseUIViewController {
         label.text = "0 \(AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.places))"
         return label
     }()
-
-    private lazy var infoButton: UIButton = {
-        let button = UIButton(type: .infoLight)
-        button.tintColor = ColorSet.fgWeak.uiColor
-        button.translatesAutoresizingMaskIntoConstraints = false
-        return button
+    
+    private lazy var infoImageView: UIImageView = {
+        let imageView = UIImageView()
+        imageView.image = UIImage(systemName: "info.circle")
+        imageView.tintColor = ColorSet.fgWeak.uiColor // #666666
+        imageView.contentMode = .scaleAspectFit
+        imageView.translatesAutoresizingMaskIntoConstraints = false
+        return imageView
     }()
 
     private lazy var tableView: UITableView = {
@@ -184,7 +186,7 @@ public class AddPlanPOIListingVC: TRPBaseUIViewController {
         view.addSubview(separatorView)
         view.addSubview(filterSortStackView)
         view.addSubview(poiCountLabel)
-        view.addSubview(infoButton)
+        view.addSubview(infoImageView)
         view.addSubview(tableView)
 
         NSLayoutConstraint.activate([
@@ -211,10 +213,10 @@ public class AddPlanPOIListingVC: TRPBaseUIViewController {
             poiCountLabel.heightAnchor.constraint(equalToConstant: 28),
 
             // Info Button
-            infoButton.centerYAnchor.constraint(equalTo: poiCountLabel.centerYAnchor),
-            infoButton.leadingAnchor.constraint(equalTo: poiCountLabel.trailingAnchor, constant: 4),
-            infoButton.heightAnchor.constraint(equalToConstant: 16),
-            infoButton.widthAnchor.constraint(equalToConstant: 16),
+            infoImageView.centerYAnchor.constraint(equalTo: poiCountLabel.centerYAnchor),
+            infoImageView.leadingAnchor.constraint(equalTo: poiCountLabel.trailingAnchor, constant: 4),
+            infoImageView.heightAnchor.constraint(equalToConstant: 16),
+            infoImageView.widthAnchor.constraint(equalToConstant: 16),
 
             // Table View
             tableView.topAnchor.constraint(equalTo: poiCountLabel.bottomAnchor, constant: 16),
@@ -298,14 +300,6 @@ extension AddPlanPOIListingVC: TRPSearchBarDelegate {
 
     public func searchBar(_ searchBar: TRPSearchBar, textDidChange text: String) {
         viewModel.updateSearchText(text)
-    }
-
-    public func searchBarDidBeginEditing(_ searchBar: TRPSearchBar) {
-        // Optional
-    }
-
-    public func searchBarDidEndEditing(_ searchBar: TRPSearchBar) {
-        // Optional
     }
 
     public func searchBarSearchButtonClicked(_ searchBar: TRPSearchBar) {

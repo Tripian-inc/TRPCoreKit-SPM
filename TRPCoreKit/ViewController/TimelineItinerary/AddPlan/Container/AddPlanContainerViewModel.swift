@@ -45,13 +45,15 @@ public class AddPlanContainerViewModel {
     private let availableCities: [TRPCity]
     private let selectedDayIndex: Int
     private let bookedActivities: [TRPTimelineSegment]
+    private let destinationItems: [TRPSegmentDestinationItem]
 
     // MARK: - Initialization
-    public init(days: [Date], cities: [TRPCity], selectedDayIndex: Int, bookedActivities: [TRPTimelineSegment] = []) {
+    public init(days: [Date], cities: [TRPCity], selectedDayIndex: Int, bookedActivities: [TRPTimelineSegment] = [], destinationItems: [TRPSegmentDestinationItem] = []) {
         self.availableDays = days
         self.availableCities = cities
         self.selectedDayIndex = selectedDayIndex
         self.bookedActivities = bookedActivities
+        self.destinationItems = destinationItems
 
         // Pre-select day and city
         if selectedDayIndex < days.count {
@@ -109,5 +111,73 @@ public class AddPlanContainerViewModel {
 
     public func getBookedActivities() -> [TRPTimelineSegment] {
         return bookedActivities
+    }
+
+    // MARK: - Date-City Mapping
+
+    /// Get cities filtered by date for AddPlan
+    /// - Parameter date: The selected date
+    /// - Returns: Tuple with (mapped: cities mapped to this date, other: remaining cities)
+    public func getCitiesForDate(_ date: Date) -> (mapped: [TRPCity], other: [TRPCity]) {
+        // If no destination items, return all as other
+        guard !destinationItems.isEmpty else {
+            return (mapped: [], other: availableCities)
+        }
+
+        // Format date for comparison
+        let dateString = date.toString(format: "yyyy-MM-dd")
+
+        // Find city IDs mapped to this date (by cityId or coordinate)
+        var mappedCityIds = Set<Int>()
+        for item in destinationItems {
+            guard let dates = item.dates, dates.contains(dateString) else { continue }
+
+            // Try cityId first
+            if let cityId = item.cityId, cityId > 0 {
+                mappedCityIds.insert(cityId)
+                continue
+            }
+
+            // Fallback: Find city by coordinate
+            let coordinate = parseCoordinate(from: item.coordinate)
+            if let city = TRPCityCache.shared.getCityByCoordinate(coordinate) {
+                mappedCityIds.insert(city.id)
+            }
+        }
+
+        // No mapping for this date → return all as other
+        guard !mappedCityIds.isEmpty else {
+            return (mapped: [], other: availableCities)
+        }
+
+        // Split cities into mapped and other
+        var mapped: [TRPCity] = []
+        var other: [TRPCity] = []
+        for city in availableCities {
+            if mappedCityIds.contains(city.id) {
+                mapped.append(city)
+            } else {
+                other.append(city)
+            }
+        }
+
+        return (mapped: mapped, other: other)
+    }
+
+    /// Parse coordinate string (e.g., "41.3851,2.1734") to TRPLocation
+    private func parseCoordinate(from coordinateString: String) -> TRPLocation {
+        let parts = coordinateString.components(separatedBy: ",")
+        guard parts.count >= 2,
+              let lat = Double(parts[0].trimmingCharacters(in: .whitespaces)),
+              let lon = Double(parts[1].trimmingCharacters(in: .whitespaces)) else {
+            return TRPLocation(lat: 0, lon: 0)
+        }
+        return TRPLocation(lat: lat, lon: lon)
+    }
+
+    /// Check if any destination items have date mappings
+    /// - Returns: True if at least one destination has dates property set
+    public func hasDateCityMapping() -> Bool {
+        return destinationItems.contains { $0.dates != nil && !($0.dates?.isEmpty ?? true) }
     }
 }
