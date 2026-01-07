@@ -266,7 +266,7 @@ public class TimelinePoiDetailViewController: UIViewController {
         stack.translatesAutoresizingMaskIntoConstraints = false
         stack.axis = .horizontal
         stack.spacing = 12
-        stack.alignment = .top
+        stack.alignment = .center
         stack.isHidden = true
         return stack
     }()
@@ -305,10 +305,19 @@ public class TimelinePoiDetailViewController: UIViewController {
     private lazy var openingHoursStackView: UIStackView = {
         let stack = UIStackView()
         stack.translatesAutoresizingMaskIntoConstraints = false
+        stack.axis = .vertical
+        stack.spacing = 2
+        stack.alignment = .fill
+        stack.isHidden = true
+        return stack
+    }()
+
+    private lazy var hoursHeaderStack: UIStackView = {
+        let stack = UIStackView()
+        stack.translatesAutoresizingMaskIntoConstraints = false
         stack.axis = .horizontal
         stack.spacing = 12
-        stack.alignment = .top
-        stack.isHidden = true
+        stack.alignment = .center
         return stack
     }()
 
@@ -334,14 +343,6 @@ public class TimelinePoiDetailViewController: UIViewController {
         ])
 
         return container
-    }()
-
-    private lazy var hoursContentStack: UIStackView = {
-        let stack = UIStackView()
-        stack.translatesAutoresizingMaskIntoConstraints = false
-        stack.axis = .vertical
-        stack.spacing = 4
-        return stack
     }()
 
     private lazy var hoursTitleLabel: UILabel = {
@@ -620,14 +621,28 @@ public class TimelinePoiDetailViewController: UIViewController {
     }
 
     private func setupHoursStack() {
-        openingHoursStackView.addArrangedSubview(hoursIconContainerView)
-        openingHoursStackView.addArrangedSubview(hoursContentStack)
-        hoursContentStack.addArrangedSubview(hoursTitleLabel)
-        hoursContentStack.addArrangedSubview(hoursValueLabel)
+        // Header stack: icon + title (centered vertically)
+        hoursHeaderStack.addArrangedSubview(hoursIconContainerView)
+        hoursHeaderStack.addArrangedSubview(hoursTitleLabel)
+
+        // Create container for hours value with left padding (aligned with title)
+        let hoursValueContainer = UIView()
+        hoursValueContainer.translatesAutoresizingMaskIntoConstraints = false
+        hoursValueContainer.addSubview(hoursValueLabel)
+
+        // Main stack: header + hours value container (vertical)
+        openingHoursStackView.addArrangedSubview(hoursHeaderStack)
+        openingHoursStackView.addArrangedSubview(hoursValueContainer)
 
         NSLayoutConstraint.activate([
             hoursIconContainerView.widthAnchor.constraint(equalToConstant: 40),
-            hoursIconContainerView.heightAnchor.constraint(equalToConstant: 40)
+            hoursIconContainerView.heightAnchor.constraint(equalToConstant: 40),
+
+            // Hours value label with left padding (40px icon + 12px spacing = 52px)
+            hoursValueLabel.topAnchor.constraint(equalTo: hoursValueContainer.topAnchor),
+            hoursValueLabel.leadingAnchor.constraint(equalTo: hoursValueContainer.leadingAnchor, constant: 52),
+            hoursValueLabel.trailingAnchor.constraint(equalTo: hoursValueContainer.trailingAnchor),
+            hoursValueLabel.bottomAnchor.constraint(equalTo: hoursValueContainer.bottomAnchor)
         ])
     }
 
@@ -790,12 +805,12 @@ public class TimelinePoiDetailViewController: UIViewController {
             if hasHours, let hoursText = viewModel.getFormattedOpeningHours() {
                 // Create attributed string with line spacing
                 let paragraphStyle = NSMutableParagraphStyle()
-                paragraphStyle.lineSpacing = 4
+                paragraphStyle.lineSpacing = 12
 
                 let attributedString = NSMutableAttributedString(string: hoursText)
                 attributedString.addAttribute(.paragraphStyle, value: paragraphStyle, range: NSRange(location: 0, length: hoursText.count))
-                attributedString.addAttribute(.font, value: FontSet.montserratRegular.font(14), range: NSRange(location: 0, length: hoursText.count))
-                attributedString.addAttribute(.foregroundColor, value: ColorSet.fgWeaker.uiColor, range: NSRange(location: 0, length: hoursText.count))
+                attributedString.addAttribute(.font, value: FontSet.montserratMedium.font(16), range: NSRange(location: 0, length: hoursText.count))
+                attributedString.addAttribute(.foregroundColor, value: ColorSet.fgWeak.uiColor, range: NSRange(location: 0, length: hoursText.count))
 
                 hoursValueLabel.attributedText = attributedString
             }
@@ -1685,6 +1700,9 @@ private class AddressSectionView: UIView {
         contentStackView.addArrangedSubview(mapContainer)
         contentStackView.addArrangedSubview(locationStack)
         contentStackView.addArrangedSubview(viewMapButton)
+
+        // Set custom spacing of 36px between locationStack and viewMapButton
+        contentStackView.setCustomSpacing(36, after: locationStack)
 
         NSLayoutConstraint.activate([
             // Header

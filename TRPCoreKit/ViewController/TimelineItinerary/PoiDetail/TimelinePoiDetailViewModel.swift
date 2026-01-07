@@ -75,11 +75,9 @@ public class TimelinePoiDetailViewModel {
     }
 
     private func parseOpeningHours(_ hoursString: String) -> String {
-        // Standard English day abbreviations (order: Sunday first)
-        let standardDayAbbrs = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
-
         // Get localized day names from languages service
         let localizedDays = getLocalizedDayNames()
+        let localizedDayAbbrs = getLocalizedDayAbbreviations()
 
         // Initialize all days as closed
         let closedText = PoiDetailLocalizationKeys.localized(PoiDetailLocalizationKeys.closed)
@@ -94,12 +92,13 @@ public class TimelinePoiDetailViewModel {
         for group in groups {
             let trimmedGroup = group.trimmingCharacters(in: .whitespaces)
 
-            // Split by colon to separate days from hours
-            let parts = trimmedGroup.components(separatedBy: ":")
-            guard parts.count >= 2 else { continue }
+            // Split by colon to separate days from hours (only first colon)
+            guard let colonIndex = trimmedGroup.firstIndex(of: ":") else { continue }
+            let daysString = String(trimmedGroup[..<colonIndex]).trimmingCharacters(in: .whitespaces)
+            let timeString = String(trimmedGroup[trimmedGroup.index(after: colonIndex)...]).trimmingCharacters(in: .whitespaces)
 
-            let daysString = parts[0].trimmingCharacters(in: .whitespaces)
-            let timeString = parts[1...].joined(separator: ":").trimmingCharacters(in: .whitespaces)
+            // Convert time to 24h format (handles multiple time ranges separated by comma)
+            let convertedTimeString = convertTo24HourFormat(timeString)
 
             // Parse days (can be comma-separated)
             let days = daysString.components(separatedBy: ",").map { $0.trimmingCharacters(in: .whitespaces) }
@@ -118,15 +117,15 @@ public class TimelinePoiDetailViewModel {
                             // Handle wrap-around (e.g., Fri-Mon)
                             if startIndex <= endIndex {
                                 for i in startIndex...endIndex {
-                                    dayHours[i] = timeString
+                                    dayHours[i] = convertedTimeString
                                 }
                             } else {
                                 // Wrap around: startIndex to Saturday, then Sunday to endIndex
                                 for i in startIndex..<7 {
-                                    dayHours[i] = timeString
+                                    dayHours[i] = convertedTimeString
                                 }
                                 for i in 0...endIndex {
-                                    dayHours[i] = timeString
+                                    dayHours[i] = convertedTimeString
                                 }
                             }
                         }
@@ -134,21 +133,106 @@ public class TimelinePoiDetailViewModel {
                 } else {
                     // Single day
                     if let dayIndex = getDayIndex(day, localizedDays: localizedDays) {
-                        dayHours[dayIndex] = timeString
+                        dayHours[dayIndex] = convertedTimeString
                     }
                 }
             }
         }
 
-        // Format output: each day on a new line using standard abbreviations
+        // Find max day abbreviation length for alignment
+        let maxDayLength = localizedDayAbbrs.map { $0.count }.max() ?? 3
+
+        // Format output: each day on a new line with aligned hours
         var result: [String] = []
-        for (index, abbr) in standardDayAbbrs.enumerated() {
+        for (index, abbr) in localizedDayAbbrs.enumerated() {
             if let hours = dayHours[index] {
-                result.append("\(abbr): \(hours)")
+                // Pad day abbreviation for alignment
+                let paddedDay = abbr.padding(toLength: maxDayLength + 2, withPad: " ", startingAt: 0)
+                result.append("\(paddedDay)\(hours)")
             }
         }
 
         return result.joined(separator: "\n")
+    }
+
+    /// Get localized day abbreviations for display
+    private func getLocalizedDayAbbreviations() -> [String] {
+        let dayKeys = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"]
+        let englishAbbr = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+
+        var abbreviations: [String] = []
+        for i in 0..<7 {
+            let localizedDay = TRPLanguagesController.shared.getLanguageValue(for: dayKeys[i])
+            // If localized, use first 3 characters as abbreviation
+            if !localizedDay.isEmpty && localizedDay != dayKeys[i] {
+                let abbr = localizedDay.count >= 3 ? String(localizedDay.prefix(3)) : localizedDay
+                abbreviations.append(abbr.capitalized)
+            } else {
+                abbreviations.append(englishAbbr[i])
+            }
+        }
+        return abbreviations
+    }
+
+    /// Convert 12-hour format to 24-hour format
+    /// Example: "1:00 PM - 4:00 PM, 8:00 PM - 11:00 PM" -> "13:00 - 16:00, 20:00 - 23:00"
+    private func convertTo24HourFormat(_ timeString: String) -> String {
+        // Check if it contains AM/PM
+        let upperTime = timeString.uppercased()
+        if !upperTime.contains("AM") && !upperTime.contains("PM") {
+            return timeString // Already in 24h format or not a time
+        }
+
+        // First split by comma to handle multiple time ranges (e.g., "1:00 PM - 4:00 PM, 8:00 PM - 11:00 PM")
+        let timeRanges = timeString.components(separatedBy: ",")
+        var convertedRanges: [String] = []
+
+        for range in timeRanges {
+            let trimmedRange = range.trimmingCharacters(in: .whitespaces)
+            // Handle single time range (e.g., "8:30 AM - 1:00 PM")
+            let rangeParts = trimmedRange.components(separatedBy: " - ")
+            var convertedParts: [String] = []
+
+            for part in rangeParts {
+                let converted = convertSingleTimeTo24Hour(part.trimmingCharacters(in: .whitespaces))
+                convertedParts.append(converted)
+            }
+
+            convertedRanges.append(convertedParts.joined(separator: " - "))
+        }
+
+        return convertedRanges.joined(separator: ", ")
+    }
+
+    /// Convert a single time like "8:30 AM" to "08:30"
+    private func convertSingleTimeTo24Hour(_ time: String) -> String {
+        let upperTime = time.uppercased()
+        let isPM = upperTime.contains("PM")
+        let isAM = upperTime.contains("AM")
+
+        guard isPM || isAM else { return time }
+
+        // Remove AM/PM and trim
+        let cleanTime = upperTime
+            .replacingOccurrences(of: "AM", with: "")
+            .replacingOccurrences(of: "PM", with: "")
+            .trimmingCharacters(in: .whitespaces)
+
+        // Parse hour and minute
+        let timeParts = cleanTime.components(separatedBy: ":")
+        guard timeParts.count >= 1 else { return time }
+
+        var hour = Int(timeParts[0]) ?? 0
+        let minute = timeParts.count > 1 ? (Int(timeParts[1]) ?? 0) : 0
+
+        // Convert to 24-hour format
+        if isPM && hour != 12 {
+            hour += 12
+        } else if isAM && hour == 12 {
+            hour = 0
+        }
+
+        return String(format: "%02d:%02d", hour, minute)
     }
 
     /// Get localized day names from languages service
