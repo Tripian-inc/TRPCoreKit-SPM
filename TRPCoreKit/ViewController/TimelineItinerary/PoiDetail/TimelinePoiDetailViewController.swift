@@ -724,15 +724,9 @@ public class TimelinePoiDetailViewController: UIViewController {
         if let rating = poi.rating, rating > 0 {
             ratingLabel.text = String(format: "%.1f", rating)
 
-            // Create underlined attributed string for review count
             let reviewCount = poi.ratingCount ?? 0
             let opinionsText = AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.opinions)
-            let reviewText = "\(reviewCount) \(opinionsText)"
-            let attributedString = NSMutableAttributedString(string: reviewText)
-            attributedString.addAttribute(.underlineStyle,
-                                         value: NSUnderlineStyle.single.rawValue,
-                                         range: NSRange(location: 0, length: reviewText.count))
-            reviewCountLabel.attributedText = attributedString
+            reviewCountLabel.text = "\(reviewCount) \(opinionsText)"
 
             ratingContainerView.isHidden = false
         } else {

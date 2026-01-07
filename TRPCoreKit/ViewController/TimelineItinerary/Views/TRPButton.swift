@@ -54,7 +54,7 @@ public class TRPButton: UIButton {
         // Primary button: filled background with white text
         setTitleColor(.white, for: .normal)
         setTitleColor(.white, for: .disabled)
-        titleLabel?.font = FontSet.montserratSemiBold.font(16)
+        titleLabel?.font = FontSet.montserratMedium.font(16)
         backgroundColor = ColorSet.primary.uiColor
         layer.cornerRadius = buttonHeight / 2
         clipsToBounds = true
@@ -63,7 +63,7 @@ public class TRPButton: UIButton {
     private func setupSecondaryStyle() {
         // Secondary button: transparent background with colored text
         setTitleColor(ColorSet.fg.uiColor, for: .normal)
-        titleLabel?.font = FontSet.montserratMedium.font(16)
+        titleLabel?.font = FontSet.montserratRegular.font(14)
         backgroundColor = .clear
     }
 
