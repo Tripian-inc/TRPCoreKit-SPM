@@ -75,22 +75,18 @@ public class TimelinePoiDetailViewModel {
     }
 
     private func parseOpeningHours(_ hoursString: String) -> String {
-        // Day order
-        let allDays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
-        let dayNames = [
-            "Sun": "Sunday",
-            "Mon": "Monday",
-            "Tue": "Tuesday",
-            "Wed": "Wednesday",
-            "Thu": "Thursday",
-            "Fri": "Friday",
-            "Sat": "Saturday"
-        ]
+        // Standard English day abbreviations (order: Sunday first)
+        let standardDayAbbrs = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+
+        // Get localized day names from languages service
+        let localizedDays = getLocalizedDayNames()
 
         // Initialize all days as closed
         let closedText = PoiDetailLocalizationKeys.localized(PoiDetailLocalizationKeys.closed)
-        var dayHours: [String: String] = [:]
-        allDays.forEach { dayHours[$0] = closedText }
+        var dayHours: [Int: String] = [:] // Use day index (0=Sun, 1=Mon, etc.)
+        for i in 0..<7 {
+            dayHours[i] = closedText
+        }
 
         // Split by pipe (|) to get different day groups
         let groups = hoursString.components(separatedBy: "|")
@@ -110,57 +106,112 @@ public class TimelinePoiDetailViewModel {
 
             // Assign time to each day
             for day in days {
-                // Handle day ranges like "Mon-Fri"
+                // Handle day ranges like "Mon-Fri" or "Lun-Vie"
                 if day.contains("-") {
                     let rangeParts = day.components(separatedBy: "-")
                     if rangeParts.count == 2 {
                         let startDay = rangeParts[0].trimmingCharacters(in: .whitespaces)
                         let endDay = rangeParts[1].trimmingCharacters(in: .whitespaces)
 
-                        if let startIndex = allDays.firstIndex(of: startDay),
-                           let endIndex = allDays.firstIndex(of: endDay) {
-                            for i in startIndex...endIndex {
-                                dayHours[allDays[i]] = timeString
+                        if let startIndex = getDayIndex(startDay, localizedDays: localizedDays),
+                           let endIndex = getDayIndex(endDay, localizedDays: localizedDays) {
+                            // Handle wrap-around (e.g., Fri-Mon)
+                            if startIndex <= endIndex {
+                                for i in startIndex...endIndex {
+                                    dayHours[i] = timeString
+                                }
+                            } else {
+                                // Wrap around: startIndex to Saturday, then Sunday to endIndex
+                                for i in startIndex..<7 {
+                                    dayHours[i] = timeString
+                                }
+                                for i in 0...endIndex {
+                                    dayHours[i] = timeString
+                                }
                             }
                         }
                     }
                 } else {
                     // Single day
-                    let normalizedDay = normalizeDay(day)
-                    if allDays.contains(normalizedDay) {
-                        dayHours[normalizedDay] = timeString
+                    if let dayIndex = getDayIndex(day, localizedDays: localizedDays) {
+                        dayHours[dayIndex] = timeString
                     }
                 }
             }
         }
 
-        // Format output: each day on a new line
+        // Format output: each day on a new line using standard abbreviations
         var result: [String] = []
-        for day in allDays {
-            if let hours = dayHours[day] {
-                // Use abbreviated day name
-                result.append("\(day): \(hours)")
+        for (index, abbr) in standardDayAbbrs.enumerated() {
+            if let hours = dayHours[index] {
+                result.append("\(abbr): \(hours)")
             }
         }
 
         return result.joined(separator: "\n")
     }
 
-    private func normalizeDay(_ day: String) -> String {
-        let normalized = day.trimmingCharacters(in: .whitespaces).capitalized
+    /// Get localized day names from languages service
+    private func getLocalizedDayNames() -> [[String]] {
+        // Each inner array contains variations of the day name (full, abbreviated, localized)
+        // Index 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+        var localizedDays: [[String]] = []
 
-        // Map full day names to abbreviations
-        let dayMap: [String: String] = [
-            "Sunday": "Sun",
-            "Monday": "Mon",
-            "Tuesday": "Tue",
-            "Wednesday": "Wed",
-            "Thursday": "Thu",
-            "Friday": "Fri",
-            "Saturday": "Sat"
-        ]
+        let dayKeys = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"]
+        let englishFull = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
+        let englishAbbr = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
 
-        return dayMap[normalized] ?? normalized
+        for i in 0..<7 {
+            var variations: [String] = []
+
+            // Add English variations
+            variations.append(englishFull[i])
+            variations.append(englishAbbr[i])
+            variations.append(englishFull[i].lowercased())
+            variations.append(englishAbbr[i].lowercased())
+
+            // Add localized variation from languages service
+            let localizedDay = TRPLanguagesController.shared.getLanguageValue(for: dayKeys[i])
+            if !localizedDay.isEmpty && localizedDay != dayKeys[i] {
+                variations.append(localizedDay)
+                variations.append(localizedDay.lowercased())
+                variations.append(localizedDay.capitalized)
+                // Also add first 3 characters as potential abbreviation
+                if localizedDay.count >= 3 {
+                    let abbr = String(localizedDay.prefix(3))
+                    variations.append(abbr)
+                    variations.append(abbr.lowercased())
+                    variations.append(abbr.capitalized)
+                }
+            }
+
+            localizedDays.append(variations)
+        }
+
+        return localizedDays
+    }
+
+    /// Get day index (0-6) from day string, checking both English and localized names
+    private func getDayIndex(_ dayString: String, localizedDays: [[String]]) -> Int? {
+        let normalizedDay = dayString.trimmingCharacters(in: .whitespaces)
+
+        for (index, variations) in localizedDays.enumerated() {
+            for variation in variations {
+                if normalizedDay.caseInsensitiveCompare(variation) == .orderedSame {
+                    return index
+                }
+                // Also check if the day string starts with the variation (for abbreviated forms)
+                if normalizedDay.count >= 3 && variation.count >= 3 {
+                    let dayPrefix = String(normalizedDay.prefix(3))
+                    let varPrefix = String(variation.prefix(3))
+                    if dayPrefix.caseInsensitiveCompare(varPrefix) == .orderedSame {
+                        return index
+                    }
+                }
+            }
+        }
+
+        return nil
     }
 
     public func hasKeyData() -> Bool {

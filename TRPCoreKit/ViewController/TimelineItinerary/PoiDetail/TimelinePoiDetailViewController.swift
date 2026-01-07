@@ -19,6 +19,7 @@ public class TimelinePoiDetailViewController: UIViewController {
     // MARK: - Properties
     private var viewModel: TimelinePoiDetailViewModel!
     private var currentImageIndex: Int = 0
+    private var isDescriptionExpanded: Bool = false
 
     // Section Views
     private var basicInfoSectionView: BasicInfoSectionView!
@@ -166,17 +167,18 @@ public class TimelinePoiDetailViewController: UIViewController {
         button.isUserInteractionEnabled = true
         button.addTarget(self, action: #selector(readMoreTapped), for: .touchUpInside)
 
-        // Create attributed title with underline
+        // Set underlined title
         let title = PoiDetailLocalizationKeys.localized(PoiDetailLocalizationKeys.readFullDescription)
-        let attributedTitle = NSMutableAttributedString(string: title)
-        attributedTitle.addAttribute(.underlineStyle, value: NSUnderlineStyle.single.rawValue, range: NSRange(location: 0, length: title.count))
-        attributedTitle.addAttribute(.font, value: FontSet.montserratRegular.font(16), range: NSRange(location: 0, length: title.count))
-        attributedTitle.addAttribute(.foregroundColor, value: ColorSet.fg.uiColor, range: NSRange(location: 0, length: title.count))
-
+        let attributes: [NSAttributedString.Key: Any] = [
+            .font: FontSet.montserratRegular.font(16),
+            .foregroundColor: ColorSet.fg.uiColor,
+            .underlineStyle: NSUnderlineStyle.single.rawValue
+        ]
+        let attributedTitle = NSAttributedString(string: title, attributes: attributes)
         button.setAttributedTitle(attributedTitle, for: .normal)
 
         // Add chevron icon
-        if let chevronImage = TRPImageController().getImage(inFramework: "ic_next", inApp: nil) {
+        if let chevronImage = TRPImageController().getImage(inFramework: "ic_chevron_down", inApp: nil)?.withRenderingMode(.alwaysTemplate) {
             button.setImage(chevronImage, for: .normal)
             button.tintColor = ColorSet.fg.uiColor
             button.semanticContentAttribute = .forceRightToLeft // Image on right
@@ -278,7 +280,7 @@ public class TimelinePoiDetailViewController: UIViewController {
 
         let iconView = UIImageView()
         iconView.translatesAutoresizingMaskIntoConstraints = false
-        iconView.image = TRPImageController().getImage(inFramework: "ic_dialog", inApp: nil)
+        iconView.image = TRPImageController().getImage(inFramework: "ic_phone", inApp: nil)?.withRenderingMode(.alwaysTemplate)
         iconView.contentMode = .scaleAspectFit
         iconView.tintColor = ColorSet.fg.uiColor
 
@@ -293,28 +295,9 @@ public class TimelinePoiDetailViewController: UIViewController {
         return container
     }()
 
-    private lazy var phoneContentStack: UIStackView = {
-        let stack = UIStackView()
-        stack.translatesAutoresizingMaskIntoConstraints = false
-        stack.axis = .vertical
-        stack.spacing = 4
-        return stack
-    }()
-
-    private lazy var phoneTitleLabel: UILabel = {
-        let label = UILabel()
-        label.translatesAutoresizingMaskIntoConstraints = false
-        label.text = PoiDetailLocalizationKeys.localized(PoiDetailLocalizationKeys.phone)
-        label.font = FontSet.montserratSemiBold.font(14)
-        label.textColor = ColorSet.fg.uiColor
-        return label
-    }()
-
     private lazy var phoneValueLabel: UILabel = {
         let label = UILabel()
         label.translatesAutoresizingMaskIntoConstraints = false
-        label.font = FontSet.montserratRegular.font(14)
-        label.textColor = ColorSet.fgWeaker.uiColor
         label.numberOfLines = 0
         return label
     }()
@@ -332,15 +315,15 @@ public class TimelinePoiDetailViewController: UIViewController {
     private lazy var hoursIconContainerView: UIView = {
         let container = UIView()
         container.translatesAutoresizingMaskIntoConstraints = false
-        container.backgroundColor = ColorSet.bgGreen.uiColor
+        container.backgroundColor = ColorSet.neutral200.uiColor
         container.layer.cornerRadius = 20
         container.clipsToBounds = true
 
         let iconView = UIImageView()
         iconView.translatesAutoresizingMaskIntoConstraints = false
-        iconView.image = TRPImageController().getImage(inFramework: "ic_calendar_check", inApp: nil)?.withRenderingMode(.alwaysTemplate)
+        iconView.image = TRPImageController().getImage(inFramework: "ic_opening_hours", inApp: nil)?.withRenderingMode(.alwaysTemplate)
         iconView.contentMode = .scaleAspectFit
-        iconView.tintColor = ColorSet.greenAdvantage.uiColor
+        iconView.tintColor = ColorSet.fg.uiColor
 
         container.addSubview(iconView)
         NSLayoutConstraint.activate([
@@ -365,8 +348,8 @@ public class TimelinePoiDetailViewController: UIViewController {
         let label = UILabel()
         label.translatesAutoresizingMaskIntoConstraints = false
         label.text = PoiDetailLocalizationKeys.localized(PoiDetailLocalizationKeys.openingHours)
-        label.font = FontSet.montserratSemiBold.font(14)
-        label.textColor = ColorSet.fg.uiColor
+        label.font = FontSet.montserratRegular.font(16)
+        label.textColor = ColorSet.primaryText.uiColor
         return label
     }()
 
@@ -628,9 +611,7 @@ public class TimelinePoiDetailViewController: UIViewController {
 
     private func setupPhoneStack() {
         phoneStackView.addArrangedSubview(phoneIconContainerView)
-        phoneStackView.addArrangedSubview(phoneContentStack)
-        phoneContentStack.addArrangedSubview(phoneTitleLabel)
-        phoneContentStack.addArrangedSubview(phoneValueLabel)
+        phoneStackView.addArrangedSubview(phoneValueLabel)
 
         NSLayoutConstraint.activate([
             phoneIconContainerView.widthAnchor.constraint(equalToConstant: 40),
@@ -785,8 +766,25 @@ public class TimelinePoiDetailViewController: UIViewController {
             phoneStackView.isHidden = !hasPhone
             openingHoursStackView.isHidden = !hasHours
 
-            if hasPhone {
-                phoneValueLabel.text = viewModel.getPhone()
+            if hasPhone, let phoneValue = viewModel.getPhone() {
+                let phoneTitle = PoiDetailLocalizationKeys.localized(PoiDetailLocalizationKeys.phone) + ": "
+                let attributedString = NSMutableAttributedString()
+
+                // "Phone: " part - regular 16px primaryText
+                let titleAttributes: [NSAttributedString.Key: Any] = [
+                    .font: FontSet.montserratRegular.font(16),
+                    .foregroundColor: ColorSet.primaryText.uiColor
+                ]
+                attributedString.append(NSAttributedString(string: phoneTitle, attributes: titleAttributes))
+
+                // Phone value part - medium 16px fgWeak
+                let valueAttributes: [NSAttributedString.Key: Any] = [
+                    .font: FontSet.montserratMedium.font(16),
+                    .foregroundColor: ColorSet.fgWeak.uiColor
+                ]
+                attributedString.append(NSAttributedString(string: phoneValue, attributes: valueAttributes))
+
+                phoneValueLabel.attributedText = attributedString
             }
 
             if hasHours, let hoursText = viewModel.getFormattedOpeningHours() {
@@ -889,14 +887,39 @@ public class TimelinePoiDetailViewController: UIViewController {
     @objc private func readMoreTapped() {
         print("[POI Detail] Read More button tapped")
 
-        // Expand description
-        descriptionLabel.numberOfLines = 0
-        readMoreButton.isHidden = true
+        isDescriptionExpanded.toggle()
+
+        // Toggle description lines
+        descriptionLabel.numberOfLines = isDescriptionExpanded ? 0 : 4
+
+        // Update button appearance
+        updateReadMoreButtonAppearance()
 
         // Animate layout change
         UIView.animate(withDuration: 0.3) {
             self.scrollView.layoutIfNeeded()
             self.contentView.layoutIfNeeded()
+        }
+    }
+
+    private func updateReadMoreButtonAppearance() {
+        let title = isDescriptionExpanded
+            ? PoiDetailLocalizationKeys.localized(PoiDetailLocalizationKeys.closeFullDescription)
+            : PoiDetailLocalizationKeys.localized(PoiDetailLocalizationKeys.readFullDescription)
+
+        // Set underlined title
+        let attributes: [NSAttributedString.Key: Any] = [
+            .font: FontSet.montserratRegular.font(16),
+            .foregroundColor: ColorSet.fg.uiColor,
+            .underlineStyle: NSUnderlineStyle.single.rawValue
+        ]
+        let attributedTitle = NSAttributedString(string: title, attributes: attributes)
+        readMoreButton.setAttributedTitle(attributedTitle, for: .normal)
+
+        // Rotate chevron: 180 degrees when expanded, 0 when collapsed
+        let rotation: CGFloat = isDescriptionExpanded ? .pi : 0
+        UIView.animate(withDuration: 0.3) {
+            self.readMoreButton.imageView?.transform = CGAffineTransform(rotationAngle: rotation)
         }
     }
 
@@ -1449,7 +1472,7 @@ private class BasicInfoSectionView: UIView {
         let stack = UIStackView()
         stack.translatesAutoresizingMaskIntoConstraints = false
         stack.axis = .vertical
-        stack.spacing = 12
+        stack.spacing = 24
         stack.alignment = .center
         return stack
     }()

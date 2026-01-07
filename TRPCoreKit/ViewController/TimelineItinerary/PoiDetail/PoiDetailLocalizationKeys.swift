@@ -13,6 +13,7 @@ public struct PoiDetailLocalizationKeys {
     public static let activities = "poiDetail.section.activities"
     public static let seeMore = "poiDetail.button.seeMore"
     public static let readFullDescription = "poiDetail.button.readFullDescription"
+    public static let closeFullDescription = "poiDetail.button.closeFullDescription"
     // freeCancellation and from are now in CommonLocalizationKeys
 
     // MARK: - Key Data Section
@@ -38,6 +39,7 @@ public struct PoiDetailLocalizationKeys {
         activities: "Activities",
         seeMore: "See more",
         readFullDescription: "Read full description",
+        closeFullDescription: "Close full description",
         keyData: "Key Data",
         phone: "Phone",
         openingHours: "Opening Hours",

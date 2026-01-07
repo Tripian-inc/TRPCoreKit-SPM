@@ -61,7 +61,7 @@ public class TRPSearchBar: UIView {
     private let searchIconImageView: UIImageView = {
         let imageView = UIImageView()
         imageView.translatesAutoresizingMaskIntoConstraints = false
-        imageView.image = TRPImageController().getImage(inFramework: "ic_search", inApp: nil)?.withRenderingMode(.alwaysTemplate)
+        imageView.image = TRPImageController().getImage(inFramework: "search_black", inApp: nil)?.withRenderingMode(.alwaysTemplate)
         imageView.tintColor = ColorSet.fgWeak.uiColor
         imageView.contentMode = .scaleAspectFit
         return imageView
