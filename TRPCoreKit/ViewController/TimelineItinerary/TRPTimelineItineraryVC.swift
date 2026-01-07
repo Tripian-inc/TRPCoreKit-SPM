@@ -1186,12 +1186,14 @@ extension TRPTimelineItineraryVC {
         let cities = viewModel.getCities()
         let selectedDayIndex = viewModel.selectedDayIndex
         let bookedActivities = viewModel.getAllBookedActivities()
+        let destinationItems = viewModel.getDestinationItems()
 
         // Create container view model
         let containerViewModel = AddPlanContainerViewModel(days: days,
                                                            cities: cities,
                                                            selectedDayIndex: selectedDayIndex,
-                                                           bookedActivities: bookedActivities)
+                                                           bookedActivities: bookedActivities,
+                                                           destinationItems: destinationItems)
 
         // Inject tripHash into planData
         containerViewModel.planData.tripHash = viewModel.getTripHash()

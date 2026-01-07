@@ -437,19 +437,23 @@ public class AddPlanSelectDayVC: TRPBaseUIViewController, AddPlanChildViewContro
     }
     
     private func showCityPicker() {
-        let cities = viewModel.getAvailableCities()
+        let citiesForDay = viewModel.getCitiesForSelectedDay()
+        let hasMappings = viewModel.hasDateCityMapping()
 
-        guard !cities.isEmpty else { return }
+        // Check if we have any cities to show
+        guard !citiesForDay.mapped.isEmpty || !citiesForDay.other.isEmpty else { return }
 
         let citySelectionVC = AddPlanCitySelectionVC()
-        citySelectionVC.cities = cities
+        citySelectionVC.mappedCities = citiesForDay.mapped
+        citySelectionVC.otherCities = citiesForDay.other
+        citySelectionVC.showSections = hasMappings && !citiesForDay.mapped.isEmpty
         citySelectionVC.selectedCity = viewModel.getSelectedCity()
         citySelectionVC.onCitySelected = { [weak self] city in
             self?.viewModel.selectCity(city)
             self?.updateCityButton()
         }
 
-        presentVCWithModal(citySelectionVC)
+        presentVCWithDynamicHeight(citySelectionVC, prefersGrabberVisible: false)
     }
     
     private func updateSelectionStyles() {
@@ -522,12 +526,13 @@ public class AddPlanSelectDayVC: TRPBaseUIViewController, AddPlanChildViewContro
 
 // MARK: - TRPTimelineDayFilterViewDelegate
 extension AddPlanSelectDayVC: TRPTimelineDayFilterViewDelegate {
-    
+
     public func dayFilterViewDidSelectDay(_ view: TRPTimelineDayFilterView, dayIndex: Int) {
         selectedDayIndex = dayIndex
         let days = viewModel.getAvailableDays()
         if dayIndex < days.count {
             viewModel.selectDay(days[dayIndex])
+            updateCityButton()  // Update city when day changes (for date-city mapping)
         }
     }
 }

@@ -94,7 +94,7 @@ extension UIViewController {
     func presentVCWithDynamicHeight(_ vc: UIViewController,
                                     prefersGrabberVisible: Bool = true,
                                     isDimmed: Bool = true,
-                                    disableSwipeToDismiss: Bool = false) {
+                                    disableSwipeToDismiss: Bool = true) {
         vc.modalPresentationStyle = .pageSheet
 
         // Disable swipe-to-dismiss if requested (only close button can dismiss)

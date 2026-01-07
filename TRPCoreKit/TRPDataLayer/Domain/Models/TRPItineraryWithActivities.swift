@@ -49,11 +49,13 @@ public struct TRPSegmentDestinationItem: Codable {
     public var title: String
     public var coordinate: String
     public var cityId: Int?
+    public var dates: [String]?  // Date mapping in "yyyy-MM-dd" format
 
-    public init(title: String, coordinate: String, cityId: Int? = nil) {
+    public init(title: String, coordinate: String, cityId: Int? = nil, dates: [String]? = nil) {
         self.title = title
         self.coordinate = coordinate
         self.cityId = cityId
+        self.dates = dates
     }
 
 }

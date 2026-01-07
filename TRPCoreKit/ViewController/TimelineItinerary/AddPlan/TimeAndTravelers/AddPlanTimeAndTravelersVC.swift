@@ -35,11 +35,11 @@ public class AddPlanTimeAndTravelersVC: TRPBaseUIViewController, AddPlanChildVie
         let button = UIButton(type: .system)
         button.translatesAutoresizingMaskIntoConstraints = false
         button.backgroundColor = ColorSet.neutral100.uiColor
-        button.layer.cornerRadius = 8
+        button.layer.cornerRadius = 4
         button.contentHorizontalAlignment = .left
-        button.titleLabel?.font = FontSet.montserratRegular.font(16)
+        button.titleLabel?.font = FontSet.montserratMedium.font(16)
         button.setTitleColor(ColorSet.primaryText.uiColor, for: .normal)
-        button.contentEdgeInsets = UIEdgeInsets(top: 12, left: 16, bottom: 12, right: 40)
+        button.contentEdgeInsets = UIEdgeInsets(top: 14, left: 16, bottom: 14, right: 40)
         button.addTarget(self, action: #selector(startingPointButtonTapped), for: .touchUpInside)
         return button
     }()
@@ -47,19 +47,11 @@ public class AddPlanTimeAndTravelersVC: TRPBaseUIViewController, AddPlanChildVie
     private lazy var startingPointClearButton: UIButton = {
         let button = UIButton(type: .system)
         button.translatesAutoresizingMaskIntoConstraints = false
-        button.setTitle("×", for: .normal)
-        button.titleLabel?.font = UIFont.systemFont(ofSize: 24, weight: .light)
-        button.setTitleColor(ColorSet.primaryText.uiColor, for: .normal)
+        button.setImage(TRPImageController().getImage(inFramework: "ic_close", inApp: nil), for: .normal)
+        button.tintColor = ColorSet.fgWeak.uiColor
         button.isHidden = true
         button.addTarget(self, action: #selector(clearStartingPoint), for: .touchUpInside)
         return button
-    }()
-    
-    private let separator1: UIView = {
-        let view = UIView()
-        view.translatesAutoresizingMaskIntoConstraints = false
-        view.backgroundColor = ColorSet.neutral200.uiColor
-        return view
     }()
     
     private lazy var timeLabel: UILabel = {
