@@ -132,6 +132,9 @@ class POIListingCell: UITableViewCell {
         // Add extra 2px spacing before reviewCountLabel (total: 2 + 2 = 4px)
         ratingStackView.setCustomSpacing(4, after: starImageView)
 
+        // Connect add button action
+        addButton.addTarget(self, action: #selector(addButtonTapped), for: .touchUpInside)
+
         setupConstraints()
     }
 
@@ -157,7 +160,7 @@ class POIListingCell: UITableViewCell {
 
             // Add Button
             addButton.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
-            contentStackView.topAnchor.constraint(equalTo: poiImageView.topAnchor),
+            addButton.topAnchor.constraint(equalTo: poiImageView.topAnchor),
             addButton.widthAnchor.constraint(equalToConstant: 32),
             addButton.heightAnchor.constraint(equalToConstant: 32),
 

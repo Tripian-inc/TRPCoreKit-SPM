@@ -121,7 +121,7 @@ public struct AddPlanLocalizationKeys {
         addManually: "Add Manually",
         addManuallyDescription: "Select a single activity directly from the catalog.",
         selectStartingPoint: "Select a Starting Point",
-        selectDateAndTime: "Select Date and Time",
+        selectDateAndTime: "Select time",
         selectTravelers: "Select Travelers",
         travelers: "Travelers",
         selectATime: "Select a time",

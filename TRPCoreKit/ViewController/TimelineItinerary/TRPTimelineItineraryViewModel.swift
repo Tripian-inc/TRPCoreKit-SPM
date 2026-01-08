@@ -131,10 +131,11 @@ public class TRPTimelineItineraryViewModel {
     /// Items for currently selected day, grouped by city for section display
     private var displayItems: [TRPTimelineCityGroup] = []
 
-    /// Unified order map for current day (segmentIndex -> starting order)
+    /// Unified order map for current day (sectionIndex_segmentIndex -> starting order)
+    /// Order resets to 1 for each city (section)
     /// For single-item segments (booked/reserved/manualPoi): the order value
     /// For itinerary segments: the starting order (steps use startingOrder + stepIndex)
-    private var unifiedOrderMap: [Int: Int] = [:]
+    private var unifiedOrderMap: [String: Int] = [:]
 
     /// All trip dates from start to end (continuous, for day filter display)
     private var allTripDates: [Date] = []
@@ -359,38 +360,37 @@ public class TRPTimelineItineraryViewModel {
     }
 
     /// Calculates unified order for all items in the current day
-    /// Order is sequential across ALL cell types (1-based)
+    /// Order resets to 1 for each city (section) - city-based numbering
     /// - BookedActivity/ReservedActivity/ManualPoi: 1 order each
     /// - Itinerary (Recommendations): consumes N orders (where N = number of steps)
     private func calculateUnifiedOrders() {
         unifiedOrderMap = [:]
 
-        // Collect all items from all city groups and sort by start time
-        var allItems: [TRPMergedTimelineItem] = []
-        for cityGroup in displayItems {
-            allItems.append(contentsOf: cityGroup.items)
-        }
+        // Calculate order per city group (section)
+        for (sectionIndex, cityGroup) in displayItems.enumerated() {
+            // Sort items within this city by start time
+            let sortedItems = cityGroup.items.sorted { item1, item2 in
+                let date1 = item1.startDate ?? Date.distantFuture
+                let date2 = item2.startDate ?? Date.distantFuture
+                return date1 < date2
+            }
 
-        // Sort by start date/time
-        let sortedItems = allItems.sorted { item1, item2 in
-            let date1 = item1.startDate ?? Date.distantFuture
-            let date2 = item2.startDate ?? Date.distantFuture
-            return date1 < date2
-        }
+            // Reset order to 1 for each city
+            var currentOrder = 1
+            for item in sortedItems {
+                // Key format: "sectionIndex_segmentIndex"
+                let key = "\(sectionIndex)_\(item.originalSegmentIndex)"
+                unifiedOrderMap[key] = currentOrder
 
-        // Calculate order for each item
-        var currentOrder = 1
-        for item in sortedItems {
-            unifiedOrderMap[item.originalSegmentIndex] = currentOrder
-
-            switch item.segmentType {
-            case .bookedActivity, .reservedActivity, .manualPoi:
-                // Single item, consumes 1 order
-                currentOrder += 1
-            case .itinerary:
-                // Recommendations segment, consumes N orders (one per step)
-                let stepCount = item.steps.count
-                currentOrder += max(stepCount, 1) // At least 1 even if no steps
+                switch item.segmentType {
+                case .bookedActivity, .reservedActivity, .manualPoi:
+                    // Single item, consumes 1 order
+                    currentOrder += 1
+                case .itinerary:
+                    // Recommendations segment, consumes N orders (one per step)
+                    let stepCount = item.steps.count
+                    currentOrder += max(stepCount, 1) // At least 1 even if no steps
+                }
             }
         }
     }
@@ -918,7 +918,9 @@ public class TRPTimelineItineraryViewModel {
         let isExpanded = getSectionCollapseState(for: indexPath.section)
 
         // Get unified order from map (default to 1 if not found)
-        let order = unifiedOrderMap[mergedItem.originalSegmentIndex] ?? 1
+        // Key format: "sectionIndex_segmentIndex"
+        let key = "\(indexPath.section)_\(mergedItem.originalSegmentIndex)"
+        let order = unifiedOrderMap[key] ?? 1
 
         return TimelineCellType.from(mergedItem, order: order, isExpanded: isExpanded)
     }
@@ -988,24 +990,26 @@ public class TRPTimelineItineraryViewModel {
     // MARK: - Map Helper Methods
 
     /// Get ordered items for map display (collection view and annotations)
-    /// Returns items with unified order, sorted by order ascending
-    /// This matches the order displayed in the list view
-    public func getOrderedItemsForMap() -> [(order: Int, item: MapDisplayItem)] {
-        var result: [(order: Int, item: MapDisplayItem)] = []
+    /// Returns items with unified order, sorted by section then order ascending
+    /// This matches the order displayed in the list view (city-based numbering)
+    public func getOrderedItemsForMap() -> [(order: Int, section: Int, item: MapDisplayItem)] {
+        var result: [(order: Int, section: Int, item: MapDisplayItem)] = []
 
-        for cityGroup in displayItems {
+        for (sectionIndex, cityGroup) in displayItems.enumerated() {
             for item in cityGroup.items {
-                let startingOrder = unifiedOrderMap[item.originalSegmentIndex] ?? 1
+                // Key format: "sectionIndex_segmentIndex"
+                let key = "\(sectionIndex)_\(item.originalSegmentIndex)"
+                let startingOrder = unifiedOrderMap[key] ?? 1
 
                 switch item.segmentType {
                 case .bookedActivity, .reservedActivity:
                     // Single activity item
-                    result.append((order: startingOrder, item: .activity(item.segment)))
+                    result.append((order: startingOrder, section: sectionIndex, item: .activity(item.segment)))
 
                 case .manualPoi:
                     // Manual POI (no step info available)
                     if let poi = item.manualPoi {
-                        result.append((order: startingOrder, item: .poi(poi, item.segment, nil)))
+                        result.append((order: startingOrder, section: sectionIndex, item: .poi(poi, item.segment, nil)))
                     }
 
                 case .itinerary:
@@ -1013,15 +1017,15 @@ public class TRPTimelineItineraryViewModel {
                     for (index, step) in item.steps.enumerated() {
                         if let poi = step.poi {
                             let stepOrder = startingOrder + index
-                            result.append((order: stepOrder, item: .poi(poi, item.segment, step)))
+                            result.append((order: stepOrder, section: sectionIndex, item: .poi(poi, item.segment, step)))
                         }
                     }
                 }
             }
         }
 
-        // Sort by order to ensure correct sequence
-        return result.sorted { $0.order < $1.order }
+        // Sort by section first, then by order within section
+        return result.sorted { ($0.section, $0.order) < ($1.section, $1.order) }
     }
 
     /// Get all POIs for the currently selected day

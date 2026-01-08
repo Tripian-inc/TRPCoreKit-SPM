@@ -135,8 +135,8 @@ public class TRPTimelineItineraryVC: TRPBaseUIViewController {
 
     internal var currentTimelineItems: [TimelineItem] = []
 
-    /// Ordered map display items with unified order (matches list view ordering)
-    internal var mapDisplayItems: [(order: Int, item: MapDisplayItem)] = []
+    /// Ordered map display items with unified order per city (matches list view ordering)
+    internal var mapDisplayItems: [(order: Int, section: Int, item: MapDisplayItem)] = []
 
     private var isShowingMap: Bool = false
 
@@ -419,7 +419,7 @@ public class TRPTimelineItineraryVC: TRPBaseUIViewController {
 
         // Also update legacy currentTimelineItems for compatibility
         currentTimelineItems = []
-        for (_, item) in mapDisplayItems {
+        for (_, _, item) in mapDisplayItems {
             switch item {
             case .poi(let poi, _, _):
                 currentTimelineItems.append(.poi(poi))
@@ -714,8 +714,6 @@ extension TRPTimelineItineraryVC: UITableViewDelegate {
             return nil
         }
 
-        footerView.configure(section: section)
-        footerView.delegate = self
         return footerView
     }
 
@@ -928,14 +926,6 @@ extension TRPTimelineItineraryVC: TRPTimelineManualPoiCellDelegate {
 // MARK: - TRPTimelineSectionHeaderViewDelegate
 extension TRPTimelineItineraryVC: TRPTimelineSectionHeaderViewDelegate {
     // No delegate methods needed - FAB handles adding plans
-}
-
-// MARK: - TRPTimelineSectionFooterViewDelegate
-extension TRPTimelineItineraryVC: TRPTimelineSectionFooterViewDelegate {
-    
-    func sectionFooterViewDidTapAdd(_ view: TRPTimelineSectionFooterView, section: Int) {
-        delegate?.timelineItineraryAddButtonPressed(self, atSectionIndex: section)
-    }
 }
 
 // MARK: - TRPTimelineEmptyStateCellDelegate
@@ -1152,9 +1142,9 @@ extension TRPTimelineItineraryVC: UICollectionViewDataSource, UICollectionViewDe
             return UICollectionViewCell()
         }
 
-        let (order, item) = mapDisplayItems[indexPath.item]
+        let (order, _, item) = mapDisplayItems[indexPath.item]
 
-        // Configure cell with MapDisplayItem and unified order
+        // Configure cell with MapDisplayItem and unified order (city-based)
         cell.configure(with: item, order: order)
 
         return cell
@@ -1168,7 +1158,7 @@ extension TRPTimelineItineraryVC: UICollectionViewDataSource, UICollectionViewDe
         // Expand the collection view when user taps on an item
         expandCollectionView()
 
-        let (_, item) = mapDisplayItems[indexPath.item]
+        let (_, _, item) = mapDisplayItems[indexPath.item]
 
         // Center map on selected item's coordinate
         if let coordinate = item.coordinate, let mapView = map {
