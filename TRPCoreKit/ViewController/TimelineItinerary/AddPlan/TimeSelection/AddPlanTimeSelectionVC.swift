@@ -8,7 +8,14 @@
 
 import UIKit
 
-public class AddPlanTimeSelectionVC: TRPBaseUIViewController {
+public class AddPlanTimeSelectionVC: TRPBaseUIViewController, DynamicHeightPresentable {
+
+    // MARK: - DynamicHeightPresentable
+    public var preferredContentHeight: CGFloat {
+        // Nav bar (56) + day filter margin (16) + day filter (48) + title margin (24) + title (24)
+        // + collection margin (16) + collection (~196 for 4 rows) + button margin (16) + button (52) + bottom (16)
+        return 56 + 16 + 48 + 24 + 24 + 16 + 196 + 16 + 52 + 16
+    }
 
     // MARK: - Properties
     private var viewModel: AddPlanTimeSelectionViewModel!

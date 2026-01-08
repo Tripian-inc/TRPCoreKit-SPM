@@ -1770,6 +1770,8 @@ public class TRPTimelineItineraryViewModel {
 
                 switch result {
                 case .success(var updatedTimeline):
+                    // Preserve favouriteItems from previous timeline (API doesn't return these)
+                    updatedTimeline.favouriteItems = self.timeline?.favouriteItems
                     // Populate city information in segments BEFORE processing
                     self.populateCitiesInSegments(&updatedTimeline)
                     self.timeline = updatedTimeline

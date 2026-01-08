@@ -279,6 +279,10 @@ public class AddPlanActivityListingViewModel {
         params.minDuration = filterData.minDuration
         params.maxDuration = filterData.maxDuration
 
+        // Set currency and adults (default EUR and 1)
+        params.currency = "EUR"
+        params.adults = planData.travelers > 0 ? planData.travelers : 1
+
         return params
     }
 

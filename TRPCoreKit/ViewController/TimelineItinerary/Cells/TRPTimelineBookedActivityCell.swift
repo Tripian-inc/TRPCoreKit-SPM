@@ -405,16 +405,16 @@ class TRPTimelineBookedActivityCell: UITableViewCell {
             cancellationLabel.isHidden = false
         }
 
-        // Configure duration
-        if let duration = cellData.duration, duration > 0 {
+        // Configure duration - only show for reserved activities
+        if cellData.isReserved, let duration = cellData.duration, duration > 0 {
             durationLabel.text = formatDuration(duration)
             durationStackView.isHidden = false
         } else {
             durationStackView.isHidden = true
         }
 
-        // Configure price
-        if let price = cellData.price, price.value > 0 {
+        // Configure price - only show for reserved activities
+        if cellData.isReserved, let price = cellData.price, price.value > 0 {
             priceLabel.text = formatPrice(price)
             priceLabel.isHidden = false
         } else {

@@ -107,7 +107,7 @@ public class AddPlanTimeSelectionViewModel {
         let dateString = dateFormatter.string(from: selectedDate)
 
         // Get currency and language from settings or use defaults
-        let currency = "USD"
+        let currency = "EUR"
         let lang = TRPClient.getLanguage()
 
         // Call API
@@ -162,7 +162,7 @@ public class AddPlanTimeSelectionViewModel {
         // Get price with currency (from offers or default to USD)
         var activityPrice: TRPSegmentActivityPrice? = nil
         if let priceValue = tour.price, priceValue > 0 {
-            let currency = tour.offers.first?.currency.rawValue ?? "USD"
+            let currency = tour.offers.first?.currency.rawValue ?? "EUR"
             activityPrice = TRPSegmentActivityPrice(currency: currency, value: Double(priceValue))
         }
 
