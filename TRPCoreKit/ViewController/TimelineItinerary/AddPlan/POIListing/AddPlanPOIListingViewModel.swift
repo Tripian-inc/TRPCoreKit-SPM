@@ -9,10 +9,7 @@
 import Foundation
 import TRPFoundationKit
 
-public enum POIListingCategoryType: String {
-    case placesOfInterest = "places_of_interest"
-    case eatAndDrink = "eat_and_drink"
-}
+// POIListingCategoryType is defined in TRPPoiUseCases
 
 public protocol AddPlanPOIListingViewModelDelegate: ViewModelDelegate {
     func poisDidLoad()
@@ -43,7 +40,7 @@ public class AddPlanPOIListingViewModel {
     public init(planData: AddPlanData, categoryType: POIListingCategoryType) {
         self.planData = planData
         self.categoryType = categoryType
-        self.poiUseCases = TRPPoiUseCases()
+        self.poiUseCases = TRPPoiUseCases.shared
         self.timelineRepository = TRPTimelineRepository()
 
         // Set city ID from planData
@@ -103,50 +100,12 @@ public class AddPlanPOIListingViewModel {
 
         delegate?.viewModel(showPreloader: true)
 
-        // First fetch categories to get the appropriate category IDs
-        poiUseCases.executeFetchPoiCategories { [weak self] result in
+        // Use cached categories if available, otherwise fetch
+        poiUseCases.fetchCategoryIdsIfNeeded(type: categoryType) { [weak self] ids in
             guard let self = self else { return }
-
-            switch result {
-            case .success(let categoryGroups):
-                self.categoryIds = self.extractCategoryIds(from: categoryGroups)
-                self.fetchPois()
-            case .failure(let error):
-                self.delegate?.viewModel(showPreloader: false)
-                self.delegate?.viewModel(error: error)
-            }
+            self.categoryIds = ids
+            self.fetchPois()
         }
-    }
-
-    private func extractCategoryIds(from groups: [TRPPoiCategoyGroup]) -> [Int] {
-        // Category IDs that define Eat & Drink groups
-        let eatAndDrinkCategoryIds: Set<Int> = [3, 4, 24]
-
-        var ids: [Int] = []
-
-        for group in groups {
-            guard let categories = group.categories else { continue }
-
-            let categoryIds = categories.getIds()
-
-            // Check if this group contains any Eat & Drink category ID
-            let isEatAndDrinkGroup = categoryIds.contains { eatAndDrinkCategoryIds.contains($0) }
-
-            switch categoryType {
-            case .placesOfInterest:
-                // All groups that don't contain Eat & Drink category IDs (3, 4, 24)
-                if !isEatAndDrinkGroup {
-                    ids.append(contentsOf: categoryIds)
-                }
-            case .eatAndDrink:
-                // Only groups that contain category ID 3, 4, or 24
-                if isEatAndDrinkGroup {
-                    ids.append(contentsOf: categoryIds)
-                }
-            }
-        }
-
-        return ids
     }
 
     private func fetchPois(page: Int = 1) {

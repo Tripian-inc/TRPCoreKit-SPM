@@ -380,6 +380,19 @@ public class TimelinePoiDetailViewModel {
         return poi.phone != nil || poi.hours != nil
     }
 
+    /// Check if POI category is restaurant, cafe, or nightlife (for showing phone number)
+    /// Uses the cached Eat & Drink category IDs from TRPPoiUseCases
+    public func isRestaurantCafeOrNightlife() -> Bool {
+        // Check if POI has any Eat & Drink category using cached IDs
+        for category in poi.categories {
+            if TRPPoiUseCases.isEatAndDrinkCategory(category.id) {
+                return true
+            }
+        }
+
+        return false
+    }
+
     public func getAddress() -> String? {
         return poi.address
     }

@@ -802,7 +802,8 @@ public class TimelinePoiDetailViewController: UIViewController {
         if hasKeyData {
             keyDataHeaderLabel.isHidden = false
 
-            let hasPhone = viewModel.getPhone() != nil
+            // Phone is only shown for restaurant, cafe, or nightlife categories
+            let hasPhone = viewModel.getPhone() != nil && viewModel.isRestaurantCafeOrNightlife()
             let hasHours = viewModel.getOpeningHoursList() != nil
 
             phoneStackView.isHidden = !hasPhone
