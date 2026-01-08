@@ -12,15 +12,24 @@ import TRPFoundationKit
 @objc(SPMAddPlanTimeAndTravelersVC)
 public class AddPlanTimeAndTravelersVC: TRPBaseUIViewController, AddPlanChildViewController {
 
+    // MARK: - Height Constants
+    private let baseContentHeight: CGFloat = 580 // Updated height to include day filter and city selection
+    private let citySelectionHeight: CGFloat = 92 // City button height (68) + top margin (24)
+
     // MARK: - AddPlanChildViewController
     public var preferredContentHeight: CGFloat {
-        return 580 // Updated height to include day filter and city selection
+        let hasSingleCity = viewModel?.hasSingleCity() ?? false
+        return hasSingleCity ? baseContentHeight - citySelectionHeight : baseContentHeight
     }
 
     // MARK: - Properties
     public var viewModel: AddPlanTimeAndTravelersViewModel!
     public weak var containerVC: AddPlanContainerVC?
     private var selectedDayIndex: Int = 0
+
+    // Dynamic constraints for city visibility
+    private var separator0TopToCityConstraint: NSLayoutConstraint?
+    private var separator0TopToDayFilterConstraint: NSLayoutConstraint?
     
     // MARK: - UI Components
 
@@ -280,8 +289,7 @@ public class AddPlanTimeAndTravelersVC: TRPBaseUIViewController, AddPlanChildVie
             citySelectionButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
             citySelectionButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
 
-            // Separator 0
-            separator0.topAnchor.constraint(equalTo: citySelectionButton.bottomAnchor, constant: 24),
+            // Separator 0 - horizontal constraints only (top is dynamic)
             separator0.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             separator0.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             separator0.heightAnchor.constraint(equalToConstant: 0.5),
@@ -362,6 +370,10 @@ public class AddPlanTimeAndTravelersVC: TRPBaseUIViewController, AddPlanChildVie
             bottomSeparator.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             bottomSeparator.heightAnchor.constraint(equalToConstant: 0.5),
         ])
+
+        // Store dynamic constraints for separator0 top (city visible vs hidden)
+        separator0TopToCityConstraint = separator0.topAnchor.constraint(equalTo: citySelectionButton.bottomAnchor, constant: 24)
+        separator0TopToDayFilterConstraint = separator0.topAnchor.constraint(equalTo: dayFilterView.bottomAnchor, constant: 24)
     }
     
     private func setupActions() {
@@ -388,7 +400,17 @@ public class AddPlanTimeAndTravelersVC: TRPBaseUIViewController, AddPlanChildVie
     }
 
     private func updateCityButton() {
-        citySelectionButton.configure(cityName: viewModel.getSelectedCity()?.name)
+        // Hide city selection if there's only one city
+        let hasSingleCity = viewModel.hasSingleCity()
+        citySelectionButton.isHidden = hasSingleCity
+
+        // Toggle separator0 top constraint based on city visibility
+        separator0TopToCityConstraint?.isActive = !hasSingleCity
+        separator0TopToDayFilterConstraint?.isActive = hasSingleCity
+
+        if !hasSingleCity {
+            citySelectionButton.configure(cityName: viewModel.getSelectedCity()?.name)
+        }
     }
 
     private func showCityPicker() {

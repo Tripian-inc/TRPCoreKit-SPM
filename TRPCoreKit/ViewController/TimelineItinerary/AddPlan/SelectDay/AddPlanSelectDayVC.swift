@@ -15,6 +15,7 @@ public class AddPlanSelectDayVC: TRPBaseUIViewController, AddPlanChildViewContro
     // MARK: - Height Constants (Static heights from design)
     private let baseContentHeight: CGFloat = 464 // Base height without categories
     private let manualModeContentHeight: CGFloat = 632 // Height when manual mode is selected (shows categories)
+    private let citySelectionHeight: CGFloat = 92 // City button height (68) + top margin (24)
 
     // MARK: - Properties
     public var viewModel: AddPlanSelectDayViewModel!
@@ -24,7 +25,9 @@ public class AddPlanSelectDayVC: TRPBaseUIViewController, AddPlanChildViewContro
     // MARK: - AddPlanChildViewController
     public var preferredContentHeight: CGFloat {
         let showCategories = (viewModel?.getSelectedMode() == .manual)
-        return showCategories ? manualModeContentHeight : baseContentHeight
+        let hasSingleCity = viewModel?.hasSingleCity() ?? false
+        let cityOffset = hasSingleCity ? citySelectionHeight : 0
+        return (showCategories ? manualModeContentHeight : baseContentHeight) - cityOffset
     }
     
     // MARK: - UI Components
@@ -258,6 +261,8 @@ public class AddPlanSelectDayVC: TRPBaseUIViewController, AddPlanChildViewContro
     private var manualCardBottomConstraint: NSLayoutConstraint?
     private var categoryLabelTopConstraint: NSLayoutConstraint?
     private var categoryStackViewBottomConstraint: NSLayoutConstraint?
+    private var selectionLabelTopToCityConstraint: NSLayoutConstraint?
+    private var selectionLabelTopToDayFilterConstraint: NSLayoutConstraint?
     
     // MARK: - Lifecycle
     public override func viewWillAppear(_ animated: Bool) {
@@ -304,8 +309,7 @@ public class AddPlanSelectDayVC: TRPBaseUIViewController, AddPlanChildViewContro
             citySelectionButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
             citySelectionButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
 
-            // Selection Label (How do you add plans) - top 32, height 24
-            selectionLabel.topAnchor.constraint(equalTo: citySelectionButton.bottomAnchor, constant: 32),
+            // Selection Label (How do you add plans) - height 24 (top constraint is dynamic)
             selectionLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
             selectionLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
             selectionLabel.heightAnchor.constraint(equalToConstant: 24),
@@ -342,6 +346,10 @@ public class AddPlanSelectDayVC: TRPBaseUIViewController, AddPlanChildViewContro
         // When manual selected: categoryStackView bottom = view.bottom - 32
         categoryStackViewBottomConstraint = categoryStackView.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -32)
 
+        // Store constraints for selectionLabel top (city visible vs hidden)
+        selectionLabelTopToCityConstraint = selectionLabel.topAnchor.constraint(equalTo: citySelectionButton.bottomAnchor, constant: 32)
+        selectionLabelTopToDayFilterConstraint = selectionLabel.topAnchor.constraint(equalTo: dayFilterView.bottomAnchor, constant: 32)
+
         // Initially, manual card is at bottom (categories hidden)
         manualCardBottomConstraint?.isActive = true
         categoryStackViewBottomConstraint?.isActive = false
@@ -369,7 +377,17 @@ public class AddPlanSelectDayVC: TRPBaseUIViewController, AddPlanChildViewContro
     }
     
     private func updateCityButton() {
-        citySelectionButton.configure(cityName: viewModel.getSelectedCity()?.name)
+        // Hide city selection if there's only one city
+        let hasSingleCity = viewModel.hasSingleCity()
+        citySelectionButton.isHidden = hasSingleCity
+
+        // Toggle selectionLabel top constraint based on city visibility
+        selectionLabelTopToCityConstraint?.isActive = !hasSingleCity
+        selectionLabelTopToDayFilterConstraint?.isActive = hasSingleCity
+
+        if !hasSingleCity {
+            citySelectionButton.configure(cityName: viewModel.getSelectedCity()?.name)
+        }
     }
     
     @objc private func smartRecommendationsTapped() {

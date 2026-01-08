@@ -112,6 +112,11 @@ public class AddPlanTimeAndTravelersViewModel {
         return containerViewModel?.getAvailableCities() ?? []
     }
 
+    /// Returns true if there's only one city available (no need for city selection)
+    public func hasSingleCity() -> Bool {
+        return getAvailableCities().count == 1
+    }
+
     public func getSelectedDayIndex() -> Int {
         guard let selectedDay = containerViewModel?.planData.selectedDay else { return 0 }
         let days = getAvailableDays()

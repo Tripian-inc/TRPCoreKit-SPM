@@ -26,6 +26,11 @@ public class AddPlanSelectDayViewModel {
     public func getAvailableCities() -> [TRPCity] {
         return containerViewModel?.getAvailableCities() ?? []
     }
+
+    /// Returns true if there's only one city available (no need for city selection)
+    public func hasSingleCity() -> Bool {
+        return getAvailableCities().count == 1
+    }
     
     public func getSelectedDay() -> Date? {
         return containerViewModel?.planData.selectedDay
