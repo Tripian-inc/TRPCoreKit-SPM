@@ -490,8 +490,10 @@ public class AddPlanTimeAndTravelersVC: TRPBaseUIViewController, AddPlanChildVie
             cityId: viewModel.getCityId(),
             cityCenterPOI: viewModel.getCityCenterPOI(),
             bookedActivities: viewModel.getBookedActivities(),
+            favouriteItems: viewModel.getFavouriteItems(),
             boundarySW: viewModel.getBoundarySW(),
-            boundaryNE: viewModel.getBoundaryNE()
+            boundaryNE: viewModel.getBoundaryNE(),
+            cityCoordinate: viewModel.getSelectedCity()?.coordinate
         )
         let poiSelectionVC = AddPlanPOISelectionVC()
         poiSelectionVC.viewModel = poiSelectionViewModel

@@ -231,8 +231,8 @@ public class TRPTimelineItineraryVC: TRPBaseUIViewController {
         
         NSLayoutConstraint.activate([
             savedPlansButton.topAnchor.constraint(equalTo: customNavigationBar.bottomAnchor, constant: 12),
-            savedPlansButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 24),
-            savedPlansButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -24),
+            savedPlansButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
+            savedPlansButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
             savedPlansButton.heightAnchor.constraint(equalToConstant: 72)
         ])
     }
@@ -1177,13 +1177,15 @@ extension TRPTimelineItineraryVC {
         let selectedDayIndex = viewModel.selectedDayIndex
         let bookedActivities = viewModel.getAllBookedActivities()
         let destinationItems = viewModel.getDestinationItems()
+        let favouriteItems = viewModel.getFavoriteItems()
 
         // Create container view model
         let containerViewModel = AddPlanContainerViewModel(days: days,
                                                            cities: cities,
                                                            selectedDayIndex: selectedDayIndex,
                                                            bookedActivities: bookedActivities,
-                                                           destinationItems: destinationItems)
+                                                           destinationItems: destinationItems,
+                                                           favouriteItems: favouriteItems)
 
         // Inject tripHash into planData
         containerViewModel.planData.tripHash = viewModel.getTripHash()

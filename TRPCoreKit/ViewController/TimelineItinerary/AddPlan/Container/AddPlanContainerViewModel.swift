@@ -46,14 +46,16 @@ public class AddPlanContainerViewModel {
     private let selectedDayIndex: Int
     private let bookedActivities: [TRPTimelineSegment]
     private let destinationItems: [TRPSegmentDestinationItem]
+    private let favouriteItems: [TRPSegmentFavoriteItem]
 
     // MARK: - Initialization
-    public init(days: [Date], cities: [TRPCity], selectedDayIndex: Int, bookedActivities: [TRPTimelineSegment] = [], destinationItems: [TRPSegmentDestinationItem] = []) {
+    public init(days: [Date], cities: [TRPCity], selectedDayIndex: Int, bookedActivities: [TRPTimelineSegment] = [], destinationItems: [TRPSegmentDestinationItem] = [], favouriteItems: [TRPSegmentFavoriteItem] = []) {
         self.availableDays = days
         self.availableCities = cities
         self.selectedDayIndex = selectedDayIndex
         self.bookedActivities = bookedActivities
         self.destinationItems = destinationItems
+        self.favouriteItems = favouriteItems
 
         // Pre-select day and city
         if selectedDayIndex < days.count {
@@ -111,6 +113,10 @@ public class AddPlanContainerViewModel {
 
     public func getBookedActivities() -> [TRPTimelineSegment] {
         return bookedActivities
+    }
+
+    public func getFavouriteItems() -> [TRPSegmentFavoriteItem] {
+        return favouriteItems
     }
 
     // MARK: - Date-City Mapping

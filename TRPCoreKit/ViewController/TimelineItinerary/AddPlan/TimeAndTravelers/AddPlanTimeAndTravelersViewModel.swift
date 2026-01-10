@@ -194,6 +194,10 @@ public class AddPlanTimeAndTravelersViewModel {
         return containerViewModel?.getBookedActivities() ?? []
     }
 
+    public func getFavouriteItems() -> [TRPSegmentFavoriteItem] {
+        return containerViewModel?.getFavouriteItems() ?? []
+    }
+
     public func getBoundarySW() -> TRPLocation? {
         return containerViewModel?.planData.selectedCity?.boundarySouthWest
     }
