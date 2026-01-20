@@ -9,6 +9,10 @@ const GITHUB_REPO = process.env.GITHUB_REPO;
 
 const PROCESSED_COMMENTS_FILE = '.github/data/processed-comments.json';
 
+// Sadece bu tarihten sonraki yorumları işle (YYYY-MM-DD formatında)
+// Bu tarihi değiştirerek hangi tarihten itibaren yorumların issue olmasını istediğinizi belirleyebilirsiniz
+const START_DATE = new Date('2026-01-15'); // Bu tarihi güncelleyin!
+
 // Daha önce işlenmiş yorumları oku
 function getProcessedComments() {
   try {
@@ -111,8 +115,15 @@ async function main() {
     const comments = await getFigmaComments();
     console.log(`✅ Found ${comments.length} total comments in Figma`);
 
+    // Tarih filtresini uygula - sadece START_DATE'ten sonraki yorumlar
+    const recentComments = comments.filter(comment => {
+      const commentDate = new Date(comment.created_at);
+      return commentDate >= START_DATE;
+    });
+    console.log(`📅 ${recentComments.length} comments are after ${START_DATE.toISOString().split('T')[0]}`);
+
     // Yeni yorumları filtrele
-    const newComments = comments.filter(comment => !processedComments.has(comment.id));
+    const newComments = recentComments.filter(comment => !processedComments.has(comment.id));
     console.log(`🆕 Found ${newComments.length} new comments to process`);
 
     if (newComments.length === 0) {
