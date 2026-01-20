@@ -31,7 +31,7 @@ class TRPTimelineEmptyStateCell: UITableViewCell {
     private let titleLabel: UILabel = {
         let label = UILabel()
         label.translatesAutoresizingMaskIntoConstraints = false
-        label.font = FontSet.montserratSemiBold.font(16)
+        label.font = FontSet.montserratSemiBold.font(17)
         label.textColor = ColorSet.primaryText.uiColor
         label.textAlignment = .center
         label.numberOfLines = 0
@@ -41,11 +41,22 @@ class TRPTimelineEmptyStateCell: UITableViewCell {
     private let descriptionLabel: UILabel = {
         let label = UILabel()
         label.translatesAutoresizingMaskIntoConstraints = false
-        label.font = FontSet.montserratRegular.font(14)
+        label.font = FontSet.montserratLight.font(14)
         label.textColor = ColorSet.fgWeak.uiColor
         label.textAlignment = .center
         label.numberOfLines = 0
         return label
+    }()
+
+    private lazy var addPlansButton: TRPButton = {
+        let button = TRPButton(
+            title: "",
+            style: .primary,
+            height: 40
+        )
+        button.contentEdgeInsets = UIEdgeInsets(top: 0, left: 29, bottom: 0, right: 29)
+        button.addTarget(self, action: #selector(addPlansButtonTapped), for: .touchUpInside)
+        return button
     }()
 
     // MARK: - Initialization
@@ -66,40 +77,56 @@ class TRPTimelineEmptyStateCell: UITableViewCell {
         contentView.addSubview(containerView)
         containerView.addSubview(titleLabel)
         containerView.addSubview(descriptionLabel)
-
-        // Add tap gesture to container
-        let tapGesture = UITapGestureRecognizer(target: self, action: #selector(containerTapped))
-        containerView.addGestureRecognizer(tapGesture)
-        containerView.isUserInteractionEnabled = true
+        containerView.addSubview(addPlansButton)
 
         NSLayoutConstraint.activate([
-            // Container View
-            containerView.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 16),
+            // Container View - 32px margin from dayFilters
+            containerView.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 0),
             containerView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
             containerView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
             containerView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -16),
 
-            // Title Label
-            titleLabel.topAnchor.constraint(equalTo: containerView.topAnchor, constant: 24),
+            // Title Label - top gap 32px
+            titleLabel.topAnchor.constraint(equalTo: containerView.topAnchor, constant: 32),
             titleLabel.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 16),
             titleLabel.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -16),
 
-            // Description Label
-            descriptionLabel.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 8),
+            // Description Label - top gap 12px
+            descriptionLabel.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 12),
             descriptionLabel.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 16),
             descriptionLabel.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -16),
-            descriptionLabel.bottomAnchor.constraint(equalTo: containerView.bottomAnchor, constant: -24)
+
+            // Add Plans Button - top gap 16px, bottom gap 32px, horizontally centered
+            addPlansButton.topAnchor.constraint(equalTo: descriptionLabel.bottomAnchor, constant: 16),
+            addPlansButton.centerXAnchor.constraint(equalTo: containerView.centerXAnchor),
+            addPlansButton.bottomAnchor.constraint(equalTo: containerView.bottomAnchor, constant: -32)
         ])
     }
 
     // MARK: - Configuration
     func configure() {
         titleLabel.text = TimelineLocalizationKeys.localized(TimelineLocalizationKeys.noPlansYet)
-        descriptionLabel.text = TimelineLocalizationKeys.localized(TimelineLocalizationKeys.noPlansDescription)
+        addPlansButton.updateTitle(TimelineLocalizationKeys.localized(TimelineLocalizationKeys.addPlansButton))
+
+        // Set description with line height 23px
+        let descriptionText = TimelineLocalizationKeys.localized(TimelineLocalizationKeys.noPlansDescription)
+        let paragraphStyle = NSMutableParagraphStyle()
+        paragraphStyle.lineSpacing = 23 - (FontSet.montserratLight.font(14).lineHeight)
+        paragraphStyle.alignment = .center
+
+        let attributedString = NSAttributedString(
+            string: descriptionText,
+            attributes: [
+                .font: FontSet.montserratLight.font(14),
+                .foregroundColor: ColorSet.fgWeak.uiColor,
+                .paragraphStyle: paragraphStyle
+            ]
+        )
+        descriptionLabel.attributedText = attributedString
     }
 
     // MARK: - Actions
-    @objc private func containerTapped() {
+    @objc private func addPlansButtonTapped() {
         delegate?.emptyStateCellDidTapAddPlan(self)
     }
 }

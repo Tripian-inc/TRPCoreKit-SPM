@@ -7,6 +7,7 @@
 //
 
 import UIKit
+import TRPRestKit
 
 public protocol TRPTimelineDayFilterViewDelegate: AnyObject {
     func dayFilterViewDidSelectDay(_ view: TRPTimelineDayFilterView, dayIndex: Int)
@@ -88,7 +89,7 @@ public class TRPTimelineDayFilterView: UIView {
     // MARK: - Private Methods
     private func formatDays(_ days: [Date]) -> [String] {
         let dateFormatter = DateFormatter()
-        dateFormatter.locale = Locale.current
+        dateFormatter.locale = Locale(identifier: TRPClient.getLanguage())
 
         return days.map { date in
             dateFormatter.dateFormat = "EEEE"
@@ -209,7 +210,7 @@ class TRPTimelineDayCell: UICollectionViewCell {
         } else {
             contentView.backgroundColor = UIColor.white // Clear background
             contentView.layer.borderColor = ColorSet.lineWeak.uiColor.cgColor
-            label.textColor = ColorSet.lineWeak.uiColor
+            label.textColor = ColorSet.primaryWeakText.uiColor
         }
     }
 }

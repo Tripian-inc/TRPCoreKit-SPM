@@ -322,7 +322,7 @@ class TRPTimelineBookedActivityCell: UITableViewCell {
             cancellationLabel.isHidden = false
         } else {
             // Show default free cancellation text
-            cancellationLabel.text = TimelineLocalizationKeys.localized(TimelineLocalizationKeys.freeCancellation)
+            cancellationLabel.text = CommonLocalizationKeys.localized(CommonLocalizationKeys.freeCancellation)
             cancellationLabel.isHidden = false
         }
 
@@ -401,20 +401,20 @@ class TRPTimelineBookedActivityCell: UITableViewCell {
             cancellationLabel.text = cancellation
             cancellationLabel.isHidden = false
         } else {
-            cancellationLabel.text = TimelineLocalizationKeys.localized(TimelineLocalizationKeys.freeCancellation)
+            cancellationLabel.text = CommonLocalizationKeys.localized(CommonLocalizationKeys.freeCancellation)
             cancellationLabel.isHidden = false
         }
 
-        // Configure duration
-        if let duration = cellData.duration, duration > 0 {
+        // Configure duration - only show for reserved activities
+        if cellData.isReserved, let duration = cellData.duration, duration > 0 {
             durationLabel.text = formatDuration(duration)
             durationStackView.isHidden = false
         } else {
             durationStackView.isHidden = true
         }
 
-        // Configure price
-        if let price = cellData.price, price.value > 0 {
+        // Configure price - only show for reserved activities
+        if cellData.isReserved, let price = cellData.price, price.value > 0 {
             priceLabel.text = formatPrice(price)
             priceLabel.isHidden = false
         } else {

@@ -9,17 +9,138 @@
 import Foundation
 import TRPFoundationKit
 
+/// Category types for POI listing filtering
+public enum POIListingCategoryType: String {
+    case placesOfInterest = "places_of_interest"
+    case eatAndDrink = "eat_and_drink"
+}
 
 final public class TRPPoiUseCases {
-    
+
+    // MARK: - Singleton for Category Management
+    public static let shared = TRPPoiUseCases()
+
     private(set) var poiRepository: PoiRepository
     public var cityId: Int?
-    
-    
+
+    // MARK: - Cached Categories
+    private static var cachedCategoryGroups: [TRPPoiCategoyGroup] = []
+    private static var cachedEatAndDrinkCategoryIds: Set<Int> = []
+    private static var cachedPlacesOfInterestCategoryIds: Set<Int> = []
+    private static var isCategoriesFetched: Bool = false
+
     public init(repository: PoiRepository = TRPPoiRepository()){
         self.poiRepository = repository
     }
-    
+
+    // MARK: - Category Prefetch (Call at App Startup)
+
+    /// Prefetches POI categories in background. Call this at app startup.
+    public static func prefetchCategories() {
+        guard !isCategoriesFetched else { return }
+
+        // Use shared instance to prevent deallocation before completion
+        shared.executeFetchPoiCategories { result in
+            switch result {
+            case .success(let groups):
+                processCategoryGroups(groups)
+            case .failure:
+                // Silent failure - will retry when needed
+                break
+            }
+        }
+    }
+
+    /// Process and cache category groups
+    private static func processCategoryGroups(_ groups: [TRPPoiCategoyGroup]) {
+        cachedCategoryGroups = groups
+
+        var eatAndDrinkIds = Set<Int>()
+        var placesOfInterestIds = Set<Int>()
+
+        for group in groups {
+            guard let categories = group.categories else { continue }
+
+            let categoryIds = categories.getIds()
+
+            // Check if this group contains any Eat & Drink group ID (3, 4, 24)
+            let isEatAndDrinkGroup = categoryIds.contains { TRPPoiCategoyGroup.eatAndDrinkGroupIds.contains($0) }
+
+            if isEatAndDrinkGroup {
+                eatAndDrinkIds.formUnion(categoryIds)
+            } else {
+                placesOfInterestIds.formUnion(categoryIds)
+            }
+        }
+
+        cachedEatAndDrinkCategoryIds = eatAndDrinkIds
+        cachedPlacesOfInterestCategoryIds = placesOfInterestIds
+
+        // Also update TRPPoiCategoyGroup cache for backward compatibility
+        TRPPoiCategoyGroup.cachedEatAndDrinkCategoryIds = eatAndDrinkIds
+
+        isCategoriesFetched = true
+    }
+
+    // MARK: - Category Accessors
+
+    /// Returns cached category groups. Empty if not yet fetched.
+    public static func getCategoryGroups() -> [TRPPoiCategoyGroup] {
+        return cachedCategoryGroups
+    }
+
+    /// Returns all category IDs for Eat & Drink (restaurants, cafes, nightlife, etc.)
+    public static func getEatAndDrinkCategoryIds() -> [Int] {
+        return Array(cachedEatAndDrinkCategoryIds)
+    }
+
+    /// Returns all category IDs for Places of Interest (museums, attractions, etc.)
+    public static func getPlacesOfInterestCategoryIds() -> [Int] {
+        return Array(cachedPlacesOfInterestCategoryIds)
+    }
+
+    /// Checks if a category ID belongs to Eat & Drink
+    public static func isEatAndDrinkCategory(_ categoryId: Int) -> Bool {
+        return cachedEatAndDrinkCategoryIds.contains(categoryId)
+    }
+
+    /// Checks if a category ID belongs to Places of Interest
+    public static func isPlacesOfInterestCategory(_ categoryId: Int) -> Bool {
+        return cachedPlacesOfInterestCategoryIds.contains(categoryId)
+    }
+
+    /// Returns true if categories have been fetched and cached
+    public static func areCategoriesCached() -> Bool {
+        return isCategoriesFetched
+    }
+
+    /// Fetch categories if not already cached, then call completion with requested type
+    public func fetchCategoryIdsIfNeeded(
+        type: POIListingCategoryType,
+        completion: @escaping ([Int]) -> Void
+    ) {
+        if TRPPoiUseCases.isCategoriesFetched {
+            let ids = type == .eatAndDrink
+                ? TRPPoiUseCases.getEatAndDrinkCategoryIds()
+                : TRPPoiUseCases.getPlacesOfInterestCategoryIds()
+            completion(ids)
+            return
+        }
+
+        executeFetchPoiCategories { result in
+            switch result {
+            case .success(let groups):
+                TRPPoiUseCases.processCategoryGroups(groups)
+                let ids = type == .eatAndDrink
+                    ? TRPPoiUseCases.getEatAndDrinkCategoryIds()
+                    : TRPPoiUseCases.getPlacesOfInterestCategoryIds()
+                completion(ids)
+            case .failure:
+                completion([])
+            }
+        }
+    }
+
 }
 
 extension TRPPoiUseCases: SearchPoiUseCase {

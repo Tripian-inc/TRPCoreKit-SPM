@@ -98,6 +98,52 @@ public class AddPlanTimeAndTravelersViewModel {
         return containerViewModel?.planData.selectedCity?.id
     }
 
+    public func getSelectedCity() -> TRPCity? {
+        return containerViewModel?.planData.selectedCity
+    }
+
+    // MARK: - Day & City Selection
+
+    public func getAvailableDays() -> [Date] {
+        return containerViewModel?.getAvailableDays() ?? []
+    }
+
+    public func getAvailableCities() -> [TRPCity] {
+        return containerViewModel?.getAvailableCities() ?? []
+    }
+
+    /// Returns true if there's only one city available (no need for city selection)
+    public func hasSingleCity() -> Bool {
+        return getAvailableCities().count == 1
+    }
+
+    public func getSelectedDayIndex() -> Int {
+        guard let selectedDay = containerViewModel?.planData.selectedDay else { return 0 }
+        let days = getAvailableDays()
+        return days.firstIndex(where: { Calendar.current.isDate($0, inSameDayAs: selectedDay) }) ?? 0
+    }
+
+    public func selectDay(_ day: Date) {
+        containerViewModel?.planData.selectedDay = day
+    }
+
+    public func selectCity(_ city: TRPCity) {
+        containerViewModel?.planData.selectedCity = city
+    }
+
+    /// Get cities for currently selected day (for date-city mapping)
+    public func getCitiesForSelectedDay() -> (mapped: [TRPCity], other: [TRPCity]) {
+        guard let selectedDay = containerViewModel?.planData.selectedDay else {
+            return (mapped: [], other: getAvailableCities())
+        }
+        return containerViewModel?.getCitiesForDate(selectedDay) ?? (mapped: [], other: getAvailableCities())
+    }
+
+    /// Check if date-city mapping is available
+    public func hasDateCityMapping() -> Bool {
+        return containerViewModel?.hasDateCityMapping() ?? false
+    }
+
     public func getCityCenterDisplayName() -> String? {
         guard let city = containerViewModel?.planData.selectedCity else { return nil }
         return "\(city.name) - \(AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.cityCenter))"
@@ -146,6 +192,10 @@ public class AddPlanTimeAndTravelersViewModel {
 
     public func getBookedActivities() -> [TRPTimelineSegment] {
         return containerViewModel?.getBookedActivities() ?? []
+    }
+
+    public func getFavouriteItems() -> [TRPSegmentFavoriteItem] {
+        return containerViewModel?.getFavouriteItems() ?? []
     }
 
     public func getBoundarySW() -> TRPLocation? {

@@ -187,8 +187,8 @@ extension SavedPlansVC: UITableViewDelegate {
 extension SavedPlansVC: ActivityCardCellDelegate {
 
     func activityCardCellDidTapAdd(_ cell: ActivityCardCell, tour: TRPTourProduct) {
-        // Create time selection screen
-        let planData = viewModel.createAddPlanData()
+        // Create time selection screen with the activity's own city
+        let planData = viewModel.createAddPlanData(cityId: tour.cityId)
         let timeSelectionVC = AddPlanTimeSelectionVC(tour: tour, planData: planData)
 
         timeSelectionVC.onTimeSelected = { [weak self] selectedDate, selectedTimeSlot in
@@ -204,8 +204,8 @@ extension SavedPlansVC: ActivityCardCellDelegate {
             }
         }
 
-        // Present as bottom sheet
-        presentVCWithModal(timeSelectionVC, onlyLarge: true, prefersGrabberVisible: false)
+        // Present as dynamic height bottom sheet
+        presentVCWithModal(timeSelectionVC, prefersGrabberVisible: false)
     }
 }
 

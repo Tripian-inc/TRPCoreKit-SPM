@@ -101,6 +101,12 @@ public class TRPSDKCoordinater {
     }
     
     private func startWithSplashVC(uniqueId: String? = nil, email: String? = nil, password: String? = nil) {
+        // Fetch cities for coordinate-based city lookup (async, no auth required)
+        TRPCityCache.shared.fetchCitiesIfNeeded()
+
+        // Prefetch POI categories for filtering (async, no auth required)
+        TRPPoiUseCases.prefetchCategories()
+
         let vc = SplashViewController()
         vc.delegate = self
         vc.uniqueId = uniqueId
@@ -130,16 +136,29 @@ public class TRPSDKCoordinater {
     /// - Parameters:
     ///   - itineraryModel: TRPItineraryWithActivities model containing timeline data
     ///   - tripHash: Optional trip hash. If provided, fetches existing timeline instead of creating new one
-    public func startWithItinerary(_ itineraryModel: TRPItineraryWithActivities, tripHash: String? = nil) {
+    ///   - uniqueId: Optional unique identifier. If not provided, uses device's identifierForVendor
+    public func startWithItinerary(_ itineraryModel: TRPItineraryWithActivities, tripHash: String? = nil, uniqueId: String? = nil) {
         checkAllApiKey()
         userProfile()
+        // Fetch cities for coordinate-based city lookup (async, no auth required)
+        TRPCityCache.shared.fetchCitiesIfNeeded()
 
         // Store itinerary data to be used after splash completes
         pendingItineraryModel = itineraryModel
         pendingTripHash = tripHash
 
+        // Determine uniqueId: use provided value, fall back to itinerary's uniqueId, then device ID
+        let effectiveUniqueId: String
+        if let providedId = uniqueId, !providedId.isEmpty {
+            effectiveUniqueId = providedId
+        } else if !itineraryModel.uniqueId.isEmpty {
+            effectiveUniqueId = itineraryModel.uniqueId
+        } else {
+            effectiveUniqueId = UIDevice.current.identifierForVendor?.uuidString ?? UUID().uuidString
+        }
+
         // Start with splash screen to handle translations and login
-        startWithSplashVC(uniqueId: itineraryModel.uniqueId)
+        startWithSplashVC(uniqueId: effectiveUniqueId)
     }
 
     /// Opens timeline with existing trip hash (fetch existing timeline)
@@ -200,6 +219,10 @@ public class TRPSDKCoordinater {
         checkAllApiKey()
         userProfile()
 //        getLanguages()
+        // Fetch cities for coordinate-based city lookup (async, no auth required)
+        TRPCityCache.shared.fetchCitiesIfNeeded()
+        // Prefetch POI categories for filtering (async, no auth required)
+        TRPPoiUseCases.prefetchCategories()
         startFirstVC()
     }
     
@@ -217,6 +240,8 @@ public class TRPSDKCoordinater {
     public func startForNexus(bookingDetailUrl: String, startDate: String?, endDate: String?, meetingPoint: String?, numberOfAdults: Int?, numberOfChildren: Int?) {
         checkAllApiKey()
         userProfile()
+        // Fetch cities for coordinate-based city lookup (async, no auth required)
+        TRPCityCache.shared.fetchCitiesIfNeeded()
         let vc = myTrip
         vc.bookingDetailUrl = bookingDetailUrl
         //navigationController.pushViewController(vc, animated: true)

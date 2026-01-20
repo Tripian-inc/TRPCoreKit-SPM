@@ -80,13 +80,13 @@ public class SavedPlansViewModel {
     public func convertToTourProduct(from item: TRPSegmentFavoriteItem) -> TRPTourProduct? {
         guard let activityId = item.activityId else { return nil }
 
-        // Format activity ID as C_{id}_15
-        let formattedActivityId = "C_\(activityId)_15"
+        // Format activity ID as C_{id}_15, unless it already starts with C_
+        let formattedActivityId = activityId.hasPrefix("C_") ? activityId : "C_\(activityId)_15"
 
         let location: TRPLocation? = item.coordinate
 
-        // Get city ID from first available city or use 0
-        let cityId = availableCities.first?.id ?? 0
+        // Get city ID from item's own cityId, fallback to first available city or 0
+        let cityId = item.cityId ?? availableCities.first?.id ?? 0
 
         // Create image if photoUrl available
         var image: TRPImage?
@@ -127,15 +127,21 @@ public class SavedPlansViewModel {
         )
     }
 
-    /// Create AddPlanData for time selection flow
-    public func createAddPlanData() -> AddPlanData {
+    /// Create AddPlanData for time selection flow with specific city ID
+    public func createAddPlanData(cityId: Int) -> AddPlanData {
         var planData = AddPlanData()
         planData.tripHash = tripHash
         planData.availableDays = availableDays
-        planData.selectedCity = availableCities.first
+        // Find the city matching the given cityId, fallback to first available city
+        planData.selectedCity = availableCities.first(where: { $0.id == cityId }) ?? availableCities.first
         planData.selectedDay = availableDays.first
         planData.travelers = 1 // Default
         return planData
+    }
+
+    /// Create AddPlanData for time selection flow (uses first available city)
+    public func createAddPlanData() -> AddPlanData {
+        return createAddPlanData(cityId: availableCities.first?.id ?? 0)
     }
 
     // MARK: - Private Methods

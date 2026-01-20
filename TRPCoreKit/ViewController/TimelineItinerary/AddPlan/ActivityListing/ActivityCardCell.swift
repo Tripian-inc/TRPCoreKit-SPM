@@ -40,20 +40,41 @@ class ActivityCardCell: UITableViewCell {
         return imageView
     }()
 
+    // MARK: - Content Stack View (Vertical)
+
+    private let contentStackView: UIStackView = {
+        let stackView = UIStackView()
+        stackView.axis = .vertical
+        stackView.spacing = 4
+        stackView.alignment = .leading
+        stackView.distribution = .fill
+        stackView.translatesAutoresizingMaskIntoConstraints = false
+        return stackView
+    }()
+
     private let titleLabel: UILabel = {
         let label = UILabel()
         label.font = FontSet.montserratSemiBold.font(16)
         label.textColor = ColorSet.primaryText.uiColor
         label.numberOfLines = 2
-        label.translatesAutoresizingMaskIntoConstraints = false
         return label
+    }()
+
+    // MARK: - Rating Stack View (Horizontal)
+
+    private let ratingStackView: UIStackView = {
+        let stackView = UIStackView()
+        stackView.axis = .horizontal
+        stackView.spacing = 2
+        stackView.alignment = .center
+        stackView.distribution = .fill
+        return stackView
     }()
 
     private let ratingLabel: UILabel = {
         let label = UILabel()
         label.font = FontSet.montserratBold.font(14)
         label.textColor = ColorSet.primaryText.uiColor
-        label.translatesAutoresizingMaskIntoConstraints = false
         return label
     }()
 
@@ -62,7 +83,6 @@ class ActivityCardCell: UITableViewCell {
         imageView.image = TRPImageController().getImage(inFramework: "ic_rating_star", inApp: nil)
         imageView.tintColor = ColorSet.primary.uiColor
         imageView.contentMode = .scaleAspectFit
-        imageView.translatesAutoresizingMaskIntoConstraints = false
         return imageView
     }()
 
@@ -70,8 +90,18 @@ class ActivityCardCell: UITableViewCell {
         let label = UILabel()
         label.font = FontSet.montserratMedium.font(14)
         label.textColor = ColorSet.fgWeak.uiColor
-        label.translatesAutoresizingMaskIntoConstraints = false
         return label
+    }()
+
+    // MARK: - Duration Stack View (Horizontal)
+
+    private let durationStackView: UIStackView = {
+        let stackView = UIStackView()
+        stackView.axis = .horizontal
+        stackView.spacing = 4
+        stackView.alignment = .center
+        stackView.distribution = .fill
+        return stackView
     }()
 
     private let durationIconImageView: UIImageView = {
@@ -79,7 +109,6 @@ class ActivityCardCell: UITableViewCell {
         imageView.image = TRPImageController().getImage(inFramework: "ic_duration", inApp: nil)
         imageView.tintColor = ColorSet.fgWeak.uiColor
         imageView.contentMode = .scaleAspectFit
-        imageView.translatesAutoresizingMaskIntoConstraints = false
         return imageView
     }()
 
@@ -87,7 +116,6 @@ class ActivityCardCell: UITableViewCell {
         let label = UILabel()
         label.font = FontSet.montserratMedium.font(14)
         label.textColor = ColorSet.primaryText.uiColor
-        label.translatesAutoresizingMaskIntoConstraints = false
         return label
     }()
 
@@ -96,7 +124,6 @@ class ActivityCardCell: UITableViewCell {
         imageView.image = UIImage(systemName: "bubble.left")
         imageView.tintColor = ColorSet.fgWeak.uiColor
         imageView.contentMode = .scaleAspectFit
-        imageView.translatesAutoresizingMaskIntoConstraints = false
         return imageView
     }()
 
@@ -104,16 +131,14 @@ class ActivityCardCell: UITableViewCell {
         let label = UILabel()
         label.font = FontSet.montserratMedium.font(14)
         label.textColor = ColorSet.primaryText.uiColor
-        label.translatesAutoresizingMaskIntoConstraints = false
         return label
     }()
 
     private let freeCancellationLabel: UILabel = {
         let label = UILabel()
-        label.text = AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.freeCancellation)
+        label.text = CommonLocalizationKeys.localized(CommonLocalizationKeys.freeCancellation)
         label.font = FontSet.montserratMedium.font(14)
         label.textColor = ColorSet.fgGreen.uiColor
-        label.translatesAutoresizingMaskIntoConstraints = false
         return label
     }()
 
@@ -128,10 +153,12 @@ class ActivityCardCell: UITableViewCell {
 
     private let addButton: UIButton = {
         let button = UIButton(type: .system)
-        let config = UIImage.SymbolConfiguration(pointSize: 20, weight: .medium)
-        let image = UIImage(systemName: "plus.circle", withConfiguration: config)
+        let image = TRPImageController().getImage(inFramework: "ic_add_to_plan", inApp: nil)
         button.setImage(image, for: .normal)
         button.tintColor = ColorSet.primary.uiColor
+        button.imageView?.contentMode = .scaleAspectFit
+        // Center 20x20 image in 32x32 button (6px padding on each side)
+        button.imageEdgeInsets = UIEdgeInsets(top: 6, left: 6, bottom: 6, right: 6)
         button.translatesAutoresizingMaskIntoConstraints = false
         return button
     }()
@@ -140,13 +167,8 @@ class ActivityCardCell: UITableViewCell {
         let view = UIView()
         view.backgroundColor = ColorSet.lineWeak.uiColor
         view.translatesAutoresizingMaskIntoConstraints = false
-        view.isHidden = true
         return view
     }()
-
-    // Constraint references for dynamic layout
-    private var priceLabelTopToCancellationConstraint: NSLayoutConstraint?
-    private var priceLabelTopToDurationConstraint: NSLayoutConstraint?
 
     // MARK: - Initialization
 
@@ -165,19 +187,35 @@ class ActivityCardCell: UITableViewCell {
         contentView.backgroundColor = .white
         selectionStyle = .none
 
+        // Add main container
         contentView.addSubview(cardContainerView)
+
+        // Add image view
         cardContainerView.addSubview(activityImageView)
-        cardContainerView.addSubview(titleLabel)
-        cardContainerView.addSubview(ratingLabel)
-        cardContainerView.addSubview(starImageView)
-        cardContainerView.addSubview(reviewCountLabel)
-        cardContainerView.addSubview(durationIconImageView)
-        cardContainerView.addSubview(durationLabel)
-        cardContainerView.addSubview(languageIconImageView)
-        cardContainerView.addSubview(languageLabel)
-        cardContainerView.addSubview(freeCancellationLabel)
-        cardContainerView.addSubview(priceLabel)
+
+        // Setup rating stack view
+        ratingStackView.addArrangedSubview(ratingLabel)
+        ratingStackView.addArrangedSubview(starImageView)
+        ratingStackView.addArrangedSubview(reviewCountLabel)
+
+        // Setup duration stack view
+        durationStackView.addArrangedSubview(durationIconImageView)
+        durationStackView.addArrangedSubview(durationLabel)
+        durationStackView.addArrangedSubview(languageIconImageView)
+        durationStackView.addArrangedSubview(languageLabel)
+
+        // Setup content stack view
+        contentStackView.addArrangedSubview(titleLabel)
+        contentStackView.addArrangedSubview(ratingStackView)
+        contentStackView.addArrangedSubview(durationStackView)
+        contentStackView.addArrangedSubview(freeCancellationLabel)
+
+        // Add content stack view
+        cardContainerView.addSubview(contentStackView)
+
+        // Add button and price (outside stack view)
         cardContainerView.addSubview(addButton)
+        cardContainerView.addSubview(priceLabel)
         cardContainerView.addSubview(separatorView)
 
         addButton.addTarget(self, action: #selector(addButtonTapped), for: .touchUpInside)
@@ -189,78 +227,42 @@ class ActivityCardCell: UITableViewCell {
             cardContainerView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
             cardContainerView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
 
-            // Activity image
-            activityImageView.topAnchor.constraint(equalTo: cardContainerView.topAnchor),
+            // Activity image (fixed size, top-left aligned with 24px top padding)
+            activityImageView.topAnchor.constraint(equalTo: cardContainerView.topAnchor, constant: 24),
             activityImageView.leadingAnchor.constraint(equalTo: cardContainerView.leadingAnchor),
             activityImageView.widthAnchor.constraint(equalToConstant: 80),
             activityImageView.heightAnchor.constraint(equalToConstant: 80),
 
-            // Title label
-            titleLabel.topAnchor.constraint(equalTo: cardContainerView.topAnchor),
-            titleLabel.leadingAnchor.constraint(equalTo: activityImageView.trailingAnchor, constant: 16),
-            titleLabel.trailingAnchor.constraint(equalTo: addButton.leadingAnchor, constant: -8),
-
-            // Add button
-            addButton.topAnchor.constraint(equalTo: cardContainerView.topAnchor),
+            // Add button (top-right with 24px top padding)
+            addButton.topAnchor.constraint(equalTo: cardContainerView.topAnchor, constant: 24),
             addButton.trailingAnchor.constraint(equalTo: cardContainerView.trailingAnchor),
             addButton.widthAnchor.constraint(equalToConstant: 32),
             addButton.heightAnchor.constraint(equalToConstant: 32),
 
-            // Rating label
-            ratingLabel.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 4),
-            ratingLabel.leadingAnchor.constraint(equalTo: activityImageView.trailingAnchor, constant: 16),
+            // Content stack view (between image and add button, with 24px top padding)
+            contentStackView.topAnchor.constraint(equalTo: cardContainerView.topAnchor, constant: 24),
+            contentStackView.leadingAnchor.constraint(equalTo: activityImageView.trailingAnchor, constant: 16),
+            contentStackView.trailingAnchor.constraint(equalTo: addButton.leadingAnchor, constant: -8),
 
-            // Star image
-            starImageView.centerYAnchor.constraint(equalTo: ratingLabel.centerYAnchor),
-            starImageView.leadingAnchor.constraint(equalTo: ratingLabel.trailingAnchor, constant: 2),
+            // Star and duration icons size
             starImageView.widthAnchor.constraint(equalToConstant: 12),
             starImageView.heightAnchor.constraint(equalToConstant: 12),
-
-            // Review count label
-            reviewCountLabel.centerYAnchor.constraint(equalTo: ratingLabel.centerYAnchor),
-            reviewCountLabel.leadingAnchor.constraint(equalTo: starImageView.trailingAnchor, constant: 4),
-
-            // Duration icon
-            durationIconImageView.topAnchor.constraint(equalTo: ratingLabel.bottomAnchor, constant: 6),
-            durationIconImageView.leadingAnchor.constraint(equalTo: activityImageView.trailingAnchor, constant: 16),
             durationIconImageView.widthAnchor.constraint(equalToConstant: 16),
             durationIconImageView.heightAnchor.constraint(equalToConstant: 16),
-
-            // Duration label
-            durationLabel.centerYAnchor.constraint(equalTo: durationIconImageView.centerYAnchor),
-            durationLabel.leadingAnchor.constraint(equalTo: durationIconImageView.trailingAnchor, constant: 4),
-
-            // Language icon
-            languageIconImageView.centerYAnchor.constraint(equalTo: durationIconImageView.centerYAnchor),
-            languageIconImageView.leadingAnchor.constraint(equalTo: durationLabel.trailingAnchor, constant: 8),
             languageIconImageView.widthAnchor.constraint(equalToConstant: 16),
             languageIconImageView.heightAnchor.constraint(equalToConstant: 16),
 
-            // Language label
-            languageLabel.centerYAnchor.constraint(equalTo: languageIconImageView.centerYAnchor),
-            languageLabel.leadingAnchor.constraint(equalTo: languageIconImageView.trailingAnchor, constant: 4),
-
-            // Free cancellation label
-            freeCancellationLabel.topAnchor.constraint(equalTo: durationIconImageView.bottomAnchor, constant: 6),
-            freeCancellationLabel.leadingAnchor.constraint(equalTo: activityImageView.trailingAnchor, constant: 16),
-
-            // Price label (trailing and bottom only - top constraint is dynamic)
+            // Price label (bottom-right, above separator)
+            priceLabel.topAnchor.constraint(equalTo: contentStackView.bottomAnchor, constant: 4),
             priceLabel.trailingAnchor.constraint(equalTo: cardContainerView.trailingAnchor),
-            priceLabel.bottomAnchor.constraint(lessThanOrEqualTo: cardContainerView.bottomAnchor, constant: -16),
 
-            // Separator
+            // Separator (16px padding from left and right)
+            separatorView.topAnchor.constraint(equalTo: priceLabel.bottomAnchor, constant: 14),
             separatorView.leadingAnchor.constraint(equalTo: cardContainerView.leadingAnchor),
             separatorView.trailingAnchor.constraint(equalTo: cardContainerView.trailingAnchor),
             separatorView.bottomAnchor.constraint(equalTo: cardContainerView.bottomAnchor),
             separatorView.heightAnchor.constraint(equalToConstant: 0.5)
         ])
-
-        // Create dynamic constraints for price label
-        priceLabelTopToCancellationConstraint = priceLabel.topAnchor.constraint(equalTo: freeCancellationLabel.bottomAnchor, constant: 12)
-        priceLabelTopToDurationConstraint = priceLabel.topAnchor.constraint(equalTo: durationIconImageView.bottomAnchor, constant: 6)
-
-        // Default: show with cancellation label
-        priceLabelTopToCancellationConstraint?.isActive = true
     }
 
     // MARK: - Actions
@@ -268,23 +270,6 @@ class ActivityCardCell: UITableViewCell {
     @objc private func addButtonTapped() {
         guard let tour = tour else { return }
         delegate?.activityCardCellDidTapAdd(self, tour: tour)
-    }
-
-    // MARK: - Private Methods
-
-    private func updateCancellationLabelVisibility(isCancellable: Bool) {
-        if isCancellable {
-            freeCancellationLabel.text = AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.freeCancellation)
-            freeCancellationLabel.isHidden = false
-            // Price label below cancellation label
-            priceLabelTopToDurationConstraint?.isActive = false
-            priceLabelTopToCancellationConstraint?.isActive = true
-        } else {
-            freeCancellationLabel.isHidden = true
-            // Price label below duration (moves up)
-            priceLabelTopToCancellationConstraint?.isActive = false
-            priceLabelTopToDurationConstraint?.isActive = true
-        }
     }
 
     // MARK: - Configuration
@@ -298,13 +283,9 @@ class ActivityCardCell: UITableViewCell {
             ratingLabel.text = String(format: "%.1f", tour.rating ?? 0)
             reviewCountLabel.text = "\(tour.ratingCount?.formattedWithSeparator ?? "0") " +
                                    AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.opinions)
-            ratingLabel.isHidden = false
-            starImageView.isHidden = false
-            reviewCountLabel.isHidden = false
+            ratingStackView.isHidden = false
         } else {
-            ratingLabel.isHidden = true
-            starImageView.isHidden = true
-            reviewCountLabel.isHidden = true
+            ratingStackView.isHidden = true
         }
 
         // Set duration
@@ -312,9 +293,9 @@ class ActivityCardCell: UITableViewCell {
             durationLabel.text = TimelineLocalizationKeys.formatDuration(minutes: duration)
             durationIconImageView.isHidden = false
             durationLabel.isHidden = false
+            durationStackView.isHidden = false
         } else {
-            durationIconImageView.isHidden = true
-            durationLabel.isHidden = true
+            durationStackView.isHidden = true
         }
 
         // Set language - hide for now as we don't have this data in TRPTourProduct
@@ -322,13 +303,34 @@ class ActivityCardCell: UITableViewCell {
         languageLabel.isHidden = true
 
         // Free cancellation - show if tour is cancellable
-        updateCancellationLabelVisibility(isCancellable: tour.isCancellable)
+        freeCancellationLabel.isHidden = !tour.isCancellable
+        if tour.isCancellable {
+            freeCancellationLabel.text = CommonLocalizationKeys.localized(CommonLocalizationKeys.freeCancellation)
+        }
 
-        // Set price
+        // Set price with attributed string
         if let price = tour.price {
-            priceLabel.text = "\(AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.from)) $\(price)"
+            let fromText = CommonLocalizationKeys.localized(CommonLocalizationKeys.from) + " "
+            let priceText = "$\(price)"
+
+            let attributedString = NSMutableAttributedString()
+            attributedString.append(NSAttributedString(
+                string: fromText,
+                attributes: [
+                    .font: FontSet.montserratMedium.font(14),
+                    .foregroundColor: ColorSet.primaryText.uiColor
+                ]
+            ))
+            attributedString.append(NSAttributedString(
+                string: priceText,
+                attributes: [
+                    .font: FontSet.montserratBold.font(16),
+                    .foregroundColor: ColorSet.primaryText.uiColor
+                ]
+            ))
+            priceLabel.attributedText = attributedString
         } else {
-            priceLabel.text = ""
+            priceLabel.attributedText = nil
         }
 
         // Set activity image using SDWebImage
@@ -352,18 +354,18 @@ class ActivityCardCell: UITableViewCell {
             ratingLabel.text = String(format: "%.1f", rating)
             reviewCountLabel.text = "\(ratingCount.formattedWithSeparator) " +
                                    AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.opinions)
-            ratingLabel.isHidden = false
-            starImageView.isHidden = false
-            reviewCountLabel.isHidden = false
+            ratingStackView.isHidden = false
         } else {
-            ratingLabel.isHidden = true
-            starImageView.isHidden = true
-            reviewCountLabel.isHidden = true
+            ratingStackView.isHidden = true
         }
 
-        // Duration not available in TRPSegmentFavoriteItem
-        durationIconImageView.isHidden = true
-        durationLabel.isHidden = true
+        // Duration - use from favoriteItem if available
+        if let duration = favoriteItem.duration {
+            durationLabel.text = TimelineLocalizationKeys.formatDuration(minutes: Int(duration))
+            durationStackView.isHidden = false
+        } else {
+            durationStackView.isHidden = true
+        }
 
         // Language not available
         languageIconImageView.isHidden = true
@@ -377,14 +379,35 @@ class ActivityCardCell: UITableViewCell {
         } else {
             isCancellable = true // Default to cancellable if no cancellation info
         }
-        updateCancellationLabelVisibility(isCancellable: isCancellable)
+        freeCancellationLabel.isHidden = !isCancellable
+        if isCancellable {
+            freeCancellationLabel.text = CommonLocalizationKeys.localized(CommonLocalizationKeys.freeCancellation)
+        }
 
-        // Set price with currency
+        // Set price with currency using attributed string
         if let price = favoriteItem.price {
             let currencySymbol = getCurrencySymbol(for: price.currency)
-            priceLabel.text = "\(AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.from)) \(currencySymbol)\(String(format: "%.2f", price.value))"
+            let fromText = CommonLocalizationKeys.localized(CommonLocalizationKeys.from) + " "
+            let priceText = "\(currencySymbol)\(String(format: "%.2f", price.value))"
+
+            let attributedString = NSMutableAttributedString()
+            attributedString.append(NSAttributedString(
+                string: fromText,
+                attributes: [
+                    .font: FontSet.montserratMedium.font(14),
+                    .foregroundColor: ColorSet.primaryText.uiColor
+                ]
+            ))
+            attributedString.append(NSAttributedString(
+                string: priceText,
+                attributes: [
+                    .font: FontSet.montserratBold.font(16),
+                    .foregroundColor: ColorSet.primaryText.uiColor
+                ]
+            ))
+            priceLabel.attributedText = attributedString
         } else {
-            priceLabel.text = ""
+            priceLabel.attributedText = nil
         }
 
         // Hide separator for saved plans screen
@@ -397,6 +420,11 @@ class ActivityCardCell: UITableViewCell {
             activityImageView.image = nil
             activityImageView.backgroundColor = ColorSet.neutral100.uiColor
         }
+    }
+
+    /// Configure separator visibility (hide for last cell)
+    func setSeparatorHidden(_ hidden: Bool) {
+        separatorView.isHidden = hidden
     }
 
     /// Get currency symbol for currency code

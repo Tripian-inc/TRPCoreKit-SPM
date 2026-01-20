@@ -26,6 +26,11 @@ public class AddPlanSelectDayViewModel {
     public func getAvailableCities() -> [TRPCity] {
         return containerViewModel?.getAvailableCities() ?? []
     }
+
+    /// Returns true if there's only one city available (no need for city selection)
+    public func hasSingleCity() -> Bool {
+        return getAvailableCities().count == 1
+    }
     
     public func getSelectedDay() -> Date? {
         return containerViewModel?.planData.selectedDay
@@ -79,8 +84,24 @@ public class AddPlanSelectDayViewModel {
     public func getSelectedManualCategory() -> String? {
         return containerViewModel?.planData.selectedCategories.first
     }
-    
+
     public func setSelectedManualCategory(_ categoryId: String?) {
         containerViewModel?.planData.selectedCategories = categoryId != nil ? [categoryId!] : []
+    }
+
+    // MARK: - Date-City Mapping
+
+    /// Get cities for currently selected day
+    /// Returns mapped cities first, then other cities
+    public func getCitiesForSelectedDay() -> (mapped: [TRPCity], other: [TRPCity]) {
+        guard let selectedDay = containerViewModel?.planData.selectedDay else {
+            return (mapped: [], other: getAvailableCities())
+        }
+        return containerViewModel?.getCitiesForDate(selectedDay) ?? (mapped: [], other: getAvailableCities())
+    }
+
+    /// Check if date-city mapping is available
+    public func hasDateCityMapping() -> Bool {
+        return containerViewModel?.hasDateCityMapping() ?? false
     }
 }

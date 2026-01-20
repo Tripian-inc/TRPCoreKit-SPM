@@ -98,6 +98,43 @@ public class TRPCityCache {
         return getCity(byId: cityId)?.coordinate
     }
 
+    /// Returns the nearest city to the given coordinate.
+    /// Uses simple distance calculation (suitable for finding nearby cities).
+    /// - Parameter coordinate: The coordinate to search near
+    /// - Parameter maxDistanceKm: Maximum distance in kilometers (default 100km)
+    /// - Returns: The nearest TRPCity if found within maxDistance, nil otherwise
+    public func getCityByCoordinate(_ coordinate: TRPLocation, maxDistanceKm: Double = 100) -> TRPCity? {
+        var result: TRPCity?
+        queue.sync {
+            var minDistance = Double.greatestFiniteMagnitude
+            for city in cities {
+                let distance = calculateDistance(from: coordinate, to: city.coordinate)
+                if distance < minDistance && distance <= maxDistanceKm {
+                    minDistance = distance
+                    result = city
+                }
+            }
+        }
+        return result
+    }
+
+    /// Calculate distance between two coordinates in kilometers using Haversine formula
+    private func calculateDistance(from: TRPLocation, to: TRPLocation) -> Double {
+        let earthRadiusKm: Double = 6371.0
+
+        let lat1Rad = from.lat * .pi / 180
+        let lat2Rad = to.lat * .pi / 180
+        let deltaLatRad = (to.lat - from.lat) * .pi / 180
+        let deltaLonRad = (to.lon - from.lon) * .pi / 180
+
+        let a = sin(deltaLatRad / 2) * sin(deltaLatRad / 2) +
+                cos(lat1Rad) * cos(lat2Rad) *
+                sin(deltaLonRad / 2) * sin(deltaLonRad / 2)
+        let c = 2 * atan2(sqrt(a), sqrt(1 - a))
+
+        return earthRadiusKm * c
+    }
+
     /// Returns all cached cities.
     /// - Returns: Array of TRPCity objects
     public func getAllCities() -> [TRPCity] {

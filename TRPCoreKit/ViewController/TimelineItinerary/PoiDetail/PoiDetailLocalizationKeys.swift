@@ -13,8 +13,8 @@ public struct PoiDetailLocalizationKeys {
     public static let activities = "poiDetail.section.activities"
     public static let seeMore = "poiDetail.button.seeMore"
     public static let readFullDescription = "poiDetail.button.readFullDescription"
-    public static let freeCancellation = "poiDetail.label.freeCancellation"
-    public static let from = "poiDetail.label.from"
+    public static let closeFullDescription = "poiDetail.button.closeFullDescription"
+    // freeCancellation and from are now in CommonLocalizationKeys
 
     // MARK: - Key Data Section
     public static let keyData = "poiDetail.section.keyData"
@@ -32,15 +32,14 @@ public struct PoiDetailLocalizationKeys {
 
     // MARK: - Map Action Sheet
     public static let openIn = "poiDetail.actionSheet.openIn"
-    public static let cancel = "poiDetail.button.cancel"
+    // cancel is now in CommonLocalizationKeys
 
     // MARK: - Default English Values
     private static let defaultValues: [String: String] = [
         activities: "Activities",
         seeMore: "See more",
         readFullDescription: "Read full description",
-        freeCancellation: "Free cancellation",
-        from: "From:",
+        closeFullDescription: "Close full description",
         keyData: "Key Data",
         phone: "Phone",
         openingHours: "Opening Hours",
@@ -49,8 +48,7 @@ public struct PoiDetailLocalizationKeys {
         whereItStarts: "Where it starts",
         viewMap: "View map",
         features: "Features",
-        openIn: "Open in",
-        cancel: "Cancel"
+        openIn: "Open in"
     ]
 
     // MARK: - Helper Methods

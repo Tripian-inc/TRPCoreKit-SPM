@@ -18,7 +18,7 @@ public class GetYourGuideApi {
     var testApiKey = "api.testing20.gygtest.com"
     var productApiKey = "api.getyourguide.com"
     
-    private let currency = "USD"
+    private let currency = "EUR"
     
     private var networkController: NetworkController?
     
@@ -68,7 +68,7 @@ extension GetYourGuideApi {
                       categoryIds: [Int]? = nil,
                       preformatted: String = "full",
                       language: String = "en",
-                      currency: String = "usd",
+                      currency: String = "eur",
                       fromDate from: String? = nil,
                       toDate to:String? = nil,
                       limit: Int = 500,
@@ -124,7 +124,7 @@ extension GetYourGuideApi {
     public func tour(id: Int,
                      preformatted: String = "full",
                      language: String = "en",
-                     currency: String = "usd",
+                     currency: String = "eur",
                      completion: @escaping (Result<GYGTour, Error>) -> Void) {
         let path = "/1/tours/\(id)"
         var params = [String: String]()
@@ -158,7 +158,7 @@ extension GetYourGuideApi {
     ///   - completion: <#completion description#>
 //    public func tourAvailabilities(id: Int,
 //                                   language: String = "en",
-//                                   currency: String = "usd",
+//                                   currency: String = "eur",
 //                                   fromDate from: String,
 //                                   toDate to:String,
 //                                   completion: @escaping (Result<[GYGAvailability], Error>) -> Void) {
@@ -183,7 +183,7 @@ extension GetYourGuideApi {
     
     public func tourAvailability(id: Int,
                                  language: String = "en",
-                                 currency: String = "usd",
+                                 currency: String = "eur",
                                  completion: @escaping (Result<GYGAvailability, Error>) -> Void) {
         let path = "/1/tours/\(id)/availability"
         var params = [URLQueryItem]()
@@ -204,7 +204,7 @@ extension GetYourGuideApi {
     
     public func tourOptions(tourId id: Int,
                                    language: String = "en",
-                                   currency: String = "usd",
+                                   currency: String = "eur",
                                    fromDate from: String? = nil,
                                    toDate to:String? = nil,
                                    completion: @escaping (Result<[GYGTourOption], Error>) -> Void) {
@@ -234,7 +234,7 @@ extension GetYourGuideApi {
     
     public func options(optionId id: Int,
                         language: String = "en",
-                        currency: String = "usd",
+                        currency: String = "eur",
                         completion: @escaping (Result<GYGTourOption?, Error>) -> Void) {
         let path = "/1/options/\(id)"
         var params = [String: String]()
@@ -260,7 +260,7 @@ extension GetYourGuideApi {
 extension GetYourGuideApi {
     
     public func categories(language: String = "en",
-                           currency: String = "usd",
+                           currency: String = "eur",
                            limit: Int? = nil,
                            completion: @escaping (Result<[GYGCategory], Error>) -> Void) {
         
@@ -286,7 +286,7 @@ extension GetYourGuideApi {
     
     public func category(id: Int,
                          language: String = "en",
-                         currency: String = "usd",
+                         currency: String = "eur",
                          limit: Int? = nil,
                          completion: @escaping (Result<[GYGCategory], Error>) -> Void) {
         
@@ -316,7 +316,7 @@ extension GetYourGuideApi {
     
     public func reviews(tourId:Int,
                         language: String = "en",
-                        currency: String = "usd",
+                        currency: String = "eur",
                         sortfield: GYGSortField? = nil,
                         sortDirection: GYGSortDirection? = nil,
                         limit: Int? = nil,
@@ -361,7 +361,7 @@ extension GetYourGuideApi {
     
 //    public func optionPricings(optionId id: Int,
 //                                   language: String = "en",
-//                                   currency: String = "usd",
+//                                   currency: String = "eur",
 //                                   completion: @escaping (Result<[GYGOptionPricing], Error>) -> Void) {
 //        let path = "/1/options/\(id)/pricings"
 //        var params = [String: String]()
@@ -383,7 +383,7 @@ extension GetYourGuideApi {
     public func priceBreakdown(tourId id: Int,
                                dateTime: String,
                                participants: [GYGPricingBreakdownParticipantsProperty],
-                               currency: String = "USD",
+                               currency: String = "EUR",
                                completion: @escaping (Result<[GYGOptionPricing], Error>) -> Void) {
         
         let path = "/1/tours/\(id)/price-breakdown"
@@ -425,7 +425,7 @@ extension GetYourGuideApi {
                         categories: [GYGBookingCategoryPropety],
                         bookingParameters: [GYGBookingParameterProperty],
                         language: String = "en",
-                        currency: String = "USD",
+                        currency: String = "EUR",
                         completion: @escaping (Result<GYGBookings?, Error>) -> Void) {
         
         let path = "/1/bookings"
@@ -461,7 +461,7 @@ extension GetYourGuideApi {
     
     public func getBooking(hash: String,
                            language: String = "en",
-                           currency: String = "usd",
+                           currency: String = "eur",
                            completion: @escaping (Result<GYGPaymentBooking?, Error>) -> Void) {
         let path = "/1/bookings/\(hash)"
         var params = [String: String]()
@@ -485,7 +485,7 @@ extension GetYourGuideApi {
     
     func deleteBooking(hash: String,
                        language: String = "en",
-                       currency: String = "usd",
+                       currency: String = "eur",
                        completion: @escaping (Result<GYGBookings?, Error>) -> Void) {
         let path = "/1/bookings/\(hash)"
         var params = [String: String]()
@@ -514,7 +514,7 @@ extension GetYourGuideApi {
     
     public func paymentConfiguration(country: String = "US",
                                         language: String = "en",
-                                        currency: String = "usd",
+                                        currency: String = "eur",
                                         completion: @escaping (Result<[GYGPaymentMethod], Error>) -> Void) {
         let path = "/1/configuration/payment"
         
@@ -540,7 +540,7 @@ extension GetYourGuideApi {
                      traveler: GYGTraveler? = nil,
                      payment: GYGPayment,
                      language: String = "en",
-                     currency: String = "USD",
+                     currency: String = "EUR",
                      completion: @escaping (Result<GYGPaymentResult?, Error>) -> Void) {
         
         let path = "/1/carts"
@@ -574,7 +574,7 @@ extension GetYourGuideApi {
     
     public func getCart(hash: String,
                         language: String = "en",
-                        currency: String = "usd",
+                        currency: String = "eur",
                         completion: @escaping (Result<GYGPaymentResult?, Error>) -> Void) {
         let path = "/1/carts/\(hash)"
         var params = [String: String]()
@@ -598,7 +598,7 @@ extension GetYourGuideApi {
     
 
     public func delete(language: String = "en",
-                           currency: String = "usd",
+                           currency: String = "eur",
                            bookingHash: String,
                            completion: @escaping (Result<Bool, Error>) -> Void) {
         

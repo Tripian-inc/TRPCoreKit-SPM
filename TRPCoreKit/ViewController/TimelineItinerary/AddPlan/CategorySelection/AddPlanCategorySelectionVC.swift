@@ -38,6 +38,13 @@ public class AddPlanCategorySelectionVC: TRPBaseUIViewController, AddPlanChildVi
         return view
     }()
 
+    private let bottomSeparator: UIView = {
+        let view = UIView()
+        view.translatesAutoresizingMaskIntoConstraints = false
+        view.backgroundColor = ColorSet.neutral200.uiColor
+        return view
+    }()
+
     // MARK: - Lifecycle
     public override func setupViews() {
         super.setupViews()
@@ -46,6 +53,7 @@ public class AddPlanCategorySelectionVC: TRPBaseUIViewController, AddPlanChildVi
         // Add all subviews directly to view (scroll is handled by container)
         view.addSubview(descriptionLabel)
         view.addSubview(gridContainer)
+        view.addSubview(bottomSeparator)
 
         NSLayoutConstraint.activate([
             descriptionLabel.topAnchor.constraint(equalTo: view.topAnchor, constant: 24),
@@ -55,6 +63,11 @@ public class AddPlanCategorySelectionVC: TRPBaseUIViewController, AddPlanChildVi
             gridContainer.topAnchor.constraint(equalTo: descriptionLabel.bottomAnchor, constant: 16),
             gridContainer.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 24),
             gridContainer.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -24),
+
+            bottomSeparator.topAnchor.constraint(equalTo: gridContainer.bottomAnchor, constant: 24),
+            bottomSeparator.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            bottomSeparator.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            bottomSeparator.heightAnchor.constraint(equalToConstant: 0.5),
         ])
 
         setupCategoryButtons()
@@ -144,14 +157,19 @@ public class AddPlanCategorySelectionVC: TRPBaseUIViewController, AddPlanChildVi
         button.layer.cornerRadius = 8
         button.layer.borderWidth = 1
         button.layer.borderColor = ColorSet.lineWeak.uiColor.cgColor
-        
-        // Icon container
+
+        // Content container (holds icon + label, centered in button)
+        let contentContainer = UIView()
+        contentContainer.translatesAutoresizingMaskIntoConstraints = false
+        contentContainer.isUserInteractionEnabled = false
+
+        // Icon
         let iconImageView = UIImageView()
         iconImageView.translatesAutoresizingMaskIntoConstraints = false
-        iconImageView.image = TRPImageController().getImage(inFramework: category.iconName, inApp: nil)
-        iconImageView.tintColor = ColorSet.fgWeak.uiColor
+        iconImageView.image = TRPImageController().getImage(inFramework: category.iconName, inApp: nil)?.withRenderingMode(.alwaysTemplate)
+        iconImageView.tintColor = ColorSet.fg.uiColor
         iconImageView.contentMode = .scaleAspectFit
-        
+
         // Label
         let label = UILabel()
         label.translatesAutoresizingMaskIntoConstraints = false
@@ -161,26 +179,37 @@ public class AddPlanCategorySelectionVC: TRPBaseUIViewController, AddPlanChildVi
         label.textAlignment = .center
         label.numberOfLines = 2
         label.lineBreakMode = .byWordWrapping
-        
-        button.addSubview(iconImageView)
-        button.addSubview(label)
-        
+
+        contentContainer.addSubview(iconImageView)
+        contentContainer.addSubview(label)
+        button.addSubview(contentContainer)
+
         NSLayoutConstraint.activate([
-            iconImageView.centerXAnchor.constraint(equalTo: button.centerXAnchor),
-            iconImageView.topAnchor.constraint(equalTo: button.topAnchor, constant: 12),
+            // Content container centered in button
+            contentContainer.centerXAnchor.constraint(equalTo: button.centerXAnchor),
+            contentContainer.centerYAnchor.constraint(equalTo: button.centerYAnchor),
+            contentContainer.leadingAnchor.constraint(greaterThanOrEqualTo: button.leadingAnchor, constant: 8),
+            contentContainer.trailingAnchor.constraint(lessThanOrEqualTo: button.trailingAnchor, constant: -8),
+
+            // Icon at top of container
+            iconImageView.topAnchor.constraint(equalTo: contentContainer.topAnchor),
+            iconImageView.centerXAnchor.constraint(equalTo: contentContainer.centerXAnchor),
             iconImageView.widthAnchor.constraint(equalToConstant: 32),
             iconImageView.heightAnchor.constraint(equalToConstant: 32),
-            
-            label.bottomAnchor.constraint(equalTo: button.bottomAnchor, constant: -12),
-            label.leadingAnchor.constraint(equalTo: button.leadingAnchor, constant: 10),
-            label.trailingAnchor.constraint(equalTo: button.trailingAnchor, constant: -10),
+
+            // Label below icon
+            label.topAnchor.constraint(equalTo: iconImageView.bottomAnchor, constant: 8),
+            label.leadingAnchor.constraint(equalTo: contentContainer.leadingAnchor),
+            label.trailingAnchor.constraint(equalTo: contentContainer.trailingAnchor),
+            label.bottomAnchor.constraint(equalTo: contentContainer.bottomAnchor),
+            label.widthAnchor.constraint(lessThanOrEqualToConstant: width - 16),
         ])
-        
+
         button.addTarget(self, action: #selector(categoryButtonTapped(_:)), for: .touchUpInside)
-        
+
         // Set initial state
         updateCategoryButtonStyle(button, isSelected: category.isSelected)
-        
+
         return button
     }
     
