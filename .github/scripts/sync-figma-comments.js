@@ -1,38 +1,48 @@
 import fetch from 'node-fetch';
-import fs from 'fs';
-import path from 'path';
 
 const FIGMA_TOKEN = process.env.FIGMA_TOKEN;
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
 const FIGMA_FILE_KEY = process.env.FIGMA_FILE_KEY;
 const GITHUB_REPO = process.env.GITHUB_REPO;
 
-const PROCESSED_COMMENTS_FILE = '.github/data/processed-comments.json';
-
 // Sadece bu tarihten sonraki yorumları işle (YYYY-MM-DD formatında)
-// Bu tarihi değiştirerek hangi tarihten itibaren yorumların issue olmasını istediğinizi belirleyebilirsiniz
-const START_DATE = new Date('2026-01-15'); // Bu tarihi güncelleyin!
+const START_DATE = new Date('2025-01-15'); // Bu tarihi değiştirin!
 
-// Daha önce işlenmiş yorumları oku
-function getProcessedComments() {
-  try {
-    if (fs.existsSync(PROCESSED_COMMENTS_FILE)) {
-      const data = fs.readFileSync(PROCESSED_COMMENTS_FILE, 'utf8');
-      return new Set(JSON.parse(data));
+// GitHub'dan daha önce işlenmiş comment ID'leri getir
+async function getProcessedCommentIds() {
+  const processed = new Set();
+  let page = 1;
+  
+  while (true) {
+    const url = `https://api.github.com/repos/${GITHUB_REPO}/issues?labels=figma&state=all&per_page=100&page=${page}`;
+    
+    const response = await fetch(url, {
+      headers: {
+        'Authorization': `token ${GITHUB_TOKEN}`,
+        'Accept': 'application/vnd.github.v3+json'
+      }
+    });
+
+    if (!response.ok) {
+      console.error('Failed to fetch existing issues');
+      break;
     }
-  } catch (error) {
-    console.log('No processed comments file found, starting fresh');
-  }
-  return new Set();
-}
 
-// İşlenmiş yorumları kaydet
-function saveProcessedComments(processedSet) {
-  const dir = path.dirname(PROCESSED_COMMENTS_FILE);
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true });
+    const issues = await response.json();
+    if (issues.length === 0) break;
+    
+    // Issue body'den Comment ID çıkar
+    issues.forEach(issue => {
+      const match = issue.body?.match(/\*\*Comment ID:\*\*\s*(.+)/);
+      if (match) {
+        processed.add(match[1].trim());
+      }
+    });
+    
+    page++;
   }
-  fs.writeFileSync(PROCESSED_COMMENTS_FILE, JSON.stringify([...processedSet], null, 2));
+  
+  return processed;
 }
 
 // Figma yorumlarını getir
@@ -106,9 +116,10 @@ async function main() {
   console.log('🚀 Starting Figma to GitHub sync...');
   
   try {
-    // Daha önce işlenmiş yorumları yükle
-    const processedComments = getProcessedComments();
-    console.log(`📋 Already processed ${processedComments.size} comments`);
+    // Daha önce işlenmiş yorumları GitHub'dan al
+    console.log('📋 Fetching already processed comments from GitHub issues...');
+    const processedComments = await getProcessedCommentIds();
+    console.log(`✅ Already processed ${processedComments.size} comments`);
 
     // Figma yorumlarını getir
     console.log('📥 Fetching Figma comments...');
@@ -139,7 +150,6 @@ async function main() {
         const issue = await createGitHubIssue(comment);
         console.log(`✅ Created issue #${issue.number}: ${issue.html_url}`);
         
-        processedComments.add(comment.id);
         successCount++;
         
         // API rate limit'e takılmamak için kısa bekleme
@@ -149,8 +159,6 @@ async function main() {
       }
     }
 
-    // İşlenmiş yorumları kaydet
-    saveProcessedComments(processedComments);
     console.log(`\n🎉 Successfully synced ${successCount}/${newComments.length} comments!`);
 
   } catch (error) {
