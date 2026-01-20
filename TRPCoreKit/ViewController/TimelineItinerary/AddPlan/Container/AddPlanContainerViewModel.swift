@@ -14,25 +14,8 @@ public protocol AddPlanContainerViewModelDelegate: AnyObject {
     func planCompleted(data: AddPlanData)
 }
 
-public struct AddPlanData {
-    public var selectedDay: Date?
-    public var selectedCity: TRPCity?
-    public var selectedMode: AddPlanMode = .none
-    public var startingPointLocation: TRPLocation? // Latitude/longitude coordinates
-    public var startingPointName: String? // Display name for the starting point
-    public var startTime: Date?
-    public var endTime: Date?
-    public var travelers: Int = 0
-    public var selectedCategories: [String] = []
-    public var tripHash: String? // Timeline trip hash for segment creation
-    public var availableDays: [Date] = [] // Available days from timeline/itinerary
-}
-
-public enum AddPlanMode {
-    case none
-    case smartRecommendations
-    case manual
-}
+// Models moved to TRPDataLayer/Domain/Models/AddPlan/TRPAddPlanData.swift (SOLID: SRP)
+// Type aliases are defined in that file for backward compatibility
 
 public class AddPlanContainerViewModel {
 
