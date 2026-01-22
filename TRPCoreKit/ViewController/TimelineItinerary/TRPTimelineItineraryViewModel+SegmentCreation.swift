@@ -124,6 +124,12 @@ extension TRPTimelineItineraryViewModel {
 
         let tripHash = timeline.tripHash
 
+        // Store day index for navigation after segment creation
+        if let selectedDay = data.selectedDay,
+           let index = data.availableDays.firstIndex(where: { Calendar.current.isDate($0, inSameDayAs: selectedDay) }) {
+            pendingNavigationDayIndex = index
+        }
+
         // 2. Show loading
         delegate?.viewModel(showPreloader: true)
 
@@ -248,6 +254,12 @@ extension TRPTimelineItineraryViewModel {
             guard isGenerated else { return }
 
             DispatchQueue.main.async {
+                // Apply pending day navigation before refresh
+                if let dayIndex = self.pendingNavigationDayIndex {
+                    self.selectedDayIndex = dayIndex
+                    self.pendingNavigationDayIndex = nil
+                }
+
                 // Refresh timeline now that generation is complete
                 self.refreshTimeline()
 

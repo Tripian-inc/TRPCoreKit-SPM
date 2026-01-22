@@ -27,7 +27,9 @@ class AddPoisTableViewViewModel {
     
     weak var delegate: AddPoiTableViewVMDelegate?
     public var contentMode: AddPlaceListContentType
-    private var nextPageLink: String = ""
+    private var currentPage: Int = 1
+    private var totalPages: Int = 1
+    private var hasMorePages: Bool = false
     
     
     private(set) var userLocation: TRPLocation? = nil
@@ -165,24 +167,38 @@ class AddPoisTableViewViewModel {
     }
     
     public func loadNextPage() {
-        if nextPageLink.count < 5 {return}
+        guard hasMorePages else { return }
         delegate?.viewModel(showPreloader: true)
-        
-        nextUrlPoiUseCase?.executeFetchPoi(url: nextPageLink) { [weak self] result, pagination in
+
+        let nextPage = currentPage + 1
+        var typeIds: [Int] = [placeType.id]
+        typeIds.append(contentsOf: placeType.subTypes)
+
+        fetchCategoryPoiUseCase?.executeFetchCategoryPois(categoryIds: typeIds, completion: { [weak self] result, pagination in
             self?.delegate?.viewModel(showPreloader: false)
-            if case .continues(let url) = pagination {
-                self?.nextPageLink = url
-            }else {
-                self?.nextPageLink = ""
-            }
-            
+            self?.updatePaginationInfo(pagination)
+
             switch result {
             case .success(let pois):
-                
                 self?.poiFromServer.append(contentsOf: pois)
             case .failure(let error):
                 self?.delegate?.viewModel(error: error)
             }
+        })
+    }
+
+    private func updatePaginationInfo(_ pagination: TRPPagination?) {
+        if let pagination = pagination {
+            switch pagination {
+            case .completed:
+                hasMorePages = false
+            case .continues(let paginationInfo):
+                currentPage = paginationInfo.currentPage
+                totalPages = paginationInfo.totalPages
+                hasMorePages = paginationInfo.hasMore
+            }
+        } else {
+            hasMorePages = false
         }
     }
     
@@ -204,7 +220,9 @@ class AddPoisTableViewViewModel {
     
     private func clearContentData() {
         displayedPoi = []
-        nextPageLink = ""
+        currentPage = 1
+        totalPages = 1
+        hasMorePages = false
     }
     
     deinit {
@@ -236,12 +254,10 @@ extension AddPoisTableViewViewModel {
         delegate?.viewModel(showPreloader: true)
         var typeIds: [Int] = [placeType.id]
         typeIds.append(contentsOf: placeType.subTypes)
-        
+
         fetchCategoryPoiUseCase?.executeFetchCategoryPois(categoryIds: typeIds, completion: { [weak self] result, pagination in
             self?.delegate?.viewModel(showPreloader: false)
-            if case .continues(let url) = pagination {
-                self?.nextPageLink = url
-            }
+            self?.updatePaginationInfo(pagination)
             switch result {
             case .success(let pois):
                 self?.poiFromServer = pois
@@ -253,24 +269,21 @@ extension AddPoisTableViewViewModel {
     
     //NearBy
     private func fetchPoiNearBy() {
-        guard let coordinate = userLocation else {return}
+        guard let coordinate = userLocation else { return }
         var typeIds: [Int] = [placeType.id]
         typeIds.append(contentsOf: placeType.subTypes)
         delegate?.viewModel(showPreloader: true)
         fetchNearByPoiUseCase?.executeFetchNearByPois(location: coordinate,
                                                       categoryIds: typeIds, completion: { [weak self] result, pagination in
-                                                        self?.delegate?.viewModel(showPreloader: false)
-                                                        
-                                                        if case .continues(let url) = pagination {
-                                                            self?.nextPageLink = url
-                                                        }
-                                                        switch result {
-                                                        case .success(let pois):
-                                                            self?.poiFromServer = pois
-                                                        case .failure(let error):
-                                                            self?.delegate?.viewModel(error: error)
-                                                        }
-                                                      })
+            self?.delegate?.viewModel(showPreloader: false)
+            self?.updatePaginationInfo(pagination)
+            switch result {
+            case .success(let pois):
+                self?.poiFromServer = pois
+            case .failure(let error):
+                self?.delegate?.viewModel(error: error)
+            }
+        })
     }
     
     private func fetchSearchPoi(text: String) {
@@ -301,10 +314,7 @@ extension AddPoisTableViewViewModel {
     
     private func poiSearchUseCaseResult(result: Result<[TRPPoi], Error>, pagination: TRPPagination?) {
         self.delegate?.viewModel(showPreloader: false)
-        
-        if let pagination = pagination, case .continues(let link) = pagination {
-            self.nextPageLink = link
-        }
+        self.updatePaginationInfo(pagination)
         switch result {
         case .success(let pois):
             self.poiFromServer = pois

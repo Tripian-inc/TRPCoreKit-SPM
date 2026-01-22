@@ -33,13 +33,10 @@ let package = Package(
             dependencies: [
                 .product(name: "MapboxDirections", package: "mapbox-directions-swift"),
                 .product(name: "MapboxMaps", package: "mapbox-maps-ios"),
-//                .product(name: "MapboxMobileEvents", package: "mapbox-events-ios"),
                 "Parchment",
                 "SDWebImage",
                 "FSCalendar",
                 "Alamofire",
-//                "Mapbox",
-//                "MapboxMobileEvents",
                 .product(name: "TRPRestKit", package: "TRPRestKit"),
             ],
             path: "TRPCoreKit",
@@ -47,14 +44,6 @@ let package = Package(
                 .copy("Resources/Fonts")   
             ]
         ),
-//        .binaryTarget(
-//            name: "Mapbox",
-//            path: "./Mapbox.xcframework"
-//        ),
-//        .binaryTarget(
-//            name: "MapboxMobileEvents",
-//            path: "./MapboxMobileEvents.xcframework"
-//        ),
         .testTarget(
             name: "TRPCoreKitTests",
             dependencies: ["TRPCoreKit"]

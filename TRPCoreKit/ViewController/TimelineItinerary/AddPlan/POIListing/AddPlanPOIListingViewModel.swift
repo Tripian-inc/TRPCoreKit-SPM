@@ -35,6 +35,8 @@ public class AddPlanPOIListingViewModel {
     private var isLoadingMore: Bool = false
     private var currentPage: Int = 1
     private var totalPages: Int = 1
+    private var totalPoiCount: Int = 0
+    private var hasMorePages: Bool = false
 
     // MARK: - Initialization
     public init(planData: AddPlanData, categoryType: POIListingCategoryType) {
@@ -83,6 +85,27 @@ public class AddPlanPOIListingViewModel {
         return filteredPois.count
     }
 
+    /// Returns whether there are more POIs available to load
+    public func hasMorePoisAvailable() -> Bool {
+        return hasMorePages
+    }
+
+    /// Returns the total POI count from API
+    public func getTotalPoiCount() -> Int {
+        return totalPoiCount
+    }
+
+    /// Returns formatted string for POI count display
+    /// Shows total count from API pagination info
+    public func getPoiCountDisplayString() -> String {
+        let count = totalPoiCount > 0 ? totalPoiCount : filteredPois.count
+        let placeText = count == 1
+            ? AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.place)
+            : AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.places)
+
+        return "\(count) \(placeText)"
+    }
+
     public func updateSearchText(_ text: String) {
         searchText = text
         performSearchWithDebounce()
@@ -97,6 +120,8 @@ public class AddPlanPOIListingViewModel {
         // Reset pagination
         currentPage = 1
         totalPages = 1
+        totalPoiCount = 0
+        hasMorePages = false
 
         delegate?.viewModel(showPreloader: true)
 
@@ -145,6 +170,8 @@ public class AddPlanPOIListingViewModel {
         // Reset pagination for new search
         currentPage = 1
         totalPages = 1
+        totalPoiCount = 0
+        hasMorePages = false
 
         delegate?.viewModel(showPreloader: true)
 
@@ -177,10 +204,21 @@ public class AddPlanPOIListingViewModel {
                 switch pagination {
                 case .completed:
                     totalPages = currentPage
-                case .continues:
-                    // There are more pages
-                    totalPages = currentPage + 1
+                    hasMorePages = false
+                    // When completed, total count is the loaded count
+                    if !isLoadMore {
+                        totalPoiCount = pois.count
+                    }
+                case .continues(let paginationInfo):
+                    // Extract pagination info from API response
+                    totalPages = paginationInfo.totalPages
+                    totalPoiCount = paginationInfo.total
+                    currentPage = paginationInfo.currentPage
+                    hasMorePages = paginationInfo.hasMore
                 }
+            } else {
+                hasMorePages = false
+                totalPoiCount = pois.count
             }
 
             filterPois()
@@ -192,16 +230,16 @@ public class AddPlanPOIListingViewModel {
 
     // MARK: - Pagination
     public func hasMorePois() -> Bool {
-        return currentPage < totalPages
+        return hasMorePages
     }
 
     public func loadMorePois() {
         guard !isLoadingMore, hasMorePois() else { return }
 
         isLoadingMore = true
-        currentPage += 1
+        let nextPage = currentPage + 1
 
-        fetchPois(page: currentPage)
+        fetchPois(page: nextPage)
     }
 
     private func filterPois() {

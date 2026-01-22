@@ -14,6 +14,7 @@ public class SavedPlansVC: TRPBaseUIViewController {
 
     // MARK: - Properties
     private var viewModel: SavedPlansViewModel!
+    private var customNavigationBar: TRPTimelineCustomNavigationBar!
 
     // Callback when segment is created successfully
     public var onSegmentCreated: (() -> Void)?
@@ -48,41 +49,8 @@ public class SavedPlansVC: TRPBaseUIViewController {
     // MARK: - Lifecycle
     public override func viewDidLoad() {
         super.viewDidLoad()
-        setupNavigationBar()
+        navigationController?.setNavigationBarHidden(true, animated: false)
         viewModel.delegate = self
-    }
-
-    // MARK: - Setup
-    private func setupNavigationBar() {
-        title = AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.savedPlans)
-        navigationController?.navigationBar.prefersLargeTitles = false
-
-        // Add back button
-        let backButton = UIBarButtonItem(
-            image: TRPImageController().getImage(inFramework: "ic_back", inApp: nil),
-            style: .plain,
-            target: self,
-            action: #selector(backButtonTapped)
-        )
-        backButton.tintColor = ColorSet.primaryText.uiColor
-        navigationItem.leftBarButtonItem = backButton
-
-        // Navigation bar appearance
-        let appearance = UINavigationBarAppearance()
-        appearance.configureWithOpaqueBackground()
-        appearance.backgroundColor = .white
-        appearance.titleTextAttributes = [
-            .foregroundColor: ColorSet.primaryText.uiColor,
-            .font: FontSet.montserratSemiBold.font(18)
-        ]
-        appearance.shadowColor = ColorSet.lineWeak.uiColor
-
-        navigationController?.navigationBar.standardAppearance = appearance
-        navigationController?.navigationBar.scrollEdgeAppearance = appearance
-    }
-
-    @objc private func backButtonTapped() {
-        dismiss(animated: true)
     }
 
     // MARK: - Setup Views
@@ -90,14 +58,28 @@ public class SavedPlansVC: TRPBaseUIViewController {
         super.setupViews()
         view.backgroundColor = .white
 
+        // Setup navigation bar using base class method
+        customNavigationBar = setupCustomNavigationBar(
+            title: AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.savedPlans)
+        )
+        customNavigationBar.delegate = self
+
         view.addSubview(tableView)
 
         NSLayoutConstraint.activate([
-            tableView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
+            tableView.topAnchor.constraint(equalTo: customNavigationBar.bottomAnchor),
             tableView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
             tableView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
             tableView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor)
         ])
+    }
+}
+
+// MARK: - TRPTimelineCustomNavigationBarDelegate
+extension SavedPlansVC: TRPTimelineCustomNavigationBarDelegate {
+
+    func customNavigationBarDidTapBack(_ navigationBar: TRPTimelineCustomNavigationBar) {
+        dismiss(animated: true)
     }
 }
 

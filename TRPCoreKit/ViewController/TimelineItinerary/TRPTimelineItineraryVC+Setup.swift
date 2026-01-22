@@ -28,17 +28,12 @@ extension TRPTimelineItineraryVC {
         poiPreviewCollectionView.register(TRPTimelineMapPOIPreviewCell.self, forCellWithReuseIdentifier: TRPTimelineMapPOIPreviewCell.reuseIdentifier)
     }
 
-    internal func setupCustomNavigationBar() {
-        guard customNavigationBar.superview == nil else { return }
+    internal func setupTimelineNavigationBar() {
+        guard customNavigationBar == nil else { return }
 
-        view.addSubview(customNavigationBar)
-
-        NSLayoutConstraint.activate([
-            customNavigationBar.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
-            customNavigationBar.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            customNavigationBar.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            customNavigationBar.heightAnchor.constraint(equalToConstant: 44)
-        ])
+        let title = TimelineLocalizationKeys.localized(TimelineLocalizationKeys.navigationTitle)
+        customNavigationBar = setupCustomNavigationBar(title: title, height: 44)
+        customNavigationBar.delegate = self
     }
 
     internal func setupSavedPlansButton() {

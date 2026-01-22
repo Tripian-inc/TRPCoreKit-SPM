@@ -271,8 +271,8 @@ class TRPTimelineBookedActivityCell: UITableViewCell {
 
         // Configure badge and button based on segment type
         if segment.segmentType == .reservedActivity {
-            // Reserved activity - show "Reservation" badge, buttons, hide person count
-            confirmedBadge.text = TimelineLocalizationKeys.localized(TimelineLocalizationKeys.reservation)
+            // Reserved activity - show "Activity" badge, buttons, hide person count
+            confirmedBadge.text = TimelineLocalizationKeys.localized(TimelineLocalizationKeys.activityBadge)
             confirmedBadge.textColor = ColorSet.fgOrange.uiColor
             confirmedBadge.backgroundColor = ColorSet.bgOrange.uiColor
             reservationButton.isHidden = false
@@ -368,8 +368,8 @@ class TRPTimelineBookedActivityCell: UITableViewCell {
 
         // Configure badge and buttons based on reservation status
         if cellData.isReserved {
-            // Reserved activity - show "Reservation" badge, buttons, hide person count
-            confirmedBadge.text = TimelineLocalizationKeys.localized(TimelineLocalizationKeys.reservation)
+            // Reserved activity - show "Activity" badge, buttons, hide person count
+            confirmedBadge.text = TimelineLocalizationKeys.localized(TimelineLocalizationKeys.activityBadge)
             confirmedBadge.textColor = ColorSet.fgOrange.uiColor
             confirmedBadge.backgroundColor = ColorSet.bgOrange.uiColor
             reservationButton.isHidden = false

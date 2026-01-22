@@ -42,7 +42,7 @@ protocol TRPTimeRangeSelectionDelegate: AnyObject {
     func timeRangeSelected(fromDate: Date, toDate: Date)
 }
 
-class TRPTimeRangeSelectionViewController: UIViewController {
+class TRPTimeRangeSelectionViewController: TRPBaseUIViewController {
 
     // MARK: - Properties
     weak var delegate: TRPTimeRangeSelectionDelegate?

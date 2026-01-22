@@ -45,6 +45,9 @@ public class TRPTimelineItineraryViewModel {
 
     public var selectedDayIndex: Int = 0
 
+    /// Pending day index to navigate to after segment creation/refresh
+    internal var pendingNavigationDayIndex: Int?
+
     // Filtered favorite items (excludes items that are already booked or reserved)
     internal var filteredFavoriteItems: [TRPSegmentFavoriteItem] = []
 

@@ -31,7 +31,7 @@ import MapboxMaps
 import MapKit
 
 @objc(SPMTimelinePoiDetailViewController)
-public class TimelinePoiDetailViewController: UIViewController {
+public class TimelinePoiDetailViewController: TRPBaseUIViewController {
 
     // MARK: - Properties
     // Note: Properties are internal for extension access (+CollectionView.swift, +Setup.swift)
@@ -508,7 +508,7 @@ public class TimelinePoiDetailViewController: UIViewController {
     }
 
     // MARK: - Actions
-    @objc private func readMoreTapped() {
+    @objc func readMoreTapped() {
         print("[POI Detail] Read More button tapped")
 
         isDescriptionExpanded.toggle()
@@ -580,7 +580,7 @@ public class TimelinePoiDetailViewController: UIViewController {
 }
 
 // MARK: - UILabel Extension
-private extension UILabel {
+extension UILabel {
     func isTruncated() -> Bool {
         // Check for attributed text first
         if let attributedText = attributedText, attributedText.length > 0 {

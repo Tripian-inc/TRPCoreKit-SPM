@@ -46,12 +46,7 @@ public class TRPTimelineItineraryVC: TRPBaseUIViewController {
 
     // MARK: - UI Components
 
-    internal lazy var customNavigationBar: TRPTimelineCustomNavigationBar = {
-        let bar = TRPTimelineCustomNavigationBar()
-        bar.translatesAutoresizingMaskIntoConstraints = false
-        bar.delegate = self
-        return bar
-    }()
+    internal var customNavigationBar: TRPTimelineCustomNavigationBar!
 
     internal lazy var savedPlansButton: TRPTimelineSavedPlansButton = {
         let button = TRPTimelineSavedPlansButton()
@@ -192,7 +187,7 @@ public class TRPTimelineItineraryVC: TRPBaseUIViewController {
 
     public override func setupViews() {
         super.setupViews()
-        setupCustomNavigationBar()
+        setupTimelineNavigationBar()
         setupSavedPlansButton()
         setupDayFilterView()
         setupTableView()

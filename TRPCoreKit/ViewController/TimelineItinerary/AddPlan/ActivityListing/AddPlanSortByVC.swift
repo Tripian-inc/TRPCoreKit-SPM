@@ -55,7 +55,7 @@ public enum SortOption: Int, CaseIterable {
 }
 
 // MARK: - AddPlanSortByVC
-public class AddPlanSortByVC: UIViewController, DynamicHeightPresentable {
+public class AddPlanSortByVC: TRPBaseUIViewController, DynamicHeightPresentable {
 
     // MARK: - DynamicHeightPresentable
     public var preferredContentHeight: CGFloat {

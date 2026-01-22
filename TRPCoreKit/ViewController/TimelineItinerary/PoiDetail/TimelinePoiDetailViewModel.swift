@@ -435,8 +435,8 @@ public class TimelinePoiDetailViewModel {
         // Get products only from provider ID 15 (Civitatis)
         var civittatisProducts: [TRPBookingProduct] = []
         bookings.forEach { booking in
-//            if booking.providerId == 15, let products = booking.products {
-            if let products = booking.products {
+            if booking.providerId == 15, let products = booking.products {
+//            if let products = booking.products {
                 civittatisProducts.append(contentsOf: products)
             }
         }

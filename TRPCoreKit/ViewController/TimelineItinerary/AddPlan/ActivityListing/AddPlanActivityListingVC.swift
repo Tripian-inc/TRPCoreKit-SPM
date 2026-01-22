@@ -15,6 +15,7 @@ public class AddPlanActivityListingVC: TRPBaseUIViewController {
     // MARK: - Properties
     public var viewModel: AddPlanActivityListingViewModel!
     private var isLoadingMore = false
+    private var customNavigationBar: TRPTimelineCustomNavigationBar!
 
     // Callback when segment is created successfully
     public var onSegmentCreated: (() -> Void)?
@@ -22,41 +23,9 @@ public class AddPlanActivityListingVC: TRPBaseUIViewController {
     // MARK: - Lifecycle
     public override func viewDidLoad() {
         super.viewDidLoad()
-        setupNavigationBar()
+        navigationController?.setNavigationBarHidden(true, animated: false)
         viewModel.delegate = self
         viewModel.performInitialSearch()
-    }
-    
-    private func setupNavigationBar() {
-        title = AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.categoryActivities)
-        navigationController?.navigationBar.prefersLargeTitles = false
-        
-        // Add back button
-        let backButton = UIBarButtonItem(
-            image: TRPImageController().getImage(inFramework: "ic_back", inApp: nil),
-            style: .plain,
-            target: self,
-            action: #selector(backButtonTapped)
-        )
-        backButton.tintColor = ColorSet.primaryText.uiColor // #333333
-        navigationItem.leftBarButtonItem = backButton
-        
-        // Navigation bar appearance
-        let appearance = UINavigationBarAppearance()
-        appearance.configureWithOpaqueBackground()
-        appearance.backgroundColor = .white
-        appearance.titleTextAttributes = [
-            .foregroundColor: ColorSet.primaryText.uiColor, // #333333
-            .font: FontSet.montserratSemiBold.font(18)
-        ]
-        appearance.shadowColor = .clear // Remove navigation bar separator line
-
-        navigationController?.navigationBar.standardAppearance = appearance
-        navigationController?.navigationBar.scrollEdgeAppearance = appearance
-    }
-    
-    @objc private func backButtonTapped() {
-        dismiss(animated: true)
     }
     
     // MARK: - UI Components
@@ -128,8 +97,8 @@ public class AddPlanActivityListingVC: TRPBaseUIViewController {
     private lazy var activityCountLabel: UILabel = {
         let label = UILabel()
         label.translatesAutoresizingMaskIntoConstraints = false
-        label.font = FontSet.montserratRegular.font(14)
-        label.textColor = ColorSet.primaryText.uiColor // #333333
+        label.font = FontSet.montserratMedium.font(12)
+        label.textColor = ColorSet.neutral500.uiColor
         label.text = "0 actividades"
         return label
     }()
@@ -137,9 +106,10 @@ public class AddPlanActivityListingVC: TRPBaseUIViewController {
     private lazy var infoImageView: UIImageView = {
         let imageView = UIImageView()
         imageView.image = UIImage(systemName: "info.circle")
-        imageView.tintColor = ColorSet.fgWeak.uiColor // #666666
+        imageView.tintColor = ColorSet.neutral500.uiColor
         imageView.contentMode = .scaleAspectFit
         imageView.translatesAutoresizingMaskIntoConstraints = false
+        imageView.isUserInteractionEnabled = true
         return imageView
     }()
     
@@ -173,6 +143,12 @@ public class AddPlanActivityListingVC: TRPBaseUIViewController {
         super.setupViews()
         view.backgroundColor = .white
 
+        // Setup navigation bar using base class method
+        customNavigationBar = setupCustomNavigationBar(
+            title: AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.categoryActivities)
+        )
+        customNavigationBar.delegate = self
+
         view.addSubview(searchBar)
         view.addSubview(filterSortStackView)
         view.addSubview(categoryCollectionView)
@@ -182,7 +158,7 @@ public class AddPlanActivityListingVC: TRPBaseUIViewController {
 
         NSLayoutConstraint.activate([
             // Search Bar
-            searchBar.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 8),
+            searchBar.topAnchor.constraint(equalTo: customNavigationBar.bottomAnchor, constant: 8),
             searchBar.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
             searchBar.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
 
@@ -220,6 +196,18 @@ public class AddPlanActivityListingVC: TRPBaseUIViewController {
             self?.filterButtonTapped()
         }
         sortButton.addTarget(self, action: #selector(sortButtonTapped), for: .touchUpInside)
+
+        // Add info icon tap gesture
+        let infoTapGesture = UITapGestureRecognizer(target: self, action: #selector(infoIconTapped))
+        infoImageView.addGestureRecognizer(infoTapGesture)
+    }
+
+    @objc private func infoIconTapped() {
+        let title = AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.sortingInfoTitle)
+        let message = AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.sortingInfoMessage)
+        let bottomSheetVC = SortingInfoBottomSheetVC(title: title, message: message)
+        presentVCWithDynamicHeight(bottomSheetVC, prefersGrabberVisible: false, isDimmed: true)
+//        showInfoBottomSheet(title: title, message: message)
     }
 
     // MARK: - Actions
@@ -504,6 +492,14 @@ extension AddPlanActivityListingVC: ActivityCardCellDelegate {
 
         // Present as bottom sheet using base extension
         presentVCWithModal(timeSelectionVC, onlyLarge: false, prefersGrabberVisible: false)
+    }
+}
+
+// MARK: - TRPTimelineCustomNavigationBarDelegate
+extension AddPlanActivityListingVC: TRPTimelineCustomNavigationBarDelegate {
+
+    func customNavigationBarDidTapBack(_ navigationBar: TRPTimelineCustomNavigationBar) {
+        dismiss(animated: true)
     }
 }
 

@@ -72,6 +72,10 @@ public struct AddPlanLocalizationKeys {
     public static let activity = "addPlan.label.activity"
     public static let activities = "addPlan.label.activities"
 
+    // MARK: - Sorting Info
+    public static let sortingInfoTitle = "addPlan.info.sortingTitle"
+    public static let sortingInfoMessage = "addPlan.info.sortingMessage"
+
     // MARK: - Sort Options
     public static let sortPopularity = "addPlan.sort.popularity"
     public static let sortRating = "addPlan.sort.rating"
@@ -94,6 +98,7 @@ public struct AddPlanLocalizationKeys {
     
     // MARK: - Empty State
     public static let addSavedPlansToItinerary = "addPlan.emptyState.addSavedPlansToItinerary"
+    public static let noAvailableTimes = "addPlan.emptyState.noAvailableTimes"
 
     // MARK: - Saved Plans Screen
     public static let savedPlans = "addPlan.title.savedPlans"
@@ -144,6 +149,8 @@ public struct AddPlanLocalizationKeys {
         searchActivity: "Search for an activity",
         filters: "Filters",
         sortBy: "Sort by",
+        sortingInfoTitle: "Sorting Criteria",
+        sortingInfoMessage: "Activities are sorted by relevance and availability based on your selected date and preferences.",
         sortPopularity: "Popularity",
         sortRating: "Rating",
         sortPriceLowToHigh: "Price (lowest first)",
@@ -162,6 +169,7 @@ public struct AddPlanLocalizationKeys {
         place: "place",
         places: "places",
         addSavedPlansToItinerary: "Add your saved plans to the itinerary",
+        noAvailableTimes: "No available times",
         savedPlans: "Saved Plans",
         errorMissingData: "Missing required information. Please complete all fields.",
         errorCreateFailed: "Failed to create smart recommendation. Please try again."

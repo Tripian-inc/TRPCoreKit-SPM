@@ -41,7 +41,7 @@ public struct FilterData {
 }
 
 // MARK: - AddPlanFilterVC
-public class AddPlanFilterVC: UIViewController {
+public class AddPlanFilterVC: TRPBaseUIViewController {
 
     // MARK: - Properties
     private var filterData: FilterData
@@ -143,7 +143,7 @@ public class AddPlanFilterVC: UIViewController {
     }()
 
     // Apply Button
-    private lazy var applyButton: TRPButton = {
+    private lazy var comfitmButton: TRPButton = {
         let button = TRPButton(
             title: CommonLocalizationKeys.localized(CommonLocalizationKeys.confirm),
             style: .primary
@@ -186,11 +186,11 @@ public class AddPlanFilterVC: UIViewController {
 
         view.addSubview(buttonContainerView)
         buttonContainerView.addSubview(clearButton)
-        buttonContainerView.addSubview(applyButton)
+        buttonContainerView.addSubview(comfitmButton)
 
         closeButton.addTarget(self, action: #selector(closeButtonTapped), for: .touchUpInside)
         clearButton.addTarget(self, action: #selector(clearButtonTapped), for: .touchUpInside)
-        applyButton.addTarget(self, action: #selector(applyButtonTapped), for: .touchUpInside)
+        comfitmButton.addTarget(self, action: #selector(applyButtonTapped), for: .touchUpInside)
 
         NSLayoutConstraint.activate([
             // Header view
@@ -252,10 +252,10 @@ public class AddPlanFilterVC: UIViewController {
             clearButton.topAnchor.constraint(equalTo: buttonContainerView.topAnchor, constant: 16),
 
             // Apply button (right)
-            applyButton.leadingAnchor.constraint(equalTo: clearButton.trailingAnchor, constant: 16),
-            applyButton.trailingAnchor.constraint(equalTo: buttonContainerView.trailingAnchor, constant: -16),
-            applyButton.topAnchor.constraint(equalTo: buttonContainerView.topAnchor, constant: 16),
-            applyButton.widthAnchor.constraint(equalTo: clearButton.widthAnchor)
+            comfitmButton.leadingAnchor.constraint(equalTo: clearButton.trailingAnchor, constant: 16),
+            comfitmButton.trailingAnchor.constraint(equalTo: buttonContainerView.trailingAnchor, constant: -16),
+            comfitmButton.topAnchor.constraint(equalTo: buttonContainerView.topAnchor, constant: 16),
+            comfitmButton.widthAnchor.constraint(equalTo: clearButton.widthAnchor)
         ])
     }
 
