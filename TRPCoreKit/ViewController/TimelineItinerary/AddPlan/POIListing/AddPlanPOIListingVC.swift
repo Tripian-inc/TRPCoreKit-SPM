@@ -104,9 +104,10 @@ public class AddPlanPOIListingVC: TRPBaseUIViewController {
     private lazy var infoImageView: UIImageView = {
         let imageView = UIImageView()
         imageView.image = UIImage(systemName: "info.circle")
-        imageView.tintColor = ColorSet.fgWeak.uiColor // #666666
+        imageView.tintColor = ColorSet.neutral500.uiColor
         imageView.contentMode = .scaleAspectFit
         imageView.translatesAutoresizingMaskIntoConstraints = false
+        imageView.isUserInteractionEnabled = true
         return imageView
     }()
 
@@ -178,6 +179,36 @@ public class AddPlanPOIListingVC: TRPBaseUIViewController {
             tableView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
             tableView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor)
         ])
+
+        // Add button actions
+        sortButton.addTarget(self, action: #selector(sortButtonTapped), for: .touchUpInside)
+
+        // Add info icon tap gesture
+        let infoTapGesture = UITapGestureRecognizer(target: self, action: #selector(infoIconTapped))
+        infoImageView.addGestureRecognizer(infoTapGesture)
+    }
+
+    // MARK: - Actions
+    @objc private func sortButtonTapped() {
+        // POI listing only shows popularity and rating options
+        let poiSortOptions: [SortOption] = [.popularity, .rating]
+        let sortVC = AddPlanSortByVC(selectedOption: viewModel.selectedSortOption, availableOptions: poiSortOptions)
+        sortVC.onSortOptionSelected = { [weak self] option in
+            self?.viewModel.updateSortOption(option)
+
+            // Scroll table to top when sort changes
+            if self?.tableView.numberOfRows(inSection: 0) ?? 0 > 0 {
+                self?.tableView.scrollToRow(at: IndexPath(row: 0, section: 0), at: .top, animated: true)
+            }
+        }
+        presentVCWithDynamicHeight(sortVC, prefersGrabberVisible: false, isDimmed: false)
+    }
+
+    @objc private func infoIconTapped() {
+        let title = AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.sortingInfoTitle)
+        let message = AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.sortingInfoMessage)
+        let bottomSheetVC = SortingInfoBottomSheetVC(title: title, message: message)
+        presentVCWithDynamicHeight(bottomSheetVC, prefersGrabberVisible: false, isDimmed: true)
     }
 
     private func updatePoiCountLabel() {

@@ -24,6 +24,7 @@ public class AddPlanPOIListingViewModel {
     public weak var delegate: AddPlanPOIListingViewModelDelegate?
 
     public var searchText: String = ""
+    public var selectedSortOption: SortOption = .popularity
 
     private var allPois: [TRPPoi] = []
     private var filteredPois: [TRPPoi] = []
@@ -109,6 +110,12 @@ public class AddPlanPOIListingViewModel {
     public func updateSearchText(_ text: String) {
         searchText = text
         performSearchWithDebounce()
+    }
+
+    public func updateSortOption(_ option: SortOption) {
+        selectedSortOption = option
+        filterAndSortPois()
+        delegate?.poisDidLoad()
     }
 
     // MARK: - Data Fetching
@@ -243,12 +250,42 @@ public class AddPlanPOIListingViewModel {
     }
 
     private func filterPois() {
+        filterAndSortPois()
+    }
+
+    private func filterAndSortPois() {
+        // First filter
+        var result: [TRPPoi]
         if searchText.isEmpty {
-            filteredPois = allPois
+            result = allPois
         } else {
-            filteredPois = allPois.filter { poi in
+            result = allPois.filter { poi in
                 poi.name.localizedCaseInsensitiveContains(searchText)
             }
+        }
+
+        // Then sort
+        result = sortPois(result)
+        filteredPois = result
+    }
+
+    private func sortPois(_ pois: [TRPPoi]) -> [TRPPoi] {
+        switch selectedSortOption {
+        case .popularity:
+            // Keep original order from API (API returns by popularity)
+            return pois
+        case .rating:
+            // Sort by rating descending
+            return pois.sorted { ($0.rating ?? 0) > ($1.rating ?? 0) }
+        case .priceLowToHigh:
+            // Sort by price ascending (price is Int level 0-4)
+            return pois.sorted { ($0.price ?? 0) < ($1.price ?? 0) }
+        case .durationShortToLong:
+            // Sort by duration ascending
+            return pois.sorted { ($0.duration ?? 0) < ($1.duration ?? 0) }
+        case .durationLongToShort:
+            // Sort by duration descending
+            return pois.sorted { ($0.duration ?? 0) > ($1.duration ?? 0) }
         }
     }
 
