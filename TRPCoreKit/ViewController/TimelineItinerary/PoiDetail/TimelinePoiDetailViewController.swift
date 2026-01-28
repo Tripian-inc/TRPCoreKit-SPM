@@ -41,6 +41,7 @@ public class TimelinePoiDetailViewController: TRPBaseUIViewController {
 
     // Section Views
     var basicInfoSectionView: BasicInfoSectionView!
+    var cuisinesSectionView: CuisinesSectionView!
     var productsSectionView: ProductsSectionView!
     var keyDataSectionView: KeyDataSectionView!
     var addressSectionView: AddressSectionView!
