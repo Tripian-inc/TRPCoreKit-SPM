@@ -181,6 +181,7 @@ public class AddPlanPOIListingVC: TRPBaseUIViewController {
         ])
 
         // Add button actions
+        filterButton.addTarget(self, action: #selector(filterButtonTapped), for: .touchUpInside)
         sortButton.addTarget(self, action: #selector(sortButtonTapped), for: .touchUpInside)
 
         // Add info icon tap gesture
@@ -189,6 +190,20 @@ public class AddPlanPOIListingVC: TRPBaseUIViewController {
     }
 
     // MARK: - Actions
+    @objc private func filterButtonTapped() {
+        let filterVC = AddPlanPOIFilterVC(categoryType: viewModel.categoryType, filterData: viewModel.filterData)
+        filterVC.onFilterApplied = { [weak self] filterData in
+            self?.viewModel.updateFilterData(filterData)
+            self?.updateFilterButtonAppearance()
+
+            // Scroll table to top when filter changes
+            if self?.tableView.numberOfRows(inSection: 0) ?? 0 > 0 {
+                self?.tableView.scrollToRow(at: IndexPath(row: 0, section: 0), at: .top, animated: true)
+            }
+        }
+        presentVCWithModal(filterVC, onlyLarge: true, prefersGrabberVisible: true, disableSwipeToDismiss: true)
+    }
+
     @objc private func sortButtonTapped() {
         // POI listing only shows popularity and rating options
         let poiSortOptions: [SortOption] = [.popularity, .rating]
@@ -213,6 +228,16 @@ public class AddPlanPOIListingVC: TRPBaseUIViewController {
 
     private func updatePoiCountLabel() {
         poiCountLabel.text = viewModel.getPoiCountDisplayString()
+    }
+
+    private func updateFilterButtonAppearance() {
+        let filterCount = viewModel.filterData.activeFilterCount
+        let hasFilters = filterCount > 0
+
+        // Update title with count
+        let baseTitle = AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.filters)
+        let title = hasFilters ? "\(baseTitle) (\(filterCount))" : baseTitle
+        filterButton.setTitle(title, for: .normal)
     }
 
     private func updateTableFooter() {

@@ -57,6 +57,7 @@ public class TRPPoiRemoteApi: PoiRemoteApi {
                          distance: parameters.distance,
                          bounds: bounds,
                          limit: parameters.limit,
+                         page: parameters.page,
                          autoPagination: parameters.autoPagination) { (result, error, pagination) in
             
             var _pagination: TRPPagination?
@@ -97,6 +98,7 @@ public class TRPPoiRemoteApi: PoiRemoteApi {
                          distance: parameters.distance,
                          bounds: bounds,
                          limit: parameters.limit,
+                         page: parameters.page,
                          autoPagination: parameters.autoPagination) { (result, error, pagination) in
             
             var _pagination: TRPPagination?

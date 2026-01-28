@@ -300,6 +300,14 @@ class TRPTimeRangeSelectionViewController: TRPBaseUIViewController {
     private func setupPickerView() {
         timePicker.addTarget(self, action: #selector(timePickerValueChanged), for: .valueChanged)
 
+        // If no initial times were set, default start time to current time
+        if fromDate == nil {
+            let now = Date()
+            fromDate = now
+            fromTime = timeStringFromDate(now)
+            updateFromDisplay()
+        }
+
         // Set current editing field based on initial focus
         currentEditingField = initialFocusField
 

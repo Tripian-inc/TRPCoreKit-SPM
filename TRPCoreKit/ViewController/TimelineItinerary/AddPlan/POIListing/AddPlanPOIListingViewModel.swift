@@ -25,10 +25,12 @@ public class AddPlanPOIListingViewModel {
 
     public var searchText: String = ""
     public var selectedSortOption: SortOption = .popularity
+    public var filterData: POIFilterData = POIFilterData()
 
     private var allPois: [TRPPoi] = []
     private var filteredPois: [TRPPoi] = []
     private var categoryIds: [Int] = []
+    private var allCategoryIds: [Int] = [] // Store all category IDs for reset
 
     private var poiUseCases: TRPPoiUseCases
     private var timelineRepository: TRPTimelineRepository
@@ -118,6 +120,27 @@ public class AddPlanPOIListingViewModel {
         delegate?.poisDidLoad()
     }
 
+    public func updateFilterData(_ newFilterData: POIFilterData) {
+        filterData = newFilterData
+
+        // If filter has selected categories, use them; otherwise use all categories
+        if filterData.selectedCategoryIds.isEmpty {
+            categoryIds = allCategoryIds
+        } else {
+            categoryIds = Array(filterData.selectedCategoryIds)
+        }
+
+        // Re-fetch POIs with new category filter
+        currentPage = 1
+        totalPages = 1
+        totalPoiCount = 0
+        hasMorePages = false
+        allPois = []
+
+        delegate?.viewModel(showPreloader: true)
+        fetchPois()
+    }
+
     // MARK: - Data Fetching
     public func performInitialFetch() {
         fetchCategoriesAndPois()
@@ -135,6 +158,7 @@ public class AddPlanPOIListingViewModel {
         // Use cached categories if available, otherwise fetch
         poiUseCases.fetchCategoryIdsIfNeeded(type: categoryType) { [weak self] ids in
             guard let self = self else { return }
+            self.allCategoryIds = ids // Store all categories for filter reset
             self.categoryIds = ids
             self.fetchPois()
         }
@@ -153,7 +177,7 @@ public class AddPlanPOIListingViewModel {
             cityId: cityId,
             page: page
         ) { [weak self] result, pagination in
-            self?.handleSearchResult(result: result, pagination: pagination, isLoadMore: page > 1)
+            self?.handleSearchResult(result: result, pagination: pagination, isLoadMore: page > 1, requestedPage: page)
         }
     }
 
@@ -188,11 +212,11 @@ public class AddPlanPOIListingViewModel {
             cityId: cityId,
             page: 1
         ) { [weak self] result, pagination in
-            self?.handleSearchResult(result: result, pagination: pagination, isLoadMore: false)
+            self?.handleSearchResult(result: result, pagination: pagination, isLoadMore: false, requestedPage: 1)
         }
     }
 
-    private func handleSearchResult(result: Result<[TRPPoi], Error>, pagination: TRPPagination?, isLoadMore: Bool = false) {
+    private func handleSearchResult(result: Result<[TRPPoi], Error>, pagination: TRPPagination?, isLoadMore: Bool = false, requestedPage: Int = 1) {
         delegate?.viewModel(showPreloader: false)
         isLoadingMore = false
 
@@ -204,6 +228,11 @@ public class AddPlanPOIListingViewModel {
             } else {
                 // Replace POIs for initial load or new search
                 allPois = pois
+            }
+
+            // Update currentPage only for initial fetch (loadMore already increments it)
+            if !isLoadMore {
+                currentPage = requestedPage
             }
 
             // Update pagination info from TRPPagination
@@ -220,7 +249,6 @@ public class AddPlanPOIListingViewModel {
                     // Extract pagination info from API response
                     totalPages = paginationInfo.totalPages
                     totalPoiCount = paginationInfo.total
-                    currentPage = paginationInfo.currentPage
                     hasMorePages = paginationInfo.hasMore
                 }
             } else {
@@ -244,9 +272,9 @@ public class AddPlanPOIListingViewModel {
         guard !isLoadingMore, hasMorePois() else { return }
 
         isLoadingMore = true
-        let nextPage = currentPage + 1
+        currentPage += 1  // Increment immediately before request
 
-        fetchPois(page: nextPage)
+        fetchPois(page: currentPage)
     }
 
     private func filterPois() {
