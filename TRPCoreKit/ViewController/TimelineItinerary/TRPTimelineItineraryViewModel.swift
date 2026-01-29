@@ -70,6 +70,9 @@ public class TRPTimelineItineraryViewModel {
     // Keep reference to use case to prevent deallocation during async operations
     internal var checkAllPlanUseCase: TRPTimelineCheckAllPlanUseCases?
 
+    // Keep references to active route calculators to prevent deallocation during async operations
+    internal var activeRouteCalculators: [TRPRouteCalculator] = []
+
     // Use case for step operations (edit, delete, etc.)
     internal lazy var timelineModeUseCases: TRPTimelineModeUseCases = TRPTimelineModeUseCases()
 
@@ -89,9 +92,13 @@ public class TRPTimelineItineraryViewModel {
 
         processTimelineData()
 
-        // Notify that timeline is ready (for VC to reload)
-        DispatchQueue.main.async { [weak self] in
-            self?.delegate?.timelineItineraryViewModel(didUpdateTimeline: true)
+        // Resolve favourite item city IDs asynchronously, then re-filter
+        resolveFavouriteItemCities { [weak self] in
+            guard let self = self else { return }
+            DispatchQueue.main.async {
+                self.filterFavoriteItems()
+                self.delegate?.timelineItineraryViewModel(didUpdateTimeline: true)
+            }
         }
     }
 
@@ -106,6 +113,9 @@ public class TRPTimelineItineraryViewModel {
         // Store destination items for date-city mapping in AddPlan
         self.destinationItems = itineraryModel.destinationItems
 
+        // Merge favourite items from itinerary model
+        mutableTimeline.favouriteItems = itineraryModel.favouriteItems
+
         // NOTE: Do NOT sync segments - use API response as-is
         // tripProfile.segments is the single source of truth
         // Populate city information in segments BEFORE processing
@@ -115,13 +125,16 @@ public class TRPTimelineItineraryViewModel {
 
         processTimelineData()
 
-        // Notify that timeline is ready (for VC to reload)
-        // Then check for missing booked activities
-        DispatchQueue.main.async { [weak self] in
-            self?.delegate?.timelineItineraryViewModel(didUpdateTimeline: true)
+        // Resolve favourite item city IDs asynchronously, then notify UI
+        resolveFavouriteItemCities { [weak self] in
+            guard let self = self else { return }
+            DispatchQueue.main.async {
+                self.filterFavoriteItems()
+                self.delegate?.timelineItineraryViewModel(didUpdateTimeline: true)
 
-            // Check for missing booked activities and add via API if needed
-            self?.addMissingBookedActivities(from: itineraryModel)
+                // Check for missing booked activities and add via API if needed
+                self.addMissingBookedActivities(from: itineraryModel)
+            }
         }
     }
 
@@ -160,6 +173,15 @@ public class TRPTimelineItineraryViewModel {
 
         self.timeline = mutableTimeline
         processTimelineData()
+
+        // Resolve favourite item city IDs asynchronously, then re-filter
+        resolveFavouriteItemCities { [weak self] in
+            guard let self = self else { return }
+            DispatchQueue.main.async {
+                self.filterFavoriteItems()
+                self.delegate?.timelineItineraryViewModel(didUpdateTimeline: true)
+            }
+        }
     }
     
     public func selectDay(at index: Int) {

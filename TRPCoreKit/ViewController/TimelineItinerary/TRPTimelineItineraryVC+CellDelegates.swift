@@ -16,10 +16,14 @@ import TRPFoundationKit
 extension TRPTimelineItineraryVC: TRPTimelineDayFilterViewDelegate {
 
     public func dayFilterViewDidSelectDay(_ view: TRPTimelineDayFilterView, dayIndex: Int) {
-        // Clear only the IndexPath-based cache, keep route calculations cached
-        calculatedDistances.removeAll()
+        // Cancel any pending route calculations from the previous day
+        viewModel.cancelActiveRouteCalculations()
+
+        // Update ViewModel to the new day
         viewModel.selectDay(at: dayIndex)
-        tableView.reloadData()
+
+        // Use the same reload flow as initial load to ensure routes are calculated
+        reload()
 
         // Scroll table view to top after reload
         DispatchQueue.main.async { [weak self] in
@@ -305,35 +309,44 @@ extension TRPTimelineItineraryVC: TRPTimelineRecommendationsCellDelegate {
         }
 
         // Calculate route for all waypoints at once
+        // Note: viewModel.calculateRoute completion is already dispatched to main thread
         viewModel.calculateRoute(for: locations) { [weak self] route, error in
-            guard let self = self else { return }
+            guard let self = self, let route = route else { return }
 
-            DispatchQueue.main.async {
-                guard let route = route else { return }
+            // Initialize distances dictionary for this cell
+            if self.calculatedDistances[cellIndexPath] == nil {
+                self.calculatedDistances[cellIndexPath] = [:]
+            }
 
-                // Initialize distances dictionary for this cell
-                if self.calculatedDistances[cellIndexPath] == nil {
-                    self.calculatedDistances[cellIndexPath] = [:]
+            // Process each leg - legs[i] corresponds to route from locations[i] to locations[i+1]
+            for (index, leg) in route.legs.enumerated() {
+                let readable = ReadableDistance.calculate(distance: Float(leg.distance), time: leg.expectedTravelTime)
+                let distanceData = (distance: readable.distance, time: readable.time)
+
+                // Cache each leg separately
+                if index < locations.count - 1 {
+                    let cacheKey = self.generateRouteCacheKey(from: locations[index], to: locations[index + 1])
+                    self.routeCache[cacheKey] = distanceData
                 }
 
-                // Process each leg - legs[i] corresponds to route from locations[i] to locations[i+1]
-                for (index, leg) in route.legs.enumerated() {
-                    let readable = ReadableDistance.calculate(distance: Float(leg.distance), time: leg.expectedTravelTime)
-                    let distanceData = (distance: readable.distance, time: readable.time)
+                // Store calculated distance
+                self.calculatedDistances[cellIndexPath]?[index] = distanceData
+            }
 
-                    // Cache each leg separately
-                    if index < locations.count - 1 {
-                        let cacheKey = self.generateRouteCacheKey(from: locations[index], to: locations[index + 1])
-                        self.routeCache[cacheKey] = distanceData
-                    }
-
-                    // Store and update cell
-                    self.calculatedDistances[cellIndexPath]?[index] = distanceData
-
-                    // Update the cell if it's still visible
-                    if let currentCell = self.tableView.cellForRow(at: cellIndexPath) as? TRPTimelineRecommendationsCell {
+            // Update the cell - try direct update first, fallback to reload
+            if let currentCell = self.tableView.cellForRow(at: cellIndexPath) as? TRPTimelineRecommendationsCell {
+                // Cell is visible, update distances directly
+                if let distances = self.calculatedDistances[cellIndexPath] {
+                    for (index, distanceData) in distances {
                         currentCell.updateDistance(at: index, distance: distanceData.distance, time: distanceData.time)
                     }
+                }
+            } else {
+                // Cell is not currently visible or couldn't be found - reload the row
+                // so it picks up cached distances when it becomes visible
+                if cellIndexPath.section < self.tableView.numberOfSections,
+                   cellIndexPath.row < self.tableView.numberOfRows(inSection: cellIndexPath.section) {
+                    self.tableView.reloadRows(at: [cellIndexPath], with: .none)
                 }
             }
         }

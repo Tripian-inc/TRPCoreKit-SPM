@@ -344,8 +344,9 @@ public class TRPTimelineItineraryVC: TRPBaseUIViewController {
     // MARK: - Public Methods
 
     public func reload() {
-        // Clear both caches when reloading data
-        routeCache.removeAll()
+        // Clear IndexPath-based distances (table structure changes per day)
+        // NOTE: routeCache is coordinate-based and preserved across reloads/day switches
+        // It is only cleared in updateTimeline() when actual timeline data changes
         calculatedDistances.removeAll()
         dayFilterView.configure(with: viewModel.getAvailableDates(), selectedDay: viewModel.selectedDayIndex)
 
@@ -395,7 +396,7 @@ public class TRPTimelineItineraryVC: TRPBaseUIViewController {
     // MARK: - Segment Route Pre-calculation
 
     /// Starts route calculations for itinerary segments with multiple steps
-    private func calculateRoutesForItinerarySegments() {
+    internal func calculateRoutesForItinerarySegments() {
         let segments = viewModel.getItinerarySegmentsForRouteCalculation()
 
         for segmentData in segments {
@@ -421,17 +422,35 @@ public class TRPTimelineItineraryVC: TRPBaseUIViewController {
         guard needsCalculation else { return }
 
         // Calculate route for all waypoints at once
+        // Note: viewModel.calculateRoute completion is already dispatched to main thread
         viewModel.calculateRoute(for: locations) { [weak self] route, error in
             guard let self = self, let route = route else { return }
 
-            DispatchQueue.main.async {
-                // Cache each leg separately
-                for (index, leg) in route.legs.enumerated() {
-                    if index < locations.count - 1 {
-                        let cacheKey = self.generateRouteCacheKey(from: locations[index], to: locations[index + 1])
-                        let readable = ReadableDistance.calculate(distance: Float(leg.distance), time: leg.expectedTravelTime)
-                        self.routeCache[cacheKey] = (distance: readable.distance, time: readable.time)
-                    }
+            // Cache each leg separately
+            for (index, leg) in route.legs.enumerated() {
+                if index < locations.count - 1 {
+                    let cacheKey = self.generateRouteCacheKey(from: locations[index], to: locations[index + 1])
+                    let readable = ReadableDistance.calculate(distance: Float(leg.distance), time: leg.expectedTravelTime)
+                    self.routeCache[cacheKey] = (distance: readable.distance, time: readable.time)
+                }
+            }
+
+            // After caching, update visible recommendation cells with new route data
+            self.applyRouteCacheToVisibleCells()
+        }
+    }
+
+    /// Applies calculated distances to visible recommendation cells
+    /// Called after pre-calculation completes to update any cells that already have distance data
+    internal func applyRouteCacheToVisibleCells() {
+        for cell in tableView.visibleCells {
+            guard let recCell = cell as? TRPTimelineRecommendationsCell,
+                  let indexPath = tableView.indexPath(for: recCell) else { continue }
+
+            // Apply any already-calculated distances directly (no re-configuration needed)
+            if let distances = calculatedDistances[indexPath] {
+                for (index, distanceData) in distances {
+                    recCell.updateDistance(at: index, distance: distanceData.distance, time: distanceData.time)
                 }
             }
         }

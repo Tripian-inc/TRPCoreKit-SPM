@@ -175,11 +175,20 @@ extension TRPTimelineItineraryViewModel {
         }
 
         let calculator = TRPRouteCalculator(providerApiKey: accessToken, wayPoints: locations, dailyPlanId: 0)
-        calculator.calculateRoute { route, error, _, _ in
+        // Retain calculator to prevent deallocation during async operation
+        activeRouteCalculators.append(calculator)
+        calculator.calculateRoute { [weak self] route, error, _, _ in
             DispatchQueue.main.async {
+                // Remove calculator from active list after completion
+                self?.activeRouteCalculators.removeAll { $0 === calculator }
                 completion(route, error)
             }
         }
+    }
+
+    /// Cancel all active route calculations (e.g., when switching days)
+    public func cancelActiveRouteCalculations() {
+        activeRouteCalculators.removeAll()
     }
 
     // MARK: - Segment Route Calculation

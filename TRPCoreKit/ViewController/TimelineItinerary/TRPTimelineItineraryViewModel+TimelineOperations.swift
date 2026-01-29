@@ -93,30 +93,37 @@ extension TRPTimelineItineraryViewModel {
         repository.fetchTimeline(tripHash: tripHash) { [weak self] result in
             guard let self = self else { return }
 
-            DispatchQueue.main.async {
-                switch result {
-                case .success(var timeline):
-                    // Merge itinerary model data (only favouriteItems - segments handled via API)
-                    timeline = self.mergeItineraryData(timeline: timeline, itineraryModel: itineraryModel)
+            switch result {
+            case .success(var timeline):
+                // Merge itinerary model data (only favouriteItems - segments handled via API)
+                timeline = self.mergeItineraryData(timeline: timeline, itineraryModel: itineraryModel)
 
-                    // NOTE: Do NOT sync segments - use API response as-is
-                    // tripProfile.segments is the single source of truth
-                    // Populate city information in segments BEFORE processing
-                    self.populateCitiesInSegments(&timeline)
+                // NOTE: Do NOT sync segments - use API response as-is
+                // tripProfile.segments is the single source of truth
+                // Populate city information in segments BEFORE processing
+                self.populateCitiesInSegments(&timeline)
 
-                    // Update timeline and process data
-                    self.timeline = timeline
-                    self.processTimelineData()
+                // Update timeline
+                self.timeline = timeline
 
-                    // Notify delegate - UI is ready
-                    self.delegate?.viewModel(showPreloader: false)
-                    self.delegate?.timelineItineraryViewModel(didUpdateTimeline: true)
+                // Resolve favourite item city IDs, then process data
+                self.resolveFavouriteItemCities { [weak self] in
+                    guard let self = self else { return }
+                    DispatchQueue.main.async {
+                        self.processTimelineData()
 
-                    // Check for missing booked activities and add via API if needed
-                    // This runs in background after UI is shown
-                    self.addMissingBookedActivities(from: itineraryModel)
+                        // Notify delegate - UI is ready
+                        self.delegate?.viewModel(showPreloader: false)
+                        self.delegate?.timelineItineraryViewModel(didUpdateTimeline: true)
 
-                case .failure(let error):
+                        // Check for missing booked activities and add via API if needed
+                        // This runs in background after UI is shown
+                        self.addMissingBookedActivities(from: itineraryModel)
+                    }
+                }
+
+            case .failure(let error):
+                DispatchQueue.main.async {
                     self.delegate?.viewModel(showPreloader: false)
                     self.delegate?.viewModel(error: error)
                 }
@@ -335,21 +342,28 @@ extension TRPTimelineItineraryViewModel {
         repository.fetchTimeline(tripHash: tripHash) { [weak self] result in
             guard let self = self else { return }
 
-            DispatchQueue.main.async {
-                self.delegate?.viewModel(showPreloader: false)
+            switch result {
+            case .success(var updatedTimeline):
+                // Preserve favouriteItems from previous timeline (API doesn't return these)
+                updatedTimeline.favouriteItems = self.timeline?.favouriteItems
+                // Populate city information in segments BEFORE processing
+                self.populateCitiesInSegments(&updatedTimeline)
+                self.timeline = updatedTimeline
 
-                switch result {
-                case .success(var updatedTimeline):
-                    // Preserve favouriteItems from previous timeline (API doesn't return these)
-                    updatedTimeline.favouriteItems = self.timeline?.favouriteItems
-                    // Populate city information in segments BEFORE processing
-                    self.populateCitiesInSegments(&updatedTimeline)
-                    self.timeline = updatedTimeline
-                    self.processTimelineData()
-                    self.delegate?.timelineItineraryViewModel(didUpdateTimeline: true)
-                    completion?(true)
+                // Resolve favourite item city IDs, then process data
+                self.resolveFavouriteItemCities { [weak self] in
+                    guard let self = self else { return }
+                    DispatchQueue.main.async {
+                        self.delegate?.viewModel(showPreloader: false)
+                        self.processTimelineData()
+                        self.delegate?.timelineItineraryViewModel(didUpdateTimeline: true)
+                        completion?(true)
+                    }
+                }
 
-                case .failure:
+            case .failure:
+                DispatchQueue.main.async {
+                    self.delegate?.viewModel(showPreloader: false)
                     // Even if refresh fails, notify UI to reload with local data
                     self.delegate?.timelineItineraryViewModel(didUpdateTimeline: true)
                     completion?(true)

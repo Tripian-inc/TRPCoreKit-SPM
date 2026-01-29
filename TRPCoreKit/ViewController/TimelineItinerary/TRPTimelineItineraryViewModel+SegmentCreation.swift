@@ -179,10 +179,13 @@ extension TRPTimelineItineraryViewModel {
             profile.activityFreeText = data.selectedCategories.joined(separator: ",")
         }
 
-        // FavouriteItems → activityIds
+        // FavouriteItems → activityIds (filtered by segment's cityId)
         if let favouriteItems = timeline.favouriteItems, !favouriteItems.isEmpty {
+            let cityId = city.id
             profile.activityIds = favouriteItems.compactMap { item in
                 guard let activityId = item.activityId else { return nil }
+                // Only include favourite items matching the segment's city
+                guard item.cityId == cityId else { return nil }
                 // Validate format: must start with "C_" and contain underscore
                 if activityId.hasPrefix("C_") && activityId.contains("_") {
                     return activityId

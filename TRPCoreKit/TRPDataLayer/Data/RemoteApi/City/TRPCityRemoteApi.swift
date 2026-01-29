@@ -8,6 +8,7 @@
 
 import Foundation
 import TRPRestKit
+import TRPFoundationKit
 
 /// Sehir bilgilenirini API den getiri.
 final public class TRPCityRemoteApi: CityRemoteApi {
@@ -117,6 +118,27 @@ final public class TRPCityRemoteApi: CityRemoteApi {
                 completion(.success(convertedModel))
             } else {
                 completion(.failure(GeneralError.customMessage("City not found: \(name)")))
+            }
+        }
+    }
+
+    /// Resolves city IDs for given coordinates using the resolveCities API
+    /// - Parameters:
+    ///   - coordinates: Array of TRPLocation coordinates to resolve
+    ///   - completion: Completion handler with array of city IDs (in same order as coordinates)
+    public func resolveCities(coordinates: [TRPLocation], completion: @escaping (Result<[Int], Error>) -> Void) {
+
+        TRPRestKit().resolveCities(coordinates: coordinates) { (result, error) in
+
+            if let error = error {
+                completion(.failure(error))
+                return
+            }
+
+            if let cityIds = result as? [Int] {
+                completion(.success(cityIds))
+            } else {
+                completion(.failure(GeneralError.customMessage("Failed to resolve cities")))
             }
         }
     }
