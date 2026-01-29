@@ -209,15 +209,15 @@ public class TimelinePoiDetailViewController: TRPBaseUIViewController {
         return button
     }()
 
-    // Activities Section
-    lazy var activitiesHeaderView: UIView = {
+    // Products Section
+    lazy var productsHeaderView: UIView = {
         let view = UIView()
         view.translatesAutoresizingMaskIntoConstraints = false
         view.isHidden = true // Hidden by default, shown only if products exist
         return view
     }()
 
-    lazy var activitiesLabel: UILabel = {
+    lazy var productsLabel: UILabel = {
         let label = UILabel()
         label.translatesAutoresizingMaskIntoConstraints = false
         label.text = PoiDetailLocalizationKeys.localized(PoiDetailLocalizationKeys.activities)
@@ -226,10 +226,10 @@ public class TimelinePoiDetailViewController: TRPBaseUIViewController {
         return label
     }()
 
-    lazy var seeMoreButton: UIButton = {
+    lazy var seeMoreProductsButton: UIButton = {
         let button = UIButton(type: .system)
         button.translatesAutoresizingMaskIntoConstraints = false
-        button.addTarget(self, action: #selector(seeMoreTapped), for: .touchUpInside)
+        button.addTarget(self, action: #selector(seeMoreProductsTapped), for: .touchUpInside)
 
         // Create attributed title
         let title = PoiDetailLocalizationKeys.localized(PoiDetailLocalizationKeys.seeMore)
@@ -250,7 +250,7 @@ public class TimelinePoiDetailViewController: TRPBaseUIViewController {
         return button
     }()
 
-    lazy var activitiesCollectionView: UICollectionView = {
+    lazy var productsCollectionView: UICollectionView = {
         let layout = UICollectionViewFlowLayout()
         layout.scrollDirection = .horizontal
         layout.minimumLineSpacing = 12
@@ -430,15 +430,6 @@ public class TimelinePoiDetailViewController: TRPBaseUIViewController {
         return stack
     }()
 
-//    private lazy var locationTitleLabel: UILabel = {
-//        let label = UILabel()
-//        label.translatesAutoresizingMaskIntoConstraints = false
-//        label.text = PoiDetailLocalizationKeys.localized(PoiDetailLocalizationKeys.whereItStarts)
-//        label.font = FontSet.montserratSemiBold.font(16)
-//        label.textColor = ColorSet.fg.uiColor
-//        return label
-//    }()
-
     lazy var locationValueLabel: UILabel = {
         let label = UILabel()
         label.translatesAutoresizingMaskIntoConstraints = false
@@ -548,9 +539,9 @@ public class TimelinePoiDetailViewController: TRPBaseUIViewController {
         }
     }
 
-    @objc private func seeMoreTapped() {
-        // TODO: Open activities listing page
-        print("See more activities tapped")
+    @objc private func seeMoreProductsTapped() {
+        // TODO: Open products listing page
+        print("See more products tapped")
     }
 
     @objc private func viewMapTapped() {

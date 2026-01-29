@@ -51,8 +51,8 @@ extension TimelinePoiDetailViewController {
         )
 
         productsSectionView = ProductsSectionView(
-            headerView: activitiesHeaderView,
-            collectionView: activitiesCollectionView
+            headerView: productsHeaderView,
+            collectionView: productsCollectionView
         )
 
         keyDataSectionView = KeyDataSectionView(
@@ -97,7 +97,7 @@ extension TimelinePoiDetailViewController {
 
         // Setup subcomponents
         setupRatingContainer()
-        setupActivitiesHeader()
+        setupProductsHeader()
         setupPhoneStack()
         setupHoursStack()
         setupLocationStack()
@@ -131,16 +131,16 @@ extension TimelinePoiDetailViewController {
         ])
     }
 
-    func setupActivitiesHeader() {
-        activitiesHeaderView.addSubview(activitiesLabel)
-        activitiesHeaderView.addSubview(seeMoreButton)
+    func setupProductsHeader() {
+        productsHeaderView.addSubview(productsLabel)
+        productsHeaderView.addSubview(seeMoreProductsButton)
 
         NSLayoutConstraint.activate([
-            activitiesLabel.leadingAnchor.constraint(equalTo: activitiesHeaderView.leadingAnchor),
-            activitiesLabel.centerYAnchor.constraint(equalTo: activitiesHeaderView.centerYAnchor),
-            seeMoreButton.trailingAnchor.constraint(equalTo: activitiesHeaderView.trailingAnchor),
-            seeMoreButton.centerYAnchor.constraint(equalTo: activitiesHeaderView.centerYAnchor),
-            activitiesHeaderView.heightAnchor.constraint(equalToConstant: 40)
+            productsLabel.leadingAnchor.constraint(equalTo: productsHeaderView.leadingAnchor),
+            productsLabel.centerYAnchor.constraint(equalTo: productsHeaderView.centerYAnchor),
+            seeMoreProductsButton.trailingAnchor.constraint(equalTo: productsHeaderView.trailingAnchor),
+            seeMoreProductsButton.centerYAnchor.constraint(equalTo: productsHeaderView.centerYAnchor),
+            productsHeaderView.heightAnchor.constraint(equalToConstant: 40)
         ])
     }
 
@@ -367,9 +367,9 @@ extension TimelinePoiDetailViewController {
         productsSectionView.isHidden = !hasProducts
 
         if hasProducts {
-            activitiesHeaderView.isHidden = false
-            activitiesCollectionView.isHidden = false
-            activitiesCollectionView.reloadData()
+            productsHeaderView.isHidden = false
+            productsCollectionView.isHidden = false
+            productsCollectionView.reloadData()
         }
     }
 

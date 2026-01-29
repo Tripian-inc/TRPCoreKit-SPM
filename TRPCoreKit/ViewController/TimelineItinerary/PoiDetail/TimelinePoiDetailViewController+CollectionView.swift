@@ -18,7 +18,7 @@ extension TimelinePoiDetailViewController: UICollectionViewDataSource {
     public func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
         if collectionView == imageCollectionView {
             return viewModel.getImageUrls().count
-        } else if collectionView == activitiesCollectionView {
+        } else if collectionView == productsCollectionView {
             return viewModel.getProducts().count
         }
         return 0
@@ -34,7 +34,7 @@ extension TimelinePoiDetailViewController: UICollectionViewDataSource {
             cell.configure(with: imageUrl)
 
             return cell
-        } else if collectionView == activitiesCollectionView {
+        } else if collectionView == productsCollectionView {
             guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: ProductCardCell.reuseIdentifier, for: indexPath) as? ProductCardCell else {
                 return UICollectionViewCell()
             }
@@ -57,7 +57,7 @@ extension TimelinePoiDetailViewController: UICollectionViewDelegateFlowLayout {
         if collectionView == imageCollectionView {
             let width = collectionView.bounds.width
             return CGSize(width: width, height: width) // 1:1 ratio
-        } else if collectionView == activitiesCollectionView {
+        } else if collectionView == productsCollectionView {
             let width: CGFloat = 280
             let height: CGFloat = 280 // Increased for dynamic content
             return CGSize(width: width, height: height)
@@ -66,7 +66,7 @@ extension TimelinePoiDetailViewController: UICollectionViewDelegateFlowLayout {
     }
 
     public func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
-        if collectionView == activitiesCollectionView {
+        if collectionView == productsCollectionView {
             let product = viewModel.getProducts()[indexPath.item]
             TRPCoreKit.shared.delegate?.trpCoreKitDidRequestActivityDetail(activityId: product.id)
         }
