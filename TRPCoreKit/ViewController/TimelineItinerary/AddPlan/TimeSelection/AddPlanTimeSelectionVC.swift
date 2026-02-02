@@ -8,7 +8,14 @@
 
 import UIKit
 
-public class AddPlanTimeSelectionVC: TRPBaseUIViewController {
+public class AddPlanTimeSelectionVC: TRPBaseUIViewController, DynamicHeightPresentable {
+
+    // MARK: - DynamicHeightPresentable
+    public var preferredContentHeight: CGFloat {
+        // Nav bar (56) + day filter margin (16) + day filter (48) + title margin (24) + title (24)
+        // + collection margin (16) + collection (~196 for 4 rows) + button margin (16) + button (52) + bottom (16)
+        return 56 + 16 + 48 + 24 + 24 + 16 + 196 + 16 + 52 + 16
+    }
 
     // MARK: - Properties
     private var viewModel: AddPlanTimeSelectionViewModel!
@@ -20,11 +27,7 @@ public class AddPlanTimeSelectionVC: TRPBaseUIViewController {
     public var onSegmentCreated: (() -> Void)?
 
     // MARK: - UI Components
-    private let customNavigationBar: TRPTimelineCustomNavigationBar = {
-        let bar = TRPTimelineCustomNavigationBar()
-        bar.translatesAutoresizingMaskIntoConstraints = false
-        return bar
-    }()
+    private var customNavigationBar: TRPTimelineCustomNavigationBar!
 
     private let dayFilterView: TRPTimelineDayFilterView = {
         let view = TRPTimelineDayFilterView()
@@ -73,6 +76,17 @@ public class AddPlanTimeSelectionVC: TRPBaseUIViewController {
         return indicator
     }()
 
+    private let emptyStateLabel: UILabel = {
+        let label = UILabel()
+        label.translatesAutoresizingMaskIntoConstraints = false
+        label.text = AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.noAvailableTimes)
+        label.font = FontSet.montserratRegular.font(16)
+        label.textColor = ColorSet.fgWeak.uiColor
+        label.textAlignment = .center
+        label.isHidden = true
+        return label
+    }()
+
     // MARK: - Initialization
     public init(tour: TRPTourProduct, planData: AddPlanData) {
         super.init(nibName: nil, bundle: nil)
@@ -88,7 +102,6 @@ public class AddPlanTimeSelectionVC: TRPBaseUIViewController {
     public override func viewDidLoad() {
         super.viewDidLoad()
         setupUI()
-        setupNavigationBar()
         setupDayFilter()
         setupActions()
 
@@ -100,20 +113,20 @@ public class AddPlanTimeSelectionVC: TRPBaseUIViewController {
     private func setupUI() {
         view.backgroundColor = .white
 
-        view.addSubview(customNavigationBar)
+        // Setup navigation bar using base class method
+        customNavigationBar = setupCustomNavigationBar(
+            title: AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.addPlan)
+        )
+        customNavigationBar.delegate = self
+
         view.addSubview(dayFilterView)
         view.addSubview(titleLabel)
         view.addSubview(collectionView)
+        view.addSubview(emptyStateLabel)
         view.addSubview(continueButton)
         view.addSubview(loadingIndicator)
 
         NSLayoutConstraint.activate([
-            // Custom Navigation Bar
-            customNavigationBar.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
-            customNavigationBar.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            customNavigationBar.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            customNavigationBar.heightAnchor.constraint(equalToConstant: 56),
-
             // Day Filter
             dayFilterView.topAnchor.constraint(equalTo: customNavigationBar.bottomAnchor, constant: 16),
             dayFilterView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
@@ -139,12 +152,13 @@ public class AddPlanTimeSelectionVC: TRPBaseUIViewController {
             // Loading Indicator
             loadingIndicator.centerXAnchor.constraint(equalTo: view.centerXAnchor),
             loadingIndicator.centerYAnchor.constraint(equalTo: view.centerYAnchor),
-        ])
-    }
 
-    private func setupNavigationBar() {
-        customNavigationBar.setTitle(AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.addPlan))
-        customNavigationBar.delegate = self
+            // Empty State Label
+            emptyStateLabel.centerXAnchor.constraint(equalTo: collectionView.centerXAnchor),
+            emptyStateLabel.centerYAnchor.constraint(equalTo: collectionView.centerYAnchor),
+            emptyStateLabel.leadingAnchor.constraint(equalTo: collectionView.leadingAnchor, constant: 16),
+            emptyStateLabel.trailingAnchor.constraint(equalTo: collectionView.trailingAnchor, constant: -16),
+        ])
     }
 
     private func setupDayFilter() {
@@ -233,6 +247,8 @@ extension AddPlanTimeSelectionVC: UICollectionViewDelegateFlowLayout {
 extension AddPlanTimeSelectionVC: AddPlanTimeSelectionViewModelDelegate {
 
     public func timeSlotsDidLoad() {
+        let hasTimeSlots = !viewModel.getTimeSlots().isEmpty
+        emptyStateLabel.isHidden = hasTimeSlots
         collectionView.reloadData()
     }
 

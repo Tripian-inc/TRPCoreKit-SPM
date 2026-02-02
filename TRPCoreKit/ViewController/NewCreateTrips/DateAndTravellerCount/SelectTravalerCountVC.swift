@@ -11,7 +11,7 @@ import UIKit
 public protocol SelectTravalerCountVCDelegate: AnyObject {
     func travelersConfirmed(adultCount: Int, childrenCount: Int)
 }
-class SelectTravalerCountVC: UIViewController {
+class SelectTravalerCountVC: TRPBaseUIViewController {
 
     @IBOutlet weak var containerView: UIView!
     @IBOutlet weak var titleLabel: UILabel!

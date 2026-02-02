@@ -42,7 +42,7 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
         let stack = UIStackView()
         stack.translatesAutoresizingMaskIntoConstraints = false
         stack.axis = .vertical
-        stack.spacing = 12
+        stack.spacing = 24
         stack.alignment = .fill
         stack.distribution = .fill
         stack.backgroundColor = ColorSet.neutral100.uiColor
@@ -86,7 +86,7 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
         button.backgroundColor = .white
         button.layer.borderWidth = 1
         button.layer.borderColor = ColorSet.neutral200.uiColor.cgColor
-        button.layer.cornerRadius = 20
+        button.layer.cornerRadius = 22
         return button
     }()
     
@@ -95,7 +95,7 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
         let stack = UIStackView()
         stack.translatesAutoresizingMaskIntoConstraints = false
         stack.axis = .vertical
-        stack.spacing = 16
+        stack.spacing = 24
         stack.isHidden = false
         return stack
     }()
@@ -145,11 +145,11 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
             chevronButton.widthAnchor.constraint(equalToConstant: 16),
             chevronButton.heightAnchor.constraint(equalToConstant: 16),
 
-            // Close Button
+            // Close Button - 44x44 for Apple HIG tap target
             closeButton.trailingAnchor.constraint(equalTo: headerView.trailingAnchor),
             closeButton.centerYAnchor.constraint(equalTo: headerView.centerYAnchor),
-            closeButton.widthAnchor.constraint(equalToConstant: 40),
-            closeButton.heightAnchor.constraint(equalToConstant: 40),
+            closeButton.widthAnchor.constraint(equalToConstant: 44),
+            closeButton.heightAnchor.constraint(equalToConstant: 44),
         ])
 
         setupActions()
@@ -438,11 +438,11 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
         titleLabel.numberOfLines = 0
         titleLabel.text = step.poi?.name ?? ""
 
-        // Action buttons container (change time + remove step) - spacing 2, right margin 12
+        // Action buttons container (change time + remove step) - no spacing
         let actionButtonsStack = UIStackView()
         actionButtonsStack.translatesAutoresizingMaskIntoConstraints = false
         actionButtonsStack.axis = .horizontal
-        actionButtonsStack.spacing = 2
+        actionButtonsStack.spacing = 0
         actionButtonsStack.alignment = .center
 
         // Change time button - 32x32, icon 20x20 (hidden for activity steps)
@@ -510,9 +510,9 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
             spacer2.translatesAutoresizingMaskIntoConstraints = false
             spacer2.widthAnchor.constraint(equalToConstant: 4).isActive = true
 
-            // Review count label - light 14px fgWeak
+            // Review count label - regular 14px fgWeak
             let reviewLabel = UILabel()
-            reviewLabel.font = FontSet.montserratLight.font(14)
+            reviewLabel.font = FontSet.montserratRegular.font(14)
             reviewLabel.textColor = ColorSet.fgWeak.uiColor
             if let reviewCount = poi.ratingCount {
                 let opinionsText = AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.opinions)
@@ -739,9 +739,9 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
             titleLabel.trailingAnchor.constraint(equalTo: actionButtonsStack.leadingAnchor, constant: -8),
             titleLabel.bottomAnchor.constraint(equalTo: titleRow.bottomAnchor),
 
-            // Action buttons stack inside title row
+            // Action buttons stack inside title row - no right spacing
             actionButtonsStack.topAnchor.constraint(equalTo: titleRow.topAnchor),
-            actionButtonsStack.trailingAnchor.constraint(equalTo: titleRow.trailingAnchor),
+            actionButtonsStack.trailingAnchor.constraint(equalTo: titleRow.trailingAnchor, constant: 12),
 
             // Button sizes - 32x32
             changeTimeButton.widthAnchor.constraint(equalToConstant: 32),

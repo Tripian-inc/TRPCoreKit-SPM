@@ -104,6 +104,9 @@ public class TRPSDKCoordinater {
         // Fetch cities for coordinate-based city lookup (async, no auth required)
         TRPCityCache.shared.fetchCitiesIfNeeded()
 
+        // Prefetch POI categories for filtering (async, no auth required)
+        TRPPoiUseCases.prefetchCategories()
+
         let vc = SplashViewController()
         vc.delegate = self
         vc.uniqueId = uniqueId
@@ -218,6 +221,8 @@ public class TRPSDKCoordinater {
 //        getLanguages()
         // Fetch cities for coordinate-based city lookup (async, no auth required)
         TRPCityCache.shared.fetchCitiesIfNeeded()
+        // Prefetch POI categories for filtering (async, no auth required)
+        TRPPoiUseCases.prefetchCategories()
         startFirstVC()
     }
     

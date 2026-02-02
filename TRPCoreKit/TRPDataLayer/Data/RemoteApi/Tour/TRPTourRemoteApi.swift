@@ -69,6 +69,10 @@ public class TRPTourRemoteApi: TourRemoteApi {
         request.sortingBy = parameters.sortingBy ?? "rating"
         request.sortingType = parameters.sortingType ?? "desc"
 
+        // Map currency and adults
+        request.currency = parameters.currency
+        request.adults = parameters.adults
+
         TRPRestKit().searchTours(request: request) { (result, error) in
 
             if let error = error {
@@ -145,6 +149,10 @@ public class TRPTourRemoteApi: TourRemoteApi {
         // Map sorting (default to score descending)
         request.sortingBy = parameters.sortingBy ?? "score"
         request.sortingType = parameters.sortingType ?? "desc"
+
+        // Map currency and adults
+        request.currency = parameters.currency
+        request.adults = parameters.adults
 
         TRPRestKit().searchTours(request: request) { (result, error) in
 

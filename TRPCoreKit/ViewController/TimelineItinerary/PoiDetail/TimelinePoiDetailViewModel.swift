@@ -380,6 +380,19 @@ public class TimelinePoiDetailViewModel {
         return poi.phone != nil || poi.hours != nil
     }
 
+    /// Check if POI category is restaurant, cafe, or nightlife (for showing phone number)
+    /// Uses the cached Eat & Drink category IDs from TRPPoiUseCases
+    public func isRestaurantCafeOrNightlife() -> Bool {
+        // Check if POI has any Eat & Drink category using cached IDs
+        for category in poi.categories {
+            if TRPPoiUseCases.isEatAndDrinkCategory(category.id) {
+                return true
+            }
+        }
+
+        return false
+    }
+
     public func getAddress() -> String? {
         return poi.address
     }
@@ -404,13 +417,26 @@ public class TimelinePoiDetailViewModel {
         return poi.tags
     }
 
+    public func hasCuisines() -> Bool {
+        guard let cuisines = poi.cuisines, !cuisines.isEmpty else { return false }
+        return true
+    }
+
+    public func getCuisines() -> [String] {
+        guard let cuisines = poi.cuisines, !cuisines.isEmpty else { return [] }
+        return cuisines
+            .components(separatedBy: ",")
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+            .filter { !$0.isEmpty }
+    }
+
     public func hasProducts() -> Bool {
         guard let bookings = poi.bookings else { return false }
 
         // Check if any booking with provider ID 15 (Civitatis) has products
         return bookings.contains { booking in
-//            guard booking.providerId == 15,
-                  guard let products = booking.products,
+            guard booking.providerId == 15,
+                  let products = booking.products,
                   !products.isEmpty else { return false }
             return true
         }
@@ -422,8 +448,8 @@ public class TimelinePoiDetailViewModel {
         // Get products only from provider ID 15 (Civitatis)
         var civittatisProducts: [TRPBookingProduct] = []
         bookings.forEach { booking in
-//            if booking.providerId == 15, let products = booking.products {
-            if let products = booking.products {
+            if booking.providerId == 15, let products = booking.products {
+//            if let products = booking.products {
                 civittatisProducts.append(contentsOf: products)
             }
         }

@@ -104,8 +104,10 @@ extension TRPTimelineItineraryVC {
         // Draw separate routes for each segment
         if segments.isEmpty {
             // No POI segments, center on first item
-            if let firstCoordinate = orderedItems.first?.item.coordinate {
-                map.setCenter(firstCoordinate, zoomLevel: 14)
+            if let firstItem = orderedItems.first {
+                if let firstCoordinate = firstItem.item.coordinate {
+                    map.setCenter(firstCoordinate, zoomLevel: 14)
+                }
             }
             return
         }
@@ -132,12 +134,12 @@ extension TRPTimelineItineraryVC {
     }
 
     /// Add annotations for ordered items with unified order
-    private func addAnnotationsForOrderedItems(_ orderedItems: [(order: Int, item: MapDisplayItem)]) {
+    private func addAnnotationsForOrderedItems(_ orderedItems: [(order: Int, section: Int, item: MapDisplayItem)]) {
         guard let map = map else { return }
 
         var annotations = [TRPPointAnnotation]()
 
-        for (order, item) in orderedItems {
+        for (order, _, item) in orderedItems {
             guard let coordinate = item.coordinate else { continue }
 
             var annotation = TRPPointAnnotation()
@@ -412,7 +414,7 @@ extension TRPTimelineItineraryVC: TRPMapViewDelegate {
         // Find the index of the item in mapDisplayItems
         var itemIndex: Int?
 
-        for (index, (_, item)) in mapDisplayItems.enumerated() {
+        for (index, (_, _, item)) in mapDisplayItems.enumerated() {
             if item.itemId == poiId {
                 itemIndex = index
                 break

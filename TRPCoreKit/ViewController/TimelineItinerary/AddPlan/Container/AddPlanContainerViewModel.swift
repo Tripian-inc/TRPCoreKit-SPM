@@ -14,25 +14,8 @@ public protocol AddPlanContainerViewModelDelegate: AnyObject {
     func planCompleted(data: AddPlanData)
 }
 
-public struct AddPlanData {
-    public var selectedDay: Date?
-    public var selectedCity: TRPCity?
-    public var selectedMode: AddPlanMode = .none
-    public var startingPointLocation: TRPLocation? // Latitude/longitude coordinates
-    public var startingPointName: String? // Display name for the starting point
-    public var startTime: Date?
-    public var endTime: Date?
-    public var travelers: Int = 0
-    public var selectedCategories: [String] = []
-    public var tripHash: String? // Timeline trip hash for segment creation
-    public var availableDays: [Date] = [] // Available days from timeline/itinerary
-}
-
-public enum AddPlanMode {
-    case none
-    case smartRecommendations
-    case manual
-}
+// Models moved to TRPDataLayer/Domain/Models/AddPlan/TRPAddPlanData.swift (SOLID: SRP)
+// Type aliases are defined in that file for backward compatibility
 
 public class AddPlanContainerViewModel {
 
@@ -46,14 +29,16 @@ public class AddPlanContainerViewModel {
     private let selectedDayIndex: Int
     private let bookedActivities: [TRPTimelineSegment]
     private let destinationItems: [TRPSegmentDestinationItem]
+    private let favouriteItems: [TRPSegmentFavoriteItem]
 
     // MARK: - Initialization
-    public init(days: [Date], cities: [TRPCity], selectedDayIndex: Int, bookedActivities: [TRPTimelineSegment] = [], destinationItems: [TRPSegmentDestinationItem] = []) {
+    public init(days: [Date], cities: [TRPCity], selectedDayIndex: Int, bookedActivities: [TRPTimelineSegment] = [], destinationItems: [TRPSegmentDestinationItem] = [], favouriteItems: [TRPSegmentFavoriteItem] = []) {
         self.availableDays = days
         self.availableCities = cities
         self.selectedDayIndex = selectedDayIndex
         self.bookedActivities = bookedActivities
         self.destinationItems = destinationItems
+        self.favouriteItems = favouriteItems
 
         // Pre-select day and city
         if selectedDayIndex < days.count {
@@ -111,6 +96,10 @@ public class AddPlanContainerViewModel {
 
     public func getBookedActivities() -> [TRPTimelineSegment] {
         return bookedActivities
+    }
+
+    public func getFavouriteItems() -> [TRPSegmentFavoriteItem] {
+        return favouriteItems
     }
 
     // MARK: - Date-City Mapping

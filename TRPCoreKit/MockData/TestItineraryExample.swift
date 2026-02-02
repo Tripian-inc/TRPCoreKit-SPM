@@ -110,7 +110,7 @@ public class TestItineraryExample {
             ratingCount: 6,
             cancellation: "full_refundable",
             duration: 90.0,
-            price: TRPSegmentActivityPrice(currency: "USD", value: 334.39),
+            price: TRPSegmentActivityPrice(currency: "EUR", value: 334.39),
             locations: nil
         )
         favouriteItems.append(sagradaFamilia)
@@ -127,7 +127,7 @@ public class TestItineraryExample {
             ratingCount: 2,
             cancellation: "full_refundable",
             duration: 120.0,
-            price: TRPSegmentActivityPrice(currency: "USD", value: 77.89),
+            price: TRPSegmentActivityPrice(currency: "EUR", value: 77.89),
             locations: nil
         )
         favouriteItems.append(parkGuell)
@@ -144,7 +144,7 @@ public class TestItineraryExample {
             ratingCount: 0,
             cancellation: "non_refundable",
             duration: 75,
-            price: TRPSegmentActivityPrice(currency: "USD", value: 18.69),
+            price: TRPSegmentActivityPrice(currency: "EUR", value: 18.69),
             locations: nil
         )
         favouriteItems.append(fav3)

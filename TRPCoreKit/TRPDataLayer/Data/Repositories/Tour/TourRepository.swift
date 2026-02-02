@@ -55,6 +55,8 @@ public struct TourParameters: Hashable {
     public var maxDuration: Int?
     public var sortingBy: String?
     public var sortingType: String?
+    public var currency: String? // Currency code (e.g., "EUR")
+    public var adults: Int? // Number of adults
 
     public init(search: String? = nil) {
         self.search = search

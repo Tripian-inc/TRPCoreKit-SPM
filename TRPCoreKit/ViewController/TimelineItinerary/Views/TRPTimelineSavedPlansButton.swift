@@ -22,7 +22,7 @@ class TRPTimelineSavedPlansButton: UIView {
         let button = UIButton(type: .custom)
         button.translatesAutoresizingMaskIntoConstraints = false
         button.backgroundColor = ColorSet.neutral100.uiColor // #F7F7F7 (very close to #F6F6F6)
-        button.layer.cornerRadius = 12
+        button.layer.cornerRadius = 8
         button.contentHorizontalAlignment = .left
         return button
     }()
@@ -31,26 +31,26 @@ class TRPTimelineSavedPlansButton: UIView {
         let view = UIView()
         view.translatesAutoresizingMaskIntoConstraints = false
         view.backgroundColor = ColorSet.bgPink.uiColor // Light pink background
-        view.layer.cornerRadius = 24 // Circular
+        view.layer.cornerRadius = 20 // 40x40 circular
         return view
     }()
-    
+
     private let heartIconImageView: UIImageView = {
         let imageView = UIImageView()
         imageView.translatesAutoresizingMaskIntoConstraints = false
         imageView.contentMode = .scaleAspectFit
-        imageView.tintColor = ColorSet.primary.uiColor // Pink color
+        imageView.tintColor = ColorSet.primary.uiColor // Primary color fill
         return imageView
     }()
-    
+
     private let badgeView: UIView = {
         let view = UIView()
         view.translatesAutoresizingMaskIntoConstraints = false
-        view.backgroundColor = ColorSet.primary.uiColor // Pink badge background
-        view.layer.cornerRadius = 10 // Circular badge
+        view.backgroundColor = ColorSet.primary.uiColor // Primary badge background
+        view.layer.cornerRadius = 8.5 // 17x17 circular (17/2 = 8.5)
         return view
     }()
-    
+
     private let badgeLabel: UILabel = {
         let label = UILabel()
         label.translatesAutoresizingMaskIntoConstraints = false
@@ -59,21 +59,21 @@ class TRPTimelineSavedPlansButton: UIView {
         label.textAlignment = .center
         return label
     }()
-    
+
     private let savedPlansTextLabel: UILabel = {
         let label = UILabel()
         label.translatesAutoresizingMaskIntoConstraints = false
         label.font = FontSet.montserratMedium.font(14)
-        label.textColor = ColorSet.primaryText.uiColor // #333333
+        label.textColor = ColorSet.primaryText.uiColor
         label.numberOfLines = 2
         return label
     }()
-    
+
     private let arrowImageView: UIImageView = {
         let imageView = UIImageView()
         imageView.translatesAutoresizingMaskIntoConstraints = false
         imageView.contentMode = .scaleAspectFit
-        imageView.tintColor = ColorSet.primary.uiColor // Pink arrow
+        imageView.tintColor = ColorSet.primary.uiColor // Primary tint color
         return imageView
     }()
     
@@ -101,20 +101,20 @@ class TRPTimelineSavedPlansButton: UIView {
         
         button.addTarget(self, action: #selector(buttonTapped), for: .touchUpInside)
         
-        // Set heart icon
-        if let heartIcon = TRPImageController().getImage(inFramework: "ic_favorite", inApp: nil) {
-            heartIconImageView.image = heartIcon
+        // Set heart icon (filled with primary color)
+        if let heartIcon = TRPImageController().getImage(inFramework: "ic_heart", inApp: nil) {
+            heartIconImageView.image = heartIcon.withRenderingMode(.alwaysTemplate)
         } else {
             heartIconImageView.image = UIImage(systemName: "heart.fill")
         }
-        
-        // Set arrow icon
-        if let arrowIcon = TRPImageController().getImage(inFramework: "ic_chevron_right", inApp: nil) {
-            arrowImageView.image = arrowIcon
+
+        // Set arrow icon (ic_next with primary tint)
+        if let arrowIcon = TRPImageController().getImage(inFramework: "ic_next", inApp: nil) {
+            arrowImageView.image = arrowIcon.withRenderingMode(.alwaysTemplate)
         } else {
             arrowImageView.image = UIImage(systemName: "chevron.right")
         }
-        
+
         NSLayoutConstraint.activate([
             // Button fills the view
             button.topAnchor.constraint(equalTo: topAnchor),
@@ -122,39 +122,35 @@ class TRPTimelineSavedPlansButton: UIView {
             button.trailingAnchor.constraint(equalTo: trailingAnchor),
             button.bottomAnchor.constraint(equalTo: bottomAnchor),
             button.heightAnchor.constraint(equalToConstant: 72),
-            
-            // Heart Icon Container (48x48 circle)
-            heartIconContainer.leadingAnchor.constraint(equalTo: button.leadingAnchor, constant: 12),
+
+            // Heart Icon Container (40x40 circle) - 16px from left
+            heartIconContainer.leadingAnchor.constraint(equalTo: button.leadingAnchor, constant: 16),
             heartIconContainer.centerYAnchor.constraint(equalTo: button.centerYAnchor),
-            heartIconContainer.widthAnchor.constraint(equalToConstant: 48),
-            heartIconContainer.heightAnchor.constraint(equalToConstant: 48),
-            
-            // Heart Icon (centered in container)
+            heartIconContainer.widthAnchor.constraint(equalToConstant: 40),
+            heartIconContainer.heightAnchor.constraint(equalToConstant: 40),
+
+            // Heart Icon (20x20, centered in container)
             heartIconImageView.centerXAnchor.constraint(equalTo: heartIconContainer.centerXAnchor),
             heartIconImageView.centerYAnchor.constraint(equalTo: heartIconContainer.centerYAnchor),
-            heartIconImageView.widthAnchor.constraint(equalToConstant: 24),
-            heartIconImageView.heightAnchor.constraint(equalToConstant: 24),
-            
-            // Badge View (positioned bottom-right of heart icon)
-            badgeView.trailingAnchor.constraint(equalTo: heartIconContainer.trailingAnchor, constant: -2),
-            badgeView.bottomAnchor.constraint(equalTo: heartIconContainer.bottomAnchor, constant: -2),
-            badgeView.heightAnchor.constraint(equalToConstant: 20),
-            
-            // Badge Label (centered in badge with padding, determines badge width)
+            heartIconImageView.widthAnchor.constraint(equalToConstant: 20),
+            heartIconImageView.heightAnchor.constraint(equalToConstant: 20),
+
+            // Badge View (17x17, positioned to overflow container by 3px from right and bottom)
+            badgeView.trailingAnchor.constraint(equalTo: heartIconContainer.trailingAnchor, constant: 3),
+            badgeView.bottomAnchor.constraint(equalTo: heartIconContainer.bottomAnchor, constant: 3),
+            badgeView.widthAnchor.constraint(equalToConstant: 17),
+            badgeView.heightAnchor.constraint(equalToConstant: 17),
+
+            // Badge Label (centered in badge)
             badgeLabel.centerXAnchor.constraint(equalTo: badgeView.centerXAnchor),
             badgeLabel.centerYAnchor.constraint(equalTo: badgeView.centerYAnchor),
-            badgeLabel.leadingAnchor.constraint(equalTo: badgeView.leadingAnchor, constant: 6),
-            badgeLabel.trailingAnchor.constraint(equalTo: badgeView.trailingAnchor, constant: -6),
-            
-            // Ensure badge has minimum width for single digit (circular)
-            badgeView.widthAnchor.constraint(greaterThanOrEqualTo: badgeView.heightAnchor),
-            
+
             // Saved Plans Text Label
             savedPlansTextLabel.leadingAnchor.constraint(equalTo: heartIconContainer.trailingAnchor, constant: 16),
             savedPlansTextLabel.centerYAnchor.constraint(equalTo: button.centerYAnchor),
             savedPlansTextLabel.trailingAnchor.constraint(lessThanOrEqualTo: arrowImageView.leadingAnchor, constant: -12),
-            
-            // Arrow Icon
+
+            // Arrow Icon - 16px from right
             arrowImageView.trailingAnchor.constraint(equalTo: button.trailingAnchor, constant: -16),
             arrowImageView.centerYAnchor.constraint(equalTo: button.centerYAnchor),
             arrowImageView.widthAnchor.constraint(equalToConstant: 24),
@@ -168,13 +164,10 @@ class TRPTimelineSavedPlansButton: UIView {
         if savedPlansCount > 0 {
             badgeLabel.text = "\(savedPlansCount)"
             badgeView.isHidden = false
-            
-            // Adjust corner radius based on digit count (pill shape for 2+ digits, circle for 1 digit)
-            badgeView.layer.cornerRadius = savedPlansCount > 9 ? 12 : 10
         } else {
             badgeView.isHidden = true
         }
-        
+
         // Set text - "Añade tus planes guardados al itinerario"
         savedPlansTextLabel.text = AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.addSavedPlansToItinerary)
     }

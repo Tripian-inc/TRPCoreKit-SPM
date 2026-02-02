@@ -18,7 +18,7 @@ public class TRPCheckBookingUseCase: CheckBookingUseCase {
     public let currency: String
     
     public init(language: String = "en",
-                currency: String = "USD") {
+                currency: String = "EUR") {
         self.language = language
         self.currency = currency
     }

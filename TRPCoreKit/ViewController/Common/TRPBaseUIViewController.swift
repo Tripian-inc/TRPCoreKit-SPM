@@ -141,7 +141,29 @@ extension TRPBaseUIViewController {
         let barButtonItem = UIBarButtonItem(customView: view)
         self.navigationItem.rightBarButtonItem = barButtonItem
     }
-    
+
+    /// Sets up a custom navigation bar with title and back button
+    /// - Parameters:
+    ///   - title: The title to display
+    ///   - height: Navigation bar height (default: 56)
+    /// - Returns: The configured navigation bar (set delegate on it for back button action)
+    @discardableResult
+    func setupCustomNavigationBar(title: String, height: CGFloat = 56) -> TRPTimelineCustomNavigationBar {
+        let navBar = TRPTimelineCustomNavigationBar()
+        navBar.translatesAutoresizingMaskIntoConstraints = false
+        navBar.setTitle(title)
+
+        view.addSubview(navBar)
+        NSLayoutConstraint.activate([
+            navBar.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
+            navBar.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            navBar.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            navBar.heightAnchor.constraint(equalToConstant: height)
+        ])
+
+        return navBar
+    }
+
     public func showConfirmAlert(title: String, message: String, confirmTitle: String, cancelTitle: String = "Cancel", attributedMessage: NSAttributedString? = nil, btnConfirmAction: (() -> Void)? = nil, btnCancelAction: (() -> Void)? = nil) {
         if !isPopupOnView {
             self.alertView.configForConfirm(title: title, message: message, btnTitle: confirmTitle, btnCancelTitle: cancelTitle, attributedMessage: attributedMessage, btnConfirmAction: btnConfirmAction, btnCancelAction: btnCancelAction)

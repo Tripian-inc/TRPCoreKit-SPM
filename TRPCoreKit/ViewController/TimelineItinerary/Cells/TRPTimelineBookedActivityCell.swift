@@ -271,8 +271,8 @@ class TRPTimelineBookedActivityCell: UITableViewCell {
 
         // Configure badge and button based on segment type
         if segment.segmentType == .reservedActivity {
-            // Reserved activity - show "Reservation" badge, buttons, hide person count
-            confirmedBadge.text = TimelineLocalizationKeys.localized(TimelineLocalizationKeys.reservation)
+            // Reserved activity - show "Activity" badge, buttons, hide person count
+            confirmedBadge.text = TimelineLocalizationKeys.localized(TimelineLocalizationKeys.activityBadge)
             confirmedBadge.textColor = ColorSet.fgOrange.uiColor
             confirmedBadge.backgroundColor = ColorSet.bgOrange.uiColor
             reservationButton.isHidden = false
@@ -368,8 +368,8 @@ class TRPTimelineBookedActivityCell: UITableViewCell {
 
         // Configure badge and buttons based on reservation status
         if cellData.isReserved {
-            // Reserved activity - show "Reservation" badge, buttons, hide person count
-            confirmedBadge.text = TimelineLocalizationKeys.localized(TimelineLocalizationKeys.reservation)
+            // Reserved activity - show "Activity" badge, buttons, hide person count
+            confirmedBadge.text = TimelineLocalizationKeys.localized(TimelineLocalizationKeys.activityBadge)
             confirmedBadge.textColor = ColorSet.fgOrange.uiColor
             confirmedBadge.backgroundColor = ColorSet.bgOrange.uiColor
             reservationButton.isHidden = false
@@ -405,16 +405,16 @@ class TRPTimelineBookedActivityCell: UITableViewCell {
             cancellationLabel.isHidden = false
         }
 
-        // Configure duration
-        if let duration = cellData.duration, duration > 0 {
+        // Configure duration - only show for reserved activities
+        if cellData.isReserved, let duration = cellData.duration, duration > 0 {
             durationLabel.text = formatDuration(duration)
             durationStackView.isHidden = false
         } else {
             durationStackView.isHidden = true
         }
 
-        // Configure price
-        if let price = cellData.price, price.value > 0 {
+        // Configure price - only show for reserved activities
+        if cellData.isReserved, let price = cellData.price, price.value > 0 {
             priceLabel.text = formatPrice(price)
             priceLabel.isHidden = false
         } else {

@@ -55,16 +55,17 @@ public enum SortOption: Int, CaseIterable {
 }
 
 // MARK: - AddPlanSortByVC
-public class AddPlanSortByVC: UIViewController, DynamicHeightPresentable {
+public class AddPlanSortByVC: TRPBaseUIViewController, DynamicHeightPresentable {
 
     // MARK: - DynamicHeightPresentable
     public var preferredContentHeight: CGFloat {
-        // Header (56) + rows (5 * 52) + bottom padding (24)
-        return 56 + CGFloat(SortOption.allCases.count * 52) + 24
+        // Header (56) + rows (N * 52) + bottom padding (24)
+        return 56 + CGFloat(availableOptions.count * 52) + 24
     }
 
     // MARK: - Properties
     private var selectedOption: SortOption
+    private var availableOptions: [SortOption]
     public var onSortOptionSelected: ((SortOption) -> Void)?
 
     // MARK: - UI Components
@@ -110,8 +111,13 @@ public class AddPlanSortByVC: UIViewController, DynamicHeightPresentable {
     }()
 
     // MARK: - Initialization
-    public init(selectedOption: SortOption = .popularity) {
+    /// Initialize with selected option and available options
+    /// - Parameters:
+    ///   - selectedOption: Currently selected sort option
+    ///   - availableOptions: Options to show. Defaults to all options.
+    public init(selectedOption: SortOption = .popularity, availableOptions: [SortOption]? = nil) {
         self.selectedOption = selectedOption
+        self.availableOptions = availableOptions ?? Array(SortOption.allCases)
         super.init(nibName: nil, bundle: nil)
     }
 
@@ -182,7 +188,7 @@ public class AddPlanSortByVC: UIViewController, DynamicHeightPresentable {
 extension AddPlanSortByVC: UITableViewDataSource, UITableViewDelegate {
 
     public func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return SortOption.allCases.count
+        return availableOptions.count
     }
 
     public func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
@@ -190,7 +196,7 @@ extension AddPlanSortByVC: UITableViewDataSource, UITableViewDelegate {
             return UITableViewCell()
         }
 
-        let option = SortOption.allCases[indexPath.row]
+        let option = availableOptions[indexPath.row]
         let isSelected = option == selectedOption
         cell.configure(title: option.title, isSelected: isSelected)
 
@@ -200,7 +206,7 @@ extension AddPlanSortByVC: UITableViewDataSource, UITableViewDelegate {
     public func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         tableView.deselectRow(at: indexPath, animated: true)
 
-        let option = SortOption.allCases[indexPath.row]
+        let option = availableOptions[indexPath.row]
         selectedOption = option
         tableView.reloadData()
 

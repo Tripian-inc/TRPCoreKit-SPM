@@ -21,6 +21,10 @@ public class AddPlanPOISelectionVC: TRPBaseUIViewController {
     private let locationManager = CLLocationManager()
     private var isSearchActive = false
 
+    // Dynamic constraints for near me visibility
+    private var cityCenterButtonTopToNearMeConstraint: NSLayoutConstraint?
+    private var cityCenterButtonTopToDefaultContentConstraint: NSLayoutConstraint?
+
     // MARK: - UI Components
 
     // Navigation Area
@@ -118,6 +122,7 @@ public class AddPlanPOISelectionVC: TRPBaseUIViewController {
         viewModel.delegate = self
         updateCityCenterButton()
         updateActivitiesSectionVisibility()
+        updateNearMeButtonVisibility()
     }
 
     // MARK: - Setup
@@ -156,7 +161,7 @@ public class AddPlanPOISelectionVC: TRPBaseUIViewController {
             nearMeButton.trailingAnchor.constraint(equalTo: defaultContentView.trailingAnchor, constant: -16),
             nearMeButton.heightAnchor.constraint(equalToConstant: 56),
 
-            cityCenterButton.topAnchor.constraint(equalTo: nearMeButton.bottomAnchor),
+            // City center button - horizontal constraints only (top is dynamic)
             cityCenterButton.leadingAnchor.constraint(equalTo: defaultContentView.leadingAnchor, constant: 24),
             cityCenterButton.trailingAnchor.constraint(equalTo: defaultContentView.trailingAnchor, constant: -16),
             cityCenterButton.heightAnchor.constraint(equalToConstant: 56),
@@ -171,6 +176,13 @@ public class AddPlanPOISelectionVC: TRPBaseUIViewController {
             activitiesTableView.trailingAnchor.constraint(equalTo: defaultContentView.trailingAnchor),
             activitiesTableView.bottomAnchor.constraint(equalTo: defaultContentView.bottomAnchor),
         ])
+
+        // Create dynamic constraints for city center button top
+        cityCenterButtonTopToNearMeConstraint = cityCenterButton.topAnchor.constraint(equalTo: nearMeButton.bottomAnchor)
+        cityCenterButtonTopToDefaultContentConstraint = cityCenterButton.topAnchor.constraint(equalTo: defaultContentView.topAnchor)
+
+        // Default: near me is visible
+        cityCenterButtonTopToNearMeConstraint?.isActive = true
     }
 
     private func setupSearchResultsView() {
@@ -235,9 +247,23 @@ public class AddPlanPOISelectionVC: TRPBaseUIViewController {
     }
 
     private func updateActivitiesSectionVisibility() {
-        let hasActivities = viewModel.hasFilteredActivities()
+        let hasActivities = viewModel.hasSavedItems()
         sectionTitleLabel.isHidden = !hasActivities
         activitiesTableView.isHidden = !hasActivities
+    }
+
+    private func updateNearMeButtonVisibility() {
+        let isInCity = viewModel.isUserInCity
+        nearMeButton.isHidden = !isInCity
+
+        // Update city center button's top constraint based on near me visibility
+        if isInCity {
+            cityCenterButtonTopToNearMeConstraint?.isActive = true
+            cityCenterButtonTopToDefaultContentConstraint?.isActive = false
+        } else {
+            cityCenterButtonTopToNearMeConstraint?.isActive = false
+            cityCenterButtonTopToDefaultContentConstraint?.isActive = true
+        }
     }
 
     // MARK: - State Management
@@ -300,8 +326,8 @@ public class AddPlanPOISelectionVC: TRPBaseUIViewController {
 extension AddPlanPOISelectionVC: UITableViewDataSource {
     public func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         if tableView.tag == 1 {
-            // Activities table
-            return viewModel.getBookedActivitiesCount()
+            // Saved items table (booked activities + favourite items)
+            return viewModel.getSavedItemsCount()
         } else {
             // Search results table
             return viewModel.getSearchResultsCount()
@@ -314,9 +340,9 @@ extension AddPlanPOISelectionVC: UITableViewDataSource {
         }
 
         if tableView.tag == 1 {
-            // Activities table
-            if let segment = viewModel.getBookedActivity(at: indexPath.row) {
-                cell.configureWithSegment(segment)
+            // Saved items table
+            if let savedItem = viewModel.getSavedItem(at: indexPath.row) {
+                cell.configureWithSavedItem(savedItem)
             }
         } else {
             // Search results table
@@ -335,11 +361,10 @@ extension AddPlanPOISelectionVC: UITableViewDelegate {
         tableView.deselectRow(at: indexPath, animated: true)
 
         if tableView.tag == 1 {
-            // Activities table - use segment coordinate
-            if let segment = viewModel.getBookedActivity(at: indexPath.row),
-               let coordinate = segment.coordinate {
-                let name = segment.title ?? segment.additionalData?.title ?? ""
-                onLocationSelected?(coordinate, name, nil)
+            // Saved items table - use item coordinate
+            if let savedItem = viewModel.getSavedItem(at: indexPath.row),
+               let coordinate = savedItem.coordinate {
+                onLocationSelected?(coordinate, savedItem.title, nil)
                 dismiss(animated: true)
             }
         } else {
@@ -385,6 +410,10 @@ extension AddPlanPOISelectionVC: AddPlanPOISelectionViewModelDelegate {
 
     public func searchDidFail(error: Error) {
         // Show error if needed
+    }
+
+    public func userLocationStatusDidUpdate(isInCity: Bool) {
+        updateNearMeButtonVisibility()
     }
 }
 
@@ -482,6 +511,19 @@ private class POISelectionCell: UITableViewCell {
             locationLabel.topAnchor.constraint(equalTo: nameLabel.bottomAnchor, constant: 2),
             locationLabel.trailingAnchor.constraint(equalTo: nameLabel.trailingAnchor),
         ])
+    }
+
+    func configureWithSavedItem(_ item: SavedItem) {
+        // Set icon - use ic_pin for both booked and favourite items
+        if let customImage = TRPImageController().getImage(inFramework: "ic_pin", inApp: nil) {
+            iconImageView.image = customImage.withRenderingMode(.alwaysTemplate)
+        } else {
+            iconImageView.image = UIImage(systemName: "mappin.circle.fill")
+        }
+
+        // Set title and location
+        nameLabel.text = item.title
+        locationLabel.text = item.cityName ?? ""
     }
 
     func configureWithSegment(_ segment: TRPTimelineSegment) {
