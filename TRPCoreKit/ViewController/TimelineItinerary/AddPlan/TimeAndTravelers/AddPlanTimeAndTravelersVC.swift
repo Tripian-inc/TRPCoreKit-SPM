@@ -282,7 +282,7 @@ public class AddPlanTimeAndTravelersVC: TRPBaseUIViewController, AddPlanChildVie
             dayFilterView.topAnchor.constraint(equalTo: dayLabel.bottomAnchor, constant: 12),
             dayFilterView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             dayFilterView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            dayFilterView.heightAnchor.constraint(equalToConstant: 44),
+            dayFilterView.heightAnchor.constraint(equalToConstant: 74),
 
             // City Selection Button - top 24, height 68 (16 label + 4 gap + 48 button)
             citySelectionButton.topAnchor.constraint(equalTo: dayFilterView.bottomAnchor, constant: 24),

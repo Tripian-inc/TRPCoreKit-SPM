@@ -61,7 +61,7 @@ extension TRPTimelineItineraryVC {
             dayFilterViewTopConstraint!,
             dayFilterView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             dayFilterView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            dayFilterView.heightAnchor.constraint(equalToConstant: 50)
+            dayFilterView.heightAnchor.constraint(equalToConstant: 74)
         ])
     }
 
