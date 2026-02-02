@@ -212,7 +212,7 @@ public class AddPlanPOISelectionVC: TRPBaseUIViewController {
         iconImageView.tintColor = ColorSet.primaryText.uiColor
         iconImageView.contentMode = .scaleAspectFit
 
-        iconImageView.image = TRPImageController().getImage(inFramework: icon, inApp: nil)?.withRenderingMode(.alwaysTemplate)
+        iconImageView.image = TRPImageController().getImage(inFramework: icon, inApp: nil, withTintColor: true)
 
         let titleLabel = UILabel()
         titleLabel.translatesAutoresizingMaskIntoConstraints = false
@@ -515,8 +515,8 @@ private class POISelectionCell: UITableViewCell {
 
     func configureWithSavedItem(_ item: SavedItem) {
         // Set icon - use ic_pin for both booked and favourite items
-        if let customImage = TRPImageController().getImage(inFramework: "ic_pin", inApp: nil) {
-            iconImageView.image = customImage.withRenderingMode(.alwaysTemplate)
+        if let customImage = TRPImageController().getImage(inFramework: "ic_pin", inApp: nil, withTintColor: true) {
+            iconImageView.image = customImage
         } else {
             iconImageView.image = UIImage(systemName: "mappin.circle.fill")
         }
@@ -528,8 +528,8 @@ private class POISelectionCell: UITableViewCell {
 
     func configureWithSegment(_ segment: TRPTimelineSegment) {
         // Set icon
-        if let customImage = TRPImageController().getImage(inFramework: "ic_pin", inApp: nil) {
-            iconImageView.image = customImage.withRenderingMode(.alwaysTemplate)
+        if let customImage = TRPImageController().getImage(inFramework: "ic_pin", inApp: nil, withTintColor: true) {
+            iconImageView.image = customImage
         } else {
             iconImageView.image = UIImage(systemName: "mappin.circle.fill")
         }
@@ -543,8 +543,8 @@ private class POISelectionCell: UITableViewCell {
 
     func configureWithGooglePlace(_ place: TRPGooglePlace) {
         // Set icon
-        if let customImage = TRPImageController().getImage(inFramework: "ic_pin", inApp: nil) {
-            iconImageView.image = customImage.withRenderingMode(.alwaysTemplate)
+        if let customImage = TRPImageController().getImage(inFramework: "ic_pin", inApp: nil, withTintColor: true) {
+            iconImageView.image = customImage
         } else {
             iconImageView.image = UIImage(systemName: "mappin.circle.fill")
         }

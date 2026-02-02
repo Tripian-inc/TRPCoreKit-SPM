@@ -194,7 +194,8 @@ public class AddPlanTimeAndTravelersVC: TRPBaseUIViewController, AddPlanChildVie
         let button = UIButton(type: .custom)
         button.translatesAutoresizingMaskIntoConstraints = false
         button.layer.cornerRadius = 20
-        button.setImage(TRPImageController().getImage(inFramework: "ic_minus", inApp: nil), for: .normal)
+        button.tintColor = ColorSet.lineWeak.uiColor
+        button.setImage(TRPImageController().getImage(inFramework: "ic_minus", inApp: nil, withTintColor: true), for: .normal)
         return button
     }()
     

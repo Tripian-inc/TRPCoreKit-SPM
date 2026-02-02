@@ -219,6 +219,6 @@ class TRPTimelineDayCell: UICollectionViewCell {
             monthLabel.textColor = ColorSet.fg.uiColor
         }
 
-        contentView.backgroundColor = .clear
+        contentView.backgroundColor = .white
     }
 }
