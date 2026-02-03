@@ -133,7 +133,7 @@ public struct AddPlanLocalizationKeys {
         searchPOI: "Search for a place",
         nearMe: "Near me",
         cityCenter: "City Center",
-        savedActivities: "Reserved and Saved Activities",
+        savedActivities: "Itinerary starting locations",
         selectCategories: "Select the Categories You Want",
         categoryGuidedTours: "Guided Tours\n& Free Tours",
         categoryTickets: "Tickets",

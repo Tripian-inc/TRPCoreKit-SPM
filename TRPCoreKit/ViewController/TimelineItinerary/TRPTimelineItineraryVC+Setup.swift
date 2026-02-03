@@ -111,7 +111,7 @@ extension TRPTimelineItineraryVC {
         poiPreviewContainerView.addSubview(poiPreviewCollectionView)
 
         // Use bottom constraint to slide in/out
-        poiPreviewBottomConstraint = poiPreviewContainerView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: collapsedOffset)
+        poiPreviewBottomConstraint = poiPreviewContainerView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: expandedOffset)
 
         NSLayoutConstraint.activate([
             // Container - fixed height, slides up/down via bottom constraint

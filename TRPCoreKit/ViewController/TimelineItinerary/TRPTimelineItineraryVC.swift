@@ -240,8 +240,9 @@ public class TRPTimelineItineraryVC: TRPBaseUIViewController {
             self.customNavigationBar.backgroundColor = .clear
             self.dayFilterView.backgroundColor = .clear
 
-            // Update floating button icon to list
+            // Update floating button icon to list and hide add plan button
             self.mapFloatingButton.updateIcon(TRPImageController().getImage(inFramework: "ic_list", inApp: nil))
+            self.addPlanFloatingButton.isHidden = true
         }
 
         // Update day filter position (move up since savedPlansButton is hidden)
@@ -269,8 +270,9 @@ public class TRPTimelineItineraryVC: TRPBaseUIViewController {
             self.addPlanButtonBottomConstraint?.constant = -24
             self.view.layoutIfNeeded()
 
-            // Update floating button icon to map
+            // Update floating button icon to map and show add plan button
             self.mapFloatingButton.updateIcon(TRPImageController().getImage(inFramework: "ic_map", inApp: nil))
+            self.addPlanFloatingButton.isHidden = false
         }
 
         // Reset collection view state
@@ -299,10 +301,10 @@ public class TRPTimelineItineraryVC: TRPBaseUIViewController {
             // Hide completely if no items
             poiPreviewBottomConstraint?.constant = -collectionViewHeight
         } else {
-            // Start in collapsed state (half visible)
-            isCollectionViewExpanded = false
-            poiPreviewBottomConstraint?.constant = collapsedOffset
-            addPlanButtonBottomConstraint?.constant = -24
+            // Start in expanded state (fully visible)
+            isCollectionViewExpanded = true
+            poiPreviewBottomConstraint?.constant = expandedOffset
+            addPlanButtonBottomConstraint?.constant = expandedOffset - collectionViewHeight - 24
         }
 
         poiPreviewCollectionView.reloadData()
