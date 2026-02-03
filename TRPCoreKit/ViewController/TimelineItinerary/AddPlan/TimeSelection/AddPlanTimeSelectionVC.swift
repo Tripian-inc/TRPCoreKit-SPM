@@ -131,7 +131,7 @@ public class AddPlanTimeSelectionVC: TRPBaseUIViewController, DynamicHeightPrese
             dayFilterView.topAnchor.constraint(equalTo: customNavigationBar.bottomAnchor, constant: 16),
             dayFilterView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             dayFilterView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            dayFilterView.heightAnchor.constraint(equalToConstant: 48),
+            dayFilterView.heightAnchor.constraint(equalToConstant: 74),
 
             // Title Label
             titleLabel.topAnchor.constraint(equalTo: dayFilterView.bottomAnchor, constant: 24),

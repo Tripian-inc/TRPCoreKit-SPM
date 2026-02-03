@@ -456,8 +456,8 @@ private class CategoryFilterCell: UICollectionViewCell {
 
         // Set icon (use custom icon from framework with template rendering mode)
         if let iconName = iconName {
-            let image = TRPImageController().getImage(inFramework: iconName, inApp: nil)
-            iconImageView.image = image?.withRenderingMode(.alwaysTemplate)
+            let image = TRPImageController().getImage(inFramework: iconName, inApp: nil, withTintColor: true)
+            iconImageView.image = image
         }
 
         // Update colors and font based on selection state

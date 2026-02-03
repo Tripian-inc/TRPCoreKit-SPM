@@ -166,7 +166,7 @@ public class AddPlanCategorySelectionVC: TRPBaseUIViewController, AddPlanChildVi
         // Icon
         let iconImageView = UIImageView()
         iconImageView.translatesAutoresizingMaskIntoConstraints = false
-        iconImageView.image = TRPImageController().getImage(inFramework: category.iconName, inApp: nil)?.withRenderingMode(.alwaysTemplate)
+        iconImageView.image = TRPImageController().getImage(inFramework: category.iconName, inApp: nil, withTintColor: true)
         iconImageView.tintColor = ColorSet.fg.uiColor
         iconImageView.contentMode = .scaleAspectFit
 

@@ -212,7 +212,7 @@ public class AddPlanPOISelectionVC: TRPBaseUIViewController {
         iconImageView.tintColor = ColorSet.primaryText.uiColor
         iconImageView.contentMode = .scaleAspectFit
 
-        iconImageView.image = TRPImageController().getImage(inFramework: icon, inApp: nil)?.withRenderingMode(.alwaysTemplate)
+        iconImageView.image = TRPImageController().getImage(inFramework: icon, inApp: nil, withTintColor: true)
 
         let titleLabel = UILabel()
         titleLabel.translatesAutoresizingMaskIntoConstraints = false
@@ -475,6 +475,10 @@ private class POISelectionCell: UITableViewCell {
         return label
     }()
 
+    // Dynamic constraints for nameLabel vertical positioning
+    private var nameLabelTopConstraint: NSLayoutConstraint?
+    private var nameLabelCenterYConstraint: NSLayoutConstraint?
+
     override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
         super.init(style: style, reuseIdentifier: reuseIdentifier)
         setupViews()
@@ -484,11 +488,25 @@ private class POISelectionCell: UITableViewCell {
         fatalError("init(coder:) has not been implemented")
     }
 
+    override func prepareForReuse() {
+        super.prepareForReuse()
+        // Reset to default two-line layout
+        locationLabel.isHidden = false
+        nameLabelTopConstraint?.isActive = true
+        nameLabelCenterYConstraint?.isActive = false
+        nameLabel.numberOfLines = 1
+        nameLabel.font = FontSet.montserratSemiBold.font(16)
+        nameLabel.textColor = ColorSet.primaryText.uiColor
+    }
+
     private func setupViews() {
         contentView.addSubview(iconContainerView)
         iconContainerView.addSubview(iconImageView)
         contentView.addSubview(nameLabel)
         contentView.addSubview(locationLabel)
+
+        nameLabelTopConstraint = nameLabel.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 8)
+        nameLabelCenterYConstraint = nameLabel.centerYAnchor.constraint(equalTo: contentView.centerYAnchor)
 
         NSLayoutConstraint.activate([
             // Icon container (40x40 with background)
@@ -504,47 +522,61 @@ private class POISelectionCell: UITableViewCell {
             iconImageView.bottomAnchor.constraint(equalTo: iconContainerView.bottomAnchor, constant: -8),
 
             nameLabel.leadingAnchor.constraint(equalTo: iconContainerView.trailingAnchor, constant: 12),
-            nameLabel.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 8),
             nameLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
 
             locationLabel.leadingAnchor.constraint(equalTo: nameLabel.leadingAnchor),
             locationLabel.topAnchor.constraint(equalTo: nameLabel.bottomAnchor, constant: 2),
             locationLabel.trailingAnchor.constraint(equalTo: nameLabel.trailingAnchor),
         ])
+
+        // Default: two-line layout (title + subtitle)
+        nameLabelTopConstraint?.isActive = true
     }
 
     func configureWithSavedItem(_ item: SavedItem) {
-        // Set icon - use ic_pin for both booked and favourite items
-        if let customImage = TRPImageController().getImage(inFramework: "ic_pin", inApp: nil) {
-            iconImageView.image = customImage.withRenderingMode(.alwaysTemplate)
+        // Set icon
+        if let customImage = TRPImageController().getImage(inFramework: "ic_pin", inApp: nil, withTintColor: true) {
+            iconImageView.image = customImage
         } else {
             iconImageView.image = UIImage(systemName: "mappin.circle.fill")
         }
 
-        // Set title and location
+        // Title only - no city name
         nameLabel.text = item.title
-        locationLabel.text = item.cityName ?? ""
+        nameLabel.numberOfLines = 2
+        nameLabel.font = FontSet.montserratMedium.font(16)
+        nameLabel.textColor = ColorSet.fg.uiColor
+
+        // Hide location label and center title vertically
+        locationLabel.isHidden = true
+        nameLabelTopConstraint?.isActive = false
+        nameLabelCenterYConstraint?.isActive = true
     }
 
     func configureWithSegment(_ segment: TRPTimelineSegment) {
         // Set icon
-        if let customImage = TRPImageController().getImage(inFramework: "ic_pin", inApp: nil) {
-            iconImageView.image = customImage.withRenderingMode(.alwaysTemplate)
+        if let customImage = TRPImageController().getImage(inFramework: "ic_pin", inApp: nil, withTintColor: true) {
+            iconImageView.image = customImage
         } else {
             iconImageView.image = UIImage(systemName: "mappin.circle.fill")
         }
 
-        // Set title
+        // Title only - no city name
         nameLabel.text = segment.title ?? segment.additionalData?.title ?? ""
+        nameLabel.numberOfLines = 2
+        nameLabel.font = FontSet.montserratMedium.font(16)
+        nameLabel.textColor = ColorSet.fg.uiColor
 
-        // Set location
-        locationLabel.text = segment.city?.name ?? ""
+        // Hide location label and center title vertically
+        locationLabel.isHidden = true
+        nameLabelTopConstraint?.isActive = false
+        nameLabelCenterYConstraint?.isActive = true
     }
 
     func configureWithGooglePlace(_ place: TRPGooglePlace) {
         // Set icon
-        if let customImage = TRPImageController().getImage(inFramework: "ic_pin", inApp: nil) {
-            iconImageView.image = customImage.withRenderingMode(.alwaysTemplate)
+        if let customImage = TRPImageController().getImage(inFramework: "ic_pin", inApp: nil, withTintColor: true) {
+            iconImageView.image = customImage
         } else {
             iconImageView.image = UIImage(systemName: "mappin.circle.fill")
         }

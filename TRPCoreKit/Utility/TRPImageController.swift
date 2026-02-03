@@ -11,14 +11,20 @@ import UIKit
 
 class TRPImageController {
     
-    public func getImage(inFramework: String?, inApp: String?) -> UIImage? {
-        if let inApp = inApp, let image = UIImage(named: inApp, in: Bundle.main, compatibleWith: nil) {
-            return image
+    public func getImage(inFramework: String?, inApp: String?, withTintColor: Bool = false) -> UIImage? {
+        var image: UIImage?
+        if let inApp = inApp, let inAppImage = UIImage(named: inApp, in: Bundle.main, compatibleWith: nil) {
+            image = inAppImage
         }
-        if let image = inFramework {
-            return UIImage(named: image, in: Bundle.module, compatibleWith: nil)
+        
+        if let inFramework = inFramework, image == nil {
+            image = UIImage(named: inFramework, in: Bundle.module, compatibleWith: nil)
         }
-        return nil
+        
+        if withTintColor {
+            return image?.withRenderingMode(.alwaysTemplate)
+        }
+        return image
     }
     
 }

@@ -8,6 +8,7 @@
 
 import Foundation
 import UIKit
+import CoreLocation
 import MapboxDirections
 import TRPFoundationKit
 
@@ -97,18 +98,18 @@ extension TRPTimelineItineraryVC {
         // Add annotations with unified order
         addAnnotationsForOrderedItems(orderedItems)
 
-        // Get POIs for routing (legacy behavior)
+        // Collect all annotation coordinates and fit camera to show them all
+        let allCoordinates = orderedItems.compactMap { item -> CLLocationCoordinate2D? in
+            guard let coordinate = item.item.coordinate else { return nil }
+            return CLLocationCoordinate2D(latitude: coordinate.lat, longitude: coordinate.lon)
+        }
+        map.fitCamera(to: allCoordinates)
+
+        // Get POIs for routing
         let segments = viewModel.getSegmentsWithPoisForSelectedDay()
-        let allPois = segments.flatMap { $0 }
 
         // Draw separate routes for each segment
         if segments.isEmpty {
-            // No POI segments, center on first item
-            if let firstItem = orderedItems.first {
-                if let firstCoordinate = firstItem.item.coordinate {
-                    map.setCenter(firstCoordinate, zoomLevel: 14)
-                }
-            }
             return
         }
 
@@ -125,10 +126,6 @@ extension TRPTimelineItineraryVC {
             showLoader(true)
             drawRoutesForSegments(segments)
         } else {
-            // No segments with multiple POIs, just center on first item
-            if let firstCoordinate = orderedItems.first?.item.coordinate {
-                map.setCenter(firstCoordinate, zoomLevel: allPois.count <= 1 ? 14 : 12)
-            }
             removeAllRoutesFromMap()
         }
     }

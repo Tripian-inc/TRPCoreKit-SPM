@@ -238,6 +238,35 @@ public class TRPMapView: UIView {
             mapView.setMapCenter(latitude: location.lat, longitude: location.lon, zoomLevel: zoom)
         }
     }
+
+    /// Fit the camera to show all given coordinates with padding
+    public func fitCamera(to coordinates: [CLLocationCoordinate2D], padding: UIEdgeInsets = UIEdgeInsets(top: 80, left: 40, bottom: 200, right: 40), animated: Bool = true) {
+        guard let mapView = mapView, coordinates.count > 0 else { return }
+
+        if coordinates.count == 1 {
+            let camera = CameraOptions(center: coordinates.first, zoom: 14)
+            if animated {
+                mapView.camera.ease(to: camera, duration: 0.5)
+            } else {
+                mapView.mapboxMap.setCamera(to: camera)
+            }
+            return
+        }
+
+        let referenceCamera = CameraOptions(bearing: 0)
+        if let camera = try? mapView.mapboxMap.camera(
+            for: coordinates,
+            camera: referenceCamera,
+            coordinatesPadding: padding,
+            maxZoom: nil,
+            offset: nil) {
+            if animated {
+                mapView.camera.ease(to: camera, duration: 0.5)
+            } else {
+                mapView.mapboxMap.setCamera(to: camera)
+            }
+        }
+    }
     
     public func setZoomLevel(_ zoomLevel: Double) {
         if let map = mapView {

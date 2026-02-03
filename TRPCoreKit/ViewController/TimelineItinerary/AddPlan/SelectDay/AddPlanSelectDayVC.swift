@@ -16,6 +16,7 @@ public class AddPlanSelectDayVC: TRPBaseUIViewController, AddPlanChildViewContro
     private let baseContentHeight: CGFloat = 464 // Base height without categories
     private let manualModeContentHeight: CGFloat = 632 // Height when manual mode is selected (shows categories)
     private let citySelectionHeight: CGFloat = 92 // City button height (68) + top margin (24)
+    private let travelersSectionHeight: CGFloat = 120 // Travelers section: 24 margin + 24 label + 16 gap + 48 container + 8 padding
 
     // MARK: - Properties
     public var viewModel: AddPlanSelectDayViewModel!
@@ -25,9 +26,12 @@ public class AddPlanSelectDayVC: TRPBaseUIViewController, AddPlanChildViewContro
     // MARK: - AddPlanChildViewController
     public var preferredContentHeight: CGFloat {
         let showCategories = (viewModel?.getSelectedMode() == .manual)
+        let showTravelers = showCategories && (viewModel?.getSelectedManualCategory() == "activities")
         let hasSingleCity = viewModel?.hasSingleCity() ?? false
         let cityOffset = hasSingleCity ? citySelectionHeight : 0
-        return (showCategories ? manualModeContentHeight : baseContentHeight) - cityOffset
+        var height = showCategories ? manualModeContentHeight : baseContentHeight
+        if showTravelers { height += travelersSectionHeight }
+        return height - cityOffset
     }
     
     // MARK: - UI Components
@@ -186,6 +190,62 @@ public class AddPlanSelectDayVC: TRPBaseUIViewController, AddPlanChildViewContro
     private var categoryButtons: [UIButton] {
         return [activitiesCategoryButton, placesOfInterestCategoryButton, eatAndDrinkCategoryButton]
     }
+
+    // Travelers section (shown when "activities" category is selected)
+    private lazy var travelersLabel: UILabel = {
+        let label = UILabel()
+        label.translatesAutoresizingMaskIntoConstraints = false
+        label.text = AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.selectTravelers)
+        label.font = FontSet.montserratSemiBold.font(16)
+        label.textColor = ColorSet.primaryText.uiColor
+        label.isHidden = true
+        return label
+    }()
+
+    private let travelersContainer: UIView = {
+        let view = UIView()
+        view.translatesAutoresizingMaskIntoConstraints = false
+        view.backgroundColor = .white
+        view.layer.cornerRadius = 8
+        view.isHidden = true
+        return view
+    }()
+
+    private lazy var travelersTextLabel: UILabel = {
+        let label = UILabel()
+        label.translatesAutoresizingMaskIntoConstraints = false
+        label.text = AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.travelers)
+        label.font = FontSet.montserratMedium.font(14)
+        label.textColor = ColorSet.fg.uiColor
+        return label
+    }()
+
+    private let decrementButton: UIButton = {
+        let button = UIButton(type: .custom)
+        button.translatesAutoresizingMaskIntoConstraints = false
+        button.layer.cornerRadius = 20
+        button.tintColor = ColorSet.fgWeak.uiColor
+        button.setImage(TRPImageController().getImage(inFramework: "ic_minus", inApp: nil, withTintColor: true), for: .normal)
+        return button
+    }()
+
+    private let travelerCountLabel: UILabel = {
+        let label = UILabel()
+        label.translatesAutoresizingMaskIntoConstraints = false
+        label.text = "1"
+        label.font = FontSet.montserratMedium.font(16)
+        label.textColor = ColorSet.fg.uiColor
+        label.textAlignment = .center
+        return label
+    }()
+
+    private let incrementButton: UIButton = {
+        let button = UIButton(type: .custom)
+        button.translatesAutoresizingMaskIntoConstraints = false
+        button.layer.cornerRadius = 20
+        button.setImage(TRPImageController().getImage(inFramework: "ic_increase", inApp: nil), for: .normal)
+        return button
+    }()
     
     private func createCategoryButton(id: String, title: String, imageName: String) -> UIButton {
         let button = UIButton(type: .custom)
@@ -261,6 +321,8 @@ public class AddPlanSelectDayVC: TRPBaseUIViewController, AddPlanChildViewContro
     private var manualCardBottomConstraint: NSLayoutConstraint?
     private var categoryLabelTopConstraint: NSLayoutConstraint?
     private var categoryStackViewBottomConstraint: NSLayoutConstraint?
+    private var travelersLabelTopConstraint: NSLayoutConstraint?
+    private var travelersContainerBottomConstraint: NSLayoutConstraint?
     private var selectionLabelTopToCityConstraint: NSLayoutConstraint?
     private var selectionLabelTopToDayFilterConstraint: NSLayoutConstraint?
     
@@ -286,11 +348,19 @@ public class AddPlanSelectDayVC: TRPBaseUIViewController, AddPlanChildViewContro
         view.addSubview(manualAddCard)
         view.addSubview(categoryLabel)
         view.addSubview(categoryStackView)
+        view.addSubview(travelersLabel)
+        view.addSubview(travelersContainer)
 
         // Add category buttons to stack view
         categoryStackView.addArrangedSubview(activitiesCategoryButton)
         categoryStackView.addArrangedSubview(placesOfInterestCategoryButton)
         categoryStackView.addArrangedSubview(eatAndDrinkCategoryButton)
+
+        // Add travelers container subviews
+        travelersContainer.addSubview(travelersTextLabel)
+        travelersContainer.addSubview(decrementButton)
+        travelersContainer.addSubview(travelerCountLabel)
+        travelersContainer.addSubview(incrementButton)
 
         NSLayoutConstraint.activate([
             // Day Label - top 12, height 16
@@ -302,7 +372,7 @@ public class AddPlanSelectDayVC: TRPBaseUIViewController, AddPlanChildViewContro
             dayFilterView.topAnchor.constraint(equalTo: dayLabel.bottomAnchor, constant: 12),
             dayFilterView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             dayFilterView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            dayFilterView.heightAnchor.constraint(equalToConstant: 44),
+            dayFilterView.heightAnchor.constraint(equalToConstant: 74),
 
             // City Selection Button - top 24, height 68 (16 label + 4 gap + 48 button)
             citySelectionButton.topAnchor.constraint(equalTo: dayFilterView.bottomAnchor, constant: 24),
@@ -336,6 +406,35 @@ public class AddPlanSelectDayVC: TRPBaseUIViewController, AddPlanChildViewContro
             categoryStackView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
             categoryStackView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
             categoryStackView.heightAnchor.constraint(equalToConstant: 96),
+
+            // Travelers Label - height 24 (top constraint is dynamic)
+            travelersLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
+            travelersLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
+            travelersLabel.heightAnchor.constraint(equalToConstant: 24),
+
+            // Travelers Container - top 16, height 48
+            travelersContainer.topAnchor.constraint(equalTo: travelersLabel.bottomAnchor, constant: 16),
+            travelersContainer.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
+            travelersContainer.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
+            travelersContainer.heightAnchor.constraint(equalToConstant: 48),
+
+            // Travelers Container inner views
+            travelersTextLabel.leadingAnchor.constraint(equalTo: travelersContainer.leadingAnchor),
+            travelersTextLabel.centerYAnchor.constraint(equalTo: travelersContainer.centerYAnchor),
+
+            incrementButton.trailingAnchor.constraint(equalTo: travelersContainer.trailingAnchor),
+            incrementButton.centerYAnchor.constraint(equalTo: travelersContainer.centerYAnchor),
+            incrementButton.widthAnchor.constraint(equalToConstant: 40),
+            incrementButton.heightAnchor.constraint(equalToConstant: 40),
+
+            travelerCountLabel.trailingAnchor.constraint(equalTo: incrementButton.leadingAnchor, constant: -8),
+            travelerCountLabel.centerYAnchor.constraint(equalTo: travelersContainer.centerYAnchor),
+            travelerCountLabel.widthAnchor.constraint(equalToConstant: 32),
+
+            decrementButton.trailingAnchor.constraint(equalTo: travelerCountLabel.leadingAnchor, constant: -8),
+            decrementButton.centerYAnchor.constraint(equalTo: travelersContainer.centerYAnchor),
+            decrementButton.widthAnchor.constraint(equalToConstant: 40),
+            decrementButton.heightAnchor.constraint(equalToConstant: 40),
         ])
 
         // Store constraints that need to be toggled based on category visibility
@@ -343,8 +442,12 @@ public class AddPlanSelectDayVC: TRPBaseUIViewController, AddPlanChildViewContro
         manualCardBottomConstraint = manualAddCard.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -32)
         // When manual selected: categoryLabel top = manualAddCard.bottom + 32
         categoryLabelTopConstraint = categoryLabel.topAnchor.constraint(equalTo: manualAddCard.bottomAnchor, constant: 32)
-        // When manual selected: categoryStackView bottom = view.bottom - 32
+        // When manual selected (no travelers): categoryStackView bottom = view.bottom - 32
         categoryStackViewBottomConstraint = categoryStackView.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -32)
+        // When activities selected: travelersLabel top = categoryStackView.bottom + 24
+        travelersLabelTopConstraint = travelersLabel.topAnchor.constraint(equalTo: categoryStackView.bottomAnchor, constant: 24)
+        // When activities selected: travelersContainer bottom = view.bottom - 32
+        travelersContainerBottomConstraint = travelersContainer.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -32)
 
         // Store constraints for selectionLabel top (city visible vs hidden)
         selectionLabelTopToCityConstraint = selectionLabel.topAnchor.constraint(equalTo: citySelectionButton.bottomAnchor, constant: 32)
@@ -353,6 +456,12 @@ public class AddPlanSelectDayVC: TRPBaseUIViewController, AddPlanChildViewContro
         // Initially, manual card is at bottom (categories hidden)
         manualCardBottomConstraint?.isActive = true
         categoryStackViewBottomConstraint?.isActive = false
+        travelersLabelTopConstraint?.isActive = false
+        travelersContainerBottomConstraint?.isActive = false
+
+        // Travelers actions
+        decrementButton.addTarget(self, action: #selector(decrementTapped), for: .touchUpInside)
+        incrementButton.addTarget(self, action: #selector(incrementTapped), for: .touchUpInside)
 
         configureDayFilterView()
         updateCityButton()
@@ -408,16 +517,27 @@ public class AddPlanSelectDayVC: TRPBaseUIViewController, AddPlanChildViewContro
     
     @objc private func categoryButtonTapped(_ sender: UIButton) {
         guard let categoryId = sender.accessibilityIdentifier else { return }
-        
+
         // Single-select: deselect all others first
         for button in categoryButtons {
             let isSelected = (button.accessibilityIdentifier == categoryId)
             updateSelectedButtonStyle(button, isSelected: isSelected)
         }
-        
+
         // Store selected category
         viewModel.setSelectedManualCategory(categoryId)
+        updateTravelersSectionUI()
         updateContinueButtonState()
+    }
+
+    @objc private func decrementTapped() {
+        viewModel.decrementTravelers()
+        updateTravelerCountUI()
+    }
+
+    @objc private func incrementTapped() {
+        viewModel.incrementTravelers()
+        updateTravelerCountUI()
     }
     
     private func showCityPicker() {
@@ -453,7 +573,6 @@ public class AddPlanSelectDayVC: TRPBaseUIViewController, AddPlanChildViewContro
         // Update constraints based on visibility
         manualCardBottomConstraint?.isActive = !showCategories
         categoryLabelTopConstraint?.isActive = showCategories
-        categoryStackViewBottomConstraint?.isActive = showCategories
 
         // Update category button styles based on selected category
         if showCategories {
@@ -464,8 +583,39 @@ public class AddPlanSelectDayVC: TRPBaseUIViewController, AddPlanChildViewContro
             }
         }
 
+        // Update travelers section visibility
+        updateTravelersSectionUI()
+    }
+
+    private func updateTravelersSectionUI() {
+        let showTravelers = (selectedMode == .manual) && (viewModel.getSelectedManualCategory() == "activities")
+        travelersLabel.isHidden = !showTravelers
+        travelersContainer.isHidden = !showTravelers
+
+        // Toggle bottom constraints
+        categoryStackViewBottomConstraint?.isActive = !showTravelers && (selectedMode == .manual)
+        travelersLabelTopConstraint?.isActive = showTravelers
+        travelersContainerBottomConstraint?.isActive = showTravelers
+
+        if showTravelers {
+            updateTravelerCountUI()
+        }
+
         // Notify container to update sheet height
         containerVC?.notifyContentHeightChanged()
+    }
+
+    private func updateTravelerCountUI() {
+        let count = viewModel.getTravelerCount()
+        travelerCountLabel.text = "\(count)"
+
+        if count <= 1 {
+            decrementButton.isEnabled = false
+            decrementButton.tintColor = ColorSet.lineWeak.uiColor
+        } else {
+            decrementButton.isEnabled = true
+            decrementButton.tintColor = ColorSet.fgWeak.uiColor
+        }
     }
     
     private func updateSelectedButtonStyle(_ view: UIView, isSelected: Bool) {
@@ -499,7 +649,7 @@ public class AddPlanSelectDayVC: TRPBaseUIViewController, AddPlanChildViewContro
         selectedDayIndex = 0
         configureDayFilterView()
         updateCityButton()
-        
+
         // Clear selection mode
         selectedMode = .none
         updateSelectionStyles()

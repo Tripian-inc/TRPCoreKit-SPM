@@ -194,7 +194,8 @@ public class AddPlanTimeAndTravelersVC: TRPBaseUIViewController, AddPlanChildVie
         let button = UIButton(type: .custom)
         button.translatesAutoresizingMaskIntoConstraints = false
         button.layer.cornerRadius = 20
-        button.setImage(TRPImageController().getImage(inFramework: "ic_minus", inApp: nil), for: .normal)
+        button.tintColor = ColorSet.lineWeak.uiColor
+        button.setImage(TRPImageController().getImage(inFramework: "ic_minus", inApp: nil, withTintColor: true), for: .normal)
         return button
     }()
     
@@ -282,7 +283,7 @@ public class AddPlanTimeAndTravelersVC: TRPBaseUIViewController, AddPlanChildVie
             dayFilterView.topAnchor.constraint(equalTo: dayLabel.bottomAnchor, constant: 12),
             dayFilterView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             dayFilterView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            dayFilterView.heightAnchor.constraint(equalToConstant: 44),
+            dayFilterView.heightAnchor.constraint(equalToConstant: 74),
 
             // City Selection Button - top 24, height 68 (16 label + 4 gap + 48 button)
             citySelectionButton.topAnchor.constraint(equalTo: dayFilterView.bottomAnchor, constant: 24),
