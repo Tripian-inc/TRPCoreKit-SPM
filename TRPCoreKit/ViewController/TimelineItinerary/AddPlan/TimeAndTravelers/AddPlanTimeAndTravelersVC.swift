@@ -13,27 +13,21 @@ import TRPFoundationKit
 public class AddPlanTimeAndTravelersVC: TRPBaseUIViewController, AddPlanChildViewController {
 
     // MARK: - Height Constants
-    private let baseContentHeight: CGFloat = 580 // Updated height to include day filter and city selection
-    private let citySelectionHeight: CGFloat = 92 // City button height (68) + top margin (24)
+    private let baseContentHeight: CGFloat = 488 // Height without city selection
 
     // MARK: - AddPlanChildViewController
     public var preferredContentHeight: CGFloat {
-        let hasSingleCity = viewModel?.hasSingleCity() ?? false
-        return hasSingleCity ? baseContentHeight - citySelectionHeight : baseContentHeight
+        return baseContentHeight
     }
 
     // MARK: - Properties
     public var viewModel: AddPlanTimeAndTravelersViewModel!
     public weak var containerVC: AddPlanContainerVC?
     private var selectedDayIndex: Int = 0
-
-    // Dynamic constraints for city visibility
-    private var separator0TopToCityConstraint: NSLayoutConstraint?
-    private var separator0TopToDayFilterConstraint: NSLayoutConstraint?
     
     // MARK: - UI Components
 
-    // Day & City Selection
+    // Day Selection
     private lazy var dayLabel: UILabel = {
         let label = UILabel()
         label.translatesAutoresizingMaskIntoConstraints = false
@@ -50,20 +44,6 @@ public class AddPlanTimeAndTravelersVC: TRPBaseUIViewController, AddPlanChildVie
         return view
     }()
 
-    private lazy var citySelectionButton: AddPlanCitySelectionButton = {
-        let view = AddPlanCitySelectionButton()
-        view.translatesAutoresizingMaskIntoConstraints = false
-        view.delegate = self
-        return view
-    }()
-
-    private let separator0: UIView = {
-        let view = UIView()
-        view.translatesAutoresizingMaskIntoConstraints = false
-        view.backgroundColor = ColorSet.neutral200.uiColor
-        return view
-    }()
-
     // Starting Point
     private lazy var startingPointLabel: UILabel = {
         let label = UILabel()
@@ -77,16 +57,27 @@ public class AddPlanTimeAndTravelersVC: TRPBaseUIViewController, AddPlanChildVie
     private lazy var startingPointButton: UIButton = {
         let button = UIButton(type: .system)
         button.translatesAutoresizingMaskIntoConstraints = false
-        button.backgroundColor = ColorSet.neutral100.uiColor
+        button.backgroundColor = .clear
         button.layer.cornerRadius = 4
+        button.layer.borderWidth = 1
+        button.layer.borderColor = ColorSet.lineWeak.uiColor.cgColor
         button.contentHorizontalAlignment = .left
-        button.titleLabel?.font = FontSet.montserratMedium.font(14)
-        button.setTitleColor(ColorSet.primaryText.uiColor, for: .normal)
+        button.titleLabel?.font = FontSet.montserratLight.font(16)
+        button.setTitleColor(ColorSet.fgWeak.uiColor, for: .normal)
         button.contentEdgeInsets = UIEdgeInsets(top: 14, left: 16, bottom: 14, right: 40)
         button.addTarget(self, action: #selector(startingPointButtonTapped), for: .touchUpInside)
         return button
     }()
-    
+
+    private lazy var startingPointNextIcon: UIImageView = {
+        let imageView = UIImageView()
+        imageView.translatesAutoresizingMaskIntoConstraints = false
+        imageView.image = TRPImageController().getImage(inFramework: "ic_next", inApp: nil)?.withRenderingMode(.alwaysTemplate)
+        imageView.tintColor = ColorSet.fgWeak.uiColor
+        imageView.contentMode = .scaleAspectFit
+        return imageView
+    }()
+
     private lazy var startingPointClearButton: UIButton = {
         let button = UIButton(type: .system)
         button.translatesAutoresizingMaskIntoConstraints = false
@@ -136,23 +127,36 @@ public class AddPlanTimeAndTravelersVC: TRPBaseUIViewController, AddPlanChildVie
         return button
     }()
 
+    private lazy var startTimeNextIcon: UIImageView = {
+        let imageView = UIImageView()
+        imageView.translatesAutoresizingMaskIntoConstraints = false
+        imageView.image = TRPImageController().getImage(inFramework: "ic_next", inApp: nil)?.withRenderingMode(.alwaysTemplate)
+        imageView.tintColor = ColorSet.fgWeak.uiColor
+        imageView.contentMode = .scaleAspectFit
+        return imageView
+    }()
+
+    private lazy var endTimeNextIcon: UIImageView = {
+        let imageView = UIImageView()
+        imageView.translatesAutoresizingMaskIntoConstraints = false
+        imageView.image = TRPImageController().getImage(inFramework: "ic_next", inApp: nil)?.withRenderingMode(.alwaysTemplate)
+        imageView.tintColor = ColorSet.fgWeak.uiColor
+        imageView.contentMode = .scaleAspectFit
+        return imageView
+    }()
+
     private func createTimeButton() -> UIButton {
         let button = UIButton(type: .custom)
         button.translatesAutoresizingMaskIntoConstraints = false
-        button.backgroundColor = ColorSet.neutral100.uiColor
+        button.backgroundColor = .clear
         button.layer.cornerRadius = 4
+        button.layer.borderWidth = 1
+        button.layer.borderColor = ColorSet.lineWeak.uiColor.cgColor
         button.setTitle(CommonLocalizationKeys.localized(CommonLocalizationKeys.select), for: .normal)
-        button.setTitleColor(ColorSet.primaryWeakText.uiColor, for: .normal)
-        button.titleLabel?.font = FontSet.montserratMedium.font(14)
+        button.setTitleColor(ColorSet.fgWeak.uiColor, for: .normal)
+        button.titleLabel?.font = FontSet.montserratLight.font(16)
         button.contentHorizontalAlignment = .left
-
-        // Add time icon
-        let timeIcon = TRPImageController().getImage(inFramework: "ic_time", inApp: nil)?.withRenderingMode(.alwaysTemplate)
-        button.setImage(timeIcon, for: .normal)
-        button.tintColor = ColorSet.primaryWeakText.uiColor
-        button.imageEdgeInsets = UIEdgeInsets(top: 0, left: 0, bottom: 0, right: 8)
-        button.titleEdgeInsets = UIEdgeInsets(top: 0, left: 8, bottom: 0, right: 0)
-        button.contentEdgeInsets = UIEdgeInsets(top: 12, left: 16, bottom: 12, right: 16)
+        button.contentEdgeInsets = UIEdgeInsets(top: 12, left: 16, bottom: 12, right: 40)
 
         return button
     }
@@ -221,9 +225,8 @@ public class AddPlanTimeAndTravelersVC: TRPBaseUIViewController, AddPlanChildVie
     public override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
 
-        // Refresh day filter and city to show current selections from previous screen
+        // Refresh day filter to show current selections from previous screen
         configureDayFilterView()
-        updateCityButton()
 
         // Update city center as starting point if user hasn't manually changed it
         updateCityCenterIfNeeded()
@@ -234,23 +237,24 @@ public class AddPlanTimeAndTravelersVC: TRPBaseUIViewController, AddPlanChildVie
         view.backgroundColor = .white
 
         // Add all subviews directly to view (scroll is handled by container)
-        // Day & City Selection
+        // Day Selection
         view.addSubview(dayLabel)
         view.addSubview(dayFilterView)
-        view.addSubview(citySelectionButton)
-        view.addSubview(separator0)
 
         // Starting Point
         view.addSubview(startingPointLabel)
         view.addSubview(startingPointButton)
+        startingPointButton.addSubview(startingPointNextIcon)
         view.addSubview(startingPointClearButton)
 
         // Time Selection
         view.addSubview(timeLabel)
         view.addSubview(startTimeLabel)
         view.addSubview(startTimeButton)
+        startTimeButton.addSubview(startTimeNextIcon)
         view.addSubview(endTimeLabel)
         view.addSubview(endTimeButton)
+        endTimeButton.addSubview(endTimeNextIcon)
 
         // Travelers
         view.addSubview(travelersLabel)
@@ -267,7 +271,6 @@ public class AddPlanTimeAndTravelersVC: TRPBaseUIViewController, AddPlanChildVie
         setupConstraints()
         setupActions()
         configureDayFilterView()
-        updateCityButton()
         updateUI()
     }
 
@@ -285,18 +288,8 @@ public class AddPlanTimeAndTravelersVC: TRPBaseUIViewController, AddPlanChildVie
             dayFilterView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             dayFilterView.heightAnchor.constraint(equalToConstant: 74),
 
-            // City Selection Button - top 24, height 68 (16 label + 4 gap + 48 button)
-            citySelectionButton.topAnchor.constraint(equalTo: dayFilterView.bottomAnchor, constant: 24),
-            citySelectionButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
-            citySelectionButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
-
-            // Separator 0 - horizontal constraints only (top is dynamic)
-            separator0.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            separator0.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            separator0.heightAnchor.constraint(equalToConstant: 0.5),
-
             // Starting Point Label
-            startingPointLabel.topAnchor.constraint(equalTo: separator0.bottomAnchor, constant: 24),
+            startingPointLabel.topAnchor.constraint(equalTo: dayFilterView.bottomAnchor, constant: 24),
             startingPointLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
             startingPointLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
 
@@ -311,6 +304,12 @@ public class AddPlanTimeAndTravelersVC: TRPBaseUIViewController, AddPlanChildVie
             startingPointClearButton.trailingAnchor.constraint(equalTo: startingPointButton.trailingAnchor, constant: -12),
             startingPointClearButton.widthAnchor.constraint(equalToConstant: 12),
             startingPointClearButton.heightAnchor.constraint(equalToConstant: 12),
+
+            // Starting Point Next Icon (same position as clear button)
+            startingPointNextIcon.centerYAnchor.constraint(equalTo: startingPointButton.centerYAnchor),
+            startingPointNextIcon.trailingAnchor.constraint(equalTo: startingPointButton.trailingAnchor, constant: -12),
+            startingPointNextIcon.widthAnchor.constraint(equalToConstant: 16),
+            startingPointNextIcon.heightAnchor.constraint(equalToConstant: 16),
 
             // Time Label
             timeLabel.topAnchor.constraint(equalTo: startingPointButton.bottomAnchor, constant: 32),
@@ -336,6 +335,18 @@ public class AddPlanTimeAndTravelersVC: TRPBaseUIViewController, AddPlanChildVie
             endTimeButton.leadingAnchor.constraint(equalTo: view.centerXAnchor, constant: 4),
             endTimeButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
             endTimeButton.heightAnchor.constraint(equalToConstant: 48),
+
+            // Start Time Next Icon
+            startTimeNextIcon.centerYAnchor.constraint(equalTo: startTimeButton.centerYAnchor),
+            startTimeNextIcon.trailingAnchor.constraint(equalTo: startTimeButton.trailingAnchor, constant: -12),
+            startTimeNextIcon.widthAnchor.constraint(equalToConstant: 16),
+            startTimeNextIcon.heightAnchor.constraint(equalToConstant: 16),
+
+            // End Time Next Icon
+            endTimeNextIcon.centerYAnchor.constraint(equalTo: endTimeButton.centerYAnchor),
+            endTimeNextIcon.trailingAnchor.constraint(equalTo: endTimeButton.trailingAnchor, constant: -12),
+            endTimeNextIcon.widthAnchor.constraint(equalToConstant: 16),
+            endTimeNextIcon.heightAnchor.constraint(equalToConstant: 16),
 
             // Travelers Label
             travelersLabel.topAnchor.constraint(equalTo: endTimeButton.bottomAnchor, constant: 32),
@@ -371,10 +382,6 @@ public class AddPlanTimeAndTravelersVC: TRPBaseUIViewController, AddPlanChildVie
             bottomSeparator.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             bottomSeparator.heightAnchor.constraint(equalToConstant: 0.5),
         ])
-
-        // Store dynamic constraints for separator0 top (city visible vs hidden)
-        separator0TopToCityConstraint = separator0.topAnchor.constraint(equalTo: citySelectionButton.bottomAnchor, constant: 24)
-        separator0TopToDayFilterConstraint = separator0.topAnchor.constraint(equalTo: dayFilterView.bottomAnchor, constant: 24)
     }
     
     private func setupActions() {
@@ -400,49 +407,18 @@ public class AddPlanTimeAndTravelersVC: TRPBaseUIViewController, AddPlanChildVie
         dayFilterView.configure(with: days, selectedDay: selectedDayIndex)
     }
 
-    private func updateCityButton() {
-        // Hide city selection if there's only one city
-        let hasSingleCity = viewModel.hasSingleCity()
-        citySelectionButton.isHidden = hasSingleCity
-
-        // Toggle separator0 top constraint based on city visibility
-        separator0TopToCityConstraint?.isActive = !hasSingleCity
-        separator0TopToDayFilterConstraint?.isActive = hasSingleCity
-
-        if !hasSingleCity {
-            citySelectionButton.configure(cityName: viewModel.getSelectedCity()?.name)
-        }
-    }
-
-    private func showCityPicker() {
-        let citiesForDay = viewModel.getCitiesForSelectedDay()
-        let hasMappings = viewModel.hasDateCityMapping()
-
-        // Check if we have any cities to show
-        guard !citiesForDay.mapped.isEmpty || !citiesForDay.other.isEmpty else { return }
-
-        let citySelectionVC = AddPlanCitySelectionVC()
-        citySelectionVC.mappedCities = citiesForDay.mapped
-        citySelectionVC.otherCities = citiesForDay.other
-        citySelectionVC.showSections = hasMappings && !citiesForDay.mapped.isEmpty
-        citySelectionVC.selectedCity = viewModel.getSelectedCity()
-        citySelectionVC.onCitySelected = { [weak self] city in
-            self?.viewModel.selectCity(city)
-            self?.updateCityButton()
-            self?.updateCityCenterIfNeeded()
-        }
-
-        presentVCWithDynamicHeight(citySelectionVC, prefersGrabberVisible: false)
-    }
-    
     private func updateUI() {
         // Update starting point button
         if let startingPointName = viewModel.getStartingPointName() {
             startingPointButton.setTitle(startingPointName, for: .normal)
+            startingPointButton.setTitleColor(ColorSet.primaryText.uiColor, for: .normal)
             startingPointClearButton.isHidden = false
+            startingPointNextIcon.isHidden = true
         } else {
             startingPointButton.setTitle(CommonLocalizationKeys.localized(CommonLocalizationKeys.select), for: .normal)
+            startingPointButton.setTitleColor(ColorSet.fgWeak.uiColor, for: .normal)
             startingPointClearButton.isHidden = true
+            startingPointNextIcon.isHidden = false
         }
 
         // Update time buttons
@@ -451,11 +427,9 @@ public class AddPlanTimeAndTravelersVC: TRPBaseUIViewController, AddPlanChildVie
             formatter.dateFormat = "HH:mm"
             startTimeButton.setTitle(formatter.string(from: startTime), for: .normal)
             startTimeButton.setTitleColor(ColorSet.primaryText.uiColor, for: .normal)
-            startTimeButton.tintColor = ColorSet.primaryText.uiColor
         } else {
             startTimeButton.setTitle(CommonLocalizationKeys.localized(CommonLocalizationKeys.select), for: .normal)
-            startTimeButton.setTitleColor(ColorSet.primaryWeakText.uiColor, for: .normal)
-            startTimeButton.tintColor = ColorSet.primaryWeakText.uiColor
+            startTimeButton.setTitleColor(ColorSet.fgWeak.uiColor, for: .normal)
         }
 
         if let endTime = viewModel.getEndTime() {
@@ -463,11 +437,9 @@ public class AddPlanTimeAndTravelersVC: TRPBaseUIViewController, AddPlanChildVie
             formatter.dateFormat = "HH:mm"
             endTimeButton.setTitle(formatter.string(from: endTime), for: .normal)
             endTimeButton.setTitleColor(ColorSet.primaryText.uiColor, for: .normal)
-            endTimeButton.tintColor = ColorSet.primaryText.uiColor
         } else {
             endTimeButton.setTitle(CommonLocalizationKeys.localized(CommonLocalizationKeys.select), for: .normal)
-            endTimeButton.setTitleColor(ColorSet.primaryWeakText.uiColor, for: .normal)
-            endTimeButton.tintColor = ColorSet.primaryWeakText.uiColor
+            endTimeButton.setTitleColor(ColorSet.fgWeak.uiColor, for: .normal)
         }
 
         // Update traveler count
@@ -509,14 +481,18 @@ public class AddPlanTimeAndTravelersVC: TRPBaseUIViewController, AddPlanChildVie
     @objc private func clearStartingPoint() {
         viewModel.setStartingPoint(location: nil, name: nil)
         startingPointButton.setTitle(CommonLocalizationKeys.localized(CommonLocalizationKeys.select), for: .normal)
+        startingPointButton.setTitleColor(ColorSet.fgWeak.uiColor, for: .normal)
         startingPointClearButton.isHidden = true
+        startingPointNextIcon.isHidden = false
         containerVC?.updateContinueButtonState()
     }
 
     private func handleLocationSelected(coordinate: TRPLocation, name: String) {
         viewModel.setStartingPoint(location: coordinate, name: name)
         startingPointButton.setTitle(name, for: .normal)
+        startingPointButton.setTitleColor(ColorSet.primaryText.uiColor, for: .normal)
         startingPointClearButton.isHidden = false
+        startingPointNextIcon.isHidden = true
         containerVC?.updateContinueButtonState()
     }
     
@@ -585,12 +561,15 @@ public class AddPlanTimeAndTravelersVC: TRPBaseUIViewController, AddPlanChildVie
         viewModel.clearSelection()
         let selectText = CommonLocalizationKeys.localized(CommonLocalizationKeys.select)
         startingPointButton.setTitle(selectText, for: .normal)
+        startingPointButton.setTitleColor(ColorSet.fgWeak.uiColor, for: .normal)
         startingPointClearButton.isHidden = true
+        startingPointNextIcon.isHidden = false
         startTimeButton.setTitle(selectText, for: .normal)
+        startTimeButton.setTitleColor(ColorSet.fgWeak.uiColor, for: .normal)
         endTimeButton.setTitle(selectText, for: .normal)
+        endTimeButton.setTitleColor(ColorSet.fgWeak.uiColor, for: .normal)
         selectedDayIndex = 0
         configureDayFilterView()
-        updateCityButton()
         updateUI()
     }
 }
@@ -622,16 +601,7 @@ extension AddPlanTimeAndTravelersVC: TRPTimelineDayFilterViewDelegate {
         let days = viewModel.getAvailableDays()
         if dayIndex < days.count {
             viewModel.selectDay(days[dayIndex])
-            updateCityButton()  // Update city when day changes (for date-city mapping)
-            updateCityCenterIfNeeded()  // Update starting point when city changes
+            updateCityCenterIfNeeded()  // Update starting point when day changes
         }
-    }
-}
-
-// MARK: - AddPlanCitySelectionButtonDelegate
-extension AddPlanTimeAndTravelersVC: AddPlanCitySelectionButtonDelegate {
-
-    public func citySelectionButtonDidTap(_ view: AddPlanCitySelectionButton) {
-        showCityPicker()
     }
 }
