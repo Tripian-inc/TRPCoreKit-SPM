@@ -25,7 +25,7 @@ Add Tripian Core Kit to your `Package.swift`:
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/Tripian-inc/TRPCoreKit-SPM.git", branch: "main")
+    .package(url: "https://github.com/Tripian-inc/TRPCoreKit-SPM.git", branch: "civitatis")
 ]
 ```
 
