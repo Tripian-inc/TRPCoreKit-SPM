@@ -13,8 +13,8 @@ import TRPFoundationKit
 public class AddPlanSelectDayVC: TRPBaseUIViewController, AddPlanChildViewController {
 
     // MARK: - Height Constants (Static heights from design)
-    private let baseContentHeight: CGFloat = 464 // Base height without categories
-    private let manualModeContentHeight: CGFloat = 632 // Height when manual mode is selected (shows categories)
+    private let baseContentHeight: CGFloat = 494 // Base height without categories
+    private let manualModeContentHeight: CGFloat = 662 // Height when manual mode is selected (shows categories)
     private let citySelectionHeight: CGFloat = 92 // City button height (68) + top margin (24)
     private let travelersSectionHeight: CGFloat = 120 // Travelers section: 24 margin + 24 label + 16 gap + 48 container + 8 padding
 
@@ -128,6 +128,7 @@ public class AddPlanSelectDayVC: TRPBaseUIViewController, AddPlanChildViewContro
             titleLabel.leadingAnchor.constraint(equalTo: iconView.trailingAnchor, constant: 12),
             titleLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
             titleLabel.topAnchor.constraint(equalTo: view.topAnchor, constant: 16),
+            titleLabel.heightAnchor.constraint(equalToConstant: 20),
             
             descLabel.leadingAnchor.constraint(equalTo: titleLabel.leadingAnchor),
             descLabel.trailingAnchor.constraint(equalTo: titleLabel.trailingAnchor),

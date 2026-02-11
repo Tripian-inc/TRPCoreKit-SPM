@@ -31,20 +31,22 @@ public class AddPlanCitySelectionButton: UIView {
     private lazy var cityButton: UIButton = {
         let button = UIButton(type: .system)
         button.translatesAutoresizingMaskIntoConstraints = false
-        button.backgroundColor = ColorSet.neutral100.uiColor
+        button.backgroundColor = .clear
         button.layer.cornerRadius = 4
+        button.layer.borderWidth = 1
+        button.layer.borderColor = ColorSet.lineWeak.uiColor.cgColor
         button.contentHorizontalAlignment = .left
-        button.titleLabel?.font = FontSet.montserratMedium.font(14)
-        button.setTitleColor(ColorSet.primaryText.uiColor, for: .normal)
+        button.titleLabel?.font = FontSet.montserratLight.font(16)
+        button.setTitleColor(ColorSet.fgWeak.uiColor, for: .normal)
         button.contentEdgeInsets = UIEdgeInsets(top: 16, left: 16, bottom: 16, right: 30)
         button.addTarget(self, action: #selector(buttonTapped), for: .touchUpInside)
         return button
     }()
 
-    private lazy var chevronImageView: UIImageView = {
-        let imageView = UIImageView(image: TRPImageController().getImage(inFramework: "ic_chevron_down", inApp: nil)?.withRenderingMode(.alwaysTemplate))
+    private lazy var nextImageView: UIImageView = {
+        let imageView = UIImageView(image: TRPImageController().getImage(inFramework: "ic_next", inApp: nil)?.withRenderingMode(.alwaysTemplate))
         imageView.translatesAutoresizingMaskIntoConstraints = false
-        imageView.tintColor = ColorSet.primaryText.uiColor
+        imageView.tintColor = ColorSet.fgWeak.uiColor
         imageView.contentMode = .scaleAspectFit
         return imageView
     }()
@@ -64,7 +66,7 @@ public class AddPlanCitySelectionButton: UIView {
     private func setupView() {
         addSubview(cityLabel)
         addSubview(cityButton)
-        cityButton.addSubview(chevronImageView)
+        cityButton.addSubview(nextImageView)
 
         NSLayoutConstraint.activate([
             // City Label - height 16
@@ -80,11 +82,11 @@ public class AddPlanCitySelectionButton: UIView {
             cityButton.bottomAnchor.constraint(equalTo: bottomAnchor),
             cityButton.heightAnchor.constraint(equalToConstant: 48),
 
-            // Chevron Icon
-            chevronImageView.centerYAnchor.constraint(equalTo: cityButton.centerYAnchor),
-            chevronImageView.trailingAnchor.constraint(equalTo: cityButton.trailingAnchor, constant: -16),
-            chevronImageView.widthAnchor.constraint(equalToConstant: 12),
-            chevronImageView.heightAnchor.constraint(equalToConstant: 12),
+            // Next Icon
+            nextImageView.centerYAnchor.constraint(equalTo: cityButton.centerYAnchor),
+            nextImageView.trailingAnchor.constraint(equalTo: cityButton.trailingAnchor, constant: -16),
+            nextImageView.widthAnchor.constraint(equalToConstant: 16),
+            nextImageView.heightAnchor.constraint(equalToConstant: 16),
         ])
     }
 
