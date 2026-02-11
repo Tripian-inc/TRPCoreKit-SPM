@@ -70,3 +70,24 @@ tmp.xcconfig
 
 # Archive files (if source exists)
 *.xcassets.zip
+
+# Claude AI context files
+claude.md
+CLAUDE.md
+.claude/
+ANDROID_*.md
+*_PROMPT.md
+*_README.md
+*_IMPLEMENTATION.md
+*_TODO.md
+*_FLOW.md
+*_EXAMPLE.md
+*_SUMMARY.md
+*_GUIDE.md
+*_CHANGES.md
+*_KEYS.md
+*_SPECS.md
+*_STRUCTURE.md
+LOCALIZATION_KEYS*.json
+TRPCOREKIT_USAGE.md
+ANALYTICS.md

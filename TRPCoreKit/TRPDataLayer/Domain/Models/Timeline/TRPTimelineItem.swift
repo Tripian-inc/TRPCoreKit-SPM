@@ -9,6 +9,7 @@
 //
 
 import Foundation
+import TRPFoundationKit
 
 // MARK: - Timeline Item
 

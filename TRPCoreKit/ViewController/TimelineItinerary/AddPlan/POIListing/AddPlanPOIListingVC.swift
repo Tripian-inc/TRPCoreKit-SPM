@@ -15,6 +15,7 @@ public class AddPlanPOIListingVC: TRPBaseUIViewController {
     // MARK: - Properties
     public var viewModel: AddPlanPOIListingViewModel!
     private var isLoadingMore = false
+    private var customNavigationBar: TRPTimelineCustomNavigationBar!
 
     // Temporarily stores selected POI while time range is being selected
     private var pendingPoi: TRPPoi?
@@ -25,46 +26,9 @@ public class AddPlanPOIListingVC: TRPBaseUIViewController {
     // MARK: - Lifecycle
     public override func viewDidLoad() {
         super.viewDidLoad()
-        setupNavigationBar()
+        navigationController?.setNavigationBarHidden(true, animated: false)
         viewModel.delegate = self
         viewModel.performInitialFetch()
-    }
-
-    private func setupNavigationBar() {
-        title = viewModel.getTitle()
-        navigationController?.navigationBar.prefersLargeTitles = false
-
-        // Add back button
-        let backButton = UIBarButtonItem(
-            image: TRPImageController().getImage(inFramework: "ic_back", inApp: nil),
-            style: .plain,
-            target: self,
-            action: #selector(backButtonTapped)
-        )
-        backButton.tintColor = ColorSet.primaryText.uiColor
-        navigationItem.leftBarButtonItem = backButton
-
-        // Navigation bar appearance
-        let appearance = UINavigationBarAppearance()
-        appearance.configureWithOpaqueBackground()
-        appearance.backgroundColor = .white
-        appearance.shadowColor = .clear
-        appearance.titleTextAttributes = [
-            .foregroundColor: ColorSet.primaryText.uiColor,
-            .font: FontSet.montserratSemiBold.font(16)
-        ]
-
-        navigationController?.navigationBar.standardAppearance = appearance
-        navigationController?.navigationBar.scrollEdgeAppearance = appearance
-    }
-    
-    public override func viewWillAppear(_ animated: Bool) {
-        super.viewWillAppear(animated)
-        showNavigationBar()
-    }
-
-    @objc private func backButtonTapped() {
-        dismiss(animated: true)
     }
 
     // MARK: - UI Components
@@ -74,13 +38,6 @@ public class AddPlanPOIListingVC: TRPBaseUIViewController {
         searchBar.placeholder = AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.searchPOIPlace)
         searchBar.delegate = self
         return searchBar
-    }()
-    
-    private let separatorView: UIView = {
-        let view = UIView()
-        view.translatesAutoresizingMaskIntoConstraints = false
-        view.backgroundColor = ColorSet.lineWeak.uiColor
-        return view
     }()
 
     private lazy var filterButton: UIButton = {
@@ -147,9 +104,10 @@ public class AddPlanPOIListingVC: TRPBaseUIViewController {
     private lazy var infoImageView: UIImageView = {
         let imageView = UIImageView()
         imageView.image = UIImage(systemName: "info.circle")
-        imageView.tintColor = ColorSet.fgWeak.uiColor // #666666
+        imageView.tintColor = ColorSet.neutral500.uiColor
         imageView.contentMode = .scaleAspectFit
         imageView.translatesAutoresizingMaskIntoConstraints = false
+        imageView.isUserInteractionEnabled = true
         return imageView
     }()
 
@@ -182,8 +140,11 @@ public class AddPlanPOIListingVC: TRPBaseUIViewController {
         super.setupViews()
         view.backgroundColor = .white
 
+        // Setup navigation bar using base class method
+        customNavigationBar = setupCustomNavigationBar(title: viewModel.getTitle())
+        customNavigationBar.delegate = self
+
         view.addSubview(searchBar)
-        view.addSubview(separatorView)
         view.addSubview(filterSortStackView)
         view.addSubview(poiCountLabel)
         view.addSubview(infoImageView)
@@ -191,18 +152,12 @@ public class AddPlanPOIListingVC: TRPBaseUIViewController {
 
         NSLayoutConstraint.activate([
             // Search Bar
-            searchBar.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 8),
+            searchBar.topAnchor.constraint(equalTo: customNavigationBar.bottomAnchor, constant: 8),
             searchBar.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
             searchBar.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
-            
-            // Separator
-            separatorView.topAnchor.constraint(equalTo: searchBar.bottomAnchor, constant: 24),
-            separatorView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            separatorView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            separatorView.heightAnchor.constraint(equalToConstant: 0.5),
 
             // Filter and Sort Stack View
-            filterSortStackView.topAnchor.constraint(equalTo: separatorView.bottomAnchor, constant: 24),
+            filterSortStackView.topAnchor.constraint(equalTo: searchBar.bottomAnchor, constant: 24),
             filterSortStackView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
             filterSortStackView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
             filterSortStackView.heightAnchor.constraint(equalToConstant: 40),
@@ -224,14 +179,65 @@ public class AddPlanPOIListingVC: TRPBaseUIViewController {
             tableView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
             tableView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor)
         ])
+
+        // Add button actions
+        filterButton.addTarget(self, action: #selector(filterButtonTapped), for: .touchUpInside)
+        sortButton.addTarget(self, action: #selector(sortButtonTapped), for: .touchUpInside)
+
+        // Add info icon tap gesture
+        let infoTapGesture = UITapGestureRecognizer(target: self, action: #selector(infoIconTapped))
+        infoImageView.addGestureRecognizer(infoTapGesture)
+    }
+
+    // MARK: - Actions
+    @objc private func filterButtonTapped() {
+        let filterVC = AddPlanPOIFilterVC(categoryType: viewModel.categoryType, filterData: viewModel.filterData)
+        filterVC.onFilterApplied = { [weak self] filterData in
+            self?.viewModel.updateFilterData(filterData)
+            self?.updateFilterButtonAppearance()
+
+            // Scroll table to top when filter changes
+            if self?.tableView.numberOfRows(inSection: 0) ?? 0 > 0 {
+                self?.tableView.scrollToRow(at: IndexPath(row: 0, section: 0), at: .top, animated: true)
+            }
+        }
+        presentVCWithModal(filterVC, onlyLarge: true, prefersGrabberVisible: true, disableSwipeToDismiss: true)
+    }
+
+    @objc private func sortButtonTapped() {
+        // POI listing only shows popularity and rating options
+        let poiSortOptions: [SortOption] = [.popularity, .rating]
+        let sortVC = AddPlanSortByVC(selectedOption: viewModel.selectedSortOption, availableOptions: poiSortOptions)
+        sortVC.onSortOptionSelected = { [weak self] option in
+            self?.viewModel.updateSortOption(option)
+
+            // Scroll table to top when sort changes
+            if self?.tableView.numberOfRows(inSection: 0) ?? 0 > 0 {
+                self?.tableView.scrollToRow(at: IndexPath(row: 0, section: 0), at: .top, animated: true)
+            }
+        }
+        presentVCWithDynamicHeight(sortVC, prefersGrabberVisible: false, isDimmed: false)
+    }
+
+    @objc private func infoIconTapped() {
+        let title = AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.sortingInfoTitle)
+        let message = AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.sortingInfoMessage)
+        let bottomSheetVC = SortingInfoBottomSheetVC(title: title, message: message)
+        presentVCWithDynamicHeight(bottomSheetVC, prefersGrabberVisible: false, isDimmed: true)
     }
 
     private func updatePoiCountLabel() {
-        let count = viewModel.getPoiCount()
-        let placeText = count == 1
-            ? AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.place)
-            : AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.places)
-        poiCountLabel.text = "\(count) \(placeText)"
+        poiCountLabel.text = viewModel.getPoiCountDisplayString()
+    }
+
+    private func updateFilterButtonAppearance() {
+        let filterCount = viewModel.filterData.activeFilterCount
+        let hasFilters = filterCount > 0
+
+        // Update title with count
+        let baseTitle = AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.filters)
+        let title = hasFilters ? "\(baseTitle) (\(filterCount))" : baseTitle
+        filterButton.setTitle(title, for: .normal)
     }
 
     private func updateTableFooter() {
@@ -353,5 +359,13 @@ extension AddPlanPOIListingVC: TRPTimeRangeSelectionDelegate {
 
         // Create segment with selected times
         viewModel.createManualPoiSegment(poi: poi, startTime: fromDate, endTime: toDate)
+    }
+}
+
+// MARK: - TRPTimelineCustomNavigationBarDelegate
+extension AddPlanPOIListingVC: TRPTimelineCustomNavigationBarDelegate {
+
+    func customNavigationBarDidTapBack(_ navigationBar: TRPTimelineCustomNavigationBar) {
+        dismiss(animated: true)
     }
 }

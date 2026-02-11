@@ -87,6 +87,30 @@ public class AddPlanSelectDayViewModel {
 
     public func setSelectedManualCategory(_ categoryId: String?) {
         containerViewModel?.planData.selectedCategories = categoryId != nil ? [categoryId!] : []
+
+        // Set default traveler count when activities is selected
+        if categoryId == "activities" && (containerViewModel?.planData.travelers ?? 0) == 0 {
+            containerViewModel?.planData.travelers = 1
+        }
+    }
+
+    // MARK: - Travelers
+
+    public func getTravelerCount() -> Int {
+        let count = containerViewModel?.planData.travelers ?? 1
+        return count > 0 ? count : 1
+    }
+
+    public func incrementTravelers() {
+        let current = containerViewModel?.planData.travelers ?? 1
+        containerViewModel?.planData.travelers = current + 1
+    }
+
+    public func decrementTravelers() {
+        let current = containerViewModel?.planData.travelers ?? 1
+        if current > 1 {
+            containerViewModel?.planData.travelers = current - 1
+        }
     }
 
     // MARK: - Date-City Mapping

@@ -51,8 +51,8 @@ extension TimelinePoiDetailViewController {
         )
 
         productsSectionView = ProductsSectionView(
-            headerView: activitiesHeaderView,
-            collectionView: activitiesCollectionView
+            headerView: productsHeaderView,
+            collectionView: productsCollectionView
         )
 
         keyDataSectionView = KeyDataSectionView(
@@ -73,6 +73,10 @@ extension TimelinePoiDetailViewController {
             tags: viewModel.getFeatures()
         )
 
+        cuisinesSectionView = CuisinesSectionView(
+            cuisines: viewModel.getCuisines()
+        )
+
         // Create separators
         separator1 = createSeparator()
         separator2 = createSeparator()
@@ -81,6 +85,7 @@ extension TimelinePoiDetailViewController {
 
         // Add sections to stack
         contentStackView.addArrangedSubview(basicInfoSectionView)
+        contentStackView.addArrangedSubview(cuisinesSectionView)
         contentStackView.addArrangedSubview(separator1)
         contentStackView.addArrangedSubview(productsSectionView)
         contentStackView.addArrangedSubview(separator2)
@@ -92,7 +97,7 @@ extension TimelinePoiDetailViewController {
 
         // Setup subcomponents
         setupRatingContainer()
-        setupActivitiesHeader()
+        setupProductsHeader()
         setupPhoneStack()
         setupHoursStack()
         setupLocationStack()
@@ -126,16 +131,16 @@ extension TimelinePoiDetailViewController {
         ])
     }
 
-    func setupActivitiesHeader() {
-        activitiesHeaderView.addSubview(activitiesLabel)
-        activitiesHeaderView.addSubview(seeMoreButton)
+    func setupProductsHeader() {
+        productsHeaderView.addSubview(productsLabel)
+        productsHeaderView.addSubview(seeMoreProductsButton)
 
         NSLayoutConstraint.activate([
-            activitiesLabel.leadingAnchor.constraint(equalTo: activitiesHeaderView.leadingAnchor),
-            activitiesLabel.centerYAnchor.constraint(equalTo: activitiesHeaderView.centerYAnchor),
-            seeMoreButton.trailingAnchor.constraint(equalTo: activitiesHeaderView.trailingAnchor),
-            seeMoreButton.centerYAnchor.constraint(equalTo: activitiesHeaderView.centerYAnchor),
-            activitiesHeaderView.heightAnchor.constraint(equalToConstant: 40)
+            productsLabel.leadingAnchor.constraint(equalTo: productsHeaderView.leadingAnchor),
+            productsLabel.centerYAnchor.constraint(equalTo: productsHeaderView.centerYAnchor),
+            seeMoreProductsButton.trailingAnchor.constraint(equalTo: productsHeaderView.trailingAnchor),
+            seeMoreProductsButton.centerYAnchor.constraint(equalTo: productsHeaderView.centerYAnchor),
+            productsHeaderView.heightAnchor.constraint(equalToConstant: 40)
         ])
     }
 
@@ -290,8 +295,8 @@ extension TimelinePoiDetailViewController {
             ratingContainerView.isHidden = true
         }
 
-        // Configure Description
-        configureDescription(poi: poi)
+        // Configure Description and Cuisines
+        configureDescriptionAndCuisines(poi: poi)
 
         // Configure Products Section
         configureProductsSection()
@@ -309,7 +314,24 @@ extension TimelinePoiDetailViewController {
         configureSeparators()
     }
 
-    private func configureDescription(poi: TRPPoi) {
+    private func configureDescriptionAndCuisines(poi: TRPPoi) {
+        let isEatAndDrink = viewModel.isRestaurantCafeOrNightlife()
+        let hasCuisines = viewModel.hasCuisines()
+
+        // For Eat & Drink with cuisines: show cuisines, hide description
+        if isEatAndDrink && hasCuisines {
+            cuisinesSectionView.isHidden = false
+            cuisinesSectionView.updateCuisines(viewModel.getCuisines())
+            descriptionLabel.isHidden = true
+            readMoreButton.isHidden = true
+            basicInfoSectionView.setDescriptionSectionHidden(true)
+            return
+        }
+
+        // Otherwise: hide cuisines, show description if available
+        cuisinesSectionView.isHidden = true
+        basicInfoSectionView.setDescriptionSectionHidden(false)
+
         if let description = poi.description, !description.isEmpty {
             // Create attributed string with line height
             let paragraphStyle = NSMutableParagraphStyle()
@@ -336,6 +358,7 @@ extension TimelinePoiDetailViewController {
         } else {
             descriptionLabel.isHidden = true
             readMoreButton.isHidden = true
+            basicInfoSectionView.setDescriptionSectionHidden(true)
         }
     }
 
@@ -344,9 +367,9 @@ extension TimelinePoiDetailViewController {
         productsSectionView.isHidden = !hasProducts
 
         if hasProducts {
-            activitiesHeaderView.isHidden = false
-            activitiesCollectionView.isHidden = false
-            activitiesCollectionView.reloadData()
+            productsHeaderView.isHidden = false
+            productsCollectionView.isHidden = false
+            productsCollectionView.reloadData()
         }
     }
 

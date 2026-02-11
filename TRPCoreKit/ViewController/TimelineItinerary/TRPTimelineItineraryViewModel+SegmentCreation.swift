@@ -124,6 +124,12 @@ extension TRPTimelineItineraryViewModel {
 
         let tripHash = timeline.tripHash
 
+        // Store day index for navigation after segment creation
+        if let selectedDay = data.selectedDay,
+           let index = data.availableDays.firstIndex(where: { Calendar.current.isDate($0, inSameDayAs: selectedDay) }) {
+            pendingNavigationDayIndex = index
+        }
+
         // 2. Show loading
         delegate?.viewModel(showPreloader: true)
 
@@ -173,10 +179,13 @@ extension TRPTimelineItineraryViewModel {
             profile.activityFreeText = data.selectedCategories.joined(separator: ",")
         }
 
-        // FavouriteItems → activityIds
+        // FavouriteItems → activityIds (filtered by segment's cityId)
         if let favouriteItems = timeline.favouriteItems, !favouriteItems.isEmpty {
+            let cityId = city.id
             profile.activityIds = favouriteItems.compactMap { item in
                 guard let activityId = item.activityId else { return nil }
+                // Only include favourite items matching the segment's city
+                guard item.cityId == cityId else { return nil }
                 // Validate format: must start with "C_" and contain underscore
                 if activityId.hasPrefix("C_") && activityId.contains("_") {
                     return activityId
@@ -248,6 +257,12 @@ extension TRPTimelineItineraryViewModel {
             guard isGenerated else { return }
 
             DispatchQueue.main.async {
+                // Apply pending day navigation before refresh
+                if let dayIndex = self.pendingNavigationDayIndex {
+                    self.selectedDayIndex = dayIndex
+                    self.pendingNavigationDayIndex = nil
+                }
+
                 // Refresh timeline now that generation is complete
                 self.refreshTimeline()
 

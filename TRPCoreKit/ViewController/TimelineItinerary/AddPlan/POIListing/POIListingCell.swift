@@ -112,6 +112,20 @@ class POIListingCell: UITableViewCell {
         fatalError("init(coder:) has not been implemented")
     }
 
+    // MARK: - Cell Reuse
+    override func prepareForReuse() {
+        super.prepareForReuse()
+
+        // Clear previous data
+        poi = nil
+        titleLabel.text = nil
+        poiImageView.sd_cancelCurrentImageLoad()
+        poiImageView.image = nil
+        ratingLabel.text = nil
+        reviewCountLabel.text = nil
+        ratingStackView.isHidden = false
+    }
+
     // MARK: - Setup
     private func setupCell() {
         selectionStyle = .none
@@ -176,11 +190,12 @@ class POIListingCell: UITableViewCell {
 
         titleLabel.text = poi.name
 
-        // Set image
-        if let imageUrl = poi.image?.url {
-            poiImageView.sd_setImage(with: URL(string: imageUrl), placeholderImage: nil)
+        // Set image with placeholder
+        let placeholderImage = TRPImageController().getImage(inFramework: "placeholder_poi", inApp: nil)
+        if let imageUrl = poi.image?.url, let url = URL(string: imageUrl) {
+            poiImageView.sd_setImage(with: url, placeholderImage: placeholderImage)
         } else {
-            poiImageView.image = nil
+            poiImageView.image = placeholderImage
         }
 
         // Set rating

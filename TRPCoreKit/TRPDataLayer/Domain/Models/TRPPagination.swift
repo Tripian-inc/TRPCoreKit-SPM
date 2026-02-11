@@ -7,29 +7,56 @@
 //
 
 import Foundation
+
+/// Pagination info from API response
+public struct TRPPaginationInfo {
+    public let total: Int
+    public let count: Int
+    public let perPage: Int
+    public let currentPage: Int
+    public let totalPages: Int
+
+    public init(total: Int = 0, count: Int = 0, perPage: Int = 0, currentPage: Int = 0, totalPages: Int = 0) {
+        self.total = total
+        self.count = count
+        self.perPage = perPage
+        self.currentPage = currentPage
+        self.totalPages = totalPages
+    }
+
+    public var hasMore: Bool {
+        return currentPage < totalPages
+    }
+}
+
 public enum TRPPagination {
-    
-    // Pages have shown yet. Value is a link
-    case continues(String)
+
+    // Pages have shown yet. Value contains pagination info
+    case continues(TRPPaginationInfo)
     // request is completed. Pages were showed.
     case completed
 }
 
 extension TRPPagination: Hashable {
-    
+
     public static func == (lhs: TRPPagination, rhs: TRPPagination) -> Bool {
-        return lhs.rawValue == rhs.rawValue
+        switch (lhs, rhs) {
+        case (.completed, .completed):
+            return true
+        case (.continues, .continues):
+            return true
+        default:
+            return false
+        }
     }
-    
-    private var rawValue : String {
-        let value : String
+
+    public func hash(into hasher: inout Hasher) {
         switch self {
         case .completed:
-            value = "completed"
-        case .continues(let url):
-            value = url
+            hasher.combine("completed")
+        case .continues(let info):
+            hasher.combine("continues")
+            hasher.combine(info.currentPage)
         }
-        return value
     }
-    
 }

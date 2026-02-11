@@ -28,17 +28,12 @@ extension TRPTimelineItineraryVC {
         poiPreviewCollectionView.register(TRPTimelineMapPOIPreviewCell.self, forCellWithReuseIdentifier: TRPTimelineMapPOIPreviewCell.reuseIdentifier)
     }
 
-    internal func setupCustomNavigationBar() {
-        guard customNavigationBar.superview == nil else { return }
+    internal func setupTimelineNavigationBar() {
+        guard customNavigationBar == nil else { return }
 
-        view.addSubview(customNavigationBar)
-
-        NSLayoutConstraint.activate([
-            customNavigationBar.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
-            customNavigationBar.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            customNavigationBar.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            customNavigationBar.heightAnchor.constraint(equalToConstant: 44)
-        ])
+        let title = TimelineLocalizationKeys.localized(TimelineLocalizationKeys.navigationTitle)
+        customNavigationBar = setupCustomNavigationBar(title: title, height: 44)
+        customNavigationBar.delegate = self
     }
 
     internal func setupSavedPlansButton() {
@@ -66,7 +61,7 @@ extension TRPTimelineItineraryVC {
             dayFilterViewTopConstraint!,
             dayFilterView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             dayFilterView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            dayFilterView.heightAnchor.constraint(equalToConstant: 50)
+            dayFilterView.heightAnchor.constraint(equalToConstant: 74)
         ])
     }
 
@@ -116,7 +111,7 @@ extension TRPTimelineItineraryVC {
         poiPreviewContainerView.addSubview(poiPreviewCollectionView)
 
         // Use bottom constraint to slide in/out
-        poiPreviewBottomConstraint = poiPreviewContainerView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: collapsedOffset)
+        poiPreviewBottomConstraint = poiPreviewContainerView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: expandedOffset)
 
         NSLayoutConstraint.activate([
             // Container - fixed height, slides up/down via bottom constraint

@@ -42,7 +42,7 @@ class TRPTimelineEmptyStateCell: UITableViewCell {
         let label = UILabel()
         label.translatesAutoresizingMaskIntoConstraints = false
         label.font = FontSet.montserratLight.font(14)
-        label.textColor = ColorSet.fgWeak.uiColor
+        label.textColor = ColorSet.primaryText.uiColor
         label.textAlignment = .center
         label.numberOfLines = 0
         return label

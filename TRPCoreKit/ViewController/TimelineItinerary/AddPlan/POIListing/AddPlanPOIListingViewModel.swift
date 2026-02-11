@@ -24,10 +24,13 @@ public class AddPlanPOIListingViewModel {
     public weak var delegate: AddPlanPOIListingViewModelDelegate?
 
     public var searchText: String = ""
+    public var selectedSortOption: SortOption = .popularity
+    public var filterData: POIFilterData = POIFilterData()
 
     private var allPois: [TRPPoi] = []
     private var filteredPois: [TRPPoi] = []
     private var categoryIds: [Int] = []
+    private var allCategoryIds: [Int] = [] // Store all category IDs for reset
 
     private var poiUseCases: TRPPoiUseCases
     private var timelineRepository: TRPTimelineRepository
@@ -35,6 +38,8 @@ public class AddPlanPOIListingViewModel {
     private var isLoadingMore: Bool = false
     private var currentPage: Int = 1
     private var totalPages: Int = 1
+    private var totalPoiCount: Int = 0
+    private var hasMorePages: Bool = false
 
     // MARK: - Initialization
     public init(planData: AddPlanData, categoryType: POIListingCategoryType) {
@@ -83,9 +88,57 @@ public class AddPlanPOIListingViewModel {
         return filteredPois.count
     }
 
+    /// Returns whether there are more POIs available to load
+    public func hasMorePoisAvailable() -> Bool {
+        return hasMorePages
+    }
+
+    /// Returns the total POI count from API
+    public func getTotalPoiCount() -> Int {
+        return totalPoiCount
+    }
+
+    /// Returns formatted string for POI count display
+    /// Shows total count from API pagination info
+    public func getPoiCountDisplayString() -> String {
+        let count = totalPoiCount > 0 ? totalPoiCount : filteredPois.count
+        let placeText = count == 1
+            ? AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.place)
+            : AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.places)
+
+        return "\(count) \(placeText)"
+    }
+
     public func updateSearchText(_ text: String) {
         searchText = text
         performSearchWithDebounce()
+    }
+
+    public func updateSortOption(_ option: SortOption) {
+        selectedSortOption = option
+        filterAndSortPois()
+        delegate?.poisDidLoad()
+    }
+
+    public func updateFilterData(_ newFilterData: POIFilterData) {
+        filterData = newFilterData
+
+        // If filter has selected categories, use them; otherwise use all categories
+        if filterData.selectedCategoryIds.isEmpty {
+            categoryIds = allCategoryIds
+        } else {
+            categoryIds = Array(filterData.selectedCategoryIds)
+        }
+
+        // Re-fetch POIs with new category filter
+        currentPage = 1
+        totalPages = 1
+        totalPoiCount = 0
+        hasMorePages = false
+        allPois = []
+
+        delegate?.viewModel(showPreloader: true)
+        fetchPois()
     }
 
     // MARK: - Data Fetching
@@ -97,12 +150,15 @@ public class AddPlanPOIListingViewModel {
         // Reset pagination
         currentPage = 1
         totalPages = 1
+        totalPoiCount = 0
+        hasMorePages = false
 
         delegate?.viewModel(showPreloader: true)
 
         // Use cached categories if available, otherwise fetch
         poiUseCases.fetchCategoryIdsIfNeeded(type: categoryType) { [weak self] ids in
             guard let self = self else { return }
+            self.allCategoryIds = ids // Store all categories for filter reset
             self.categoryIds = ids
             self.fetchPois()
         }
@@ -121,7 +177,7 @@ public class AddPlanPOIListingViewModel {
             cityId: cityId,
             page: page
         ) { [weak self] result, pagination in
-            self?.handleSearchResult(result: result, pagination: pagination, isLoadMore: page > 1)
+            self?.handleSearchResult(result: result, pagination: pagination, isLoadMore: page > 1, requestedPage: page)
         }
     }
 
@@ -145,6 +201,8 @@ public class AddPlanPOIListingViewModel {
         // Reset pagination for new search
         currentPage = 1
         totalPages = 1
+        totalPoiCount = 0
+        hasMorePages = false
 
         delegate?.viewModel(showPreloader: true)
 
@@ -154,11 +212,11 @@ public class AddPlanPOIListingViewModel {
             cityId: cityId,
             page: 1
         ) { [weak self] result, pagination in
-            self?.handleSearchResult(result: result, pagination: pagination, isLoadMore: false)
+            self?.handleSearchResult(result: result, pagination: pagination, isLoadMore: false, requestedPage: 1)
         }
     }
 
-    private func handleSearchResult(result: Result<[TRPPoi], Error>, pagination: TRPPagination?, isLoadMore: Bool = false) {
+    private func handleSearchResult(result: Result<[TRPPoi], Error>, pagination: TRPPagination?, isLoadMore: Bool = false, requestedPage: Int = 1) {
         delegate?.viewModel(showPreloader: false)
         isLoadingMore = false
 
@@ -172,15 +230,30 @@ public class AddPlanPOIListingViewModel {
                 allPois = pois
             }
 
+            // Update currentPage only for initial fetch (loadMore already increments it)
+            if !isLoadMore {
+                currentPage = requestedPage
+            }
+
             // Update pagination info from TRPPagination
             if let pagination = pagination {
                 switch pagination {
                 case .completed:
                     totalPages = currentPage
-                case .continues:
-                    // There are more pages
-                    totalPages = currentPage + 1
+                    hasMorePages = false
+                    // When completed, total count is the loaded count
+                    if !isLoadMore {
+                        totalPoiCount = pois.count
+                    }
+                case .continues(let paginationInfo):
+                    // Extract pagination info from API response
+                    totalPages = paginationInfo.totalPages
+                    totalPoiCount = paginationInfo.total
+                    hasMorePages = paginationInfo.hasMore
                 }
+            } else {
+                hasMorePages = false
+                totalPoiCount = pois.count
             }
 
             filterPois()
@@ -192,25 +265,55 @@ public class AddPlanPOIListingViewModel {
 
     // MARK: - Pagination
     public func hasMorePois() -> Bool {
-        return currentPage < totalPages
+        return hasMorePages
     }
 
     public func loadMorePois() {
         guard !isLoadingMore, hasMorePois() else { return }
 
         isLoadingMore = true
-        currentPage += 1
+        currentPage += 1  // Increment immediately before request
 
         fetchPois(page: currentPage)
     }
 
     private func filterPois() {
+        filterAndSortPois()
+    }
+
+    private func filterAndSortPois() {
+        // First filter
+        var result: [TRPPoi]
         if searchText.isEmpty {
-            filteredPois = allPois
+            result = allPois
         } else {
-            filteredPois = allPois.filter { poi in
+            result = allPois.filter { poi in
                 poi.name.localizedCaseInsensitiveContains(searchText)
             }
+        }
+
+        // Then sort
+        result = sortPois(result)
+        filteredPois = result
+    }
+
+    private func sortPois(_ pois: [TRPPoi]) -> [TRPPoi] {
+        switch selectedSortOption {
+        case .popularity:
+            // Keep original order from API (API returns by popularity)
+            return pois
+        case .rating:
+            // Sort by rating descending
+            return pois.sorted { ($0.rating ?? 0) > ($1.rating ?? 0) }
+        case .priceLowToHigh:
+            // Sort by price ascending (price is Int level 0-4)
+            return pois.sorted { ($0.price ?? 0) < ($1.price ?? 0) }
+        case .durationShortToLong:
+            // Sort by duration ascending
+            return pois.sorted { ($0.duration ?? 0) < ($1.duration ?? 0) }
+        case .durationLongToShort:
+            // Sort by duration descending
+            return pois.sorted { ($0.duration ?? 0) > ($1.duration ?? 0) }
         }
     }
 

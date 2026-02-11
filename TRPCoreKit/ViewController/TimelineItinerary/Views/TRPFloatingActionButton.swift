@@ -22,7 +22,7 @@ public class TRPFloatingActionButton: UIButton {
     private var buttonSize: CGFloat
 
     // MARK: - Initialization
-    public init(icon: UIImage?, backgroundColor: UIColor = ColorSet.primary.uiColor, size: CGFloat = 52) {
+    public init(icon: UIImage?, backgroundColor: UIColor = ColorSet.primary.uiColor, size: CGFloat = 56) {
         self.buttonSize = size
         super.init(frame: .zero)
 
@@ -60,8 +60,8 @@ public class TRPFloatingActionButton: UIButton {
         NSLayoutConstraint.activate([
             iconImageView.centerXAnchor.constraint(equalTo: centerXAnchor),
             iconImageView.centerYAnchor.constraint(equalTo: centerYAnchor),
-            iconImageView.widthAnchor.constraint(equalToConstant: 24),
-            iconImageView.heightAnchor.constraint(equalToConstant: 24)
+            iconImageView.widthAnchor.constraint(equalToConstant: 20),
+            iconImageView.heightAnchor.constraint(equalToConstant: 20)
         ])
     }
 

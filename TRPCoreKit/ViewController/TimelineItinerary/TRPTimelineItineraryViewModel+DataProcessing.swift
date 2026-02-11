@@ -318,6 +318,55 @@ extension TRPTimelineItineraryViewModel {
         }
     }
 
+    // MARK: - Favourite Items City Resolution
+
+    /// Resolves cityIds for favourite items that don't have a valid one using the resolveCities API.
+    /// Items with cityId nil or <= 0 will be resolved. Results are written back to item.cityId.
+    /// - Parameter completion: Called when resolution is complete (regardless of success/failure)
+    internal func resolveFavouriteItemCities(completion: @escaping () -> Void) {
+        guard var favouriteItems = timeline?.favouriteItems,
+              !favouriteItems.isEmpty else {
+            completion()
+            return
+        }
+
+        // Collect items that need city resolution (cityId is nil or invalid <= 0)
+        let itemsNeedingResolution = favouriteItems.enumerated().filter { ($0.element.cityId ?? 0) <= 0 }
+
+        guard !itemsNeedingResolution.isEmpty else {
+            completion()
+            return
+        }
+
+        let coordinates = itemsNeedingResolution.map { $0.element.coordinate }
+
+        let cityRemoteApi = TRPCityRemoteApi()
+        cityRemoteApi.resolveCities(coordinates: coordinates) { [weak self] result in
+            guard let self = self else {
+                completion()
+                return
+            }
+
+            switch result {
+            case .success(let cityIds):
+                // cityIds order matches coordinates order
+                let originalIndices = itemsNeedingResolution.map { $0.offset }
+                for (arrayIndex, originalIndex) in originalIndices.enumerated() {
+                    if arrayIndex < cityIds.count {
+                        favouriteItems[originalIndex].cityId = cityIds[arrayIndex]
+                    }
+                }
+                self.timeline?.favouriteItems = favouriteItems
+                Log.i("resolveFavouriteItemCities: Resolved \(cityIds.count) city IDs for favourite items")
+
+            case .failure(let error):
+                Log.e("resolveFavouriteItemCities: Failed - \(error.localizedDescription)")
+            }
+
+            completion()
+        }
+    }
+
     // MARK: - Segment Identification
 
     /// Generates a unique identifier for a segment to avoid duplicates

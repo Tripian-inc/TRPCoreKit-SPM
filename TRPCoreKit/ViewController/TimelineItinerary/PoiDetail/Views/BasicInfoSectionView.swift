@@ -20,14 +20,25 @@ class BasicInfoSectionView: UIView {
     private let readMoreButton: UIButton
     private let onReadMoreTapped: () -> Void
 
+    private let mainStackView: UIStackView = {
+        let stack = UIStackView()
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        stack.axis = .vertical
+        stack.spacing = 16
+        stack.alignment = .center
+        return stack
+    }()
+
     private let descriptionStackView: UIStackView = {
         let stack = UIStackView()
         stack.translatesAutoresizingMaskIntoConstraints = false
         stack.axis = .vertical
-        stack.spacing = 24
+        stack.spacing = 16
         stack.alignment = .center
         return stack
     }()
+
+    private var bottomConstraint: NSLayoutConstraint!
 
     init(cityLabel: UILabel, poiNameLabel: UILabel, ratingContainerView: UIView, descriptionLabel: UILabel, readMoreButton: UIButton, onReadMoreTapped: @escaping () -> Void) {
         self.cityLabel = cityLabel
@@ -48,39 +59,42 @@ class BasicInfoSectionView: UIView {
     private func setupView() {
         translatesAutoresizingMaskIntoConstraints = false
 
-        addSubview(cityLabel)
-        addSubview(poiNameLabel)
-        addSubview(ratingContainerView)
-        addSubview(descriptionStackView)
+        addSubview(mainStackView)
 
-        // Add description and button to stack (button will auto-hide when isHidden = true)
+        // Add all elements to main stack
+        mainStackView.addArrangedSubview(cityLabel)
+        mainStackView.addArrangedSubview(poiNameLabel)
+        mainStackView.addArrangedSubview(ratingContainerView)
+        mainStackView.addArrangedSubview(descriptionStackView)
+
+        // Add description and button to description stack
         descriptionStackView.addArrangedSubview(descriptionLabel)
         descriptionStackView.addArrangedSubview(readMoreButton)
 
+        bottomConstraint = mainStackView.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -16)
+
         NSLayoutConstraint.activate([
-            // City Label
-            cityLabel.topAnchor.constraint(equalTo: topAnchor, constant: 24),
-            cityLabel.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 16),
-            cityLabel.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -16),
+            // Main StackView
+            mainStackView.topAnchor.constraint(equalTo: topAnchor, constant: 24),
+            mainStackView.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 16),
+            mainStackView.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -16),
+            bottomConstraint,
 
-            // POI Name
-            poiNameLabel.topAnchor.constraint(equalTo: cityLabel.bottomAnchor, constant: 16),
-            poiNameLabel.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 16),
-            poiNameLabel.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -16),
-
-            // Rating Container
-            ratingContainerView.topAnchor.constraint(equalTo: poiNameLabel.bottomAnchor, constant: 12),
-            ratingContainerView.centerXAnchor.constraint(equalTo: centerXAnchor),
+            // Rating height
             ratingContainerView.heightAnchor.constraint(equalToConstant: 24),
 
-            // Description Stack (automatically handles hidden readMoreButton)
-            descriptionStackView.topAnchor.constraint(equalTo: ratingContainerView.bottomAnchor, constant: 20),
-            descriptionStackView.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 16),
-            descriptionStackView.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -16),
-            descriptionStackView.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -24),
-
-            // Ensure description label takes full width within stack
+            // Ensure labels take full width within stack
+            cityLabel.widthAnchor.constraint(equalTo: mainStackView.widthAnchor),
+            poiNameLabel.widthAnchor.constraint(equalTo: mainStackView.widthAnchor),
+            descriptionStackView.widthAnchor.constraint(equalTo: mainStackView.widthAnchor),
             descriptionLabel.widthAnchor.constraint(equalTo: descriptionStackView.widthAnchor)
         ])
+    }
+
+    func setDescriptionSectionHidden(_ hidden: Bool) {
+        descriptionStackView.isHidden = hidden
+        // When description is shown: 40pt bottom padding
+        // When description is hidden (cuisines shown): 16pt bottom padding
+        bottomConstraint.constant = hidden ? -16 : -40
     }
 }
