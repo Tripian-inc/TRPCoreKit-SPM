@@ -91,7 +91,7 @@ public class TRPTimelineItineraryVC: TRPBaseUIViewController {
     internal lazy var addPlanFloatingButton: TRPFloatingActionButton = {
         let button = TRPFloatingActionButton(
             icon: TRPImageController().getImage(inFramework: "ic_plus_bold", inApp: nil),
-            backgroundColor: ColorSet.fgPink.uiColor
+            backgroundColor: ColorSet.primary.uiColor
         )
         button.addTarget(self, action: #selector(addPlanFloatingButtonTapped), for: .touchUpInside)
         return button
