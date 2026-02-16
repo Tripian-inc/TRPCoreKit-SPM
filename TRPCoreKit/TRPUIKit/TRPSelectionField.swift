@@ -53,7 +53,7 @@ public class TRPSelectionField: UIView {
         button.contentHorizontalAlignment = .left
         button.titleLabel?.font = FontSet.montserratLight.font(16)
         button.setTitleColor(ColorSet.fgWeak.uiColor, for: .normal)
-        button.contentEdgeInsets = UIEdgeInsets(top: 14, left: 16, bottom: 14, right: 40)
+        button.contentEdgeInsets = UIEdgeInsets(top: 8, left: 16, bottom: 8, right: 40)
         button.addTarget(self, action: #selector(buttonTapped), for: .touchUpInside)
         return button
     }()
@@ -121,7 +121,6 @@ public class TRPSelectionField: UIView {
             buttonTopConstraint!,
             selectionButton.leadingAnchor.constraint(equalTo: leadingAnchor),
             selectionButton.trailingAnchor.constraint(equalTo: trailingAnchor),
-            selectionButton.bottomAnchor.constraint(equalTo: bottomAnchor),
             selectionButton.heightAnchor.constraint(equalToConstant: Constants.buttonHeight),
         ])
 

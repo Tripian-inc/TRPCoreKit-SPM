@@ -225,11 +225,11 @@ public class AddPlanTimeAndTravelersVC: TRPBaseUIViewController, AddPlanChildVie
             // Start Time Field
             startTimeField.topAnchor.constraint(equalTo: timeLabel.bottomAnchor, constant: 16),
             startTimeField.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
-            startTimeField.trailingAnchor.constraint(equalTo: view.centerXAnchor, constant: -4),
+            startTimeField.trailingAnchor.constraint(equalTo: view.centerXAnchor, constant: -8),
 
             // End Time Field
             endTimeField.topAnchor.constraint(equalTo: timeLabel.bottomAnchor, constant: 16),
-            endTimeField.leadingAnchor.constraint(equalTo: view.centerXAnchor, constant: 4),
+            endTimeField.leadingAnchor.constraint(equalTo: view.centerXAnchor, constant: 8),
             endTimeField.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
 
             // Travelers Label

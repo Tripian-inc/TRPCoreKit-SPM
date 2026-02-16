@@ -13,10 +13,10 @@ import TRPFoundationKit
 public class AddPlanSelectDayVC: TRPBaseUIViewController, AddPlanChildViewController {
 
     // MARK: - Height Constants (Static heights from design)
-    private let baseContentHeight: CGFloat = 494 // Base height without categories
-    private let manualModeContentHeight: CGFloat = 662 // Height when manual mode is selected (shows categories)
-    private let citySelectionHeight: CGFloat = 92 // City button height (68) + top margin (24)
-    private let travelersSectionHeight: CGFloat = 120 // Travelers section: 24 margin + 24 label + 16 gap + 48 container + 8 padding
+    private let baseContentHeight: CGFloat = 486 // Base height without categories
+    private let manualModeContentHeight: CGFloat = 654 // Height when manual mode is selected (shows categories)
+    private let citySelectionHeight: CGFloat = 84 // City button height (68) + top margin (24)
+    private let travelersSectionHeight: CGFloat = 112 // Travelers section: 24 margin + 24 label + 16 gap + 48 container + 8 padding
 
     // MARK: - Properties
     public var viewModel: AddPlanSelectDayViewModel!
@@ -217,7 +217,7 @@ public class AddPlanSelectDayVC: TRPBaseUIViewController, AddPlanChildViewContro
         let label = UILabel()
         label.translatesAutoresizingMaskIntoConstraints = false
         label.text = AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.travelers)
-        label.font = FontSet.montserratMedium.font(14)
+        label.font = FontSet.montserratMedium.font(16)
         label.textColor = ColorSet.fg.uiColor
         return label
     }()
@@ -452,7 +452,7 @@ public class AddPlanSelectDayVC: TRPBaseUIViewController, AddPlanChildViewContro
         travelersContainerBottomConstraint = travelersContainer.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -32)
 
         // Store constraints for selectionLabel top (city visible vs hidden)
-        selectionLabelTopToCityConstraint = selectionLabel.topAnchor.constraint(equalTo: citySelectionField.bottomAnchor, constant: 32)
+        selectionLabelTopToCityConstraint = selectionLabel.topAnchor.constraint(equalTo: citySelectionField.bottomAnchor, constant: 24)
         selectionLabelTopToDayFilterConstraint = selectionLabel.topAnchor.constraint(equalTo: dayFilterView.bottomAnchor, constant: 32)
 
         // Initially, manual card is at bottom (categories hidden)
