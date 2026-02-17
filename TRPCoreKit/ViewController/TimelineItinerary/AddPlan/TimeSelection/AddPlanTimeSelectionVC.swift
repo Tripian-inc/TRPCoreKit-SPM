@@ -29,6 +29,9 @@ public class AddPlanTimeSelectionVC: TRPBaseUIViewController, DynamicHeightPrese
     // Callback when segment update completes successfully (edit mode)
     public var onSegmentUpdated: (() -> Void)?
 
+    // Callback when step update completes successfully (step edit mode)
+    public var onStepUpdated: (() -> Void)?
+
     // MARK: - UI Components
     private var customNavigationBar: TRPTimelineCustomNavigationBar!
 
@@ -101,6 +104,13 @@ public class AddPlanTimeSelectionVC: TRPBaseUIViewController, DynamicHeightPrese
     public init(segment: TRPTimelineSegment, planData: AddPlanData) {
         super.init(nibName: nil, bundle: nil)
         self.viewModel = AddPlanTimeSelectionViewModel(segment: segment, planData: planData)
+        self.viewModel.delegate = self
+    }
+
+    /// Step edit mode - for changing time of activity steps in recommendations
+    public init(step: TRPTimelineStep, planData: AddPlanData) {
+        super.init(nibName: nil, bundle: nil)
+        self.viewModel = AddPlanTimeSelectionViewModel(step: step, planData: planData)
         self.viewModel.delegate = self
     }
 
@@ -196,10 +206,15 @@ public class AddPlanTimeSelectionVC: TRPBaseUIViewController, DynamicHeightPrese
         // Call existing callback (for compatibility)
         onTimeSelected?(selectedDate, selectedTimeSlot)
 
-        // Create or update segment based on mode
-        if viewModel.isEditMode {
+        // Create or update based on mode
+        if viewModel.isStepEditMode {
+            // Step edit mode - update activity step time
+            viewModel.updateActivityStep()
+        } else if viewModel.isEditMode {
+            // Segment edit mode - update reserved activity segment time
             viewModel.updateReservedActivitySegment()
         } else {
+            // Create mode - create new reserved activity segment
             viewModel.createReservedActivitySegment()
         }
     }
@@ -300,6 +315,13 @@ extension AddPlanTimeSelectionVC: AddPlanTimeSelectionViewModelDelegate {
         // Dismiss and trigger timeline refresh (edit mode)
         dismiss(animated: true) { [weak self] in
             self?.onSegmentUpdated?()
+        }
+    }
+
+    public func stepUpdateDidSucceed() {
+        // Dismiss and trigger timeline refresh (step edit mode)
+        dismiss(animated: true) { [weak self] in
+            self?.onStepUpdated?()
         }
     }
 }

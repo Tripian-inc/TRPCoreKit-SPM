@@ -456,7 +456,7 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
         changeTimeButton.contentHorizontalAlignment = .trailing
         changeTimeButton.tag = steps.firstIndex(where: { $0.id == step.id }) ?? 0
         changeTimeButton.addTarget(self, action: #selector(changeTimeTapped(_:)), for: .touchUpInside)
-        changeTimeButton.isHidden = isActivity
+        // Show change time button for both POI and activity steps
 
         // Remove step button - 32x32, icon 20x20
         let removeStepButton = UIButton(type: .custom)
