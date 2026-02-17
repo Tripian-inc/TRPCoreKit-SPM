@@ -75,6 +75,35 @@ extension TRPTimelineItineraryVC: TRPTimelineBookedActivityCellDelegate {
             }
         )
     }
+
+    func bookedActivityCellDidTapChangeTime(_ cell: TRPTimelineBookedActivityCell, segment: TRPTimelineSegment) {
+        // Create AddPlanData with timeline info for edit mode
+        var planData = AddPlanData()
+        planData.tripHash = viewModel.getTripHash()
+        planData.availableDays = viewModel.getDayDates()
+        planData.selectedCity = segment.city
+        planData.travelers = segment.adults
+
+        // Set selected day from current segment's date
+        if let startDateStr = segment.startDate,
+           let date = parseSegmentDateTime(startDateStr) {
+            planData.selectedDay = date
+        }
+
+        // Find segment index for update API
+        planData.segmentIndex = viewModel.getSegmentIndex(for: segment)
+
+        // Create time selection VC in edit mode
+        let timeSelectionVC = AddPlanTimeSelectionVC(segment: segment, planData: planData)
+
+        // Set callback for segment update
+        timeSelectionVC.onSegmentUpdated = { [weak self] in
+            self?.refreshTimelineAfterSegmentCreation()
+        }
+
+        // Present as bottom sheet
+        presentVCWithModal(timeSelectionVC, onlyLarge: false, prefersGrabberVisible: false)
+    }
 }
 
 // MARK: - TRPTimelineActivityStepCellDelegate

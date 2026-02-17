@@ -58,6 +58,9 @@ public struct TRPAddPlanData {
     /// Available days from timeline/itinerary
     public var availableDays: [Date] = []
 
+    /// Segment index for edit mode (updating existing segment)
+    public var segmentIndex: Int?
+
     public init() {}
 }
 

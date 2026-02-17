@@ -26,6 +26,9 @@ public class AddPlanTimeSelectionVC: TRPBaseUIViewController, DynamicHeightPrese
     // Callback when segment creation completes successfully
     public var onSegmentCreated: (() -> Void)?
 
+    // Callback when segment update completes successfully (edit mode)
+    public var onSegmentUpdated: (() -> Void)?
+
     // MARK: - UI Components
     private var customNavigationBar: TRPTimelineCustomNavigationBar!
 
@@ -94,6 +97,13 @@ public class AddPlanTimeSelectionVC: TRPBaseUIViewController, DynamicHeightPrese
         self.viewModel.delegate = self
     }
 
+    /// Edit mode - for changing time of existing reserved activity
+    public init(segment: TRPTimelineSegment, planData: AddPlanData) {
+        super.init(nibName: nil, bundle: nil)
+        self.viewModel = AddPlanTimeSelectionViewModel(segment: segment, planData: planData)
+        self.viewModel.delegate = self
+    }
+
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
@@ -114,9 +124,11 @@ public class AddPlanTimeSelectionVC: TRPBaseUIViewController, DynamicHeightPrese
         view.backgroundColor = .white
 
         // Setup navigation bar using base class method
-        customNavigationBar = setupCustomNavigationBar(
-            title: AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.addPlan)
-        )
+        // Use different title for edit mode
+        let navTitle = viewModel.isEditMode
+            ? TimelineLocalizationKeys.localized(TimelineLocalizationKeys.changeTime)
+            : AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.addPlan)
+        customNavigationBar = setupCustomNavigationBar(title: navTitle)
         customNavigationBar.delegate = self
 
         view.addSubview(dayFilterView)
@@ -184,8 +196,12 @@ public class AddPlanTimeSelectionVC: TRPBaseUIViewController, DynamicHeightPrese
         // Call existing callback (for compatibility)
         onTimeSelected?(selectedDate, selectedTimeSlot)
 
-        // Create reserved_activity segment via ViewModel
-        viewModel.createReservedActivitySegment()
+        // Create or update segment based on mode
+        if viewModel.isEditMode {
+            viewModel.updateReservedActivitySegment()
+        } else {
+            viewModel.createReservedActivitySegment()
+        }
     }
 
     // MARK: - Helpers
@@ -277,6 +293,13 @@ extension AddPlanTimeSelectionVC: AddPlanTimeSelectionViewModelDelegate {
         // Dismiss and trigger timeline refresh
         dismiss(animated: true) { [weak self] in
             self?.onSegmentCreated?()
+        }
+    }
+
+    public func segmentUpdateDidSucceed() {
+        // Dismiss and trigger timeline refresh (edit mode)
+        dismiss(animated: true) { [weak self] in
+            self?.onSegmentUpdated?()
         }
     }
 }
