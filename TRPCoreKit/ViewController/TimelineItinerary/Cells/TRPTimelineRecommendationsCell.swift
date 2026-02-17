@@ -442,7 +442,7 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
         let actionButtonsStack = UIStackView()
         actionButtonsStack.translatesAutoresizingMaskIntoConstraints = false
         actionButtonsStack.axis = .horizontal
-        actionButtonsStack.spacing = 0
+        actionButtonsStack.spacing = 4
         actionButtonsStack.alignment = .center
 
         // Change time button - 32x32, icon 20x20 (hidden for activity steps)
@@ -453,7 +453,7 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
         changeTimeButton.tintColor = ColorSet.primary.uiColor
         changeTimeButton.imageView?.contentMode = .scaleAspectFit
         changeTimeButton.contentVerticalAlignment = .center
-        changeTimeButton.contentHorizontalAlignment = .center
+        changeTimeButton.contentHorizontalAlignment = .trailing
         changeTimeButton.tag = steps.firstIndex(where: { $0.id == step.id }) ?? 0
         changeTimeButton.addTarget(self, action: #selector(changeTimeTapped(_:)), for: .touchUpInside)
         changeTimeButton.isHidden = isActivity
@@ -728,7 +728,7 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
             // Info stack view - 16px from imageView, 12px from right
             infoStackView.topAnchor.constraint(equalTo: contentContainer.topAnchor),
             infoStackView.leadingAnchor.constraint(equalTo: poiImageView.trailingAnchor, constant: 16),
-            infoStackView.trailingAnchor.constraint(equalTo: contentContainer.trailingAnchor, constant: -12),
+            infoStackView.trailingAnchor.constraint(equalTo: contentContainer.trailingAnchor),
 
             // Title row - full width
             titleRow.widthAnchor.constraint(equalTo: infoStackView.widthAnchor),
@@ -739,14 +739,14 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
             titleLabel.trailingAnchor.constraint(equalTo: actionButtonsStack.leadingAnchor, constant: -8),
             titleLabel.bottomAnchor.constraint(equalTo: titleRow.bottomAnchor),
 
-            // Action buttons stack inside title row - no right spacing
+            // Action buttons stack inside title row - aligned with contentContainer edge (12px matches infoStackView padding)
             actionButtonsStack.topAnchor.constraint(equalTo: titleRow.topAnchor),
-            actionButtonsStack.trailingAnchor.constraint(equalTo: titleRow.trailingAnchor, constant: 12),
+            actionButtonsStack.trailingAnchor.constraint(equalTo: titleRow.trailingAnchor, constant: 8),
 
-            // Button sizes - 32x32
-            changeTimeButton.widthAnchor.constraint(equalToConstant: 32),
+            // Button sizes - 44x32 (wider tap area, icon aligned right)
+            changeTimeButton.widthAnchor.constraint(equalToConstant: 36),
             changeTimeButton.heightAnchor.constraint(equalToConstant: 32),
-            removeStepButton.widthAnchor.constraint(equalToConstant: 32),
+            removeStepButton.widthAnchor.constraint(equalToConstant: 40),
             removeStepButton.heightAnchor.constraint(equalToConstant: 32),
 
             // Category label inside badge

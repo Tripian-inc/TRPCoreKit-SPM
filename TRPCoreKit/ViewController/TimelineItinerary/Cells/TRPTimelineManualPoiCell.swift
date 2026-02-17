@@ -96,7 +96,7 @@ class TRPTimelineManualPoiCell: UITableViewCell {
         button.tintColor = ColorSet.primary.uiColor
         button.imageView?.contentMode = .scaleAspectFit
         button.contentVerticalAlignment = .center
-        button.contentHorizontalAlignment = .center
+        button.contentHorizontalAlignment = .trailing
         button.addTarget(self, action: #selector(changeTimeButtonTapped), for: .touchUpInside)
         return button
     }()
@@ -258,14 +258,14 @@ class TRPTimelineManualPoiCell: UITableViewCell {
             titleLabel.trailingAnchor.constraint(equalTo: actionButtonsStack.leadingAnchor, constant: -8),
             titleLabel.bottomAnchor.constraint(equalTo: titleRow.bottomAnchor),
 
-            // Action buttons stack inside title row
+            // Action buttons stack inside title row - aligned with contentContainer edge (12px matches infoStackView padding)
             actionButtonsStack.topAnchor.constraint(equalTo: titleRow.topAnchor),
-            actionButtonsStack.trailingAnchor.constraint(equalTo: titleRow.trailingAnchor),
+            actionButtonsStack.trailingAnchor.constraint(equalTo: titleRow.trailingAnchor, constant: 12),
 
-            // Button sizes - 32x32
-            changeTimeButton.widthAnchor.constraint(equalToConstant: 32),
+            // Button sizes - 44x32 (wider tap area, icon aligned right)
+            changeTimeButton.widthAnchor.constraint(equalToConstant: 44),
             changeTimeButton.heightAnchor.constraint(equalToConstant: 32),
-            removeButton.widthAnchor.constraint(equalToConstant: 32),
+            removeButton.widthAnchor.constraint(equalToConstant: 44),
             removeButton.heightAnchor.constraint(equalToConstant: 32),
 
             // Rating spacers
