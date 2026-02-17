@@ -53,39 +53,12 @@ public class AddPlanTimeAndTravelersVC: TRPBaseUIViewController, AddPlanChildVie
         label.textColor = ColorSet.primaryText.uiColor
         return label
     }()
-    
-    private lazy var startingPointButton: UIButton = {
-        let button = UIButton(type: .system)
-        button.translatesAutoresizingMaskIntoConstraints = false
-        button.backgroundColor = .clear
-        button.layer.cornerRadius = 4
-        button.layer.borderWidth = 1
-        button.layer.borderColor = ColorSet.lineWeak.uiColor.cgColor
-        button.contentHorizontalAlignment = .left
-        button.titleLabel?.font = FontSet.montserratLight.font(16)
-        button.setTitleColor(ColorSet.fgWeak.uiColor, for: .normal)
-        button.contentEdgeInsets = UIEdgeInsets(top: 14, left: 16, bottom: 14, right: 40)
-        button.addTarget(self, action: #selector(startingPointButtonTapped), for: .touchUpInside)
-        return button
-    }()
 
-    private lazy var startingPointNextIcon: UIImageView = {
-        let imageView = UIImageView()
-        imageView.translatesAutoresizingMaskIntoConstraints = false
-        imageView.image = TRPImageController().getImage(inFramework: "ic_next", inApp: nil)?.withRenderingMode(.alwaysTemplate)
-        imageView.tintColor = ColorSet.fgWeak.uiColor
-        imageView.contentMode = .scaleAspectFit
-        return imageView
-    }()
-
-    private lazy var startingPointClearButton: UIButton = {
-        let button = UIButton(type: .system)
-        button.translatesAutoresizingMaskIntoConstraints = false
-        button.setImage(TRPImageController().getImage(inFramework: "ic_close", inApp: nil), for: .normal)
-        button.tintColor = ColorSet.fgWeak.uiColor
-        button.isHidden = true
-        button.addTarget(self, action: #selector(clearStartingPoint), for: .touchUpInside)
-        return button
+    private lazy var startingPointField: TRPSelectionField = {
+        let field = TRPSelectionField()
+        field.translatesAutoresizingMaskIntoConstraints = false
+        field.onTap = { [weak self] in self?.startingPointButtonTapped() }
+        return field
     }()
 
     private lazy var timeLabel: UILabel = {
@@ -97,69 +70,21 @@ public class AddPlanTimeAndTravelersVC: TRPBaseUIViewController, AddPlanChildVie
         return label
     }()
     
-    private lazy var startTimeLabel: UILabel = {
-        let label = UILabel()
-        label.translatesAutoresizingMaskIntoConstraints = false
-        label.text = AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.startTime)
-        label.font = FontSet.montserratLight.font(12)
-        label.textColor = ColorSet.primaryText.uiColor
-        return label
-    }()
-    
-    private lazy var startTimeButton: UIButton = {
-        let button = createTimeButton()
-        button.addTarget(self, action: #selector(startTimeButtonTapped), for: .touchUpInside)
-        return button
+    private lazy var startTimeField: TRPSelectionField = {
+        let field = TRPSelectionField()
+        field.translatesAutoresizingMaskIntoConstraints = false
+        field.title = AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.startTime)
+        field.onTap = { [weak self] in self?.startTimeButtonTapped() }
+        return field
     }()
 
-    private lazy var endTimeLabel: UILabel = {
-        let label = UILabel()
-        label.translatesAutoresizingMaskIntoConstraints = false
-        label.text = AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.endTime)
-        label.font = FontSet.montserratLight.font(12)
-        label.textColor = ColorSet.primaryText.uiColor
-        return label
+    private lazy var endTimeField: TRPSelectionField = {
+        let field = TRPSelectionField()
+        field.translatesAutoresizingMaskIntoConstraints = false
+        field.title = AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.endTime)
+        field.onTap = { [weak self] in self?.endTimeButtonTapped() }
+        return field
     }()
-
-    private lazy var endTimeButton: UIButton = {
-        let button = createTimeButton()
-        button.addTarget(self, action: #selector(endTimeButtonTapped), for: .touchUpInside)
-        return button
-    }()
-
-    private lazy var startTimeNextIcon: UIImageView = {
-        let imageView = UIImageView()
-        imageView.translatesAutoresizingMaskIntoConstraints = false
-        imageView.image = TRPImageController().getImage(inFramework: "ic_next", inApp: nil)?.withRenderingMode(.alwaysTemplate)
-        imageView.tintColor = ColorSet.fgWeak.uiColor
-        imageView.contentMode = .scaleAspectFit
-        return imageView
-    }()
-
-    private lazy var endTimeNextIcon: UIImageView = {
-        let imageView = UIImageView()
-        imageView.translatesAutoresizingMaskIntoConstraints = false
-        imageView.image = TRPImageController().getImage(inFramework: "ic_next", inApp: nil)?.withRenderingMode(.alwaysTemplate)
-        imageView.tintColor = ColorSet.fgWeak.uiColor
-        imageView.contentMode = .scaleAspectFit
-        return imageView
-    }()
-
-    private func createTimeButton() -> UIButton {
-        let button = UIButton(type: .custom)
-        button.translatesAutoresizingMaskIntoConstraints = false
-        button.backgroundColor = .clear
-        button.layer.cornerRadius = 4
-        button.layer.borderWidth = 1
-        button.layer.borderColor = ColorSet.lineWeak.uiColor.cgColor
-        button.setTitle(CommonLocalizationKeys.localized(CommonLocalizationKeys.select), for: .normal)
-        button.setTitleColor(ColorSet.fgWeak.uiColor, for: .normal)
-        button.titleLabel?.font = FontSet.montserratLight.font(16)
-        button.contentHorizontalAlignment = .left
-        button.contentEdgeInsets = UIEdgeInsets(top: 12, left: 16, bottom: 12, right: 40)
-
-        return button
-    }
     
     private let bottomSeparator: UIView = {
         let view = UIView()
@@ -243,18 +168,12 @@ public class AddPlanTimeAndTravelersVC: TRPBaseUIViewController, AddPlanChildVie
 
         // Starting Point
         view.addSubview(startingPointLabel)
-        view.addSubview(startingPointButton)
-        startingPointButton.addSubview(startingPointNextIcon)
-        view.addSubview(startingPointClearButton)
+        view.addSubview(startingPointField)
 
         // Time Selection
         view.addSubview(timeLabel)
-        view.addSubview(startTimeLabel)
-        view.addSubview(startTimeButton)
-        startTimeButton.addSubview(startTimeNextIcon)
-        view.addSubview(endTimeLabel)
-        view.addSubview(endTimeButton)
-        endTimeButton.addSubview(endTimeNextIcon)
+        view.addSubview(startTimeField)
+        view.addSubview(endTimeField)
 
         // Travelers
         view.addSubview(travelersLabel)
@@ -293,63 +212,28 @@ public class AddPlanTimeAndTravelersVC: TRPBaseUIViewController, AddPlanChildVie
             startingPointLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
             startingPointLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
 
-            // Starting Point Button
-            startingPointButton.topAnchor.constraint(equalTo: startingPointLabel.bottomAnchor, constant: 16),
-            startingPointButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
-            startingPointButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
-            startingPointButton.heightAnchor.constraint(equalToConstant: 48),
-
-            // Starting Point Clear Button
-            startingPointClearButton.centerYAnchor.constraint(equalTo: startingPointButton.centerYAnchor),
-            startingPointClearButton.trailingAnchor.constraint(equalTo: startingPointButton.trailingAnchor, constant: -12),
-            startingPointClearButton.widthAnchor.constraint(equalToConstant: 12),
-            startingPointClearButton.heightAnchor.constraint(equalToConstant: 12),
-
-            // Starting Point Next Icon (same position as clear button)
-            startingPointNextIcon.centerYAnchor.constraint(equalTo: startingPointButton.centerYAnchor),
-            startingPointNextIcon.trailingAnchor.constraint(equalTo: startingPointButton.trailingAnchor, constant: -12),
-            startingPointNextIcon.widthAnchor.constraint(equalToConstant: 16),
-            startingPointNextIcon.heightAnchor.constraint(equalToConstant: 16),
+            // Starting Point Field
+            startingPointField.topAnchor.constraint(equalTo: startingPointLabel.bottomAnchor, constant: 16),
+            startingPointField.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
+            startingPointField.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
 
             // Time Label
-            timeLabel.topAnchor.constraint(equalTo: startingPointButton.bottomAnchor, constant: 32),
+            timeLabel.topAnchor.constraint(equalTo: startingPointField.bottomAnchor, constant: 32),
             timeLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
             timeLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
 
-            // Start Time Label
-            startTimeLabel.topAnchor.constraint(equalTo: timeLabel.bottomAnchor, constant: 16),
-            startTimeLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
+            // Start Time Field
+            startTimeField.topAnchor.constraint(equalTo: timeLabel.bottomAnchor, constant: 16),
+            startTimeField.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
+            startTimeField.trailingAnchor.constraint(equalTo: view.centerXAnchor, constant: -8),
 
-            // End Time Label
-            endTimeLabel.topAnchor.constraint(equalTo: timeLabel.bottomAnchor, constant: 16),
-            endTimeLabel.leadingAnchor.constraint(equalTo: view.centerXAnchor, constant: 4),
-
-            // Start Time Button
-            startTimeButton.topAnchor.constraint(equalTo: startTimeLabel.bottomAnchor, constant: 4),
-            startTimeButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
-            startTimeButton.trailingAnchor.constraint(equalTo: view.centerXAnchor, constant: -4),
-            startTimeButton.heightAnchor.constraint(equalToConstant: 48),
-
-            // End Time Button
-            endTimeButton.topAnchor.constraint(equalTo: endTimeLabel.bottomAnchor, constant: 4),
-            endTimeButton.leadingAnchor.constraint(equalTo: view.centerXAnchor, constant: 4),
-            endTimeButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
-            endTimeButton.heightAnchor.constraint(equalToConstant: 48),
-
-            // Start Time Next Icon
-            startTimeNextIcon.centerYAnchor.constraint(equalTo: startTimeButton.centerYAnchor),
-            startTimeNextIcon.trailingAnchor.constraint(equalTo: startTimeButton.trailingAnchor, constant: -12),
-            startTimeNextIcon.widthAnchor.constraint(equalToConstant: 16),
-            startTimeNextIcon.heightAnchor.constraint(equalToConstant: 16),
-
-            // End Time Next Icon
-            endTimeNextIcon.centerYAnchor.constraint(equalTo: endTimeButton.centerYAnchor),
-            endTimeNextIcon.trailingAnchor.constraint(equalTo: endTimeButton.trailingAnchor, constant: -12),
-            endTimeNextIcon.widthAnchor.constraint(equalToConstant: 16),
-            endTimeNextIcon.heightAnchor.constraint(equalToConstant: 16),
+            // End Time Field
+            endTimeField.topAnchor.constraint(equalTo: timeLabel.bottomAnchor, constant: 16),
+            endTimeField.leadingAnchor.constraint(equalTo: view.centerXAnchor, constant: 8),
+            endTimeField.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
 
             // Travelers Label
-            travelersLabel.topAnchor.constraint(equalTo: endTimeButton.bottomAnchor, constant: 32),
+            travelersLabel.topAnchor.constraint(equalTo: startTimeField.bottomAnchor, constant: 32),
             travelersLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
             travelersLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
 
@@ -408,38 +292,27 @@ public class AddPlanTimeAndTravelersVC: TRPBaseUIViewController, AddPlanChildVie
     }
 
     private func updateUI() {
-        // Update starting point button
+        // Update starting point field
         if let startingPointName = viewModel.getStartingPointName() {
-            startingPointButton.setTitle(startingPointName, for: .normal)
-            startingPointButton.setTitleColor(ColorSet.primaryText.uiColor, for: .normal)
-            startingPointClearButton.isHidden = false
-            startingPointNextIcon.isHidden = true
+            startingPointField.setValue(startingPointName)
         } else {
-            startingPointButton.setTitle(CommonLocalizationKeys.localized(CommonLocalizationKeys.select), for: .normal)
-            startingPointButton.setTitleColor(ColorSet.fgWeak.uiColor, for: .normal)
-            startingPointClearButton.isHidden = true
-            startingPointNextIcon.isHidden = false
+            startingPointField.clear()
         }
 
-        // Update time buttons
+        // Update time fields
+        let formatter = DateFormatter()
+        formatter.dateFormat = "HH:mm"
+
         if let startTime = viewModel.getStartTime() {
-            let formatter = DateFormatter()
-            formatter.dateFormat = "HH:mm"
-            startTimeButton.setTitle(formatter.string(from: startTime), for: .normal)
-            startTimeButton.setTitleColor(ColorSet.primaryText.uiColor, for: .normal)
+            startTimeField.setValue(formatter.string(from: startTime))
         } else {
-            startTimeButton.setTitle(CommonLocalizationKeys.localized(CommonLocalizationKeys.select), for: .normal)
-            startTimeButton.setTitleColor(ColorSet.fgWeak.uiColor, for: .normal)
+            startTimeField.clear()
         }
 
         if let endTime = viewModel.getEndTime() {
-            let formatter = DateFormatter()
-            formatter.dateFormat = "HH:mm"
-            endTimeButton.setTitle(formatter.string(from: endTime), for: .normal)
-            endTimeButton.setTitleColor(ColorSet.primaryText.uiColor, for: .normal)
+            endTimeField.setValue(formatter.string(from: endTime))
         } else {
-            endTimeButton.setTitle(CommonLocalizationKeys.localized(CommonLocalizationKeys.select), for: .normal)
-            endTimeButton.setTitleColor(ColorSet.fgWeak.uiColor, for: .normal)
+            endTimeField.clear()
         }
 
         // Update traveler count
@@ -478,21 +351,9 @@ public class AddPlanTimeAndTravelersVC: TRPBaseUIViewController, AddPlanChildVie
         present(poiSelectionVC, animated: true)
     }
 
-    @objc private func clearStartingPoint() {
-        viewModel.setStartingPoint(location: nil, name: nil)
-        startingPointButton.setTitle(CommonLocalizationKeys.localized(CommonLocalizationKeys.select), for: .normal)
-        startingPointButton.setTitleColor(ColorSet.fgWeak.uiColor, for: .normal)
-        startingPointClearButton.isHidden = true
-        startingPointNextIcon.isHidden = false
-        containerVC?.updateContinueButtonState()
-    }
-
     private func handleLocationSelected(coordinate: TRPLocation, name: String) {
         viewModel.setStartingPoint(location: coordinate, name: name)
-        startingPointButton.setTitle(name, for: .normal)
-        startingPointButton.setTitleColor(ColorSet.primaryText.uiColor, for: .normal)
-        startingPointClearButton.isHidden = false
-        startingPointNextIcon.isHidden = true
+        startingPointField.setValue(name)
         containerVC?.updateContinueButtonState()
     }
     
@@ -559,15 +420,9 @@ public class AddPlanTimeAndTravelersVC: TRPBaseUIViewController, AddPlanChildVie
     // MARK: - Public Methods
     public func clearSelection() {
         viewModel.clearSelection()
-        let selectText = CommonLocalizationKeys.localized(CommonLocalizationKeys.select)
-        startingPointButton.setTitle(selectText, for: .normal)
-        startingPointButton.setTitleColor(ColorSet.fgWeak.uiColor, for: .normal)
-        startingPointClearButton.isHidden = true
-        startingPointNextIcon.isHidden = false
-        startTimeButton.setTitle(selectText, for: .normal)
-        startTimeButton.setTitleColor(ColorSet.fgWeak.uiColor, for: .normal)
-        endTimeButton.setTitle(selectText, for: .normal)
-        endTimeButton.setTitleColor(ColorSet.fgWeak.uiColor, for: .normal)
+        startingPointField.clear()
+        startTimeField.clear()
+        endTimeField.clear()
         selectedDayIndex = 0
         configureDayFilterView()
         updateUI()

@@ -130,6 +130,7 @@ class TRPTimelineBookedActivityCell: UITableViewCell {
         let button = UIButton(type: .custom)
         button.translatesAutoresizingMaskIntoConstraints = false
         button.setImage(TRPImageController().getImage(inFramework: "ic_remove_step", inApp: nil), for: .normal)
+        button.contentHorizontalAlignment = .center
         button.addTarget(self, action: #selector(removeButtonTapped), for: .touchUpInside)
         return button
     }()
@@ -231,10 +232,10 @@ class TRPTimelineBookedActivityCell: UITableViewCell {
             titleLabel.leadingAnchor.constraint(equalTo: activityImageView.trailingAnchor, constant: 12),
             titleLabel.trailingAnchor.constraint(equalTo: removeButton.leadingAnchor, constant: -8),
 
-            // Remove button - fixed to right, aligned with title
+            // Remove button - fixed to right, aligned with title (wider tap area)
             removeButton.topAnchor.constraint(equalTo: containerView.topAnchor),
             removeButton.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
-            removeButton.widthAnchor.constraint(equalToConstant: 28),
+            removeButton.widthAnchor.constraint(equalToConstant: 44),
             removeButton.heightAnchor.constraint(equalToConstant: 28),
 
             // Right Content Stack View - below title

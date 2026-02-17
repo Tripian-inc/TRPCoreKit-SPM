@@ -79,7 +79,7 @@ public class AddPlanSortByVC: TRPBaseUIViewController, DynamicHeightPresentable 
     private let titleLabel: UILabel = {
         let label = UILabel()
         label.text = AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.sortBy)
-        label.font = FontSet.montserratBold.font(18)
+        label.font = FontSet.montserratSemiBold.font(18)
         label.textColor = ColorSet.primaryText.uiColor
         label.textAlignment = .center
         label.translatesAutoresizingMaskIntoConstraints = false
@@ -89,7 +89,7 @@ public class AddPlanSortByVC: TRPBaseUIViewController, DynamicHeightPresentable 
     private let closeButton: UIButton = {
         let button = UIButton(type: .system)
         button.setImage(TRPImageController().getImage(inFramework: "ic_close", inApp: nil), for: .normal)
-        button.tintColor = ColorSet.fg.uiColor
+        button.tintColor = ColorSet.primaryText.uiColor
         button.translatesAutoresizingMaskIntoConstraints = false
         return button
     }()

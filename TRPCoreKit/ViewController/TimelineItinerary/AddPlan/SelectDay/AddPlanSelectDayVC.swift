@@ -13,10 +13,10 @@ import TRPFoundationKit
 public class AddPlanSelectDayVC: TRPBaseUIViewController, AddPlanChildViewController {
 
     // MARK: - Height Constants (Static heights from design)
-    private let baseContentHeight: CGFloat = 494 // Base height without categories
-    private let manualModeContentHeight: CGFloat = 662 // Height when manual mode is selected (shows categories)
-    private let citySelectionHeight: CGFloat = 92 // City button height (68) + top margin (24)
-    private let travelersSectionHeight: CGFloat = 120 // Travelers section: 24 margin + 24 label + 16 gap + 48 container + 8 padding
+    private let baseContentHeight: CGFloat = 486 // Base height without categories
+    private let manualModeContentHeight: CGFloat = 654 // Height when manual mode is selected (shows categories)
+    private let citySelectionHeight: CGFloat = 84 // City button height (68) + top margin (24)
+    private let travelersSectionHeight: CGFloat = 112 // Travelers section: 24 margin + 24 label + 16 gap + 48 container + 8 padding
 
     // MARK: - Properties
     public var viewModel: AddPlanSelectDayViewModel!
@@ -51,11 +51,12 @@ public class AddPlanSelectDayVC: TRPBaseUIViewController, AddPlanChildViewContro
         return view
     }()
     
-    private lazy var citySelectionButton: AddPlanCitySelectionButton = {
-        let view = AddPlanCitySelectionButton()
-        view.translatesAutoresizingMaskIntoConstraints = false
-        view.delegate = self
-        return view
+    private lazy var citySelectionField: TRPSelectionField = {
+        let field = TRPSelectionField()
+        field.translatesAutoresizingMaskIntoConstraints = false
+        field.title = AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.city)
+        field.onTap = { [weak self] in self?.citySelectionTapped() }
+        return field
     }()
     
     // Selection section
@@ -216,7 +217,7 @@ public class AddPlanSelectDayVC: TRPBaseUIViewController, AddPlanChildViewContro
         let label = UILabel()
         label.translatesAutoresizingMaskIntoConstraints = false
         label.text = AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.travelers)
-        label.font = FontSet.montserratMedium.font(14)
+        label.font = FontSet.montserratMedium.font(16)
         label.textColor = ColorSet.fg.uiColor
         return label
     }()
@@ -343,7 +344,7 @@ public class AddPlanSelectDayVC: TRPBaseUIViewController, AddPlanChildViewContro
         // Add all subviews directly to view (scroll is handled by container)
         view.addSubview(dayLabel)
         view.addSubview(dayFilterView)
-        view.addSubview(citySelectionButton)
+        view.addSubview(citySelectionField)
         view.addSubview(selectionLabel)
         view.addSubview(smartRecommendationsCard)
         view.addSubview(manualAddCard)
@@ -376,9 +377,9 @@ public class AddPlanSelectDayVC: TRPBaseUIViewController, AddPlanChildViewContro
             dayFilterView.heightAnchor.constraint(equalToConstant: 74),
 
             // City Selection Button - top 24, height 68 (16 label + 4 gap + 48 button)
-            citySelectionButton.topAnchor.constraint(equalTo: dayFilterView.bottomAnchor, constant: 24),
-            citySelectionButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
-            citySelectionButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
+            citySelectionField.topAnchor.constraint(equalTo: dayFilterView.bottomAnchor, constant: 24),
+            citySelectionField.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
+            citySelectionField.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
 
             // Selection Label (How do you add plans) - height 24 (top constraint is dynamic)
             selectionLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
@@ -451,7 +452,7 @@ public class AddPlanSelectDayVC: TRPBaseUIViewController, AddPlanChildViewContro
         travelersContainerBottomConstraint = travelersContainer.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -32)
 
         // Store constraints for selectionLabel top (city visible vs hidden)
-        selectionLabelTopToCityConstraint = selectionLabel.topAnchor.constraint(equalTo: citySelectionButton.bottomAnchor, constant: 32)
+        selectionLabelTopToCityConstraint = selectionLabel.topAnchor.constraint(equalTo: citySelectionField.bottomAnchor, constant: 24)
         selectionLabelTopToDayFilterConstraint = selectionLabel.topAnchor.constraint(equalTo: dayFilterView.bottomAnchor, constant: 32)
 
         // Initially, manual card is at bottom (categories hidden)
@@ -489,14 +490,14 @@ public class AddPlanSelectDayVC: TRPBaseUIViewController, AddPlanChildViewContro
     private func updateCityButton() {
         // Hide city selection if there's only one city
         let hasSingleCity = viewModel.hasSingleCity()
-        citySelectionButton.isHidden = hasSingleCity
+        citySelectionField.isHidden = hasSingleCity
 
         // Toggle selectionLabel top constraint based on city visibility
         selectionLabelTopToCityConstraint?.isActive = !hasSingleCity
         selectionLabelTopToDayFilterConstraint?.isActive = hasSingleCity
 
         if !hasSingleCity {
-            citySelectionButton.configure(cityName: viewModel.getSelectedCity()?.name)
+            citySelectionField.setValue(viewModel.getSelectedCity()?.name)
         }
     }
     
@@ -541,6 +542,10 @@ public class AddPlanSelectDayVC: TRPBaseUIViewController, AddPlanChildViewContro
         updateTravelerCountUI()
     }
     
+    private func citySelectionTapped() {
+        showCityPicker()
+    }
+
     private func showCityPicker() {
         let citiesForDay = viewModel.getCitiesForSelectedDay()
         let hasMappings = viewModel.hasDateCityMapping()
@@ -672,10 +677,3 @@ extension AddPlanSelectDayVC: TRPTimelineDayFilterViewDelegate {
     }
 }
 
-// MARK: - AddPlanCitySelectionButtonDelegate
-extension AddPlanSelectDayVC: AddPlanCitySelectionButtonDelegate {
-
-    public func citySelectionButtonDidTap(_ view: AddPlanCitySelectionButton) {
-        showCityPicker()
-    }
-}
