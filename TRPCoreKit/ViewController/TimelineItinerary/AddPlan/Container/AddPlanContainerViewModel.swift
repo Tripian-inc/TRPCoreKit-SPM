@@ -2,8 +2,8 @@
 //  AddPlanContainerViewModel.swift
 //  TRPCoreKit
 //
-//  Created by Cem Çaygöz on 22.12.2024.
-//  Copyright © 2024 Tripian Inc. All rights reserved.
+//  Created by Cem Çaygöz on 22.12.2025.
+//  Copyright © 2025 Tripian Inc. All rights reserved.
 //
 
 import Foundation
@@ -13,9 +13,6 @@ public protocol AddPlanContainerViewModelDelegate: AnyObject {
     func stepChanged()
     func planCompleted(data: AddPlanData)
 }
-
-// Models moved to TRPDataLayer/Domain/Models/AddPlan/TRPAddPlanData.swift (SOLID: SRP)
-// Type aliases are defined in that file for backward compatibility
 
 public class AddPlanContainerViewModel {
 
@@ -76,10 +73,7 @@ public class AddPlanContainerViewModel {
     }
     
     public func getButtonTitle() -> String {
-        if currentStep.getNextStep() == nil {
-            return "Continuar" // Last step
-        }
-        return "Continuar"
+        return TRPLanguagesController.shared.getContinueBtnText()
     }
     
     public func getAvailableDays() -> [Date] {

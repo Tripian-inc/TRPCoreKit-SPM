@@ -12,7 +12,13 @@ protocol TRPTimeRangeSelectionDelegate: AnyObject {
     func timeRangeSelected(fromDate: Date, toDate: Date)
 }
 
-class TRPTimeRangeSelectionViewController: TRPBaseUIViewController {
+class TRPTimeRangeSelectionViewController: TRPBaseUIViewController, DynamicHeightPresentable {
+
+    // MARK: - DynamicHeightPresentable
+    var preferredContentHeight: CGFloat {
+        // Header (56) + separator (0.5) + content padding (24) + labels+fields (16+8+40) + picker (200) + button padding (16) + button (52) + bottom (16)
+        return 56 + 0.5 + 24 + 64 + 200 + 16 + 52 + 16  // ~428.5
+    }
 
     // MARK: - Properties
     weak var delegate: TRPTimeRangeSelectionDelegate?
@@ -20,8 +26,6 @@ class TRPTimeRangeSelectionViewController: TRPBaseUIViewController {
     private var toTime: String?
     private var fromDate: Date?
     private var toDate: Date?
-
-    private let contentView = UIView()
 
     // Track which field is being edited
     enum EditingField {
@@ -32,6 +36,13 @@ class TRPTimeRangeSelectionViewController: TRPBaseUIViewController {
     private var initialFocusField: EditingField = .from
 
     // MARK: - UI Components
+    private let headerView: UIView = {
+        let view = UIView()
+        view.backgroundColor = .white
+        view.translatesAutoresizingMaskIntoConstraints = false
+        return view
+    }()
+
     private let titleLabel: UILabel = {
         let label = UILabel()
         label.text = AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.timeTitle)
@@ -45,84 +56,29 @@ class TRPTimeRangeSelectionViewController: TRPBaseUIViewController {
     private let closeButton: UIButton = {
         let button = UIButton(type: .system)
         button.setImage(TRPImageController().getImage(inFramework: "ic_close", inApp: nil), for: .normal)
+        button.tintColor = ColorSet.fg.uiColor
         button.translatesAutoresizingMaskIntoConstraints = false
         return button
     }()
 
-    // From Section
-    private let fromLabel: UILabel = {
-        let label = UILabel()
-        label.text = AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.startTime)
-        label.font = FontSet.montserratLight.font(12)
-        label.textColor = ColorSet.primaryText.uiColor
-        label.translatesAutoresizingMaskIntoConstraints = false
-        return label
-    }()
-
-    private let fromContainer: UIView = {
+    private let separatorView: UIView = {
         let view = UIView()
-        view.backgroundColor = .clear
-        view.layer.cornerRadius = 4
-        view.layer.borderWidth = 1
-        view.layer.borderColor = ColorSet.lineWeak.uiColor.cgColor
+        view.backgroundColor = ColorSet.neutral200.uiColor
         view.translatesAutoresizingMaskIntoConstraints = false
         return view
     }()
 
-    private let fromClockIcon: UIImageView = {
-        let imageView = UIImageView()
-        imageView.image = TRPImageController().getImage(inFramework: "ic_time", inApp: nil)?.withRenderingMode(.alwaysTemplate)
-        imageView.tintColor = ColorSet.fgWeak.uiColor
-        imageView.contentMode = .scaleAspectFit
-        imageView.translatesAutoresizingMaskIntoConstraints = false
-        return imageView
+    // Time Fields
+    private lazy var fromTimeField: TRPTimeFieldView = {
+        let field = TRPTimeFieldView(title: AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.startTime))
+        field.onTap = { [weak self] in self?.fromFieldTapped() }
+        return field
     }()
 
-    private let fromTimeLabel: UILabel = {
-        let label = UILabel()
-        label.text = CommonLocalizationKeys.localized(CommonLocalizationKeys.select)
-        label.font = FontSet.montserratLight.font(16)
-        label.textColor = ColorSet.fgWeak.uiColor
-        label.translatesAutoresizingMaskIntoConstraints = false
-        return label
-    }()
-
-    // To Section
-    private let toLabel: UILabel = {
-        let label = UILabel()
-        label.text = AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.endTime)
-        label.font = FontSet.montserratLight.font(12)
-        label.textColor = ColorSet.primaryText.uiColor
-        label.translatesAutoresizingMaskIntoConstraints = false
-        return label
-    }()
-
-    private let toContainer: UIView = {
-        let view = UIView()
-        view.backgroundColor = .clear
-        view.layer.cornerRadius = 4
-        view.layer.borderWidth = 1
-        view.layer.borderColor = ColorSet.lineWeak.uiColor.cgColor
-        view.translatesAutoresizingMaskIntoConstraints = false
-        return view
-    }()
-
-    private let toClockIcon: UIImageView = {
-        let imageView = UIImageView()
-        imageView.image = TRPImageController().getImage(inFramework: "ic_time", inApp: nil)?.withRenderingMode(.alwaysTemplate)
-        imageView.tintColor = ColorSet.fgWeak.uiColor
-        imageView.contentMode = .scaleAspectFit
-        imageView.translatesAutoresizingMaskIntoConstraints = false
-        return imageView
-    }()
-
-    private let toTimeLabel: UILabel = {
-        let label = UILabel()
-        label.text = CommonLocalizationKeys.localized(CommonLocalizationKeys.select)
-        label.font = FontSet.montserratLight.font(16)
-        label.textColor = ColorSet.fgWeak.uiColor
-        label.translatesAutoresizingMaskIntoConstraints = false
-        return label
+    private lazy var toTimeField: TRPTimeFieldView = {
+        let field = TRPTimeFieldView(title: AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.endTime))
+        field.onTap = { [weak self] in self?.toFieldTapped() }
+        return field
     }()
 
     private let timePicker: UIDatePicker = {
@@ -164,106 +120,73 @@ class TRPTimeRangeSelectionViewController: TRPBaseUIViewController {
     private func setupUI() {
         view.backgroundColor = .white
 
-        view.addSubview(contentView)
-        contentView.translatesAutoresizingMaskIntoConstraints = false
-        contentView.backgroundColor = .white
+        // Header
+        view.addSubview(headerView)
+        headerView.addSubview(titleLabel)
+        headerView.addSubview(closeButton)
 
-        contentView.addSubview(titleLabel)
-        contentView.addSubview(closeButton)
-        contentView.addSubview(fromLabel)
-        contentView.addSubview(fromContainer)
-        contentView.addSubview(toLabel)
-        contentView.addSubview(toContainer)
-        contentView.addSubview(timePicker)
-        contentView.addSubview(confirmButton)
+        // Separator
+        view.addSubview(separatorView)
 
-        fromContainer.addSubview(fromClockIcon)
-        fromContainer.addSubview(fromTimeLabel)
-        toContainer.addSubview(toClockIcon)
-        toContainer.addSubview(toTimeLabel)
+        // Content
+        view.addSubview(fromTimeField)
+        view.addSubview(toTimeField)
+        view.addSubview(timePicker)
+        view.addSubview(confirmButton)
 
         setupConstraints()
     }
 
     private func setupConstraints() {
         NSLayoutConstraint.activate([
-            // Content view
-            contentView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            contentView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            contentView.topAnchor.constraint(equalTo: view.topAnchor),
-            contentView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+            // Header view
+            headerView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
+            headerView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            headerView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            headerView.heightAnchor.constraint(equalToConstant: 56),
 
-            // Title
-            titleLabel.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 28),
-            titleLabel.centerXAnchor.constraint(equalTo: contentView.centerXAnchor),
+            // Title (centered in header)
+            titleLabel.centerXAnchor.constraint(equalTo: headerView.centerXAnchor),
+            titleLabel.centerYAnchor.constraint(equalTo: headerView.centerYAnchor),
 
-            // Close button
-            closeButton.centerYAnchor.constraint(equalTo: titleLabel.centerYAnchor),
-            closeButton.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
-            closeButton.widthAnchor.constraint(equalToConstant: 32),
-            closeButton.heightAnchor.constraint(equalToConstant: 32),
+            // Close button (right side of header)
+            closeButton.trailingAnchor.constraint(equalTo: headerView.trailingAnchor, constant: -16),
+            closeButton.centerYAnchor.constraint(equalTo: headerView.centerYAnchor),
+            closeButton.widthAnchor.constraint(equalToConstant: 24),
+            closeButton.heightAnchor.constraint(equalToConstant: 24),
 
-            // From label
-            fromLabel.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 24),
-            fromLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
+            // Separator
+            separatorView.topAnchor.constraint(equalTo: headerView.bottomAnchor),
+            separatorView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            separatorView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            separatorView.heightAnchor.constraint(equalToConstant: 0.5),
 
-            // From container
-            fromContainer.topAnchor.constraint(equalTo: fromLabel.bottomAnchor, constant: 8),
-            fromContainer.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
-            fromContainer.trailingAnchor.constraint(equalTo: contentView.centerXAnchor, constant: -8),
-            fromContainer.heightAnchor.constraint(equalToConstant: 40),
+            // From time field
+            fromTimeField.topAnchor.constraint(equalTo: separatorView.bottomAnchor, constant: 24),
+            fromTimeField.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
+            fromTimeField.trailingAnchor.constraint(equalTo: view.centerXAnchor, constant: -8),
 
-            // From clock icon
-            fromClockIcon.leadingAnchor.constraint(equalTo: fromContainer.leadingAnchor, constant: 12),
-            fromClockIcon.centerYAnchor.constraint(equalTo: fromContainer.centerYAnchor),
-            fromClockIcon.widthAnchor.constraint(equalToConstant: 16),
-            fromClockIcon.heightAnchor.constraint(equalToConstant: 16),
-
-            // From time label
-            fromTimeLabel.leadingAnchor.constraint(equalTo: fromClockIcon.trailingAnchor, constant: 4),
-            fromTimeLabel.centerYAnchor.constraint(equalTo: fromContainer.centerYAnchor),
-
-            // To label
-            toLabel.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 24),
-            toLabel.leadingAnchor.constraint(equalTo: contentView.centerXAnchor, constant: 8),
-
-            // To container
-            toContainer.topAnchor.constraint(equalTo: toLabel.bottomAnchor, constant: 8),
-            toContainer.leadingAnchor.constraint(equalTo: contentView.centerXAnchor, constant: 8),
-            toContainer.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
-            toContainer.heightAnchor.constraint(equalToConstant: 40),
-
-            // To clock icon
-            toClockIcon.leadingAnchor.constraint(equalTo: toContainer.leadingAnchor, constant: 12),
-            toClockIcon.centerYAnchor.constraint(equalTo: toContainer.centerYAnchor),
-            toClockIcon.widthAnchor.constraint(equalToConstant: 16),
-            toClockIcon.heightAnchor.constraint(equalToConstant: 16),
-
-            // To time label
-            toTimeLabel.leadingAnchor.constraint(equalTo: toClockIcon.trailingAnchor, constant: 4),
-            toTimeLabel.centerYAnchor.constraint(equalTo: toContainer.centerYAnchor),
+            // To time field
+            toTimeField.topAnchor.constraint(equalTo: separatorView.bottomAnchor, constant: 24),
+            toTimeField.leadingAnchor.constraint(equalTo: view.centerXAnchor, constant: 8),
+            toTimeField.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
 
             // Time picker
-            timePicker.topAnchor.constraint(equalTo: fromContainer.bottomAnchor, constant: 24),
-            timePicker.centerXAnchor.constraint(equalTo: contentView.centerXAnchor),
+            timePicker.topAnchor.constraint(equalTo: fromTimeField.bottomAnchor, constant: 24),
+            timePicker.centerXAnchor.constraint(equalTo: view.centerXAnchor),
             timePicker.heightAnchor.constraint(equalToConstant: 200),
 
             // Confirm button
-            confirmButton.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
-            confirmButton.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
-            confirmButton.bottomAnchor.constraint(equalTo: contentView.safeAreaLayoutGuide.bottomAnchor, constant: -16),
+            confirmButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
+            confirmButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
+            confirmButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -16),
         ])
     }
 
     private func setupActions() {
         closeButton.addTarget(self, action: #selector(closeButtonTapped), for: .touchUpInside)
         confirmButton.addTarget(self, action: #selector(confirmButtonTapped), for: .touchUpInside)
-
-        let fromTapGesture = UITapGestureRecognizer(target: self, action: #selector(fromFieldTapped))
-        fromContainer.addGestureRecognizer(fromTapGesture)
-
-        let toTapGesture = UITapGestureRecognizer(target: self, action: #selector(toFieldTapped))
-        toContainer.addGestureRecognizer(toTapGesture)
+        // Tap gestures are handled inside TRPTimeFieldView
     }
 
     private func setupPickerView() {
@@ -287,8 +210,8 @@ class TRPTimeRangeSelectionViewController: TRPBaseUIViewController {
         }
 
         // Highlight the initial editing field
-        highlightContainer(fromContainer, highlight: initialFocusField == .from)
-        highlightContainer(toContainer, highlight: initialFocusField == .until)
+        fromTimeField.setHighlighted(initialFocusField == .from)
+        toTimeField.setHighlighted(initialFocusField == .until)
     }
 
     // MARK: - Actions
@@ -318,17 +241,17 @@ class TRPTimeRangeSelectionViewController: TRPBaseUIViewController {
         return formatter.string(from: date)
     }
 
-    @objc private func fromFieldTapped() {
+    private func fromFieldTapped() {
         currentEditingField = .from
-        highlightContainer(fromContainer, highlight: true)
-        highlightContainer(toContainer, highlight: false)
+        fromTimeField.setHighlighted(true)
+        toTimeField.setHighlighted(false)
         updatePickerForCurrentField()
     }
 
-    @objc private func toFieldTapped() {
+    private func toFieldTapped() {
         currentEditingField = .until
-        highlightContainer(fromContainer, highlight: false)
-        highlightContainer(toContainer, highlight: true)
+        fromTimeField.setHighlighted(false)
+        toTimeField.setHighlighted(true)
         updatePickerForCurrentField()
     }
 
@@ -351,32 +274,12 @@ class TRPTimeRangeSelectionViewController: TRPBaseUIViewController {
     }
 
     // MARK: - UI Updates
-    private func highlightContainer(_ container: UIView, highlight: Bool) {
-        UIView.animate(withDuration: 0.2) {
-            container.layer.borderColor = highlight
-                ? ColorSet.borderActive.uiColor.cgColor
-                : ColorSet.lineWeak.uiColor.cgColor
-        }
-    }
-
     private func updateFromDisplay() {
-        if let time = fromTime {
-            fromTimeLabel.text = time
-            fromTimeLabel.textColor = ColorSet.primaryText.uiColor
-        } else {
-            fromTimeLabel.text = CommonLocalizationKeys.localized(CommonLocalizationKeys.select)
-            fromTimeLabel.textColor = ColorSet.fgWeak.uiColor
-        }
+        fromTimeField.setValue(fromTime)
     }
 
     private func updateToDisplay() {
-        if let time = toTime {
-            toTimeLabel.text = time
-            toTimeLabel.textColor = ColorSet.primaryText.uiColor
-        } else {
-            toTimeLabel.text = CommonLocalizationKeys.localized(CommonLocalizationKeys.select)
-            toTimeLabel.textColor = ColorSet.fgWeak.uiColor
-        }
+        toTimeField.setValue(toTime)
     }
 
     private func updateConfirmButtonState() {
@@ -468,6 +371,117 @@ class TRPTimeRangeSelectionViewController: TRPBaseUIViewController {
             self.updateFromDisplay()
             self.updateToDisplay()
             self.updateConfirmButtonState()
+        }
+    }
+}
+
+// MARK: - TRPTimeFieldView
+private class TRPTimeFieldView: UIView {
+
+    // MARK: - Properties
+    var onTap: (() -> Void)?
+
+    private let titleLabel: UILabel = {
+        let label = UILabel()
+        label.font = FontSet.montserratLight.font(12)
+        label.textColor = ColorSet.primaryText.uiColor
+        label.translatesAutoresizingMaskIntoConstraints = false
+        return label
+    }()
+
+    private let container: UIView = {
+        let view = UIView()
+        view.backgroundColor = .clear
+        view.layer.cornerRadius = 4
+        view.layer.borderWidth = 1
+        view.layer.borderColor = ColorSet.lineWeak.uiColor.cgColor
+        view.translatesAutoresizingMaskIntoConstraints = false
+        return view
+    }()
+
+    private let clockIcon: UIImageView = {
+        let imageView = UIImageView()
+        imageView.image = TRPImageController().getImage(inFramework: "ic_time", inApp: nil)?.withRenderingMode(.alwaysTemplate)
+        imageView.tintColor = ColorSet.fgWeak.uiColor
+        imageView.contentMode = .scaleAspectFit
+        imageView.translatesAutoresizingMaskIntoConstraints = false
+        return imageView
+    }()
+
+    private let valueLabel: UILabel = {
+        let label = UILabel()
+        label.text = CommonLocalizationKeys.localized(CommonLocalizationKeys.select)
+        label.font = FontSet.montserratLight.font(16)
+        label.textColor = ColorSet.fgWeak.uiColor
+        label.translatesAutoresizingMaskIntoConstraints = false
+        return label
+    }()
+
+    // MARK: - Init
+    init(title: String) {
+        super.init(frame: .zero)
+        titleLabel.text = title
+        setupView()
+    }
+
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    // MARK: - Setup
+    private func setupView() {
+        translatesAutoresizingMaskIntoConstraints = false
+
+        addSubview(titleLabel)
+        addSubview(container)
+        container.addSubview(clockIcon)
+        container.addSubview(valueLabel)
+
+        let tapGesture = UITapGestureRecognizer(target: self, action: #selector(handleTap))
+        container.addGestureRecognizer(tapGesture)
+
+        NSLayoutConstraint.activate([
+            titleLabel.topAnchor.constraint(equalTo: topAnchor),
+            titleLabel.leadingAnchor.constraint(equalTo: leadingAnchor),
+            titleLabel.trailingAnchor.constraint(equalTo: trailingAnchor),
+
+            container.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 8),
+            container.leadingAnchor.constraint(equalTo: leadingAnchor),
+            container.trailingAnchor.constraint(equalTo: trailingAnchor),
+            container.heightAnchor.constraint(equalToConstant: 40),
+            container.bottomAnchor.constraint(equalTo: bottomAnchor),
+
+            clockIcon.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 12),
+            clockIcon.centerYAnchor.constraint(equalTo: container.centerYAnchor),
+            clockIcon.widthAnchor.constraint(equalToConstant: 16),
+            clockIcon.heightAnchor.constraint(equalToConstant: 16),
+
+            valueLabel.leadingAnchor.constraint(equalTo: clockIcon.trailingAnchor, constant: 4),
+            valueLabel.centerYAnchor.constraint(equalTo: container.centerYAnchor),
+        ])
+    }
+
+    // MARK: - Actions
+    @objc private func handleTap() {
+        onTap?()
+    }
+
+    // MARK: - Public Methods
+    func setValue(_ value: String?) {
+        if let value = value {
+            valueLabel.text = value
+            valueLabel.textColor = ColorSet.primaryText.uiColor
+        } else {
+            valueLabel.text = CommonLocalizationKeys.localized(CommonLocalizationKeys.select)
+            valueLabel.textColor = ColorSet.fgWeak.uiColor
+        }
+    }
+
+    func setHighlighted(_ highlighted: Bool) {
+        UIView.animate(withDuration: 0.2) {
+            self.container.layer.borderColor = highlighted
+                ? ColorSet.borderActive.uiColor.cgColor
+                : ColorSet.lineWeak.uiColor.cgColor
         }
     }
 }

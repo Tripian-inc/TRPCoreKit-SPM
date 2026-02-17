@@ -10,7 +10,14 @@ import UIKit
 import TRPFoundationKit
 
 // MARK: - AddPlanPOIFilterVC
-public class AddPlanPOIFilterVC: TRPBaseUIViewController {
+public class AddPlanPOIFilterVC: TRPBaseUIViewController, DynamicHeightPresentable {
+
+    // MARK: - DynamicHeightPresentable
+    public var preferredContentHeight: CGFloat {
+        // Header (56) + separator (0.5) + top margin (24) + rows (N * 52) + button container (80)
+        let rowCount = viewModel.getCategoryCount()
+        return 56 + 0.5 + 24 + CGFloat(rowCount * 52) + 80
+    }
 
     // MARK: - Properties
     private var viewModel: AddPlanPOIFilterViewModel
@@ -142,7 +149,7 @@ public class AddPlanPOIFilterVC: TRPBaseUIViewController {
             separatorView.heightAnchor.constraint(equalToConstant: 0.5),
 
             // Table view
-            tableView.topAnchor.constraint(equalTo: separatorView.bottomAnchor),
+            tableView.topAnchor.constraint(equalTo: separatorView.bottomAnchor, constant: 24),
             tableView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             tableView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             tableView.bottomAnchor.constraint(equalTo: buttonContainerView.topAnchor),

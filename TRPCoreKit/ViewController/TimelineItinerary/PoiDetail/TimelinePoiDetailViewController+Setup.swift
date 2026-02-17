@@ -442,13 +442,9 @@ extension TimelinePoiDetailViewController {
     }
 
     private func configureFeaturesSection() {
-        let hasFeatures = viewModel.hasFeatures()
-        featuresSectionView.isHidden = !hasFeatures
-
-        if hasFeatures {
-            featuresHeaderLabel.isHidden = false
-            featuresSectionView.updateTags(viewModel.getFeatures())
-        }
+        // Features section is temporarily hidden
+        featuresSectionView.isHidden = true
+        featuresHeaderLabel.isHidden = true
     }
 
     private func configureSeparators() {
