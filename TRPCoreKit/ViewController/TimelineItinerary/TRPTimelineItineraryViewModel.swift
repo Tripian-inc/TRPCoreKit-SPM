@@ -64,6 +64,17 @@ public class TRPTimelineItineraryViewModel {
         return timeline?.tripHash
     }
 
+    /// Get segment index for update API (edit mode)
+    /// Matches segment by startDate and activityId
+    public func getSegmentIndex(for segment: TRPTimelineSegment) -> Int? {
+        guard let timeline = timeline,
+              let tripProfile = timeline.tripProfile else { return nil }
+        return tripProfile.segments.firstIndex { s in
+            s.startDate == segment.startDate &&
+            s.additionalData?.activityId == segment.additionalData?.activityId
+        }
+    }
+
     // Track collapse state for each section (section index -> isExpanded)
     internal var sectionCollapseStates: [Int: Bool] = [:]
 

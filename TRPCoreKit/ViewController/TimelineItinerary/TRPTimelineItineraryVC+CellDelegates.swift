@@ -75,6 +75,35 @@ extension TRPTimelineItineraryVC: TRPTimelineBookedActivityCellDelegate {
             }
         )
     }
+
+    func bookedActivityCellDidTapChangeTime(_ cell: TRPTimelineBookedActivityCell, segment: TRPTimelineSegment) {
+        // Create AddPlanData with timeline info for edit mode
+        var planData = AddPlanData()
+        planData.tripHash = viewModel.getTripHash()
+        planData.availableDays = viewModel.getDayDates()
+        planData.selectedCity = segment.city
+        planData.travelers = segment.adults
+
+        // Set selected day from current segment's date
+        if let startDateStr = segment.startDate,
+           let date = parseSegmentDateTime(startDateStr) {
+            planData.selectedDay = date
+        }
+
+        // Find segment index for update API
+        planData.segmentIndex = viewModel.getSegmentIndex(for: segment)
+
+        // Create time selection VC in edit mode
+        let timeSelectionVC = AddPlanTimeSelectionVC(segment: segment, planData: planData)
+
+        // Set callback for segment update
+        timeSelectionVC.onSegmentUpdated = { [weak self] in
+            self?.refreshTimelineAfterSegmentCreation()
+        }
+
+        // Present as bottom sheet
+        presentVCWithModal(timeSelectionVC, onlyLarge: false, prefersGrabberVisible: false)
+    }
 }
 
 // MARK: - TRPTimelineActivityStepCellDelegate
@@ -214,6 +243,49 @@ extension TRPTimelineItineraryVC: TRPTimelineRecommendationsCellDelegate {
     }
 
     func recommendationsCellDidTapChangeTime(_ cell: TRPTimelineRecommendationsCell, step: TRPTimelineStep) {
+        // Check if this is an activity step
+        if step.stepType == "activity" {
+            // Activity step - use AddPlanTimeSelectionVC with availability API
+            openActivityTimeSelection(for: step, cell: cell)
+        } else {
+            // Regular POI step - use time range picker
+            openTimeRangeSelection(for: step)
+        }
+    }
+
+    /// Opens AddPlanTimeSelectionVC for activity steps (with availability API)
+    private func openActivityTimeSelection(for step: TRPTimelineStep, cell: TRPTimelineRecommendationsCell) {
+        // Create AddPlanData with timeline info for step edit mode
+        var planData = AddPlanData()
+        planData.tripHash = viewModel.getTripHash()
+        planData.availableDays = viewModel.getDayDates()
+        planData.travelers = 1 // Default, can be updated if needed
+
+        // Set selected city from step's POI
+        if let poi = step.poi {
+            planData.selectedCity = viewModel.getCities().first { $0.id == poi.cityId }
+        }
+
+        // Set selected day from current step's date
+        if let startDateTimes = step.startDateTimes,
+           let date = parseStepDateTime(startDateTimes) {
+            planData.selectedDay = date
+        }
+
+        // Create time selection VC in step edit mode
+        let timeSelectionVC = AddPlanTimeSelectionVC(step: step, planData: planData)
+
+        // Set callback for step update
+        timeSelectionVC.onStepUpdated = { [weak self] in
+            self?.refreshTimelineAfterSegmentCreation()
+        }
+
+        // Present as bottom sheet
+        presentVCWithModal(timeSelectionVC, onlyLarge: false, prefersGrabberVisible: false)
+    }
+
+    /// Opens TRPTimeRangeSelectionViewController for regular POI steps
+    private func openTimeRangeSelection(for step: TRPTimelineStep) {
         // Store the step being edited
         stepBeingEdited = step
 

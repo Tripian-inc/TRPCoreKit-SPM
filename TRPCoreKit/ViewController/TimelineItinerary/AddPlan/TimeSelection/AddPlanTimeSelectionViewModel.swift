@@ -15,6 +15,8 @@ public typealias TimeSlot = TRPTourScheduleSlot
 public protocol AddPlanTimeSelectionViewModelDelegate: ViewModelDelegate {
     func timeSlotsDidLoad()
     func segmentCreationDidSucceed()
+    func segmentUpdateDidSucceed()
+    func stepUpdateDidSucceed()
 }
 
 public class AddPlanTimeSelectionViewModel {
@@ -30,12 +32,133 @@ public class AddPlanTimeSelectionViewModel {
     private var selectedDate: Date?
     private var selectedTimeSlot: TimeSlot?
 
+    // Edit mode properties
+    private var segment: TRPTimelineSegment?
+    private var step: TRPTimelineStep?
+    public var isEditMode: Bool { segment != nil || step != nil }
+    public var isStepEditMode: Bool { step != nil }
+
     // MARK: - Initialization
     public init(tour: TRPTourProduct, planData: AddPlanData, tourRepository: TourRepository = TRPTourRepository()) {
         self.tour = tour
         self.planData = planData
         self.tourRepository = tourRepository
         self.selectedDate = planData.selectedDay
+    }
+
+    /// Edit mode initializer - creates TRPTourProduct from segment's additionalData
+    public init(segment: TRPTimelineSegment, planData: AddPlanData, tourRepository: TourRepository = TRPTourRepository()) {
+        self.segment = segment
+        self.planData = planData
+        self.tourRepository = tourRepository
+        self.selectedDate = planData.selectedDay
+
+        // Extract tour info from segment's additionalData
+        guard let additionalData = segment.additionalData else {
+            fatalError("Reserved activity segment must have additionalData")
+        }
+
+        // Format productId for availability API
+        // If activityId doesn't start with "C_", format as "C_{activityId}_15_{cityId}"
+        let activityId = additionalData.activityId ?? ""
+        let cityId = segment.city?.id ?? planData.selectedCity?.id ?? 0
+        let formattedProductId: String
+        if activityId.hasPrefix("C_") {
+            formattedProductId = activityId
+        } else {
+            formattedProductId = "C_\(activityId)_15_\(cityId)"
+        }
+
+        // Create TRPTourProduct from additionalData (schedule API needs productId)
+        let tourImage: TRPImage? = additionalData.imageUrl != nil
+            ? TRPImage(url: additionalData.imageUrl!, imageOwner: nil, width: nil, height: nil)
+            : nil
+
+        self.tour = TRPTourProduct(
+            id: formattedProductId,
+            productId: formattedProductId,
+            cityId: cityId,
+            name: additionalData.title ?? "",
+            image: tourImage,
+            gallery: nil,
+            duration: additionalData.duration != nil ? Int(additionalData.duration!) : nil,
+            price: additionalData.price != nil ? Int(additionalData.price!.value) : nil,
+            rating: nil,
+            ratingCount: nil,
+            description: additionalData.description,
+            webUrl: nil,
+            phone: nil,
+            hours: nil,
+            address: nil,
+            icon: "",
+            coordinate: additionalData.coordinate,
+            categories: [],
+            tags: [],
+            distance: nil,
+            status: true,
+            offers: [],
+            additionalData: nil
+        )
+    }
+
+    /// Step edit mode initializer - for changing time of activity steps in recommendations
+    public init(step: TRPTimelineStep, planData: AddPlanData, tourRepository: TourRepository = TRPTourRepository()) {
+        self.step = step
+        self.planData = planData
+        self.tourRepository = tourRepository
+        self.selectedDate = planData.selectedDay
+
+        // Extract product info from step's POI
+        guard let poi = step.poi else {
+            fatalError("Activity step must have POI")
+        }
+
+        // Get productId from POI's additionalData or bookings
+        let productId: String
+        if let additionalProductId = poi.additionalData?.productId {
+            productId = additionalProductId
+        } else if let bookingProduct = poi.bookings?.first?.firstProduct() {
+            productId = bookingProduct.id
+        } else {
+            productId = poi.id
+        }
+
+        // Format productId for availability API
+        // If productId doesn't start with "C_", format as "C_{productId}_15_{cityId}"
+        let cityId = planData.selectedCity?.id ?? poi.cityId
+        let formattedProductId: String
+        if productId.hasPrefix("C_") {
+            formattedProductId = productId
+        } else {
+            formattedProductId = "C_\(productId)_15_\(cityId)"
+        }
+
+        // Create TRPTourProduct from POI (schedule API needs productId)
+        self.tour = TRPTourProduct(
+            id: formattedProductId,
+            productId: formattedProductId,
+            cityId: cityId,
+            name: poi.name,
+            image: poi.image,
+            gallery: poi.gallery,
+            duration: poi.duration,
+            price: poi.price,
+            rating: poi.rating,
+            ratingCount: poi.ratingCount,
+            description: poi.description,
+            webUrl: poi.webUrl,
+            phone: poi.phone,
+            hours: poi.hours,
+            address: poi.address,
+            icon: poi.icon ?? "",
+            coordinate: poi.coordinate,
+            categories: poi.categories,
+            tags: poi.tags,
+            distance: poi.distance,
+            status: poi.status,
+            offers: poi.offers,
+            additionalData: nil
+        )
     }
 
     // MARK: - Public Methods
@@ -225,6 +348,124 @@ public class AddPlanTimeSelectionViewModel {
         }
     }
 
+    /// Update existing reserved activity segment (edit mode)
+    public func updateReservedActivitySegment() {
+        // 1. Validate required data
+        guard let tripHash = planData.tripHash else {
+            delegate?.viewModel(error: NSError(domain: "AddPlanTimeSelection", code: -1, userInfo: [NSLocalizedDescriptionKey: "Timeline not found. Please try again."]))
+            return
+        }
+
+        guard let segmentIndex = planData.segmentIndex,
+              let segment = segment else {
+            delegate?.viewModel(error: NSError(domain: "AddPlanTimeSelection", code: -2, userInfo: [NSLocalizedDescriptionKey: "Segment not found. Please try again."]))
+            return
+        }
+
+        guard let selectedDate = selectedDate,
+              let selectedTimeSlot = selectedTimeSlot else {
+            delegate?.viewModel(error: NSError(domain: "AddPlanTimeSelection", code: -3, userInfo: [NSLocalizedDescriptionKey: "Please select a time slot."]))
+            return
+        }
+
+        // 2. Calculate new times
+        let (startDateString, endDateString, startDatetimeString, endDatetimeString) = calculateSegmentTimes(
+            selectedDate: selectedDate,
+            selectedTimeSlot: selectedTimeSlot
+        )
+
+        // 3. Update additionalData times
+        var updatedAdditionalData = segment.additionalData
+        updatedAdditionalData?.startDatetime = startDatetimeString
+        updatedAdditionalData?.endDatetime = endDatetimeString
+
+        // 4. Create edit profile from existing segment
+        let profile = TRPCreateEditTimelineSegmentProfile(from: segment, tripHash: tripHash, segmentIndex: segmentIndex)
+        profile.startDate = startDateString
+        profile.endDate = endDateString
+        profile.additionalData = updatedAdditionalData
+
+        // 5. Show loading
+        delegate?.viewModel(showPreloader: true)
+
+        // 6. Update segment via repository
+        let repository = TRPTimelineRepository()
+        repository.createEditTimelineSegment(profile: profile) { [weak self] result in
+            guard let self = self else { return }
+
+            DispatchQueue.main.async {
+                self.delegate?.viewModel(showPreloader: false)
+
+                switch result {
+                case .success(let success):
+                    if success {
+                        self.delegate?.segmentUpdateDidSucceed()
+                    } else {
+                        let error = NSError(domain: "AddPlanTimeSelection", code: -4, userInfo: [NSLocalizedDescriptionKey: "Failed to update time. Please try again."])
+                        self.delegate?.viewModel(error: error)
+                    }
+
+                case .failure(let error):
+                    self.delegate?.viewModel(error: error)
+                }
+            }
+        }
+    }
+
+    /// Update activity step time (step edit mode)
+    public func updateActivityStep() {
+        guard let step = step else {
+            delegate?.viewModel(error: NSError(domain: "AddPlanTimeSelection", code: -1, userInfo: [NSLocalizedDescriptionKey: "Step not found. Please try again."]))
+            return
+        }
+
+        guard let selectedTimeSlot = selectedTimeSlot else {
+            delegate?.viewModel(error: NSError(domain: "AddPlanTimeSelection", code: -2, userInfo: [NSLocalizedDescriptionKey: "Please select a time slot."]))
+            return
+        }
+
+        // Get start time from time slot (format: "HH:mm" or "HH:mm:ss")
+        // Extract just the "HH:mm" part
+        let startTimeComponents = selectedTimeSlot.time.split(separator: ":")
+        guard startTimeComponents.count >= 2 else {
+            delegate?.viewModel(error: NSError(domain: "AddPlanTimeSelection", code: -3, userInfo: [NSLocalizedDescriptionKey: "Invalid time format."]))
+            return
+        }
+        let startTime = "\(startTimeComponents[0]):\(startTimeComponents[1])"
+
+        // Calculate end time based on duration
+        let durationMinutes = tour.duration ?? 60
+        let endTime = calculateEndTime(startTime: startTime, durationMinutes: durationMinutes)
+
+        // Create step edit request (only time, no date)
+        let stepEdit = TRPTimelineStepEdit(
+            stepId: step.id,
+            startTime: startTime,
+            endTime: endTime
+        )
+
+        // Show loading
+        delegate?.viewModel(showPreloader: true)
+
+        // Update step via repository
+        let repository = TRPTimelineStepRepository()
+        repository.editStep(step: stepEdit) { [weak self] result in
+            guard let self = self else { return }
+
+            DispatchQueue.main.async {
+                self.delegate?.viewModel(showPreloader: false)
+
+                switch result {
+                case .success:
+                    self.delegate?.stepUpdateDidSucceed()
+
+                case .failure(let error):
+                    self.delegate?.viewModel(error: error)
+                }
+            }
+        }
+    }
+
     // MARK: - Private Methods
 
     private func calculateSegmentTimes(
@@ -277,5 +518,22 @@ public class AddPlanTimeSelectionViewModel {
         let endDatetimeString = dateFormatter.string(from: end)
 
         return (startDateString, endDateString, startDatetimeString, endDatetimeString)
+    }
+
+    /// Calculate end time from start time and duration (returns "HH:mm" format)
+    private func calculateEndTime(startTime: String, durationMinutes: Int) -> String {
+        let components = startTime.split(separator: ":")
+        guard components.count >= 2,
+              let hour = Int(components[0]),
+              let minute = Int(components[1]) else {
+            // Fallback: add 1 hour to a default time
+            return "13:00"
+        }
+
+        let totalMinutes = hour * 60 + minute + durationMinutes
+        let endHour = (totalMinutes / 60) % 24
+        let endMinute = totalMinutes % 60
+
+        return String(format: "%02d:%02d", endHour, endMinute)
     }
 }

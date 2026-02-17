@@ -13,6 +13,7 @@ protocol TRPTimelineBookedActivityCellDelegate: AnyObject {
     func bookedActivityCellDidTapMoreOptions(_ cell: TRPTimelineBookedActivityCell)
     func bookedActivityCellDidTapReservation(_ cell: TRPTimelineBookedActivityCell, segment: TRPTimelineSegment)
     func bookedActivityCellDidTapRemove(_ cell: TRPTimelineBookedActivityCell, segment: TRPTimelineSegment)
+    func bookedActivityCellDidTapChangeTime(_ cell: TRPTimelineBookedActivityCell, segment: TRPTimelineSegment)
 }
 
 class TRPTimelineBookedActivityCell: UITableViewCell {
@@ -126,6 +127,17 @@ class TRPTimelineBookedActivityCell: UITableViewCell {
         return button
     }()
 
+    private lazy var changeTimeButton: UIButton = {
+        let button = UIButton(type: .custom)
+        button.translatesAutoresizingMaskIntoConstraints = false
+        let icon = TRPImageController().getImage(inFramework: "ic_change_time", inApp: nil)?.withRenderingMode(.alwaysTemplate)
+        button.setImage(icon, for: .normal)
+        button.tintColor = ColorSet.primary.uiColor
+        button.contentHorizontalAlignment = .trailing
+        button.addTarget(self, action: #selector(changeTimeButtonTapped), for: .touchUpInside)
+        return button
+    }()
+
     private lazy var removeButton: UIButton = {
         let button = UIButton(type: .custom)
         button.translatesAutoresizingMaskIntoConstraints = false
@@ -133,6 +145,16 @@ class TRPTimelineBookedActivityCell: UITableViewCell {
         button.contentHorizontalAlignment = .center
         button.addTarget(self, action: #selector(removeButtonTapped), for: .touchUpInside)
         return button
+    }()
+
+    // Action buttons container
+    private let actionButtonsStack: UIStackView = {
+        let stack = UIStackView()
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        stack.axis = .horizontal
+        stack.spacing = 4
+        stack.alignment = .center
+        return stack
     }()
 
 
@@ -187,8 +209,12 @@ class TRPTimelineBookedActivityCell: UITableViewCell {
 
         containerView.addSubview(activityImageView)
         containerView.addSubview(titleLabel)
-        containerView.addSubview(removeButton)
+        containerView.addSubview(actionButtonsStack)
         containerView.addSubview(rightContentStackView)
+
+        // Build action buttons stack
+        actionButtonsStack.addArrangedSubview(changeTimeButton)
+        actionButtonsStack.addArrangedSubview(removeButton)
 
         // Build person horizontal stack
         personStackView.addArrangedSubview(personIcon)
@@ -230,12 +256,16 @@ class TRPTimelineBookedActivityCell: UITableViewCell {
             // Title Label - top right area
             titleLabel.topAnchor.constraint(equalTo: containerView.topAnchor),
             titleLabel.leadingAnchor.constraint(equalTo: activityImageView.trailingAnchor, constant: 12),
-            titleLabel.trailingAnchor.constraint(equalTo: removeButton.leadingAnchor, constant: -8),
+            titleLabel.trailingAnchor.constraint(equalTo: actionButtonsStack.leadingAnchor, constant: -8),
 
-            // Remove button - fixed to right, aligned with title (wider tap area)
-            removeButton.topAnchor.constraint(equalTo: containerView.topAnchor),
-            removeButton.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
-            removeButton.widthAnchor.constraint(equalToConstant: 44),
+            // Action buttons stack - fixed to right, aligned with title
+            actionButtonsStack.topAnchor.constraint(equalTo: containerView.topAnchor),
+            actionButtonsStack.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
+
+            // Button sizes
+            changeTimeButton.widthAnchor.constraint(equalToConstant: 36),
+            changeTimeButton.heightAnchor.constraint(equalToConstant: 28),
+            removeButton.widthAnchor.constraint(equalToConstant: 40),
             removeButton.heightAnchor.constraint(equalToConstant: 28),
 
             // Right Content Stack View - below title
@@ -277,6 +307,7 @@ class TRPTimelineBookedActivityCell: UITableViewCell {
             confirmedBadge.textColor = ColorSet.fgOrange.uiColor
             confirmedBadge.backgroundColor = ColorSet.bgOrange.uiColor
             reservationButton.isHidden = false
+            changeTimeButton.isHidden = false
             removeButton.isHidden = false
             personStackView.isHidden = true
         } else {
@@ -285,6 +316,7 @@ class TRPTimelineBookedActivityCell: UITableViewCell {
             confirmedBadge.textColor = ColorSet.fgGreen.uiColor
             confirmedBadge.backgroundColor = ColorSet.bgGreen.uiColor
             reservationButton.isHidden = true
+            changeTimeButton.isHidden = true
             removeButton.isHidden = true
             personStackView.isHidden = false
         }
@@ -374,6 +406,7 @@ class TRPTimelineBookedActivityCell: UITableViewCell {
             confirmedBadge.textColor = ColorSet.fgOrange.uiColor
             confirmedBadge.backgroundColor = ColorSet.bgOrange.uiColor
             reservationButton.isHidden = false
+            changeTimeButton.isHidden = false
             removeButton.isHidden = false
             personStackView.isHidden = true
         } else {
@@ -382,6 +415,7 @@ class TRPTimelineBookedActivityCell: UITableViewCell {
             confirmedBadge.textColor = ColorSet.fgGreen.uiColor
             confirmedBadge.backgroundColor = ColorSet.bgGreen.uiColor
             reservationButton.isHidden = true
+            changeTimeButton.isHidden = true
             removeButton.isHidden = true
             personStackView.isHidden = false
         }
@@ -464,6 +498,11 @@ class TRPTimelineBookedActivityCell: UITableViewCell {
     @objc private func reservationButtonTapped() {
         guard let segment = segment else { return }
         delegate?.bookedActivityCellDidTapReservation(self, segment: segment)
+    }
+
+    @objc private func changeTimeButtonTapped() {
+        guard let segment = segment else { return }
+        delegate?.bookedActivityCellDidTapChangeTime(self, segment: segment)
     }
 
     @objc private func removeButtonTapped() {

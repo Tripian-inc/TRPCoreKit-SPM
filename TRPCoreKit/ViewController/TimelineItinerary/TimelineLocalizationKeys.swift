@@ -41,6 +41,7 @@ public struct TimelineLocalizationKeys {
     public static let pointOfInterest = "timeline.label.pointOfInterest"
     public static let unknown = "timeline.label.unknown"
     public static let unknownLocation = "timeline.label.unknownLocation"
+    public static let changeTime = "timeline.label.changeTime"
     // from is now in CommonLocalizationKeys
 
     // MARK: - Duration & Distance Formats
@@ -76,6 +77,7 @@ public struct TimelineLocalizationKeys {
         pointOfInterest: "Point of interest",
         unknown: "Unknown",
         unknownLocation: "Unknown Location",
+        changeTime: "Change Time",
         durationHours: "%dh",
         durationMinutes: "%dm",
         durationCombined: "%dh %dm",

@@ -26,6 +26,12 @@ public class AddPlanTimeSelectionVC: TRPBaseUIViewController, DynamicHeightPrese
     // Callback when segment creation completes successfully
     public var onSegmentCreated: (() -> Void)?
 
+    // Callback when segment update completes successfully (edit mode)
+    public var onSegmentUpdated: (() -> Void)?
+
+    // Callback when step update completes successfully (step edit mode)
+    public var onStepUpdated: (() -> Void)?
+
     // MARK: - UI Components
     private var customNavigationBar: TRPTimelineCustomNavigationBar!
 
@@ -94,6 +100,20 @@ public class AddPlanTimeSelectionVC: TRPBaseUIViewController, DynamicHeightPrese
         self.viewModel.delegate = self
     }
 
+    /// Edit mode - for changing time of existing reserved activity
+    public init(segment: TRPTimelineSegment, planData: AddPlanData) {
+        super.init(nibName: nil, bundle: nil)
+        self.viewModel = AddPlanTimeSelectionViewModel(segment: segment, planData: planData)
+        self.viewModel.delegate = self
+    }
+
+    /// Step edit mode - for changing time of activity steps in recommendations
+    public init(step: TRPTimelineStep, planData: AddPlanData) {
+        super.init(nibName: nil, bundle: nil)
+        self.viewModel = AddPlanTimeSelectionViewModel(step: step, planData: planData)
+        self.viewModel.delegate = self
+    }
+
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
@@ -114,9 +134,11 @@ public class AddPlanTimeSelectionVC: TRPBaseUIViewController, DynamicHeightPrese
         view.backgroundColor = .white
 
         // Setup navigation bar using base class method
-        customNavigationBar = setupCustomNavigationBar(
-            title: AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.addPlan)
-        )
+        // Use different title for edit mode
+        let navTitle = viewModel.isEditMode
+            ? TimelineLocalizationKeys.localized(TimelineLocalizationKeys.changeTime)
+            : AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.addPlan)
+        customNavigationBar = setupCustomNavigationBar(title: navTitle)
         customNavigationBar.delegate = self
 
         view.addSubview(dayFilterView)
@@ -184,8 +206,17 @@ public class AddPlanTimeSelectionVC: TRPBaseUIViewController, DynamicHeightPrese
         // Call existing callback (for compatibility)
         onTimeSelected?(selectedDate, selectedTimeSlot)
 
-        // Create reserved_activity segment via ViewModel
-        viewModel.createReservedActivitySegment()
+        // Create or update based on mode
+        if viewModel.isStepEditMode {
+            // Step edit mode - update activity step time
+            viewModel.updateActivityStep()
+        } else if viewModel.isEditMode {
+            // Segment edit mode - update reserved activity segment time
+            viewModel.updateReservedActivitySegment()
+        } else {
+            // Create mode - create new reserved activity segment
+            viewModel.createReservedActivitySegment()
+        }
     }
 
     // MARK: - Helpers
@@ -277,6 +308,20 @@ extension AddPlanTimeSelectionVC: AddPlanTimeSelectionViewModelDelegate {
         // Dismiss and trigger timeline refresh
         dismiss(animated: true) { [weak self] in
             self?.onSegmentCreated?()
+        }
+    }
+
+    public func segmentUpdateDidSucceed() {
+        // Dismiss and trigger timeline refresh (edit mode)
+        dismiss(animated: true) { [weak self] in
+            self?.onSegmentUpdated?()
+        }
+    }
+
+    public func stepUpdateDidSucceed() {
+        // Dismiss and trigger timeline refresh (step edit mode)
+        dismiss(animated: true) { [weak self] in
+            self?.onStepUpdated?()
         }
     }
 }
