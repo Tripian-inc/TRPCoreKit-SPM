@@ -104,6 +104,14 @@ extension TRPTimelineItineraryVC: TRPTimelineBookedActivityCellDelegate {
         // Present as bottom sheet
         presentVCWithModal(timeSelectionVC, onlyLarge: false, prefersGrabberVisible: false)
     }
+
+    func bookedActivityCellDidTapCell(_ cell: TRPTimelineBookedActivityCell, segment: TRPTimelineSegment) {
+        // Open activity detail
+        guard let activityId = segment.additionalData?.activityId else {
+            return
+        }
+        TRPCoreKit.shared.delegate?.trpCoreKitDidRequestActivityDetail(activityId: activityId)
+    }
 }
 
 // MARK: - TRPTimelineActivityStepCellDelegate
@@ -234,9 +242,22 @@ extension TRPTimelineItineraryVC: TRPTimelineRecommendationsCellDelegate {
     }
 
     func recommendationsCellDidSelectStep(_ cell: TRPTimelineRecommendationsCell, step: TRPTimelineStep) {
-        // Open new POI detail view controller
         guard let poi = step.poi else { return }
 
+        // Activity step - call trpCoreKitDidRequestActivityDetail
+        if step.stepType == "activity" {
+            // Try booking product ID first, fallback to POI ID
+            let activityId: String
+            if let booking = poi.bookings?.first, let product = booking.firstProduct() {
+                activityId = product.id
+            } else {
+                activityId = poi.id
+            }
+            TRPCoreKit.shared.delegate?.trpCoreKitDidRequestActivityDetail(activityId: activityId)
+            return
+        }
+
+        // Normal POI step - open POI detail view controller
         let viewModel = TimelinePoiDetailViewModel(poi: poi)
         let detailVC = TimelinePoiDetailViewController(viewModel: viewModel)
         navigationController?.pushViewController(detailVC, animated: true)
@@ -335,20 +356,18 @@ extension TRPTimelineItineraryVC: TRPTimelineRecommendationsCellDelegate {
     }
 
     func recommendationsCellDidTapReservation(_ cell: TRPTimelineRecommendationsCell, step: TRPTimelineStep) {
-        // Handle reservation tap for activity steps
-        // Try to get product ID from POI's bookings first, fallback to POI id
+        // Handle reservation tap for activity steps - open activity detail
         guard let poi = step.poi else { return }
 
+        // Try to get product ID from POI's bookings first, fallback to POI id
         let activityId: String
         if let booking = poi.bookings?.first, let product = booking.firstProduct() {
             activityId = product.id
         } else {
-            // Fallback to POI id if no booking product available
             activityId = poi.id
         }
 
-        // Delegate to coordinator to open reservation flow
-        delegate?.timelineItineraryDidRequestActivityReservation(self, activityId: activityId)
+        TRPCoreKit.shared.delegate?.trpCoreKitDidRequestActivityDetail(activityId: activityId)
     }
 
     func recommendationsCellNeedsRouteCalculation(_ cell: TRPTimelineRecommendationsCell, locations: [TRPLocation], cellIndexPath: IndexPath) {
