@@ -17,6 +17,15 @@ extension TRPTimelineItineraryViewModel {
 
     /// Creates a new timeline from itinerary model
     internal func createTimeline(from itineraryModel: TRPItineraryWithActivities) {
+        // First, resolve missing cityIds in destination items
+        resolveMissingCityIds(in: itineraryModel) { [weak self] resolvedItineraryModel in
+            guard let self = self else { return }
+            self.createTimelineInternal(from: resolvedItineraryModel)
+        }
+    }
+
+    /// Internal method to create timeline after city resolution
+    private func createTimelineInternal(from itineraryModel: TRPItineraryWithActivities) {
         // Create timeline profile from itinerary
         let profile = itineraryModel.createTimelineProfileFromBookings()
 
@@ -43,6 +52,79 @@ extension TRPTimelineItineraryViewModel {
             }
         }
     }
+
+    // MARK: - City Resolution
+
+    /// Resolves missing or invalid cityIds in destination items
+    /// Uses API first, then falls back to local cache if API fails
+    private func resolveMissingCityIds(in itineraryModel: TRPItineraryWithActivities,
+                                       completion: @escaping (TRPItineraryWithActivities) -> Void) {
+        var mutableItinerary = itineraryModel
+
+        // Find items with missing or invalid cityIds (nil, <= 0)
+        let itemsWithoutCityId = mutableItinerary.destinationItems.enumerated()
+            .filter { $0.element.cityId == nil || ($0.element.cityId ?? 0) <= 0 }
+            .map { (index: $0.offset, item: $0.element) }
+
+        Log.i("TRPTimelineItineraryViewModel: Checking destination items for missing cityIds")
+        Log.i("TRPTimelineItineraryViewModel: Total destinations: \(mutableItinerary.destinationItems.count), missing cityIds: \(itemsWithoutCityId.count)")
+
+        // If all have valid cityId, proceed directly
+        if itemsWithoutCityId.isEmpty {
+            Log.i("TRPTimelineItineraryViewModel: All destination items have valid cityIds, proceeding")
+            completion(mutableItinerary)
+            return
+        }
+
+        // Parse coordinates for API call
+        let coordinates = itemsWithoutCityId.map { parseCoordinate(from: $0.item.coordinate) }
+
+        Log.i("TRPTimelineItineraryViewModel: Resolving \(itemsWithoutCityId.count) missing cityIds via API")
+        for (i, coord) in coordinates.enumerated() {
+            Log.i("TRPTimelineItineraryViewModel: coordinate[\(i)] = lat: \(coord.lat), lon: \(coord.lon)")
+        }
+
+        // Try API first (more accurate)
+        let cityRemoteApi = TRPCityRemoteApi()
+        cityRemoteApi.resolveCities(coordinates: coordinates) { [weak self] result in
+            guard let self = self else { return }
+
+            switch result {
+            case .success(let cityIds):
+                Log.i("TRPTimelineItineraryViewModel: resolveCities API success - cityIds: \(cityIds)")
+                // Update destination items with resolved cityIds
+                for (i, (index, _)) in itemsWithoutCityId.enumerated() {
+                    if i < cityIds.count {
+                        mutableItinerary.destinationItems[index].cityId = cityIds[i]
+                        Log.i("TRPTimelineItineraryViewModel: Set destinationItems[\(index)].cityId = \(cityIds[i])")
+                    }
+                }
+                completion(mutableItinerary)
+
+            case .failure(let error):
+                Log.e("TRPTimelineItineraryViewModel: resolveCities API failed - \(error.localizedDescription)")
+                // Fallback: Use TRPCityCache (local Haversine distance calculation)
+                Log.i("TRPTimelineItineraryViewModel: Using cache fallback")
+                self.resolveCityIdsFromCache(items: itemsWithoutCityId, itinerary: &mutableItinerary)
+                completion(mutableItinerary)
+            }
+        }
+    }
+
+    /// Fallback method to resolve cities from local cache using coordinate proximity
+    private func resolveCityIdsFromCache(items: [(index: Int, item: TRPSegmentDestinationItem)],
+                                         itinerary: inout TRPItineraryWithActivities) {
+        for (index, item) in items {
+            let coordinate = parseCoordinate(from: item.coordinate)
+            if let city = TRPCityCache.shared.getCityByCoordinate(coordinate, maxDistanceKm: 100) {
+                itinerary.destinationItems[index].cityId = city.id
+                Log.i("TRPTimelineItineraryViewModel: Cache resolved destinationItems[\(index)].cityId = \(city.id) (\(city.name))")
+            } else {
+                Log.w("TRPTimelineItineraryViewModel: Could not resolve cityId for destinationItems[\(index)] from cache")
+            }
+        }
+    }
+
 
     /// Waits for timeline generation to complete
     internal func waitForTimelineGeneration(tripHash: String, itineraryModel: TRPItineraryWithActivities) {

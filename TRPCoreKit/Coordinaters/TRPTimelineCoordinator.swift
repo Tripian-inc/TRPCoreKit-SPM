@@ -340,7 +340,10 @@ extension TRPTimelineCoordinator: TRPTimelineItineraryVCDelegate {
     }
 
     public func timelineItineraryDidSelectBookedActivity(_ viewController: TRPTimelineItineraryVC, segment: TRPTimelineSegment) {
-        // TODO: Open booked activity detail view
+        guard let activityId = segment.additionalData?.activityId else {
+            return
+        }
+        TRPCoreKit.shared.delegate?.trpCoreKitDidRequestActivityDetail(activityId: activityId)
     }
 
     public func timelineItineraryAddButtonPressed(_ viewController: TRPTimelineItineraryVC, atSectionIndex: Int) {

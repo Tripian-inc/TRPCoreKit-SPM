@@ -14,6 +14,7 @@ protocol TRPTimelineBookedActivityCellDelegate: AnyObject {
     func bookedActivityCellDidTapReservation(_ cell: TRPTimelineBookedActivityCell, segment: TRPTimelineSegment)
     func bookedActivityCellDidTapRemove(_ cell: TRPTimelineBookedActivityCell, segment: TRPTimelineSegment)
     func bookedActivityCellDidTapChangeTime(_ cell: TRPTimelineBookedActivityCell, segment: TRPTimelineSegment)
+    func bookedActivityCellDidTapCell(_ cell: TRPTimelineBookedActivityCell, segment: TRPTimelineSegment)
 }
 
 class TRPTimelineBookedActivityCell: UITableViewCell {
@@ -231,6 +232,11 @@ class TRPTimelineBookedActivityCell: UITableViewCell {
         rightContentStackView.addArrangedSubview(priceLabel)
         rightContentStackView.addArrangedSubview(cancellationLabel)
         rightContentStackView.addArrangedSubview(reservationButton)
+
+        // Add tap gesture for cell selection (entire cell except buttons)
+        let cellTapGesture = UITapGestureRecognizer(target: self, action: #selector(cellTapped))
+        cellTapGesture.delegate = self
+        contentView.addGestureRecognizer(cellTapGesture)
 
         setupConstraints()
     }
@@ -508,6 +514,11 @@ class TRPTimelineBookedActivityCell: UITableViewCell {
     @objc private func removeButtonTapped() {
         guard let segment = segment else { return }
         delegate?.bookedActivityCellDidTapRemove(self, segment: segment)
+    }
+
+    @objc private func cellTapped() {
+        guard let segment = segment else { return }
+        delegate?.bookedActivityCellDidTapCell(self, segment: segment)
     }
 }
 
