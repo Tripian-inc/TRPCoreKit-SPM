@@ -56,11 +56,11 @@ class TRPTimelineActivityStepCell: UITableViewCell {
         return label
     }()
     
-    private let activityBadge: UILabel = {
-        let label = UILabel()
+    private let activityBadge: TRPPaddingLabel = {
+        let label = TRPPaddingLabel(4, 4, 8, 8)  // top, bottom, left, right
         label.translatesAutoresizingMaskIntoConstraints = false
         label.text = TimelineLocalizationKeys.localized(TimelineLocalizationKeys.activityBadge)
-        label.font = FontSet.montserratMedium.font(12)
+        label.font = FontSet.montserratMedium.font(10)
         label.textColor = ColorSet.fgGreen.uiColor
         label.backgroundColor = ColorSet.bgGreen.uiColor
         label.textAlignment = .center
@@ -144,11 +144,9 @@ class TRPTimelineActivityStepCell: UITableViewCell {
             titleLabel.leadingAnchor.constraint(equalTo: activityImageView.trailingAnchor, constant: 12),
             titleLabel.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -12),
             
-            // Activity Badge
+            // Activity Badge - uses intrinsic content size from TRPPaddingLabel
             activityBadge.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 4),
             activityBadge.leadingAnchor.constraint(equalTo: activityImageView.trailingAnchor, constant: 12),
-            activityBadge.widthAnchor.constraint(equalToConstant: 80),
-            activityBadge.heightAnchor.constraint(equalToConstant: 24),
             
             // Rating Stack
             ratingStack.topAnchor.constraint(equalTo: activityBadge.bottomAnchor, constant: 6),

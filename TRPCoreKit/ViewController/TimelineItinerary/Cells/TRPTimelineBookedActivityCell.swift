@@ -59,10 +59,10 @@ class TRPTimelineBookedActivityCell: UITableViewCell {
         return label
     }()
     
-    private let confirmedBadge: UILabel = {
-        let label = UILabel()
+    private let confirmedBadge: TRPPaddingLabel = {
+        let label = TRPPaddingLabel(4, 4, 8, 8)  // top, bottom, left, right
         label.translatesAutoresizingMaskIntoConstraints = false
-        label.font = FontSet.montserratMedium.font(12)
+        label.font = FontSet.montserratMedium.font(10)
         label.textColor = ColorSet.fgGreen.uiColor
         label.backgroundColor = ColorSet.bgGreen.uiColor
         label.textAlignment = .center
@@ -281,8 +281,7 @@ class TRPTimelineBookedActivityCell: UITableViewCell {
             rightContentStackView.bottomAnchor.constraint(equalTo: containerView.bottomAnchor),
 
             // Element sizes within stack
-            confirmedBadge.widthAnchor.constraint(equalToConstant: 90),
-            confirmedBadge.heightAnchor.constraint(equalToConstant: 24),
+            // confirmedBadge uses intrinsic content size from TRPPaddingLabel
 
             personIcon.widthAnchor.constraint(equalToConstant: 16),
             personIcon.heightAnchor.constraint(equalToConstant: 16),
@@ -310,8 +309,8 @@ class TRPTimelineBookedActivityCell: UITableViewCell {
         if segment.segmentType == .reservedActivity {
             // Reserved activity - show "Activity" badge, buttons, hide person count
             confirmedBadge.text = TimelineLocalizationKeys.localized(TimelineLocalizationKeys.activityBadge)
-            confirmedBadge.textColor = ColorSet.fgOrange.uiColor
-            confirmedBadge.backgroundColor = ColorSet.bgOrange.uiColor
+            confirmedBadge.textColor = ColorSet.fgGreen.uiColor
+            confirmedBadge.backgroundColor = ColorSet.bgGreen.uiColor
             reservationButton.isHidden = false
             changeTimeButton.isHidden = false
             removeButton.isHidden = false
@@ -409,8 +408,8 @@ class TRPTimelineBookedActivityCell: UITableViewCell {
         if cellData.isReserved {
             // Reserved activity - show "Activity" badge, buttons, hide person count
             confirmedBadge.text = TimelineLocalizationKeys.localized(TimelineLocalizationKeys.activityBadge)
-            confirmedBadge.textColor = ColorSet.fgOrange.uiColor
-            confirmedBadge.backgroundColor = ColorSet.bgOrange.uiColor
+            confirmedBadge.textColor = ColorSet.fgGreen.uiColor
+            confirmedBadge.backgroundColor = ColorSet.bgGreen.uiColor
             reservationButton.isHidden = false
             changeTimeButton.isHidden = false
             removeButton.isHidden = false
