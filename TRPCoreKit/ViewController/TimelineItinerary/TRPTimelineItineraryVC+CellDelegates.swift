@@ -58,10 +58,9 @@ extension TRPTimelineItineraryVC: TRPTimelineBookedActivityCellDelegate {
 
     func bookedActivityCellDidTapReservation(_ cell: TRPTimelineBookedActivityCell, segment: TRPTimelineSegment) {
         // Notify delegate about activity reservation request
-        guard let activityId = segment.additionalData?.activityId else {
-            return
-        }
-        TRPCoreKit.shared.delegate?.trpCoreKitDidRequestActivityReservation(activityId: activityId)
+        guard let activityId = segment.additionalData?.activityId else { return }
+        let cleanedId = cleanActivityId(activityId)
+        TRPCoreKit.shared.delegate?.trpCoreKitDidRequestActivityReservation(activityId: cleanedId)
     }
 
     func bookedActivityCellDidTapRemove(_ cell: TRPTimelineBookedActivityCell, segment: TRPTimelineSegment) {
@@ -107,10 +106,9 @@ extension TRPTimelineItineraryVC: TRPTimelineBookedActivityCellDelegate {
 
     func bookedActivityCellDidTapCell(_ cell: TRPTimelineBookedActivityCell, segment: TRPTimelineSegment) {
         // Open activity detail
-        guard let activityId = segment.additionalData?.activityId else {
-            return
-        }
-        TRPCoreKit.shared.delegate?.trpCoreKitDidRequestActivityDetail(activityId: activityId)
+        guard let activityId = segment.additionalData?.activityId else { return }
+        let cleanedId = cleanActivityId(activityId)
+        TRPCoreKit.shared.delegate?.trpCoreKitDidRequestActivityDetail(activityId: cleanedId)
     }
 }
 
@@ -124,9 +122,8 @@ extension TRPTimelineItineraryVC: TRPTimelineActivityStepCellDelegate {
 
     func activityStepCellDidTapReservation(_ cell: TRPTimelineActivityStepCell, step: TRPTimelineStep) {
         // Notify delegate about activity reservation request
-        guard let activityId = step.poi?.id else {
-            return
-        }
+        guard let poi = step.poi else { return }
+        let activityId = extractActivityId(from: poi)
         TRPCoreKit.shared.delegate?.trpCoreKitDidRequestActivityReservation(activityId: activityId)
     }
 }
@@ -246,13 +243,7 @@ extension TRPTimelineItineraryVC: TRPTimelineRecommendationsCellDelegate {
 
         // Activity step - call trpCoreKitDidRequestActivityDetail
         if step.stepType == "activity" {
-            // Try booking product ID first, fallback to POI ID
-            let activityId: String
-            if let booking = poi.bookings?.first, let product = booking.firstProduct() {
-                activityId = product.id
-            } else {
-                activityId = poi.id
-            }
+            let activityId = extractActivityId(from: poi)
             TRPCoreKit.shared.delegate?.trpCoreKitDidRequestActivityDetail(activityId: activityId)
             return
         }
@@ -358,15 +349,7 @@ extension TRPTimelineItineraryVC: TRPTimelineRecommendationsCellDelegate {
     func recommendationsCellDidTapReservation(_ cell: TRPTimelineRecommendationsCell, step: TRPTimelineStep) {
         // Handle reservation tap for activity steps - open activity detail
         guard let poi = step.poi else { return }
-
-        // Try to get product ID from POI's bookings first, fallback to POI id
-        let activityId: String
-        if let booking = poi.bookings?.first, let product = booking.firstProduct() {
-            activityId = product.id
-        } else {
-            activityId = poi.id
-        }
-
+        let activityId = extractActivityId(from: poi)
         TRPCoreKit.shared.delegate?.trpCoreKitDidRequestActivityDetail(activityId: activityId)
     }
 
@@ -554,5 +537,44 @@ extension TRPTimelineItineraryVC: TRPTimeRangeSelectionDelegate {
 
     func timeRangeSelected(fromDate: Date, toDate: Date) {
         // Not used - we use the String version
+    }
+}
+
+// MARK: - Activity ID Helpers
+
+extension TRPTimelineItineraryVC {
+
+    /// Cleans activity ID by extracting actual ID from C_ format
+    /// Pattern: C_{activityId}_{providerId} or C_{activityId}_{providerId}_{cityId}
+    internal func cleanActivityId(_ id: String) -> String {
+        guard id.hasPrefix("C_") else { return id }
+
+        // Remove "C_" prefix and split by "_"
+        let withoutPrefix = String(id.dropFirst(2))
+        let components = withoutPrefix.split(separator: "_")
+
+        // Extract first component (activityId)
+        if let activityId = components.first {
+            return String(activityId)
+        }
+
+        return id
+    }
+
+    /// Extracts clean activity ID from POI for activity steps
+    /// Priority: additionalData.productId → booking product ID → cleaned poi.id
+    internal func extractActivityId(from poi: TRPPoi) -> String {
+        // Priority 1: Use productId from additionalData
+        if let productId = poi.additionalData?.productId, !productId.isEmpty {
+            return cleanActivityId(productId)
+        }
+
+        // Priority 2: Try booking product ID
+        if let booking = poi.bookings?.first, let product = booking.firstProduct() {
+            return cleanActivityId(product.id)
+        }
+
+        // Priority 3: Fall back to POI ID (cleaned if needed)
+        return cleanActivityId(poi.id)
     }
 }
