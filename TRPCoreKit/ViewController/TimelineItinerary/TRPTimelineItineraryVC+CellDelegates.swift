@@ -347,10 +347,10 @@ extension TRPTimelineItineraryVC: TRPTimelineRecommendationsCellDelegate {
     }
 
     func recommendationsCellDidTapReservation(_ cell: TRPTimelineRecommendationsCell, step: TRPTimelineStep) {
-        // Handle reservation tap for activity steps - open activity detail
+        // Handle reservation tap for activity steps - open activity reservation
         guard let poi = step.poi else { return }
         let activityId = extractActivityId(from: poi)
-        TRPCoreKit.shared.delegate?.trpCoreKitDidRequestActivityDetail(activityId: activityId)
+        TRPCoreKit.shared.delegate?.trpCoreKitDidRequestActivityReservation(activityId: activityId)
     }
 
     func recommendationsCellNeedsRouteCalculation(_ cell: TRPTimelineRecommendationsCell, locations: [TRPLocation], cellIndexPath: IndexPath) {
