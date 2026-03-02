@@ -267,6 +267,18 @@ public class AddPlanContainerVC: TRPBaseUIViewController, DynamicHeightPresentab
     public func notifyContentHeightChanged() {
         updateContentHeight()
         updateSheetHeight()
+        scrollToBottom()
+    }
+
+    /// Scrolls the content scroll view to the bottom if content exceeds visible area
+    private func scrollToBottom() {
+        view.layoutIfNeeded()
+
+        let bottomOffset = CGPoint(
+            x: 0,
+            y: max(0, contentScrollView.contentSize.height - contentScrollView.bounds.height)
+        )
+        contentScrollView.setContentOffset(bottomOffset, animated: true)
     }
     
     private func showViewController(at index: Int) {
