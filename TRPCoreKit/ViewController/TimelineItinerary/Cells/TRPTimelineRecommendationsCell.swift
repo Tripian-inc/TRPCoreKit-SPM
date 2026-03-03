@@ -642,13 +642,11 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
             // Get price from additionalData or booking product
             var priceText: String? = nil
             if let price = step.poi?.additionalData?.price, let currency = step.poi?.additionalData?.currency {
-                let priceString = String(format: "%.2f", price).replacingOccurrences(of: ".", with: ",")
-                priceText = "\(priceString) \(currency)"
+                priceText = TRPCurrencyHelper.formatPrice(price, currency: currency)
             } else if let price = bookingProduct?.price, let currency = bookingProduct?.currency {
-                let priceString = String(format: "%.2f", price).replacingOccurrences(of: ".", with: ",")
-                priceText = "\(priceString) \(currency)"
+                priceText = TRPCurrencyHelper.formatPrice(price, currency: currency)
             } else if let poiPrice = step.poi?.price, poiPrice > 0 {
-                priceText = "\(poiPrice) €"
+                priceText = TRPCurrencyHelper.formatPrice(poiPrice, currency: "EUR")
             }
 
             if let priceText = priceText {
@@ -668,7 +666,7 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
         }
 
         // Reservation button (TRPButton primary for activity steps) - height 40
-        let reservationButton = TRPButton(title: "Reservation", style: .primary, height: 40)
+        let reservationButton = TRPButton(title: TimelineLocalizationKeys.localized(TimelineLocalizationKeys.reservation), style: .primary, height: 40)
         reservationButton.translatesAutoresizingMaskIntoConstraints = false
         reservationButton.tag = steps.firstIndex(where: { $0.id == step.id }) ?? 0
         reservationButton.addTarget(self, action: #selector(reservationTapped(_:)), for: .touchUpInside)
@@ -902,7 +900,7 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
     // Update distance info after route calculation
     public func updateDistance(at index: Int, distance: Float, time: Int) {
         guard let distanceView = distanceViews[index] else { return }
-        
+
         // Find the distance label using tag
         if let distanceLabel = distanceView.viewWithTag(1000 + index) as? UILabel {
             // Format distance with comma as decimal separator (e.g., "1,2 km")
@@ -910,5 +908,6 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
             distanceLabel.text = TimelineLocalizationKeys.formatDistance(minutes: time, kilometers: distanceString)
         }
     }
+
 }
 

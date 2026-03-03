@@ -202,7 +202,7 @@ class ProductCardCell: UICollectionViewCell {
         let fromText = CommonLocalizationKeys.localized(CommonLocalizationKeys.from)
 
         if let price = product.price, let currency = product.currency {
-            let priceText = "\(currency) \(String(format: "%.2f", price))"
+            let priceText = TRPCurrencyHelper.formatPrice(price, currency: currency)
             let fullText = "\(fromText) \(priceText)"
 
             let attributedString = NSMutableAttributedString(string: fullText)
@@ -252,4 +252,5 @@ class ProductCardCell: UICollectionViewCell {
             priceLabel.text = ""
         }
     }
+
 }

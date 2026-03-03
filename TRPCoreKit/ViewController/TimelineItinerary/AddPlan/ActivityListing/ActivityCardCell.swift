@@ -311,7 +311,7 @@ class ActivityCardCell: UITableViewCell {
         // Set price with attributed string
         if let price = tour.price {
             let fromText = CommonLocalizationKeys.localized(CommonLocalizationKeys.from) + " "
-            let priceText = "$\(price)"
+            let priceText = TRPCurrencyHelper.formatPrice(price, currency: tour.currency ?? "EUR")
 
             let attributedString = NSMutableAttributedString()
             attributedString.append(NSAttributedString(
@@ -386,9 +386,8 @@ class ActivityCardCell: UITableViewCell {
 
         // Set price with currency using attributed string
         if let price = favoriteItem.price {
-            let currencySymbol = getCurrencySymbol(for: price.currency)
             let fromText = CommonLocalizationKeys.localized(CommonLocalizationKeys.from) + " "
-            let priceText = "\(currencySymbol)\(String(format: "%.2f", price.value))"
+            let priceText = TRPCurrencyHelper.formatPrice(price.value, currency: price.currency)
 
             let attributedString = NSMutableAttributedString()
             attributedString.append(NSAttributedString(
@@ -427,15 +426,4 @@ class ActivityCardCell: UITableViewCell {
         separatorView.isHidden = hidden
     }
 
-    /// Get currency symbol for currency code
-    private func getCurrencySymbol(for currencyCode: String) -> String {
-        switch currencyCode.uppercased() {
-        case "USD": return "$"
-        case "EUR": return "€"
-        case "GBP": return "£"
-        case "JPY": return "¥"
-        case "TRY": return "₺"
-        default: return currencyCode + " "
-        }
-    }
 }
