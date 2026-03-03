@@ -76,11 +76,13 @@ public class TRPCoreKit {
     ///   - environment: Environment to use (predev, dev, test, production)
     ///   - apiKey: API key for authentication
     ///   - language: Language code (e.g., "en", "es", "tr"). Defaults to "en"
+    ///   - currency: Currency code (e.g., "USD", "EUR", "TRY"). Defaults to "USD"
     ///   - delegate: Delegate to receive SDK callbacks
     public static func initialize(
         environment: TRPEnvironment,
         apiKey: String,
         language: String = "en",
+        currency: String = "USD",
         delegate: TRPCoreKitDelegate? = nil
     ) {
         // Set delegate
@@ -88,7 +90,7 @@ public class TRPCoreKit {
 
         // Initialize TRPClient (RestKit)
         let baseUrl = environment.baseUrlCreater
-        TRPClient.start(baseUrl: baseUrl, apiKey: apiKey, language: language)
+        TRPClient.start(baseUrl: baseUrl, apiKey: apiKey, language: language, currency: currency)
     }
 
     /// Initialize TRPCoreKit SDK with custom base URL (for advanced use cases)
@@ -97,12 +99,14 @@ public class TRPCoreKit {
     ///   - basePath: Base path for the API
     ///   - apiKey: API key for authentication
     ///   - language: Language code (e.g., "en", "es", "tr"). Defaults to "en"
+    ///   - currency: Currency code (e.g., "USD", "EUR", "TRY"). Defaults to "USD"
     ///   - delegate: Delegate to receive SDK callbacks
     public static func initialize(
         baseUrl: String,
         basePath: String,
         apiKey: String,
         language: String = "en",
+        currency: String = "USD",
         delegate: TRPCoreKitDelegate? = nil
     ) {
         // Set delegate
@@ -110,7 +114,7 @@ public class TRPCoreKit {
 
         // Initialize TRPClient (RestKit)
         let url = BaseUrlCreater(baseUrl: baseUrl, basePath: basePath)
-        TRPClient.start(baseUrl: url, apiKey: apiKey, language: language)
+        TRPClient.start(baseUrl: url, apiKey: apiKey, language: language, currency: currency)
     }
 
     // MARK: - Start SDK

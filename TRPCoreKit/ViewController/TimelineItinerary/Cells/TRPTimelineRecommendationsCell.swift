@@ -668,7 +668,7 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
         }
 
         // Reservation button (TRPButton primary for activity steps) - height 40
-        let reservationButton = TRPButton(title: "Reservation", style: .primary, height: 40)
+        let reservationButton = TRPButton(title: TimelineLocalizationKeys.localized(TimelineLocalizationKeys.reservation), style: .primary, height: 40)
         reservationButton.translatesAutoresizingMaskIntoConstraints = false
         reservationButton.tag = steps.firstIndex(where: { $0.id == step.id }) ?? 0
         reservationButton.addTarget(self, action: #selector(reservationTapped(_:)), for: .touchUpInside)

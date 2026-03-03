@@ -115,6 +115,9 @@ final class TimelineProfileMapper {
         restKitSegment.excludedActivityIds = _segment.excludedActivityIds
         restKitSegment.doNotGenerate = _segment.doNotGenerate
 
+        // Currency from global SDK setting
+        restKitSegment.currency = TRPClient.getCurrency()
+
         // Set additional data for booked/reserved activities
         if let additionalData = _segment.additionalData {
             restKitSegment.additionalData = mapAdditionalData(from: additionalData)

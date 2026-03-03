@@ -73,6 +73,7 @@ final class TourMapper {
                                   gallery: gallery,
                                   duration: duration,
                                   price: price,
+                                  currency: restModel.currency,
                                   rating: rating,
                                   ratingCount: restModel.ratingCount,
                                   description: restModel.description,

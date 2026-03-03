@@ -310,8 +310,9 @@ class ActivityCardCell: UITableViewCell {
 
         // Set price with attributed string
         if let price = tour.price {
+            let currencySymbol = getCurrencySymbol(for: tour.currency ?? "EUR")
             let fromText = CommonLocalizationKeys.localized(CommonLocalizationKeys.from) + " "
-            let priceText = "$\(price)"
+            let priceText = "\(currencySymbol)\(price)"
 
             let attributedString = NSMutableAttributedString()
             attributedString.append(NSAttributedString(
