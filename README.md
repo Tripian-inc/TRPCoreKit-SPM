@@ -121,7 +121,7 @@ For complete documentation, see:
 TRPCoreKit.initialize(
     environment: .production,  // .predev, .dev, .test, .production
     apiKey: String,
-    language: String = "en",   // Supported: en, es, tr, de, fr
+    language: String = "en",   // Supported: en, fr, es, pt, de, nl, pt-br, it, ja
     currency: String = "USD",  // Supported: USD, EUR, GBP, TRY, etc.
     delegate: TRPCoreKitDelegate? = nil
 )
