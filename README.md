@@ -41,6 +41,7 @@ TRPCoreKit.initialize(
     environment: .production,
     apiKey: "YOUR_API_KEY",
     language: "en",
+    currency: "EUR",
     delegate: self
 )
 
@@ -120,7 +121,8 @@ For complete documentation, see:
 TRPCoreKit.initialize(
     environment: .production,  // .predev, .dev, .test, .production
     apiKey: String,
-    language: String = "en",
+    language: String = "en",   // Supported: en, es, tr, de, fr
+    currency: String = "USD",  // Supported: USD, EUR, GBP, TRY, etc.
     delegate: TRPCoreKitDelegate? = nil
 )
 
@@ -130,6 +132,7 @@ TRPCoreKit.initialize(
     basePath: String,
     apiKey: String,
     language: String = "en",
+    currency: String = "USD",
     delegate: TRPCoreKitDelegate? = nil
 )
 ```
