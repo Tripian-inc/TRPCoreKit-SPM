@@ -133,6 +133,8 @@ public class TRPTimelineItineraryVC: TRPBaseUIViewController {
     internal var poiPreviewBottomConstraint: NSLayoutConstraint?
     internal var addPlanButtonBottomConstraint: NSLayoutConstraint?
     internal var dayFilterViewTopConstraint: NSLayoutConstraint?
+    internal var mapFloatingButtonBottomToAddPlanConstraint: NSLayoutConstraint?
+    internal var mapFloatingButtonBottomToPreviewConstraint: NSLayoutConstraint?
 
     // Type alias for backward compatibility (model moved to TRPDataLayer/Domain/Models/Timeline/)
     internal typealias TimelineItem = TRPTimelineItem
@@ -227,6 +229,10 @@ public class TRPTimelineItineraryVC: TRPBaseUIViewController {
     }
 
     private func showMapView() {
+        // Update map floating button constraint - position above POI preview
+        mapFloatingButtonBottomToAddPlanConstraint?.isActive = false
+        mapFloatingButtonBottomToPreviewConstraint?.isActive = true
+
         // Hide list, show map
         UIView.animate(withDuration: 0.3) {
             self.tableView.isHidden = true
@@ -243,6 +249,8 @@ public class TRPTimelineItineraryVC: TRPBaseUIViewController {
             // Update floating button icon to list and hide add plan button
             self.mapFloatingButton.updateIcon(TRPImageController().getImage(inFramework: "ic_list", inApp: nil))
             self.addPlanFloatingButton.isHidden = true
+
+            self.view.layoutIfNeeded()
         }
 
         // Update day filter position (move up since savedPlansButton is hidden)
@@ -260,6 +268,10 @@ public class TRPTimelineItineraryVC: TRPBaseUIViewController {
     }
 
     private func showListView() {
+        // Update map floating button constraint - position above add plan button
+        mapFloatingButtonBottomToPreviewConstraint?.isActive = false
+        mapFloatingButtonBottomToAddPlanConstraint?.isActive = true
+
         // Hide map, show list
         UIView.animate(withDuration: 0.3) {
             self.tableView.isHidden = false
@@ -363,7 +375,8 @@ public class TRPTimelineItineraryVC: TRPBaseUIViewController {
 
     internal func updateSavedPlansButton() {
         let hasFavorites = viewModel.hasFavoriteItems()
-        savedPlansButton.isHidden = !hasFavorites
+        let isMapViewActive = !mapContainerView.isHidden
+        savedPlansButton.isHidden = !hasFavorites || isMapViewActive
 
         if hasFavorites {
             let favoriteCount = viewModel.getFavoriteItemsCount()

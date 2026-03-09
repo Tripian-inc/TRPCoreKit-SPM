@@ -182,25 +182,25 @@ class TRPTimelineActivityStepCell: UITableViewCell {
         // Configure title
         titleLabel.text = poi.name
         
-        // Configure rating if available
+        // Configure rating - Activity steps show rating
         ratingStack.arrangedSubviews.forEach { $0.removeFromSuperview() }
-        
+
         if let rating = poi.rating {
             let ratingLabel = UILabel()
             ratingLabel.font = FontSet.montserratBold.font(14)
             ratingLabel.textColor = ColorSet.fg.uiColor
             ratingLabel.text = String(format: "%.1f", rating)
-            
+
             let starIcon = UIImageView()
             starIcon.image = TRPImageController().getImage(inFramework: "ic_rating_star", inApp: nil)
             starIcon.tintColor = ColorSet.ratingStar.uiColor
             starIcon.translatesAutoresizingMaskIntoConstraints = false
             starIcon.widthAnchor.constraint(equalToConstant: 12).isActive = true
             starIcon.heightAnchor.constraint(equalToConstant: 12).isActive = true
-            
+
             ratingStack.addArrangedSubview(ratingLabel)
             ratingStack.addArrangedSubview(starIcon)
-            
+
             if let reviewCount = poi.ratingCount {
                 let reviewLabel = UILabel()
                 reviewLabel.font = FontSet.montserratLight.font(14)
