@@ -65,13 +65,12 @@ extension TRPTimelineItineraryVC {
     }
     
     private func getMapCenterLocation() -> TRPLocation {
-        // Get center from first segment or use default
-        if let firstPlan = viewModel.getFirstPlan(),
-           let city = firstPlan.city {
-            return city.coordinate
+        // Get center from preferred city (selected day > timeline.city > first plan)
+        if let coordinate = viewModel.getPreferredCityCoordinate() {
+            return coordinate
         }
-        
-        // Default location if no data
+
+        // Default location if no valid city data
         return TRPLocation(lat: 41.9028, lon: 12.4964) // Rome as default
     }
     

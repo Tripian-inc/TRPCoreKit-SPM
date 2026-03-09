@@ -135,6 +135,7 @@ public class TRPTimelineItineraryVC: TRPBaseUIViewController {
     internal var dayFilterViewTopConstraint: NSLayoutConstraint?
     internal var mapFloatingButtonBottomToAddPlanConstraint: NSLayoutConstraint?
     internal var mapFloatingButtonBottomToPreviewConstraint: NSLayoutConstraint?
+    internal var mapFloatingButtonBottomToSafeAreaConstraint: NSLayoutConstraint?
 
     // Type alias for backward compatibility (model moved to TRPDataLayer/Domain/Models/Timeline/)
     internal typealias TimelineItem = TRPTimelineItem
@@ -229,8 +230,9 @@ public class TRPTimelineItineraryVC: TRPBaseUIViewController {
     }
 
     private func showMapView() {
-        // Update map floating button constraint - position above POI preview
+        // Update map floating button constraint - will be adjusted in updatePOIPreviewCards based on content
         mapFloatingButtonBottomToAddPlanConstraint?.isActive = false
+        mapFloatingButtonBottomToSafeAreaConstraint?.isActive = false
         mapFloatingButtonBottomToPreviewConstraint?.isActive = true
 
         // Hide list, show map
@@ -270,6 +272,7 @@ public class TRPTimelineItineraryVC: TRPBaseUIViewController {
     private func showListView() {
         // Update map floating button constraint - position above add plan button
         mapFloatingButtonBottomToPreviewConstraint?.isActive = false
+        mapFloatingButtonBottomToSafeAreaConstraint?.isActive = false
         mapFloatingButtonBottomToAddPlanConstraint?.isActive = true
 
         // Hide map, show list
@@ -312,11 +315,17 @@ public class TRPTimelineItineraryVC: TRPBaseUIViewController {
         if mapDisplayItems.isEmpty {
             // Hide completely if no items
             poiPreviewBottomConstraint?.constant = -collectionViewHeight
+            // Position floating button at bottom of safe area (not above hidden preview)
+            mapFloatingButtonBottomToPreviewConstraint?.isActive = false
+            mapFloatingButtonBottomToSafeAreaConstraint?.isActive = true
         } else {
             // Start in expanded state (fully visible)
             isCollectionViewExpanded = true
             poiPreviewBottomConstraint?.constant = expandedOffset
             addPlanButtonBottomConstraint?.constant = expandedOffset - collectionViewHeight - 24
+            // Position floating button above preview cards
+            mapFloatingButtonBottomToSafeAreaConstraint?.isActive = false
+            mapFloatingButtonBottomToPreviewConstraint?.isActive = true
         }
 
         poiPreviewCollectionView.reloadData()
