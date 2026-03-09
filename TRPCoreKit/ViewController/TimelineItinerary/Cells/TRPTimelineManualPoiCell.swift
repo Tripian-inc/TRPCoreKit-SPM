@@ -164,7 +164,7 @@ class TRPTimelineManualPoiCell: UITableViewCell {
     private let categoryBadge: UIView = {
         let view = UIView()
         view.translatesAutoresizingMaskIntoConstraints = false
-        view.backgroundColor = ColorSet.bgBlue.uiColor
+        view.backgroundColor = ColorSet.neutral200.uiColor
         view.layer.cornerRadius = 4
         view.clipsToBounds = true
         return view
@@ -173,8 +173,8 @@ class TRPTimelineManualPoiCell: UITableViewCell {
     private let categoryLabel: UILabel = {
         let label = UILabel()
         label.translatesAutoresizingMaskIntoConstraints = false
-        label.font = FontSet.montserratMedium.font(10)
-        label.textColor = ColorSet.fgBlue.uiColor
+        label.font = FontSet.montserratMedium.font(12)
+        label.textColor = ColorSet.fgGray.uiColor
         return label
     }()
 
@@ -321,20 +321,21 @@ class TRPTimelineManualPoiCell: UITableViewCell {
             poiImageView.image = nil
         }
 
-        // Configure rating
-        if let rating = poi?.rating {
-            ratingLabel.text = String(format: "%.1f", rating).replacingOccurrences(of: ".", with: ",")
-            ratingStackView.isHidden = false
-
-            if let ratingCount = poi?.ratingCount {
-                let opinionsText = AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.opinions)
-                reviewLabel.text = "\(ratingCount.formattedWithSeparator) \(opinionsText)"
-            } else {
-                reviewLabel.text = ""
-            }
-        } else {
-            ratingStackView.isHidden = true
-        }
+        // Configure rating - Hidden
+        ratingStackView.isHidden = true
+//        if let rating = poi?.rating {
+//            ratingLabel.text = String(format: "%.1f", rating).replacingOccurrences(of: ".", with: ",")
+//            ratingStackView.isHidden = false
+//
+//            if let ratingCount = poi?.ratingCount {
+//                let opinionsText = AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.opinions)
+//                reviewLabel.text = "\(ratingCount.formattedWithSeparator) \(opinionsText)"
+//            } else {
+//                reviewLabel.text = ""
+//            }
+//        } else {
+//            ratingStackView.isHidden = true
+//        }
 
         // Configure category
         if let firstCategory = poi?.categories.first {
@@ -370,20 +371,21 @@ class TRPTimelineManualPoiCell: UITableViewCell {
             poiImageView.image = nil
         }
 
-        // Configure rating
-        if let rating = cellData.rating {
-            ratingLabel.text = String(format: "%.1f", rating).replacingOccurrences(of: ".", with: ",")
-            ratingStackView.isHidden = false
-
-            if let ratingCount = cellData.ratingCount {
-                let opinionsText = AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.opinions)
-                reviewLabel.text = "\(ratingCount.formattedWithSeparator) \(opinionsText)"
-            } else {
-                reviewLabel.text = ""
-            }
-        } else {
-            ratingStackView.isHidden = true
-        }
+        // Configure rating - Hidden
+        ratingStackView.isHidden = true
+//        if let rating = cellData.rating {
+//            ratingLabel.text = String(format: "%.1f", rating).replacingOccurrences(of: ".", with: ",")
+//            ratingStackView.isHidden = false
+//
+//            if let ratingCount = cellData.ratingCount {
+//                let opinionsText = AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.opinions)
+//                reviewLabel.text = "\(ratingCount.formattedWithSeparator) \(opinionsText)"
+//            } else {
+//                reviewLabel.text = ""
+//            }
+//        } else {
+//            ratingStackView.isHidden = true
+//        }
 
         // Configure category
         if let categoryName = cellData.categoryName, !categoryName.isEmpty {

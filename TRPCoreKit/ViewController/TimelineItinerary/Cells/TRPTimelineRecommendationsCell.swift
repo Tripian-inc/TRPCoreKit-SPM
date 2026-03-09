@@ -477,14 +477,14 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
         titleRow.addSubview(titleLabel)
         titleRow.addSubview(actionButtonsStack)
 
-        // Rating stack - bold 14px for rating, light 14px for reviewCount
+        // Rating stack - Only show for activity steps, hidden for POI steps
         let ratingStack = UIStackView()
         ratingStack.translatesAutoresizingMaskIntoConstraints = false
         ratingStack.axis = .horizontal
-        ratingStack.spacing = 0 // We'll use custom spacing
+        ratingStack.spacing = 0
         ratingStack.alignment = .center
 
-        if let poi = step.poi, let rating = poi.rating {
+        if isActivity, let poi = step.poi, let rating = poi.rating {
             // Rating label - bold 14px primaryText
             let ratingLabel = UILabel()
             ratingLabel.font = FontSet.montserratBold.font(14)
@@ -525,6 +525,7 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
             ratingStack.addArrangedSubview(spacer2)
             ratingStack.addArrangedSubview(reviewLabel)
         }
+        // POI steps: ratingStack remains empty (hidden)
 
         // Get booking product for activity info
         let bookingProduct = step.poi?.bookings?.first?.firstProduct()
@@ -544,8 +545,9 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
             categoryLabel.textColor = ColorSet.fgGreen.uiColor
             categoryLabel.text = TimelineLocalizationKeys.localized(TimelineLocalizationKeys.activityBadge)
         } else {
-            categoryBadge.backgroundColor = ColorSet.bgBlue.uiColor
-            categoryLabel.textColor = ColorSet.fgBlue.uiColor
+            categoryBadge.backgroundColor = ColorSet.neutral200.uiColor
+            categoryLabel.textColor = ColorSet.fgGray.uiColor
+            categoryLabel.font = FontSet.montserratMedium.font(12)
             if let poi = step.poi, let firstCategory = poi.categories.first {
                 categoryLabel.text = firstCategory.name
             } else {
@@ -680,7 +682,9 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
 
         // Build info stack view
         infoStackView.addArrangedSubview(titleRow)
-        infoStackView.addArrangedSubview(ratingStack)
+        if isActivity {
+            infoStackView.addArrangedSubview(ratingStack)
+        }
         infoStackView.addArrangedSubview(categoryBadge)
 
         // For activity: add duration (if exists), cancellation (if exists), then price, then button

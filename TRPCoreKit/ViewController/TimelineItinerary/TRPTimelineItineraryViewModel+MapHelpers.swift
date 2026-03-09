@@ -162,6 +162,31 @@ extension TRPTimelineItineraryViewModel {
         return timeline?.plans?.first
     }
 
+    /// Get the preferred city coordinate for map centering
+    /// Priority: selected day's first city > timeline.city > first plan city > nil
+    public func getPreferredCityCoordinate() -> TRPLocation? {
+        // 1. O gün bulunan ilk plan'ın şehri (seçili gün)
+        if let city = displayItems.first?.city,
+           city.coordinate.lat != 0 || city.coordinate.lon != 0 {
+            return city.coordinate
+        }
+
+        // 2. Timeline'ın ana city'si
+        if let city = timeline?.city,
+           city.coordinate.lat != 0 || city.coordinate.lon != 0 {
+            return city.coordinate
+        }
+
+        // 3. İlk plan'ın city'si (tüm günlerde)
+        if let firstPlan = getFirstPlan(),
+           let city = firstPlan.city,
+           city.coordinate.lat != 0 || city.coordinate.lon != 0 {
+            return city.coordinate
+        }
+
+        return nil
+    }
+
     /// Calculate route for given locations
     public func calculateRoute(for locations: [TRPLocation], completion: @escaping (Route?, Error?) -> Void) {
         guard locations.count > 1 else {

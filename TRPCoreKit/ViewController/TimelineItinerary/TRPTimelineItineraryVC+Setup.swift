@@ -135,10 +135,15 @@ extension TRPTimelineItineraryVC {
         // Use constraint for add plan button bottom that we can animate
         addPlanButtonBottomConstraint = addPlanFloatingButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -24)
 
+        // Map floating button constraints - one for list view, one for map view, one for empty days
+        mapFloatingButtonBottomToAddPlanConstraint = mapFloatingButton.bottomAnchor.constraint(equalTo: addPlanFloatingButton.topAnchor, constant: -16)
+        mapFloatingButtonBottomToPreviewConstraint = mapFloatingButton.bottomAnchor.constraint(equalTo: poiPreviewContainerView.topAnchor, constant: -16)
+        mapFloatingButtonBottomToSafeAreaConstraint = mapFloatingButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -24)
+
         NSLayoutConstraint.activate([
-            // Map floating button - bottom right, above add plan button
+            // Map floating button - bottom right
             mapFloatingButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -24),
-            mapFloatingButton.bottomAnchor.constraint(equalTo: addPlanFloatingButton.topAnchor, constant: -16),
+            mapFloatingButtonBottomToAddPlanConstraint!, // Default: above add plan button (list view)
 
             // Add plan floating button - bottom right (constraint managed for animation)
             addPlanFloatingButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -24),

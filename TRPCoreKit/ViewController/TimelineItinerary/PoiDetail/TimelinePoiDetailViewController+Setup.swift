@@ -282,18 +282,19 @@ extension TimelinePoiDetailViewController {
 
         poiNameLabel.text = poi.name
 
-        // Configure Rating
-        if let rating = poi.rating, rating > 0 {
-            ratingLabel.text = String(format: "%.1f", rating)
-
-            let reviewCount = poi.ratingCount ?? 0
-            let opinionsText = AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.opinions)
-            reviewCountLabel.text = "\(reviewCount) \(opinionsText)"
-
-            ratingContainerView.isHidden = false
-        } else {
-            ratingContainerView.isHidden = true
-        }
+        // Configure Rating - Hidden
+        ratingContainerView.isHidden = true
+//        if let rating = poi.rating, rating > 0 {
+//            ratingLabel.text = String(format: "%.1f", rating)
+//
+//            let reviewCount = poi.ratingCount ?? 0
+//            let opinionsText = AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.opinions)
+//            reviewCountLabel.text = "\(reviewCount) \(opinionsText)"
+//
+//            ratingContainerView.isHidden = false
+//        } else {
+//            ratingContainerView.isHidden = true
+//        }
 
         // Configure Description and Cuisines
         configureDescriptionAndCuisines(poi: poi)
