@@ -218,9 +218,10 @@ extension TRPItineraryWithActivities {
         timelineProfile.children = children
         timelineProfile.pets = 0
 
-        // Set cityId from first destinationItem (for timeline creation)
-        if let firstCityId = destinationItems.first?.cityId {
-            timelineProfile.cityId = firstCityId
+        // Set cityId from first valid destinationItem (for timeline creation)
+        // Find first destination with valid cityId (> 0)
+        if let firstValidCityId = destinationItems.first(where: { ($0.cityId ?? 0) > 0 })?.cityId {
+            timelineProfile.cityId = firstValidCityId
         }
 
         // Create segments from tripItems (booking products)
@@ -308,10 +309,11 @@ extension TRPItineraryWithActivities {
         return segment
     }
 
-    /// Creates a TRPCity from the first destinationItem if cityId is available
+    /// Creates a TRPCity from the first destinationItem with valid cityId
     /// Used to populate city info in empty segments when no tripItems exist
     private func createCityFromDestination() -> TRPCity? {
-        guard let destination = destinationItems.first,
+        // Find first destination with valid cityId (> 0)
+        guard let destination = destinationItems.first(where: { ($0.cityId ?? 0) > 0 }),
               let cityId = destination.cityId else {
             return nil
         }

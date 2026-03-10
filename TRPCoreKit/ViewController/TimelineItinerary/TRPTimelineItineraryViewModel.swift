@@ -164,11 +164,19 @@ public class TRPTimelineItineraryViewModel {
             // Start loading
             self.delegate?.viewModel(showPreloader: true)
 
-            // Create/fetch timeline based on tripHash
-            if let tripHash = tripHash {
-                self.fetchTimeline(tripHash: tripHash, itineraryModel: itineraryModel)
-            } else {
-                self.createTimeline(from: itineraryModel)
+            // First resolve missing cityIds (for both create and fetch paths)
+            self.resolveMissingCityIds(in: itineraryModel) { [weak self] resolvedItinerary in
+                guard let self = self else { return }
+
+                // Update stored destination items with resolved cityIds
+                self.destinationItems = resolvedItinerary.destinationItems
+
+                // Create/fetch timeline based on tripHash
+                if let tripHash = tripHash {
+                    self.fetchTimeline(tripHash: tripHash, itineraryModel: resolvedItinerary)
+                } else {
+                    self.createTimelineInternal(from: resolvedItinerary)
+                }
             }
         }
     }
