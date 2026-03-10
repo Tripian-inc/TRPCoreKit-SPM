@@ -211,4 +211,30 @@ public class TRPCoreKit {
         shared.sdkCoordinator?.remove()
         shared.sdkCoordinator = nil
     }
+
+    // MARK: - Language & Currency
+
+    /// Change SDK language after initialization
+    /// - Parameter language: Language code (e.g., "en", "es", "fr")
+    public static func changeLanguage(_ language: String) {
+        TRPClient.changeLanguage(language)
+    }
+
+    /// Change SDK currency after initialization
+    /// - Parameter currency: Currency code (e.g., "USD", "EUR")
+    public static func changeCurrency(_ currency: String) {
+        TRPClient.changeCurrency(currency)
+    }
+
+    /// Get current SDK language
+    /// - Returns: Current language code
+    public static func getLanguage() -> String {
+        return TRPClient.getLanguage()
+    }
+
+    /// Get current SDK currency
+    /// - Returns: Current currency code
+    public static func getCurrency() -> String {
+        return TRPClient.getCurrency()
+    }
 }
