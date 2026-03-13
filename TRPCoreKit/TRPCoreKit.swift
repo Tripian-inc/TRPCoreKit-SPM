@@ -52,6 +52,10 @@ public protocol TRPCoreKitDelegate: AnyObject {
     /// Called when a timeline has been successfully created
     /// - Parameter tripHash: The trip hash of the newly created timeline
     func trpCoreKitDidCreateTimeline(tripHash: String)
+
+    /// Called when a user manually adds an activity to the timeline
+    /// - Parameter activityId: The unique identifier of the added activity
+    func trpCoreKitDidAddActivity(activityId: String)
 }
 
 public class TRPCoreKit {

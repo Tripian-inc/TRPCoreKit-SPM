@@ -84,6 +84,10 @@ extension YourVC: TRPCoreKitDelegate {
         // Save tripHash for reopening timeline later
         UserDefaults.standard.set(tripHash, forKey: "tripHash")
     }
+
+    func trpCoreKitDidAddActivity(activityId: String) {
+        // User manually added an activity to the timeline
+    }
 }
 ```
 
@@ -191,6 +195,10 @@ public protocol TRPCoreKitDelegate: AnyObject {
     /// Called when a new timeline is successfully created
     /// - Parameter tripHash: Unique identifier for the timeline
     func trpCoreKitDidCreateTimeline(tripHash: String)
+
+    /// Called when user manually adds an activity to the timeline
+    /// - Parameter activityId: Activity identifier
+    func trpCoreKitDidAddActivity(activityId: String)
 }
 ```
 

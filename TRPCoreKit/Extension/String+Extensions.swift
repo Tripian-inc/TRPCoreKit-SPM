@@ -208,3 +208,18 @@ extension String? {
         return self?.isEmpty ?? true
     }
 }
+
+extension String {
+    /// Cleans activity ID by extracting actual ID from C_ format
+    /// Pattern: C_{activityId}_{providerId} or C_{activityId}_{providerId}_{cityId}
+    /// Example: "C_15423_15" → "15423"
+    func cleanedAsActivityId() -> String {
+        guard self.hasPrefix("C_") else { return self }
+        let withoutPrefix = String(self.dropFirst(2))
+        let components = withoutPrefix.split(separator: "_")
+        if let activityId = components.first {
+            return String(activityId)
+        }
+        return self
+    }
+}

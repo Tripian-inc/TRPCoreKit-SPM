@@ -59,7 +59,7 @@ extension TRPTimelineItineraryVC: TRPTimelineBookedActivityCellDelegate {
     func bookedActivityCellDidTapReservation(_ cell: TRPTimelineBookedActivityCell, segment: TRPTimelineSegment) {
         // Notify delegate about activity reservation request
         guard let activityId = segment.additionalData?.activityId else { return }
-        let cleanedId = cleanActivityId(activityId)
+        let cleanedId = activityId.cleanedAsActivityId()
         TRPCoreKit.shared.delegate?.trpCoreKitDidRequestActivityReservation(activityId: cleanedId)
     }
 
@@ -107,7 +107,7 @@ extension TRPTimelineItineraryVC: TRPTimelineBookedActivityCellDelegate {
     func bookedActivityCellDidTapCell(_ cell: TRPTimelineBookedActivityCell, segment: TRPTimelineSegment) {
         // Open activity detail
         guard let activityId = segment.additionalData?.activityId else { return }
-        let cleanedId = cleanActivityId(activityId)
+        let cleanedId = activityId.cleanedAsActivityId()
         TRPCoreKit.shared.delegate?.trpCoreKitDidRequestActivityDetail(activityId: cleanedId)
     }
 }
@@ -544,37 +544,20 @@ extension TRPTimelineItineraryVC: TRPTimeRangeSelectionDelegate {
 
 extension TRPTimelineItineraryVC {
 
-    /// Cleans activity ID by extracting actual ID from C_ format
-    /// Pattern: C_{activityId}_{providerId} or C_{activityId}_{providerId}_{cityId}
-    internal func cleanActivityId(_ id: String) -> String {
-        guard id.hasPrefix("C_") else { return id }
-
-        // Remove "C_" prefix and split by "_"
-        let withoutPrefix = String(id.dropFirst(2))
-        let components = withoutPrefix.split(separator: "_")
-
-        // Extract first component (activityId)
-        if let activityId = components.first {
-            return String(activityId)
-        }
-
-        return id
-    }
-
     /// Extracts clean activity ID from POI for activity steps
     /// Priority: additionalData.productId → booking product ID → cleaned poi.id
     internal func extractActivityId(from poi: TRPPoi) -> String {
         // Priority 1: Use productId from additionalData
         if let productId = poi.additionalData?.productId, !productId.isEmpty {
-            return cleanActivityId(productId)
+            return productId.cleanedAsActivityId()
         }
 
         // Priority 2: Try booking product ID
         if let booking = poi.bookings?.first, let product = booking.firstProduct() {
-            return cleanActivityId(product.id)
+            return product.id.cleanedAsActivityId()
         }
 
         // Priority 3: Fall back to POI ID (cleaned if needed)
-        return cleanActivityId(poi.id)
+        return poi.id.cleanedAsActivityId()
     }
 }

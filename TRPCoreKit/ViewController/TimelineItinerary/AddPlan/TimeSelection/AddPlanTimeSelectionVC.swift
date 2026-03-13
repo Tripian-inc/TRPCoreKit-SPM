@@ -305,6 +305,12 @@ extension AddPlanTimeSelectionVC: AddPlanTimeSelectionViewModelDelegate {
     }
 
     public func segmentCreationDidSucceed() {
+        // Get cleaned activity ID from the tour's productId
+        let activityId = viewModel.tour.productId.cleanedAsActivityId()
+
+        // Notify host app about activity addition
+        TRPCoreKit.shared.delegate?.trpCoreKitDidAddActivity(activityId: activityId)
+
         // Dismiss and trigger timeline refresh
         dismiss(animated: true) { [weak self] in
             self?.onSegmentCreated?()
