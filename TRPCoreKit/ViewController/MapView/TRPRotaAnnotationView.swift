@@ -20,17 +20,19 @@ class TRPRotaAnnotationView: UIView {
 
     // MARK: - Initialization
 
-    /// Initialize with order number only (simplified version)
-    init(order: Int) {
+    /// Initialize with order number, city index for multi-city coloring, and selection state
+    init(order: Int, cityIndex: Int = 0, isSelected: Bool = false) {
         super.init(frame: CGRect(x: 0, y: 0, width: Self.viewSize, height: Self.viewSize))
-        setupView(order: order)
+        let color = ColorSet.getMapColor(cityIndex)
+        setupView(order: order, color: color, isSelected: isSelected)
     }
 
     /// Legacy initializer for backward compatibility
-    init(reuseIdentifier: String?, imageName: String?, order: Int?, isOffer: Bool = false, annotationOrder: Int = 0) {
+    init(reuseIdentifier: String?, imageName: String?, order: Int?, isOffer: Bool = false, annotationOrder: Int = 0, isSelected: Bool = false) {
         super.init(frame: CGRect(x: 0, y: 0, width: Self.viewSize, height: Self.viewSize))
         let displayOrder = order ?? 0
-        setupView(order: displayOrder)
+        let color = ColorSet.getMapColor(annotationOrder)
+        setupView(order: displayOrder, color: color, isSelected: isSelected)
     }
 
     required init?(coder aDecoder: NSCoder) {
@@ -39,22 +41,33 @@ class TRPRotaAnnotationView: UIView {
 
     // MARK: - Setup
 
-    private func setupView(order: Int) {
+    private func setupView(order: Int, color: UIColor = ColorSet.fg.uiColor, isSelected: Bool = false) {
         // Set content hugging to prevent expansion
         setContentHuggingPriority(.required, for: .horizontal)
         setContentHuggingPriority(.required, for: .vertical)
         setContentCompressionResistancePriority(.required, for: .horizontal)
         setContentCompressionResistancePriority(.required, for: .vertical)
 
-        // Circular background with fg color
-        backgroundColor = ColorSet.fg.uiColor
+        // Circular shape
         layer.cornerRadius = Self.viewSize / 2
         clipsToBounds = true
+
+        // Apply selected/unselected appearance
+        if isSelected {
+            // Selected: Solid color background, white text
+            backgroundColor = color
+            layer.borderWidth = 0
+        } else {
+            // Unselected: White background, colored border, colored text
+            backgroundColor = .white
+            layer.borderWidth = 2
+            layer.borderColor = color.cgColor
+        }
 
         // Order label - centered using Auto Layout
         orderLabel.translatesAutoresizingMaskIntoConstraints = false
         orderLabel.text = "\(order)"
-        orderLabel.textColor = .white
+        orderLabel.textColor = isSelected ? .white : color
         orderLabel.font = FontSet.montserratSemiBold.font(18)
         orderLabel.textAlignment = .center
         orderLabel.adjustsFontSizeToFitWidth = true

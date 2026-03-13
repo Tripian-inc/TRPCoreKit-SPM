@@ -349,12 +349,14 @@ public enum ColorSet {
     }
     
     public static func getMapColor(_ index: Int) -> UIColor {
-        let colors = [ColorSet.fgBlue.uiColor,
-                      ColorSet.greenAdvantage.uiColor,
-                      ColorSet.fgPink.uiColor,
-                      ColorSet.fgOrange.uiColor,
-                      ColorSet.primaryText.uiColor]
-        
+        let colors = [
+            ColorSet.fg.uiColor,           // 0 = Siyah (ilk şehir)
+            ColorSet.primary.uiColor,      // 1 = Primary (ikinci şehir)
+            ColorSet.fgBlue.uiColor,       // 2 = Mavi
+            ColorSet.greenAdvantage.uiColor, // 3 = Yeşil
+            ColorSet.fgOrange.uiColor      // 4 = Turuncu
+        ]
+
         let safeIndex = index % colors.count
         return colors[safeIndex]
     }

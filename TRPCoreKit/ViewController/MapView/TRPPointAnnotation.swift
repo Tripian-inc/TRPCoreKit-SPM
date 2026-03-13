@@ -15,6 +15,8 @@ public struct TRPPointAnnotation: Codable {
     var isOffer: Bool = false
     var lat: Double?
     var lon: Double?
+    var cityIndex: Int = 0  // City index for multi-city marker coloring
+    var isSelected: Bool = false  // Selection state for marker appearance
 }
 
 extension TRPPointAnnotation {
@@ -36,9 +38,9 @@ extension TRPPointAnnotation {
             return ViewAnnotation(coordinate: CLLocationCoordinate2D(latitude: 0, longitude: 0), view: UIView())
         }
 
-        // Use simplified annotation view with order only (24x24)
+        // Use simplified annotation view with order, city-specific color, and selection state (24x24)
         let displayOrder = order ?? 0
-        let annotationView = TRPRotaAnnotationView(order: displayOrder)
+        let annotationView = TRPRotaAnnotationView(order: displayOrder, cityIndex: cityIndex, isSelected: isSelected)
         annotationView.poiId = poiId
         annotationView.onTapHandler = tapHandler
 

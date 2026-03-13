@@ -17,12 +17,13 @@ import MapboxDirections
 extension TRPTimelineItineraryViewModel {
 
     /// Get ordered items for map display (collection view and annotations)
-    /// Returns items with unified order, sorted by section then order ascending
+    /// Returns items with unified order, cityIndex for marker coloring, sorted by section then order ascending
     /// This matches the order displayed in the list view (city-based numbering)
-    public func getOrderedItemsForMap() -> [(order: Int, section: Int, item: MapDisplayItem)] {
-        var result: [(order: Int, section: Int, item: MapDisplayItem)] = []
+    public func getOrderedItemsForMap() -> [(order: Int, section: Int, cityIndex: Int, item: MapDisplayItem)] {
+        var result: [(order: Int, section: Int, cityIndex: Int, item: MapDisplayItem)] = []
 
         for (sectionIndex, cityGroup) in displayItems.enumerated() {
+            let cityIndex = sectionIndex  // Each section is a different city
             for item in cityGroup.items {
                 // Key format: "sectionIndex_segmentIndex"
                 let key = "\(sectionIndex)_\(item.originalSegmentIndex)"
@@ -31,12 +32,12 @@ extension TRPTimelineItineraryViewModel {
                 switch item.segmentType {
                 case .bookedActivity, .reservedActivity:
                     // Single activity item
-                    result.append((order: startingOrder, section: sectionIndex, item: .activity(item.segment)))
+                    result.append((order: startingOrder, section: sectionIndex, cityIndex: cityIndex, item: .activity(item.segment)))
 
                 case .manualPoi:
                     // Manual POI (no step info available)
                     if let poi = item.manualPoi {
-                        result.append((order: startingOrder, section: sectionIndex, item: .poi(poi, item.segment, nil)))
+                        result.append((order: startingOrder, section: sectionIndex, cityIndex: cityIndex, item: .poi(poi, item.segment, nil)))
                     }
 
                 case .itinerary:
@@ -44,7 +45,7 @@ extension TRPTimelineItineraryViewModel {
                     for (index, step) in item.steps.enumerated() {
                         if let poi = step.poi {
                             let stepOrder = startingOrder + index
-                            result.append((order: stepOrder, section: sectionIndex, item: .poi(poi, item.segment, step)))
+                            result.append((order: stepOrder, section: sectionIndex, cityIndex: cityIndex, item: .poi(poi, item.segment, step)))
                         }
                     }
                 }
@@ -160,6 +161,11 @@ extension TRPTimelineItineraryViewModel {
     /// Get first plan from timeline
     public func getFirstPlan() -> TRPTimelinePlan? {
         return timeline?.plans?.first
+    }
+
+    /// Check if the selected day has multiple cities
+    public func hasMultipleCities() -> Bool {
+        return displayItems.count > 1
     }
 
     /// Get the preferred city coordinate for map centering

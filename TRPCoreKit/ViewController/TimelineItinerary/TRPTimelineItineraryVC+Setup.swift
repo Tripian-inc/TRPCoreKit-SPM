@@ -128,6 +128,16 @@ extension TRPTimelineItineraryVC {
         ])
     }
 
+    internal func setupMainViewButton() {
+        view.addSubview(mainViewButton)
+
+        NSLayoutConstraint.activate([
+            // Centered horizontally, below day filter
+            mainViewButton.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            mainViewButton.topAnchor.constraint(equalTo: dayFilterView.bottomAnchor, constant: 16)
+        ])
+    }
+
     internal func setupFloatingButtons() {
         view.addSubview(mapFloatingButton)
         view.addSubview(addPlanFloatingButton)

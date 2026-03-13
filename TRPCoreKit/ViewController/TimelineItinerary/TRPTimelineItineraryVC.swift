@@ -106,6 +106,14 @@ public class TRPTimelineItineraryVC: TRPBaseUIViewController {
         return view
     }()
 
+    // Main View button - returns to overview zoom when focused on a marker
+    internal lazy var mainViewButton: TRPMainViewButton = {
+        let button = TRPMainViewButton()
+        button.addTarget(self, action: #selector(mainViewButtonTapped), for: .touchUpInside)
+        button.isHidden = true
+        return button
+    }()
+
     // Bottom POI preview cards
     internal lazy var poiPreviewContainerView: UIView = {
         let view = UIView()
@@ -143,9 +151,16 @@ public class TRPTimelineItineraryVC: TRPBaseUIViewController {
     internal var currentTimelineItems: [TimelineItem] = []
 
     /// Ordered map display items with unified order per city (matches list view ordering)
-    internal var mapDisplayItems: [(order: Int, section: Int, item: MapDisplayItem)] = []
+    internal var mapDisplayItems: [(order: Int, section: Int, cityIndex: Int, item: MapDisplayItem)] = []
 
     internal var isShowingMap: Bool = false
+
+    // Focus tracking for Main View button
+    internal var isMarkerFocused: Bool = false
+    internal var hasMultipleCitiesOnSelectedDay: Bool = false
+
+    // Selected marker tracking for marker appearance (one per city)
+    internal var selectedMarkerPoiIds: Set<String> = []
 
     // Step being edited for time change
     internal var stepBeingEdited: TRPTimelineStep?
@@ -158,6 +173,26 @@ public class TRPTimelineItineraryVC: TRPBaseUIViewController {
     internal let collectionViewHeight: CGFloat = 120
     internal let collapsedOffset: CGFloat = 114  // Only 5% visible (6pt out of 120pt)
     internal let expandedOffset: CGFloat = -16   // Fully visible with margin
+
+    // Status bar for fullscreen map
+    private var statusBarHidden: Bool = false
+
+    // MARK: - Status Bar
+
+    public override var prefersStatusBarHidden: Bool {
+        return statusBarHidden
+    }
+
+    public override var preferredStatusBarUpdateAnimation: UIStatusBarAnimation {
+        return .fade
+    }
+
+    private func setStatusBarHidden(_ hidden: Bool) {
+        statusBarHidden = hidden
+        UIView.animate(withDuration: 0.3) {
+            self.setNeedsStatusBarAppearanceUpdate()
+        }
+    }
 
     // MARK: - Initialization
 
@@ -196,13 +231,15 @@ public class TRPTimelineItineraryVC: TRPBaseUIViewController {
         setupTableView()
         setupMapView()
         setupPOIPreviewCards()
+        setupMainViewButton()
         setupFloatingButtons()
         registerCells()
 
-        // Bring navigation bar and day filter to front so they appear above the map
+        // Bring navigation bar, day filter, and main view button to front so they appear above the map
         view.bringSubviewToFront(customNavigationBar)
         view.bringSubviewToFront(savedPlansButton)
         view.bringSubviewToFront(dayFilterView)
+        view.bringSubviewToFront(mainViewButton)
     }
 
     // MARK: - Actions
@@ -230,10 +267,17 @@ public class TRPTimelineItineraryVC: TRPBaseUIViewController {
     }
 
     private func showMapView() {
-        // Update map floating button constraint - will be adjusted in updatePOIPreviewCards based on content
-        mapFloatingButtonBottomToAddPlanConstraint?.isActive = false
+        // Hide status bar for fullscreen map experience
+        setStatusBarHidden(true)
+
+        // Add top padding to navigation bar to compensate for hidden status bar
+        let statusBarHeight = view.window?.windowScene?.statusBarManager?.statusBarFrame.height ?? 0
+        customNavigationBar.topPadding = statusBarHeight
+
+        // Update map floating button constraint - position above add plan button (same as list mode)
+        mapFloatingButtonBottomToPreviewConstraint?.isActive = false
         mapFloatingButtonBottomToSafeAreaConstraint?.isActive = false
-        mapFloatingButtonBottomToPreviewConstraint?.isActive = true
+        mapFloatingButtonBottomToAddPlanConstraint?.isActive = true
 
         // Hide list, show map
         UIView.animate(withDuration: 0.3) {
@@ -248,9 +292,9 @@ public class TRPTimelineItineraryVC: TRPBaseUIViewController {
             self.customNavigationBar.backgroundColor = .clear
             self.dayFilterView.backgroundColor = .clear
 
-            // Update floating button icon to list and hide add plan button
+            // Update floating button icon to list - KEEP add plan button visible
             self.mapFloatingButton.updateIcon(TRPImageController().getImage(inFramework: "ic_list", inApp: nil))
-            self.addPlanFloatingButton.isHidden = true
+            self.addPlanFloatingButton.isHidden = false  // Visible in both list and map mode
 
             self.view.layoutIfNeeded()
         }
@@ -265,11 +309,17 @@ public class TRPTimelineItineraryVC: TRPBaseUIViewController {
             refreshMap()
         }
 
-        // Update POI preview cards
+        // Update POI preview cards and FAB positions
         updatePOIPreviewCards()
     }
 
     private func showListView() {
+        // Show status bar for list view
+        setStatusBarHidden(false)
+
+        // Remove top padding from navigation bar
+        customNavigationBar.topPadding = 0
+
         // Update map floating button constraint - position above add plan button
         mapFloatingButtonBottomToPreviewConstraint?.isActive = false
         mapFloatingButtonBottomToSafeAreaConstraint?.isActive = false
@@ -290,8 +340,11 @@ public class TRPTimelineItineraryVC: TRPBaseUIViewController {
             self.addPlanFloatingButton.isHidden = false
         }
 
-        // Reset collection view state
+        // Reset collection view state, focus state, and selected markers
         isCollectionViewExpanded = false
+        isMarkerFocused = false
+        selectedMarkerPoiIds.removeAll()
+        updateMainViewButtonVisibility()
 
         // Restore saved plans button visibility
         updateSavedPlansButton()
@@ -301,9 +354,12 @@ public class TRPTimelineItineraryVC: TRPBaseUIViewController {
         // Get ordered items from ViewModel (uses unified order matching list view)
         mapDisplayItems = viewModel.getOrderedItemsForMap()
 
+        // Update hasMultipleCities flag for Main View button
+        hasMultipleCitiesOnSelectedDay = viewModel.hasMultipleCities()
+
         // Also update legacy currentTimelineItems for compatibility
         currentTimelineItems = []
-        for (_, _, item) in mapDisplayItems {
+        for (_, _, _, item) in mapDisplayItems {
             switch item {
             case .poi(let poi, _, _):
                 currentTimelineItems.append(.poi(poi))
@@ -313,19 +369,23 @@ public class TRPTimelineItineraryVC: TRPBaseUIViewController {
         }
 
         if mapDisplayItems.isEmpty {
-            // Hide completely if no items
+            // Hide preview cards if no items
             poiPreviewBottomConstraint?.constant = -collectionViewHeight
-            // Position floating button at bottom of safe area (not above hidden preview)
+            // Position add plan button at bottom, map button above it
+            addPlanButtonBottomConstraint?.constant = -24
             mapFloatingButtonBottomToPreviewConstraint?.isActive = false
-            mapFloatingButtonBottomToSafeAreaConstraint?.isActive = true
+            mapFloatingButtonBottomToSafeAreaConstraint?.isActive = false
+            mapFloatingButtonBottomToAddPlanConstraint?.isActive = true
         } else {
             // Start in expanded state (fully visible)
             isCollectionViewExpanded = true
             poiPreviewBottomConstraint?.constant = expandedOffset
+            // Both FABs move up above the preview cards
             addPlanButtonBottomConstraint?.constant = expandedOffset - collectionViewHeight - 24
-            // Position floating button above preview cards
+            // Position map button above add plan button
             mapFloatingButtonBottomToSafeAreaConstraint?.isActive = false
-            mapFloatingButtonBottomToPreviewConstraint?.isActive = true
+            mapFloatingButtonBottomToPreviewConstraint?.isActive = false
+            mapFloatingButtonBottomToAddPlanConstraint?.isActive = true
         }
 
         poiPreviewCollectionView.reloadData()
@@ -354,6 +414,10 @@ public class TRPTimelineItineraryVC: TRPBaseUIViewController {
     internal func collapseCollectionView() {
         guard isCollectionViewExpanded else { return }
         isCollectionViewExpanded = false
+
+        // Reset focus state when collapsing
+        isMarkerFocused = false
+        updateMainViewButtonVisibility()
 
         UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut) {
             // Slide collection view down to be half visible

@@ -188,10 +188,10 @@ extension TRPTimelineItineraryVC: UICollectionViewDataSource, UICollectionViewDe
             return UICollectionViewCell()
         }
 
-        let (order, _, item) = mapDisplayItems[indexPath.item]
+        let (order, _, cityIndex, item) = mapDisplayItems[indexPath.item]
 
-        // Configure cell with MapDisplayItem and unified order (city-based)
-        cell.configure(with: item, order: order)
+        // Configure cell with MapDisplayItem, unified order, and city-specific color
+        cell.configure(with: item, order: order, cityIndex: cityIndex)
 
         return cell
     }
@@ -201,14 +201,21 @@ extension TRPTimelineItineraryVC: UICollectionViewDataSource, UICollectionViewDe
     }
 
     public func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
-        // Expand the collection view when user taps on an item
+        // Always expand and animate to marker (even if already selected)
         expandCollectionView()
 
-        let (_, _, item) = mapDisplayItems[indexPath.item]
+        let (_, _, _, item) = mapDisplayItems[indexPath.item]
+
+        // Update selected marker appearance
+        updateSelectedMarker(poiId: item.itemId)
 
         // Center map on selected item's coordinate
         if let coordinate = item.coordinate, let mapView = map {
             mapView.setCenter(coordinate, zoomLevel: 15)
+
+            // Mark as focused for Main View button
+            isMarkerFocused = true
+            updateMainViewButtonVisibility()
         }
     }
 }

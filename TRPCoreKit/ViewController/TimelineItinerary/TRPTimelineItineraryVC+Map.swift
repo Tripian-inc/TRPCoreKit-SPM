@@ -91,7 +91,20 @@ extension TRPTimelineItineraryVC {
             map.setCenter(centerLocation, zoomLevel: 12)
             // Remove any existing routes
             removeAllRoutesFromMap()
+            selectedMarkerPoiIds.removeAll()
             return
+        }
+
+        // Select the first item of each city by default if nothing is selected
+        if selectedMarkerPoiIds.isEmpty {
+            var selectedCities: Set<Int> = []
+            for (_, _, cityIndex, item) in orderedItems {
+                // Select first item of each city
+                if !selectedCities.contains(cityIndex) {
+                    selectedCities.insert(cityIndex)
+                    selectedMarkerPoiIds.insert(item.itemId)
+                }
+            }
         }
 
         // Add annotations with unified order
@@ -129,13 +142,13 @@ extension TRPTimelineItineraryVC {
         }
     }
 
-    /// Add annotations for ordered items with unified order
-    private func addAnnotationsForOrderedItems(_ orderedItems: [(order: Int, section: Int, item: MapDisplayItem)]) {
+    /// Add annotations for ordered items with unified order, city-specific coloring, and selection state
+    private func addAnnotationsForOrderedItems(_ orderedItems: [(order: Int, section: Int, cityIndex: Int, item: MapDisplayItem)]) {
         guard let map = map else { return }
 
         var annotations = [TRPPointAnnotation]()
 
-        for (order, _, item) in orderedItems {
+        for (order, _, cityIndex, item) in orderedItems {
             guard let coordinate = item.coordinate else { continue }
 
             var annotation = TRPPointAnnotation()
@@ -143,11 +156,50 @@ extension TRPTimelineItineraryVC {
             annotation.lat = coordinate.lat
             annotation.lon = coordinate.lon
             annotation.poiId = item.itemId
+            annotation.cityIndex = cityIndex  // Set city index for multi-city coloring
+            annotation.isSelected = selectedMarkerPoiIds.contains(item.itemId)  // Set selection state
             annotations.append(annotation)
         }
 
         // Add all annotations as a single group
         map.addViewAnnotations(annotations, segmentId: "timeline_unified_annotations", annotationOrder: 0)
+    }
+
+    /// Update selected marker for a specific city and refresh map annotations
+    /// When a marker is selected, it replaces the previous selection for that city only
+    internal func updateSelectedMarker(poiId: String?) {
+        guard let poiId = poiId else { return }
+
+        // Find the cityIndex for the selected poiId
+        var selectedCityIndex: Int?
+        for (_, _, cityIndex, item) in mapDisplayItems {
+            if item.itemId == poiId {
+                selectedCityIndex = cityIndex
+                break
+            }
+        }
+
+        guard let cityIndex = selectedCityIndex else { return }
+
+        // Remove previous selection for this city
+        for (_, _, itemCityIndex, item) in mapDisplayItems {
+            if itemCityIndex == cityIndex && selectedMarkerPoiIds.contains(item.itemId) {
+                selectedMarkerPoiIds.remove(item.itemId)
+            }
+        }
+
+        // Add new selection
+        selectedMarkerPoiIds.insert(poiId)
+
+        // Refresh annotations to show updated selection state
+        guard let map = map else { return }
+
+        // Clear existing annotations
+        clearMapAnnotations()
+
+        // Re-add annotations with updated selection state
+        let orderedItems = viewModel.getOrderedItemsForMap()
+        addAnnotationsForOrderedItems(orderedItems)
     }
     
     private func addAnnotationsForSegments(_ segments: [[TRPPoi]]) {
@@ -410,16 +462,24 @@ extension TRPTimelineItineraryVC: TRPMapViewDelegate {
         // Find the index of the item in mapDisplayItems
         var itemIndex: Int?
 
-        for (index, (_, _, item)) in mapDisplayItems.enumerated() {
+        for (index, (_, _, _, item)) in mapDisplayItems.enumerated() {
             if item.itemId == poiId {
                 itemIndex = index
                 break
             }
         }
 
+        // Update selected marker appearance
+        updateSelectedMarker(poiId: poiId)
+
         // Expand the collection view and scroll to the item
         if let index = itemIndex {
             let indexPath = IndexPath(item: index, section: 0)
+
+            // Mark as focused for Main View button
+            isMarkerFocused = true
+            updateMainViewButtonVisibility()
+
             expandCollectionView {
                 // Scroll to the item after expansion animation completes
                 DispatchQueue.main.async {
@@ -437,6 +497,47 @@ extension TRPTimelineItineraryVC: TRPMapViewDelegate {
     public func mapView(_ mapView: TRPMapView, regionDidChangeAnimated animated: Bool) {
         // Collapse collection view when user moves the map
         collapseCollectionView()
+    }
+}
+
+// MARK: - Main View Button
+extension TRPTimelineItineraryVC {
+
+    /// Update Main View button visibility
+    /// Shows when: map mode + multiple cities + marker is focused
+    internal func updateMainViewButtonVisibility() {
+        let shouldShow = isShowingMap && hasMultipleCitiesOnSelectedDay && isMarkerFocused
+        if shouldShow {
+            mainViewButton.showAnimated()
+        } else {
+            mainViewButton.hideAnimated()
+        }
+    }
+
+    /// Called when Main View button is tapped - returns to overview zoom
+    @objc internal func mainViewButtonTapped() {
+        // Fit camera to show all markers
+        fitCameraToAllMarkers()
+
+        // Reset focus state
+        isMarkerFocused = false
+        updateMainViewButtonVisibility()
+
+        // Collapse collection view
+        collapseCollectionView()
+    }
+
+    /// Fit camera to show all markers on the map
+    private func fitCameraToAllMarkers() {
+        guard let map = map else { return }
+
+        let allCoordinates = mapDisplayItems.compactMap { item -> CLLocationCoordinate2D? in
+            guard let coordinate = item.item.coordinate else { return nil }
+            return CLLocationCoordinate2D(latitude: coordinate.lat, longitude: coordinate.lon)
+        }
+
+        guard !allCoordinates.isEmpty else { return }
+        map.fitCamera(to: allCoordinates)
     }
 }
 

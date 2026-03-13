@@ -229,10 +229,13 @@ class TRPTimelineMapPOIPreviewCell: UICollectionViewCell {
         }
     }
 
-    /// Configure cell with MapDisplayItem and unified order
-    func configure(with item: MapDisplayItem, order: Int) {
+    /// Configure cell with MapDisplayItem, unified order, and city-specific coloring
+    func configure(with item: MapDisplayItem, order: Int, cityIndex: Int = 0) {
         numberLabel.text = "\(order)"
         titleLabel.text = item.title
+
+        // Set city-specific badge color
+        numberBadge.backgroundColor = ColorSet.getMapColor(cityIndex)
 
         // Load image
         if let imageUrl = item.imageUrl, let url = URL(string: imageUrl) {
@@ -282,6 +285,8 @@ class TRPTimelineMapPOIPreviewCell: UICollectionViewCell {
         dateLabel.isHidden = true
         timeIcon.isHidden = true
         timeLabel.isHidden = true
+        // Reset badge color to default
+        numberBadge.backgroundColor = ColorSet.fg.uiColor
     }
 }
 
