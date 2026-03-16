@@ -8,6 +8,7 @@
 
 import Foundation
 import TRPFoundationKit
+import TRPRestKit
 
 public protocol AddPlanActivityListingViewModelDelegate: AnyObject {
     func activitiesDidLoad()
@@ -279,8 +280,8 @@ public class AddPlanActivityListingViewModel {
         params.minDuration = filterData.minDuration
         params.maxDuration = filterData.maxDuration
 
-        // Set currency and adults (default EUR and 1)
-        params.currency = "EUR"
+        // Set currency and adults
+        params.currency = TRPClient.getCurrency()
         params.adults = planData.travelers > 0 ? planData.travelers : 1
 
         return params

@@ -229,8 +229,8 @@ public class AddPlanTimeSelectionViewModel {
         dateFormatter.dateFormat = "yyyy-MM-dd"
         let dateString = dateFormatter.string(from: selectedDate)
 
-        // Get currency and language from settings or use defaults
-        let currency = "EUR"
+        // Get currency and language from settings
+        let currency = TRPClient.getCurrency()
         let lang = TRPClient.getLanguage()
 
         // Call API
