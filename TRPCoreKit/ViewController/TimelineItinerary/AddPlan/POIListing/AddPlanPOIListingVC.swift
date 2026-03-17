@@ -340,6 +340,12 @@ extension AddPlanPOIListingVC: POIListingCellDelegate {
         // Show time range selection
         let timeRangeVC = TRPTimeRangeSelectionViewController()
         timeRangeVC.delegate = self
+
+        // Pass selected date for minimum time validation (prevents selecting past times for today)
+        if let selectedDay = viewModel.planData.selectedDay {
+            timeRangeVC.setSelectedDate(selectedDay)
+        }
+
         timeRangeVC.show(from: self)
     }
 }

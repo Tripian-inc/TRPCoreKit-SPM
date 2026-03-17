@@ -372,6 +372,11 @@ public class AddPlanTimeAndTravelersVC: TRPBaseUIViewController, AddPlanChildVie
         // Set initial focus based on which button was tapped
         timeRangeVC.setInitialFocus(focusField)
 
+        // Pass selected date for minimum time validation (prevents selecting past times for today)
+        if let selectedDay = viewModel.getSelectedDay() {
+            timeRangeVC.setSelectedDate(selectedDay)
+        }
+
         // Set initial times if already selected
         if let startTime = viewModel.getStartTime(), let endTime = viewModel.getEndTime() {
             timeRangeVC.setInitialTimes(from: startTime, to: endTime)

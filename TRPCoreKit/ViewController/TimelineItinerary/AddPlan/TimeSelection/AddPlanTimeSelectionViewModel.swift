@@ -194,10 +194,31 @@ public class AddPlanTimeSelectionViewModel {
         }
     }
 
-    /// Get time slots for selected day
+    /// Get time slots for selected day (filtered for today to exclude past times)
     public func getTimeSlots() -> [TimeSlot] {
         guard let selectedDate = selectedDate else { return [] }
-        return allTimeSlots[selectedDate] ?? []
+        let slots = allTimeSlots[selectedDate] ?? []
+
+        // If today, filter out past times (before current time + 30 minutes)
+        let calendar = Calendar.current
+        if calendar.isDateInToday(selectedDate) {
+            let minimumTime = Date().addingTimeInterval(30 * 60)  // +30 minutes
+            let minimumTimeComponents = calendar.dateComponents([.hour, .minute], from: minimumTime)
+            let minimumMinutes = (minimumTimeComponents.hour ?? 0) * 60 + (minimumTimeComponents.minute ?? 0)
+
+            return slots.filter { slot in
+                let timeComponents = slot.time.split(separator: ":")
+                guard timeComponents.count >= 2,
+                      let hour = Int(timeComponents[0]),
+                      let minute = Int(timeComponents[1]) else {
+                    return true  // Keep slot if parsing fails
+                }
+                let slotMinutes = hour * 60 + minute
+                return slotMinutes >= minimumMinutes
+            }
+        }
+
+        return slots
     }
 
     /// Select a time slot

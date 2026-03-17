@@ -26,6 +26,7 @@ class TRPTimeRangeSelectionViewController: TRPBaseUIViewController, DynamicHeigh
     private var toTime: String?
     private var fromDate: Date?
     private var toDate: Date?
+    private var selectedDate: Date?  // The date being planned for (used for minimum time validation)
 
     // Track which field is being edited
     enum EditingField {
@@ -110,6 +111,7 @@ class TRPTimeRangeSelectionViewController: TRPBaseUIViewController, DynamicHeigh
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         setupPickerView()
+        updateMinimumTime()  // Apply minimum time restriction for today
         // Ensure initial values are displayed
         updateFromDisplay()
         updateToDisplay()
@@ -192,11 +194,11 @@ class TRPTimeRangeSelectionViewController: TRPBaseUIViewController, DynamicHeigh
     private func setupPickerView() {
         timePicker.addTarget(self, action: #selector(timePickerValueChanged), for: .valueChanged)
 
-        // If no initial times were set, default start time to current time
+        // If no initial times were set, set default start time
         if fromDate == nil {
-            let now = Date()
-            fromDate = now
-            fromTime = timeStringFromDate(now)
+            let defaultTime = getDefaultStartTime()
+            fromDate = defaultTime
+            fromTime = timeStringFromDate(defaultTime)
             updateFromDisplay()
         }
 
@@ -212,6 +214,26 @@ class TRPTimeRangeSelectionViewController: TRPBaseUIViewController, DynamicHeigh
         // Highlight the initial editing field
         fromTimeField.setHighlighted(initialFocusField == .from)
         toTimeField.setHighlighted(initialFocusField == .until)
+    }
+
+    /// Returns the default start time based on selected date
+    /// - Today: current time + 30 minutes
+    /// - Future dates: 09:00 AM
+    private func getDefaultStartTime() -> Date {
+        let calendar = Calendar.current
+
+        // If selected date is today, use current time + 30 minutes
+        if let selectedDate = selectedDate, calendar.isDateInToday(selectedDate) {
+            return Date().addingTimeInterval(30 * 60)
+        }
+
+        // For future dates, default to 09:00 AM
+        var components = calendar.dateComponents([.year, .month, .day], from: Date())
+        components.hour = 9
+        components.minute = 0
+        components.second = 0
+
+        return calendar.date(from: components) ?? Date()
     }
 
     // MARK: - Actions
@@ -306,6 +328,11 @@ class TRPTimeRangeSelectionViewController: TRPBaseUIViewController, DynamicHeigh
         initialFocusField = field
     }
 
+    /// Sets the date being planned for (used for minimum time validation)
+    func setSelectedDate(_ date: Date) {
+        self.selectedDate = date
+    }
+
     // MARK: - Helper Methods
     private func updatePickerForCurrentField() {
         let dateToEdit = currentEditingField == .from ? fromDate : toDate
@@ -314,6 +341,32 @@ class TRPTimeRangeSelectionViewController: TRPBaseUIViewController, DynamicHeigh
             DispatchQueue.main.async { [weak self] in
                 self?.timePicker.setDate(date, animated: true)
             }
+        }
+    }
+
+    /// Updates minimum time based on whether the selected date is today
+    private func updateMinimumTime() {
+        guard let selectedDate = selectedDate else {
+            timePicker.minimumDate = nil
+            return
+        }
+
+        let calendar = Calendar.current
+        if calendar.isDateInToday(selectedDate) {
+            // Today: minimum is current time + 30 minutes
+            let minimumDate = Date().addingTimeInterval(30 * 60)
+            timePicker.minimumDate = minimumDate
+
+            // If current fromDate is before minimum, update it
+            if let fromDate = fromDate, fromDate < minimumDate {
+                self.fromDate = minimumDate
+                self.fromTime = timeStringFromDate(minimumDate)
+                timePicker.date = minimumDate
+                updateFromDisplay()
+            }
+        } else {
+            // Future date: no minimum restriction
+            timePicker.minimumDate = nil
         }
     }
 
