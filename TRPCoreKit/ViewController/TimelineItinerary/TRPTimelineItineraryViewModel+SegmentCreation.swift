@@ -242,6 +242,9 @@ extension TRPTimelineItineraryViewModel {
 
     /// Waits for segment generation to complete (polls timeline until generatedStatus != 0)
     public func waitForSegmentGeneration(tripHash: String) {
+        // Show loading while waiting for segment generation and timeline refresh
+        delegate?.viewModel(showPreloader: true)
+
         let repository = TRPTimelineRepository()
         let modelRepository = TRPTimelineModelRepository()
 
