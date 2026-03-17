@@ -209,10 +209,23 @@ public struct RecommendationsCellData: TimelineCellData {
     }
 
     /// Create from TRPMergedTimelineItem with unified starting order
+    /// Note: For itinerary segments, use init with customTitle for dynamic numbering
     public init(from item: TRPMergedTimelineItem, startingOrder: Int, isExpanded: Bool = true) {
         self.segmentIndex = item.originalSegmentIndex
         self.startingOrder = startingOrder
-        self.title = item.title ?? TimelineLocalizationKeys.localized(TimelineLocalizationKeys.recommendations)
+        self.title = TimelineLocalizationKeys.localized(TimelineLocalizationKeys.recommendations)
+        self.steps = item.steps
+        self.isExpanded = isExpanded
+        self.segment = item.segment
+        self.city = item.city
+    }
+
+    /// Create from TRPMergedTimelineItem with custom title (for dynamic numbering)
+    /// Use this for itinerary segments with dynamically calculated recommendation numbers
+    public init(from item: TRPMergedTimelineItem, startingOrder: Int, isExpanded: Bool = true, customTitle: String) {
+        self.segmentIndex = item.originalSegmentIndex
+        self.startingOrder = startingOrder
+        self.title = customTitle
         self.steps = item.steps
         self.isExpanded = isExpanded
         self.segment = item.segment

@@ -202,8 +202,8 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
         self.startingOrder = startingOrder
         self.currentIndexPath = indexPath
 
-        // Set segment title
-        titleLabel.text = segment?.title ?? TimelineLocalizationKeys.localized(TimelineLocalizationKeys.recommendations)
+        // Set segment title (use localized default)
+        titleLabel.text = TimelineLocalizationKeys.localized(TimelineLocalizationKeys.recommendations)
 
         // Clear existing views and distance views
         recommendationsStackView.arrangedSubviews.forEach { $0.removeFromSuperview() }

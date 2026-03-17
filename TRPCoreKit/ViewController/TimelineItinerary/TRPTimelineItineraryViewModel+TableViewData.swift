@@ -48,6 +48,18 @@ extension TRPTimelineItineraryViewModel {
         let key = "\(indexPath.section)_\(mergedItem.originalSegmentIndex)"
         let order = unifiedOrderMap[key] ?? 1
 
+        // For itinerary items, calculate dynamic recommendation title
+        if mergedItem.segmentType == .itinerary {
+            let recommendationNumber = getRecommendationNumber(for: indexPath)
+            let dynamicTitle = generateRecommendationTitle(number: recommendationNumber)
+            return .recommendations(RecommendationsCellData(
+                from: mergedItem,
+                startingOrder: order,
+                isExpanded: isExpanded,
+                customTitle: dynamicTitle
+            ))
+        }
+
         return TimelineCellType.from(mergedItem, order: order, isExpanded: isExpanded)
     }
 
@@ -111,5 +123,41 @@ extension TRPTimelineItineraryViewModel {
     /// Get all trip dates (for day filter - continuous from start to end)
     public func getAvailableDates() -> [Date] {
         return allTripDates
+    }
+
+    // MARK: - Dynamic Recommendation Title
+
+    /// Gets the recommendation number for an itinerary item at the given index path
+    /// Counts how many itinerary items come before (and including) this one in the same day
+    private func getRecommendationNumber(for indexPath: IndexPath) -> Int {
+        var count = 0
+
+        // Count itinerary items across all sections (cities) for this day, up to and including current item
+        for sectionIndex in 0...indexPath.section {
+            guard sectionIndex < displayItems.count else { break }
+            let cityGroup = displayItems[sectionIndex]
+            let maxRow = (sectionIndex == indexPath.section) ? indexPath.row : cityGroup.items.count - 1
+
+            for rowIndex in 0...maxRow {
+                guard rowIndex < cityGroup.items.count else { break }
+                if cityGroup.items[rowIndex].segmentType == .itinerary {
+                    count += 1
+                }
+            }
+        }
+
+        return count
+    }
+
+    /// Generates localized recommendation title with optional number suffix
+    /// 1 → "Recommendations", 2 → "Recommendations 2", etc.
+    private func generateRecommendationTitle(number: Int) -> String {
+        let localizedBase = TimelineLocalizationKeys.localized(TimelineLocalizationKeys.recommendations)
+
+        if number <= 1 {
+            return localizedBase
+        }
+
+        return localizedBase + " " + String(number)
     }
 }
