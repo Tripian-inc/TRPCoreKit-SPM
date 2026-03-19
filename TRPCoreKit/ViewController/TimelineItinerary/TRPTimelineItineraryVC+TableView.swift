@@ -42,7 +42,7 @@ extension TRPTimelineItineraryVC: UITableViewDataSource {
             return cell
 
         case .reservedActivity(let cellData):
-            guard let cell = tableView.dequeueReusableCell(withIdentifier: TRPTimelineBookedActivityCell.reuseIdentifier, for: indexPath) as? TRPTimelineBookedActivityCell else {
+            guard let cell = tableView.dequeueReusableCell(withIdentifier: TRPTimelineReservedActivityCell.reuseIdentifier, for: indexPath) as? TRPTimelineReservedActivityCell else {
                 return UITableViewCell()
             }
             cell.configure(with: cellData)

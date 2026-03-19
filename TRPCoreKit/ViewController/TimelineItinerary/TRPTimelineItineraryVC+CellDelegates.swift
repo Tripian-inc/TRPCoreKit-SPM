@@ -52,18 +52,26 @@ extension TRPTimelineItineraryVC: TRPTimelineDayFilterViewDelegate {
 
 extension TRPTimelineItineraryVC: TRPTimelineBookedActivityCellDelegate {
 
-    func bookedActivityCellDidTapMoreOptions(_ cell: TRPTimelineBookedActivityCell) {
-        // Handle more options
+    func bookedActivityCellDidTapCell(_ cell: TRPTimelineBookedActivityCell, segment: TRPTimelineSegment) {
+        // Open activity detail
+        guard let activityId = segment.additionalData?.activityId else { return }
+        let cleanedId = activityId.cleanedAsActivityId()
+        TRPCoreKit.shared.delegate?.trpCoreKitDidRequestActivityDetail(activityId: cleanedId)
     }
+}
 
-    func bookedActivityCellDidTapReservation(_ cell: TRPTimelineBookedActivityCell, segment: TRPTimelineSegment) {
+// MARK: - TRPTimelineReservedActivityCellDelegate
+
+extension TRPTimelineItineraryVC: TRPTimelineReservedActivityCellDelegate {
+
+    func reservedActivityCellDidTapReservation(_ cell: TRPTimelineReservedActivityCell, segment: TRPTimelineSegment) {
         // Notify delegate about activity reservation request
         guard let activityId = segment.additionalData?.activityId else { return }
         let cleanedId = activityId.cleanedAsActivityId()
         TRPCoreKit.shared.delegate?.trpCoreKitDidRequestActivityReservation(activityId: cleanedId)
     }
 
-    func bookedActivityCellDidTapRemove(_ cell: TRPTimelineBookedActivityCell, segment: TRPTimelineSegment) {
+    func reservedActivityCellDidTapRemove(_ cell: TRPTimelineReservedActivityCell, segment: TRPTimelineSegment) {
         showConfirmAlert(
             title: TimelineLocalizationKeys.localized(TimelineLocalizationKeys.removeActivityTitle),
             message: TimelineLocalizationKeys.localized(TimelineLocalizationKeys.removeActivityMessage),
@@ -75,7 +83,7 @@ extension TRPTimelineItineraryVC: TRPTimelineBookedActivityCellDelegate {
         )
     }
 
-    func bookedActivityCellDidTapChangeTime(_ cell: TRPTimelineBookedActivityCell, segment: TRPTimelineSegment) {
+    func reservedActivityCellDidTapChangeTime(_ cell: TRPTimelineReservedActivityCell, segment: TRPTimelineSegment) {
         // Create AddPlanData with timeline info for edit mode
         var planData = AddPlanData()
         planData.tripHash = viewModel.getTripHash()
@@ -104,7 +112,7 @@ extension TRPTimelineItineraryVC: TRPTimelineBookedActivityCellDelegate {
         presentVCWithModal(timeSelectionVC, onlyLarge: false, prefersGrabberVisible: false)
     }
 
-    func bookedActivityCellDidTapCell(_ cell: TRPTimelineBookedActivityCell, segment: TRPTimelineSegment) {
+    func reservedActivityCellDidTapCell(_ cell: TRPTimelineReservedActivityCell, segment: TRPTimelineSegment) {
         // Open activity detail
         guard let activityId = segment.additionalData?.activityId else { return }
         let cleanedId = activityId.cleanedAsActivityId()

@@ -187,11 +187,7 @@ public class TRPTimelineItineraryViewModel {
                     return cityId > 0
                 }
 
-                Log.i("TRPTimelineItineraryViewModel: validItems count = \(validItems.count), invalidItems count = \(invalidItems.count)")
-
-                // Case 1: ALL cities invalid → show empty state
                 if validItems.isEmpty {
-                    Log.w("TRPTimelineItineraryViewModel: All destination cities are invalid - showing no city state")
                     DispatchQueue.main.async {
                         self.delegate?.viewModel(showPreloader: false)
                         self.delegate?.timelineItineraryViewModel(noCitiesAvailable: true)
@@ -199,10 +195,8 @@ public class TRPTimelineItineraryViewModel {
                     return
                 }
 
-                // Case 2: SOME cities invalid → show alert AND continue in parallel
                 if !invalidItems.isEmpty {
                     let unavailableCityNames = invalidItems.map { $0.title }
-                    Log.i("TRPTimelineItineraryViewModel: Some cities unavailable: \(unavailableCityNames.joined(separator: ", "))")
 
                     // Filter out invalid destinations from itinerary
                     var filteredItinerary = resolvedItinerary
@@ -216,8 +210,6 @@ public class TRPTimelineItineraryViewModel {
                         self.delegate?.timelineItineraryViewModel(someCitiesUnavailable: unavailableCityNames)
                     }
 
-                    // Continue with timeline operations IMMEDIATELY (don't wait for alert)
-                    Log.i("TRPTimelineItineraryViewModel: Starting timeline operations while showing alert - \(validItems.count) valid cities")
                     if let tripHash = tripHash {
                         self.fetchTimeline(tripHash: tripHash, itineraryModel: filteredItinerary)
                     } else {
@@ -226,8 +218,6 @@ public class TRPTimelineItineraryViewModel {
                     return
                 }
 
-                // Case 3: ALL cities valid → continue directly
-                Log.i("TRPTimelineItineraryViewModel: All cities valid - proceeding with timeline creation")
                 if let tripHash = tripHash {
                     self.fetchTimeline(tripHash: tripHash, itineraryModel: resolvedItinerary)
                 } else {

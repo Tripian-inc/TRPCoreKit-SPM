@@ -569,7 +569,7 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
         if isActivity {
             let durationIcon = UIImageView()
             durationIcon.translatesAutoresizingMaskIntoConstraints = false
-            durationIcon.image = UIImage(systemName: "clock")
+            durationIcon.image = TRPImageController().getImage(inFramework: "ic_duration", inApp: nil)
             durationIcon.tintColor = ColorSet.fgWeak.uiColor
             durationIcon.contentMode = .scaleAspectFit
 

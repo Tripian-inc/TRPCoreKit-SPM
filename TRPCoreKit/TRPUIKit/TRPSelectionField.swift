@@ -49,7 +49,7 @@ public class TRPSelectionField: UIView {
         button.backgroundColor = .clear
         button.layer.cornerRadius = 4
         button.layer.borderWidth = 1
-        button.layer.borderColor = ColorSet.lineWeak.uiColor.cgColor
+        button.layer.borderColor = ColorSet.line.uiColor.cgColor
         button.contentHorizontalAlignment = .left
         button.titleLabel?.font = FontSet.montserratLight.font(16)
         button.setTitleColor(ColorSet.fgWeak.uiColor, for: .normal)

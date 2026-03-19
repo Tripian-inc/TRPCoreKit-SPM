@@ -22,7 +22,7 @@ public struct PlanCategory {
             PlanCategory(id: "things to do", name: AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.categoryPOI), iconName: "ic_cat_poi"),
             PlanCategory(id: "food, tasting tour", name: AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.categoryFood), iconName: "ic_cat_food_drinks"),
             PlanCategory(id: "show", name: AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.categoryShows), iconName: "ic_cat_shows"),
-            PlanCategory(id: "transfer service, transportation", name: AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.categoryTransport), iconName: "ic_cat_transfers")
+            // PlanCategory(id: "transfer service, transportation", name: AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.categoryTransport), iconName: "ic_cat_transfers")
         ]
     }
     

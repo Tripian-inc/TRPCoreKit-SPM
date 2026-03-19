@@ -1,23 +1,26 @@
 //
-//  TRPTimelineBookedActivityCell.swift
+//  TRPTimelineReservedActivityCell.swift
 //  TRPCoreKit
 //
-//  Created by Cem Çaygöz on 02.12.2024.
-//  Copyright © 2024 Tripian Inc. All rights reserved.
+//  Created by Cem Çaygöz on 19.03.2026.
+//  Copyright © 2026 Tripian Inc. All rights reserved.
 //
 
 import UIKit
 import SDWebImage
 
-protocol TRPTimelineBookedActivityCellDelegate: AnyObject {
-    func bookedActivityCellDidTapCell(_ cell: TRPTimelineBookedActivityCell, segment: TRPTimelineSegment)
+protocol TRPTimelineReservedActivityCellDelegate: AnyObject {
+    func reservedActivityCellDidTapReservation(_ cell: TRPTimelineReservedActivityCell, segment: TRPTimelineSegment)
+    func reservedActivityCellDidTapRemove(_ cell: TRPTimelineReservedActivityCell, segment: TRPTimelineSegment)
+    func reservedActivityCellDidTapChangeTime(_ cell: TRPTimelineReservedActivityCell, segment: TRPTimelineSegment)
+    func reservedActivityCellDidTapCell(_ cell: TRPTimelineReservedActivityCell, segment: TRPTimelineSegment)
 }
 
-class TRPTimelineBookedActivityCell: UITableViewCell {
+class TRPTimelineReservedActivityCell: UITableViewCell {
 
-    static let reuseIdentifier = "TRPTimelineBookedActivityCell"
+    static let reuseIdentifier = "TRPTimelineReservedActivityCell"
 
-    weak var delegate: TRPTimelineBookedActivityCellDelegate?
+    weak var delegate: TRPTimelineReservedActivityCellDelegate?
 
     private var segment: TRPTimelineSegment?
 
@@ -55,7 +58,7 @@ class TRPTimelineBookedActivityCell: UITableViewCell {
         return label
     }()
 
-    private let confirmedBadge: TRPPaddingLabel = {
+    private let activityBadge: TRPPaddingLabel = {
         let label = TRPPaddingLabel(4, 4, 8, 8)
         label.translatesAutoresizingMaskIntoConstraints = false
         label.font = FontSet.montserratMedium.font(10)
@@ -64,24 +67,7 @@ class TRPTimelineBookedActivityCell: UITableViewCell {
         label.textAlignment = .center
         label.layer.cornerRadius = 4
         label.clipsToBounds = true
-        label.text = TimelineLocalizationKeys.localized(TimelineLocalizationKeys.confirmed)
-        return label
-    }()
-
-    private let personIcon: UIImageView = {
-        let imageView = UIImageView()
-        imageView.translatesAutoresizingMaskIntoConstraints = false
-        imageView.image = TRPImageController().getImage(inFramework: "ic_user", inApp: nil)
-        imageView.tintColor = ColorSet.fgWeak.uiColor
-        imageView.contentMode = .scaleAspectFit
-        return imageView
-    }()
-
-    private let personLabel: UILabel = {
-        let label = UILabel()
-        label.translatesAutoresizingMaskIntoConstraints = false
-        label.font = FontSet.montserratLight.font(14)
-        label.textColor = ColorSet.fg.uiColor
+        label.text = TimelineLocalizationKeys.localized(TimelineLocalizationKeys.activityBadge)
         return label
     }()
 
@@ -102,12 +88,55 @@ class TRPTimelineBookedActivityCell: UITableViewCell {
         return label
     }()
 
+    private let priceRowContainer: UIView = {
+        let view = UIView()
+        view.translatesAutoresizingMaskIntoConstraints = false
+        view.isHidden = true
+        return view
+    }()
+
     private let cancellationLabel: UILabel = {
         let label = UILabel()
         label.translatesAutoresizingMaskIntoConstraints = false
         label.font = FontSet.montserratMedium.font(14)
         label.textColor = ColorSet.greenAdvantage.uiColor
         return label
+    }()
+
+    private lazy var reservationButton: TRPButton = {
+        let button = TRPButton(title: TimelineLocalizationKeys.localized(TimelineLocalizationKeys.reservation), style: .primary, height: 40)
+        button.addTarget(self, action: #selector(reservationButtonTapped), for: .touchUpInside)
+        return button
+    }()
+
+    private lazy var changeTimeButton: UIButton = {
+        let button = UIButton(type: .custom)
+        button.translatesAutoresizingMaskIntoConstraints = false
+        let icon = TRPImageController().getImage(inFramework: "ic_change_time", inApp: nil)?.withRenderingMode(.alwaysTemplate)
+        button.setImage(icon, for: .normal)
+        button.tintColor = ColorSet.primary.uiColor
+        button.contentHorizontalAlignment = .trailing
+        button.addTarget(self, action: #selector(changeTimeButtonTapped), for: .touchUpInside)
+        return button
+    }()
+
+    private lazy var removeButton: UIButton = {
+        let button = UIButton(type: .custom)
+        button.translatesAutoresizingMaskIntoConstraints = false
+        button.setImage(TRPImageController().getImage(inFramework: "ic_remove_step", inApp: nil), for: .normal)
+        button.contentHorizontalAlignment = .center
+        button.addTarget(self, action: #selector(removeButtonTapped), for: .touchUpInside)
+        return button
+    }()
+
+    // Action buttons container
+    private let actionButtonsStack: UIStackView = {
+        let stack = UIStackView()
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        stack.axis = .horizontal
+        stack.spacing = 4
+        stack.alignment = .center
+        return stack
     }()
 
     // Stack view for right side content
@@ -118,16 +147,6 @@ class TRPTimelineBookedActivityCell: UITableViewCell {
         stack.spacing = 8
         stack.alignment = .leading
         stack.distribution = .fill
-        return stack
-    }()
-
-    // Horizontal stack for person icon and label
-    private let personStackView: UIStackView = {
-        let stack = UIStackView()
-        stack.translatesAutoresizingMaskIntoConstraints = false
-        stack.axis = .horizontal
-        stack.spacing = 6
-        stack.alignment = .center
         return stack
     }()
 
@@ -161,21 +180,23 @@ class TRPTimelineBookedActivityCell: UITableViewCell {
 
         containerView.addSubview(activityImageView)
         containerView.addSubview(titleLabel)
+        containerView.addSubview(actionButtonsStack)
         containerView.addSubview(rightContentStackView)
 
-        // Build person horizontal stack
-        personStackView.addArrangedSubview(personIcon)
-        personStackView.addArrangedSubview(personLabel)
+        // Build action buttons stack
+        actionButtonsStack.addArrangedSubview(changeTimeButton)
+        actionButtonsStack.addArrangedSubview(removeButton)
 
         // Build duration horizontal stack
         durationStackView.addArrangedSubview(durationIcon)
         durationStackView.addArrangedSubview(durationLabel)
 
         // Build right content vertical stack (below title)
-        rightContentStackView.addArrangedSubview(confirmedBadge)
-        rightContentStackView.addArrangedSubview(personStackView)
+        rightContentStackView.addArrangedSubview(activityBadge)
         rightContentStackView.addArrangedSubview(durationStackView)
         rightContentStackView.addArrangedSubview(cancellationLabel)
+        rightContentStackView.addArrangedSubview(priceRowContainer)
+        rightContentStackView.addArrangedSubview(reservationButton)
 
         // Add tap gesture for cell selection
         let cellTapGesture = UITapGestureRecognizer(target: self, action: #selector(cellTapped))
@@ -205,7 +226,17 @@ class TRPTimelineBookedActivityCell: UITableViewCell {
             // Title Label - top right area
             titleLabel.topAnchor.constraint(equalTo: containerView.topAnchor),
             titleLabel.leadingAnchor.constraint(equalTo: activityImageView.trailingAnchor, constant: 12),
-            titleLabel.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
+            titleLabel.trailingAnchor.constraint(equalTo: actionButtonsStack.leadingAnchor, constant: -8),
+
+            // Action buttons stack - fixed to right, aligned with title
+            actionButtonsStack.topAnchor.constraint(equalTo: containerView.topAnchor),
+            actionButtonsStack.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
+
+            // Button sizes
+            changeTimeButton.widthAnchor.constraint(equalToConstant: 36),
+            changeTimeButton.heightAnchor.constraint(equalToConstant: 28),
+            removeButton.widthAnchor.constraint(equalToConstant: 40),
+            removeButton.heightAnchor.constraint(equalToConstant: 28),
 
             // Right Content Stack View - below title
             rightContentStackView.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 8),
@@ -213,11 +244,14 @@ class TRPTimelineBookedActivityCell: UITableViewCell {
             rightContentStackView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
             rightContentStackView.bottomAnchor.constraint(equalTo: containerView.bottomAnchor),
 
-            personIcon.widthAnchor.constraint(equalToConstant: 16),
-            personIcon.heightAnchor.constraint(equalToConstant: 16),
-
             durationIcon.widthAnchor.constraint(equalToConstant: 16),
             durationIcon.heightAnchor.constraint(equalToConstant: 16),
+
+            // Price row container needs full width for right alignment
+            priceRowContainer.widthAnchor.constraint(equalTo: rightContentStackView.widthAnchor),
+
+            // Reservation button full width
+            reservationButton.widthAnchor.constraint(equalTo: rightContentStackView.widthAnchor),
         ])
     }
 
@@ -243,17 +277,6 @@ class TRPTimelineBookedActivityCell: UITableViewCell {
             activityImageView.image = nil
         }
 
-        // Configure person count
-        let adultsText = TimelineLocalizationKeys.localized(TimelineLocalizationKeys.adults)
-        if cellData.childCount > 0 {
-            let childText = cellData.childCount == 1
-                ? TimelineLocalizationKeys.localized(TimelineLocalizationKeys.child)
-                : TimelineLocalizationKeys.localized(TimelineLocalizationKeys.children)
-            personLabel.text = "\(cellData.adultCount) \(adultsText), \(cellData.childCount) \(childText)"
-        } else {
-            personLabel.text = "\(cellData.adultCount) \(adultsText)"
-        }
-
         // Configure cancellation
         if let cancellation = cellData.cancellation, !cancellation.isEmpty {
             cancellationLabel.text = cancellation
@@ -270,15 +293,78 @@ class TRPTimelineBookedActivityCell: UITableViewCell {
         } else {
             durationStackView.isHidden = true
         }
+
+        // Configure price
+        configurePriceRow(with: cellData.price)
     }
 
     private func formatDuration(_ minutes: Double) -> String {
         return TimelineLocalizationKeys.formatDuration(minutes: Int(minutes))
     }
 
+    private func configurePriceRow(with priceData: TRPSegmentActivityPrice?) {
+        guard let price = priceData, price.value > 0 else {
+            priceRowContainer.isHidden = true
+            return
+        }
+
+        // Clear previous content
+        priceRowContainer.subviews.forEach { $0.removeFromSuperview() }
+
+        // Price row - "From" medium 14px + price bold 16px
+        let priceRow = UIStackView()
+        priceRow.translatesAutoresizingMaskIntoConstraints = false
+        priceRow.axis = .horizontal
+        priceRow.spacing = 4
+        priceRow.alignment = .center
+
+        // "From" label - medium 14px primaryText
+        let fromLabel = UILabel()
+        fromLabel.font = FontSet.montserratMedium.font(14)
+        fromLabel.textColor = ColorSet.primaryText.uiColor
+        fromLabel.text = CommonLocalizationKeys.localized(CommonLocalizationKeys.from)
+
+        // Price label - bold 16px primaryText
+        let priceLabel = UILabel()
+        priceLabel.font = FontSet.montserratBold.font(16)
+        priceLabel.textColor = ColorSet.primaryText.uiColor
+
+        let priceText = TRPCurrencyHelper.formatPrice(price.value, currency: price.currency)
+
+        if !priceText.isEmpty {
+            priceLabel.text = priceText
+            priceRow.addArrangedSubview(fromLabel)
+            priceRow.addArrangedSubview(priceLabel)
+
+            // Add priceRow to container, aligned to right
+            priceRowContainer.addSubview(priceRow)
+            NSLayoutConstraint.activate([
+                priceRow.topAnchor.constraint(equalTo: priceRowContainer.topAnchor),
+                priceRow.bottomAnchor.constraint(equalTo: priceRowContainer.bottomAnchor),
+                priceRow.trailingAnchor.constraint(equalTo: priceRowContainer.trailingAnchor),
+            ])
+            priceRowContainer.isHidden = false
+        }
+    }
+
     // MARK: - Actions
+    @objc private func reservationButtonTapped() {
+        guard let segment = segment else { return }
+        delegate?.reservedActivityCellDidTapReservation(self, segment: segment)
+    }
+
+    @objc private func changeTimeButtonTapped() {
+        guard let segment = segment else { return }
+        delegate?.reservedActivityCellDidTapChangeTime(self, segment: segment)
+    }
+
+    @objc private func removeButtonTapped() {
+        guard let segment = segment else { return }
+        delegate?.reservedActivityCellDidTapRemove(self, segment: segment)
+    }
+
     @objc private func cellTapped() {
         guard let segment = segment else { return }
-        delegate?.bookedActivityCellDidTapCell(self, segment: segment)
+        delegate?.reservedActivityCellDidTapCell(self, segment: segment)
     }
 }

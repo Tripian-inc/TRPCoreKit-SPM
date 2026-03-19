@@ -14,7 +14,7 @@ public class AddPlanCategorySelectionVC: TRPBaseUIViewController, AddPlanChildVi
 
     // MARK: - AddPlanChildViewController
     public var preferredContentHeight: CGFloat {
-        return 388 // Static height from design
+        return 284 // Static height from design
     }
 
     // MARK: - Properties

@@ -28,7 +28,6 @@ extension TRPTimelineItineraryViewModel {
             }
 
             if allCitiesInvalid {
-                Log.w("TRPTimelineItineraryViewModel: All destination cities are invalid - showing no city state")
                 DispatchQueue.main.async {
                     self.delegate?.viewModel(showPreloader: false)
                     self.delegate?.timelineItineraryViewModel(noCitiesAvailable: true)
@@ -83,24 +82,14 @@ extension TRPTimelineItineraryViewModel {
         let allItems = mutableItinerary.destinationItems.enumerated()
             .map { (index: $0.offset, item: $0.element) }
 
-        Log.i("TRPTimelineItineraryViewModel: Resolving city IDs for ALL destination items")
-        Log.i("TRPTimelineItineraryViewModel: Total destinations: \(allItems.count)")
-
         // If no destinations, proceed directly
         if allItems.isEmpty {
-            Log.i("TRPTimelineItineraryViewModel: No destination items to resolve")
             completion(mutableItinerary)
             return
         }
 
         // Parse coordinates for ALL items
         let coordinates = allItems.map { parseCoordinate(from: $0.item.coordinate) }
-
-        Log.i("TRPTimelineItineraryViewModel: Resolving \(allItems.count) cityIds via API")
-        for (i, coord) in coordinates.enumerated() {
-            let item = allItems[i].item
-            Log.i("TRPTimelineItineraryViewModel: coordinate[\(i)] = lat: \(coord.lat), lon: \(coord.lon), currentCityId: \(item.cityId ?? -1)")
-        }
 
         // Try API first (more accurate)
         let cityRemoteApi = TRPCityRemoteApi()
@@ -109,25 +98,19 @@ extension TRPTimelineItineraryViewModel {
 
             switch result {
             case .success(let cityIds):
-                Log.i("TRPTimelineItineraryViewModel: resolveCities API success - cityIds: \(cityIds)")
                 // Update ALL destination items with resolved cityIds
                 for (i, (index, _)) in allItems.enumerated() {
                     if i < cityIds.count && cityIds[i] > 0 {
                         mutableItinerary.destinationItems[index].cityId = cityIds[i]
-                        Log.i("TRPTimelineItineraryViewModel: Set destinationItems[\(index)].cityId = \(cityIds[i])")
                     } else {
                         // API returned 0 or invalid - city not supported
                         mutableItinerary.destinationItems[index].cityId = 0
-                        Log.w("TRPTimelineItineraryViewModel: City not supported for destinationItems[\(index)] - API returned invalid id")
                     }
                 }
                 // Continue even if some cities could not be resolved
                 completion(mutableItinerary)
 
             case .failure(let error):
-                Log.e("TRPTimelineItineraryViewModel: resolveCities API failed - \(error.localizedDescription)")
-                // Fallback: Use TRPCityCache (local Haversine distance calculation)
-                Log.i("TRPTimelineItineraryViewModel: Using cache fallback")
                 self.resolveCityIdsFromCache(items: allItems, itinerary: &mutableItinerary)
                 // Continue even if some cities could not be resolved
                 completion(mutableItinerary)
@@ -142,9 +125,6 @@ extension TRPTimelineItineraryViewModel {
             let coordinate = parseCoordinate(from: item.coordinate)
             if let city = TRPCityCache.shared.getCityByCoordinate(coordinate, maxDistanceKm: 100) {
                 itinerary.destinationItems[index].cityId = city.id
-                Log.i("TRPTimelineItineraryViewModel: Cache resolved destinationItems[\(index)].cityId = \(city.id) (\(city.name))")
-            } else {
-                Log.w("TRPTimelineItineraryViewModel: Could not resolve cityId for destinationItems[\(index)] from cache")
             }
         }
     }
@@ -204,12 +184,7 @@ extension TRPTimelineItineraryViewModel {
                 // Merge itinerary model data (only favouriteItems - segments handled via API)
                 timeline = self.mergeItineraryData(timeline: timeline, itineraryModel: itineraryModel)
 
-                // NOTE: Do NOT sync segments - use API response as-is
-                // tripProfile.segments is the single source of truth
-                // Populate city information in segments BEFORE processing
                 self.populateCitiesInSegments(&timeline)
-
-                // Update timeline
                 self.timeline = timeline
 
                 // Resolve favourite item city IDs, then process data
@@ -238,7 +213,6 @@ extension TRPTimelineItineraryViewModel {
     }
 
     /// Merges itinerary model data into timeline
-    /// IMPORTANT: Does NOT modify segments - only adds favouriteItems
     /// Missing booked activities should be added via addMissingBookedActivities() which calls API
     internal func mergeItineraryData(timeline: TRPTimeline, itineraryModel: TRPItineraryWithActivities) -> TRPTimeline {
         var updatedTimeline = timeline
@@ -293,8 +267,6 @@ extension TRPTimelineItineraryViewModel {
             return
         }
 
-        Log.i("TRPTimelineItineraryViewModel: Found \(missingTripItems.count) missing booked activities to add via API")
-
         // Show loading
         delegate?.viewModel(showPreloader: true)
 
@@ -306,7 +278,6 @@ extension TRPTimelineItineraryViewModel {
     internal func addMissingTripItemsSequentially(tripItems: [TRPSegmentActivityItem], tripHash: String, index: Int) {
         // Base case: all items added
         guard index < tripItems.count else {
-            Log.i("TRPTimelineItineraryViewModel: All missing booked activities added successfully")
             // Wait for generation and refresh timeline
             waitForSegmentGeneration(tripHash: tripHash)
             return
@@ -325,17 +296,14 @@ extension TRPTimelineItineraryViewModel {
             switch result {
             case .success(let success):
                 if success {
-                    Log.i("TRPTimelineItineraryViewModel: Added booked activity \(tripItem.activityId ?? "unknown") via API")
                     // Continue with next item
                     self.addMissingTripItemsSequentially(tripItems: tripItems, tripHash: tripHash, index: index + 1)
                 } else {
-                    Log.e("TRPTimelineItineraryViewModel: Failed to add booked activity \(tripItem.activityId ?? "unknown")")
                     // Continue anyway to try remaining items
                     self.addMissingTripItemsSequentially(tripItems: tripItems, tripHash: tripHash, index: index + 1)
                 }
 
             case .failure(let error):
-                Log.e("TRPTimelineItineraryViewModel: Error adding booked activity: \(error.localizedDescription)")
                 // Continue anyway to try remaining items
                 self.addMissingTripItemsSequentially(tripItems: tripItems, tripHash: tripHash, index: index + 1)
             }

@@ -114,7 +114,7 @@ public class AddPlanTimeAndTravelersVC: TRPBaseUIViewController, AddPlanChildVie
         let label = UILabel()
         label.translatesAutoresizingMaskIntoConstraints = false
         label.text = AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.travelers)
-        label.font = FontSet.montserratMedium.font(14)
+        label.font = FontSet.montserratMedium.font(16)
         label.textColor = ColorSet.fg.uiColor
         return label
     }()

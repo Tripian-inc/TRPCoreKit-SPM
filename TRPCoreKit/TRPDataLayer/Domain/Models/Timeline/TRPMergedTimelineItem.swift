@@ -157,9 +157,22 @@ public class TRPMergedTimelineItem {
         return segment.additionalData?.childCount ?? segment.children
     }
 
-    /// Duration in minutes (from additionalData)
+    /// Duration in minutes (from additionalData or calculated from start/end times)
     public var duration: Double? {
-        return segment.additionalData?.duration
+        // 1. First check additionalData.duration
+        if let existingDuration = segment.additionalData?.duration, existingDuration > 0 {
+            return existingDuration
+        }
+
+        // 2. Calculate from startDatetime and endDatetime
+        guard let startDate = startDate,
+              let endDate = endDate else {
+            return nil
+        }
+
+        // Calculate difference in minutes
+        let minutes = endDate.timeIntervalSince(startDate) / 60.0
+        return minutes > 0 ? minutes : nil
     }
 
     /// Price information (from additionalData)
