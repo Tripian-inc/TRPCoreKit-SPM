@@ -179,6 +179,20 @@ extension TRPTimelineItineraryVC: TRPTimelineItineraryViewModelDelegate {
         showNoCityState()
     }
 
+    public func timelineItineraryViewModel(someCitiesUnavailable cityNames: [String]) {
+        // Format city names: "City1, City2"
+        let cityList = cityNames.joined(separator: ", ")
+
+        // Get localized strings
+        let titleFormat = TimelineLocalizationKeys.localized(TimelineLocalizationKeys.partialUnavailableTitle)
+        let title = String(format: titleFormat, cityList)
+        let description = TimelineLocalizationKeys.localized(TimelineLocalizationKeys.partialUnavailableDescription)
+        let buttonTitle = TimelineLocalizationKeys.localized(TimelineLocalizationKeys.partialUnavailableButton)
+
+        // Show alert (no completion needed - timeline continues in background)
+        showOkAlert(title: title, message: "", subContent: description, btnTitle: buttonTitle)
+    }
+
     private func showNoCityState() {
         // Hide other UI elements
         dayFilterView.isHidden = true

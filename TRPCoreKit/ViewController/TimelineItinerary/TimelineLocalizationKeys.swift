@@ -40,6 +40,11 @@ public struct TimelineLocalizationKeys {
     public static let noCityDescription = "timeline.noCity.description"
     public static let noCityButton = "timeline.noCity.button"
 
+    // MARK: - Partial Unavailable Cities Alert
+    public static let partialUnavailableTitle = "timeline.partialUnavailable.title"
+    public static let partialUnavailableDescription = "timeline.partialUnavailable.description"
+    public static let partialUnavailableButton = "timeline.partialUnavailable.button"
+
     // MARK: - Segment/Cell Labels
     public static let recommendations = "timeline.label.recommendations"
     public static let activityBadge = "timeline.label.activityBadge"
@@ -83,6 +88,9 @@ public struct TimelineLocalizationKeys {
         noCityTitle: "We haven't landed in these cities yet",
         noCityDescription: "This feature is not available in your current destinations. We're working to land there very soon!",
         noCityButton: "Go to My Trip",
+        partialUnavailableTitle: "This feature is not available in %@",
+        partialUnavailableDescription: "We're working to add this city to our planner very soon.\n\nYou can continue planning your trip with the other cities.",
+        partialUnavailableButton: "Understood",
         recommendations: "Recommendations",
         activityBadge: "Activity",
         pointOfInterest: "Point of interest",

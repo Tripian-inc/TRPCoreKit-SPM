@@ -179,6 +179,14 @@ extension TRPBaseUIViewController {
             isPopupOnView = true
         }
     }
+
+    public func showOkAlertWithCompletion(title: String = "", message: String, subContent: String = "", btnTitle: String? = nil, completion: @escaping () -> Void) {
+        if !isPopupOnView {
+            self.alertView.configWithCompletion(title: title, message: message, subContent: subContent, btnTitle: btnTitle, completion: completion)
+            self.alertView.show()
+            isPopupOnView = true
+        }
+    }
     
 }
 

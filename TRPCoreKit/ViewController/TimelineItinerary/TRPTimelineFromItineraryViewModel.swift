@@ -12,6 +12,7 @@ import TRPFoundationKit
 public protocol TRPTimelineFromItineraryViewModelDelegate: ViewModelDelegate {
     func timelineGenerated(timeline: TRPTimeline)
     func noCitiesAvailable()
+    func someCitiesUnavailable(cityNames: [String])
 }
 
 /// View model responsible for creating a timeline from TRPItineraryWithActivities
@@ -74,19 +75,21 @@ public class TRPTimelineFromItineraryViewModel {
                     Log.i("TRPTimelineFromItineraryViewModel: FINAL destinationItems[\(index)] - title: \(item.title), cityId: \(item.cityId ?? -999)")
                 }
 
-                // Check if ALL cities are invalid (cityId is nil, 0, or <= 0)
-                let allCitiesInvalid = self.itineraryModel.destinationItems.allSatisfy { item in
-                    guard let cityId = item.cityId else {
-                        Log.i("TRPTimelineFromItineraryViewModel: cityId is nil for item: \(item.title)")
-                        return true
-                    }
-                    Log.i("TRPTimelineFromItineraryViewModel: cityId is \(cityId) for item: \(item.title), isInvalid: \(cityId <= 0)")
+                // Separate valid and invalid destination items
+                let invalidItems = self.itineraryModel.destinationItems.filter { item in
+                    guard let cityId = item.cityId else { return true }
                     return cityId <= 0
                 }
 
-                Log.i("TRPTimelineFromItineraryViewModel: allCitiesInvalid = \(allCitiesInvalid)")
+                let validItems = self.itineraryModel.destinationItems.filter { item in
+                    guard let cityId = item.cityId else { return false }
+                    return cityId > 0
+                }
 
-                if allCitiesInvalid {
+                Log.i("TRPTimelineFromItineraryViewModel: validItems count = \(validItems.count), invalidItems count = \(invalidItems.count)")
+
+                // Case 1: ALL cities invalid → show empty state
+                if validItems.isEmpty {
                     Log.w("TRPTimelineFromItineraryViewModel: All destination cities are invalid - showing no city state")
                     DispatchQueue.main.async {
                         self.delegate?.viewModel(showPreloader: false)
@@ -95,7 +98,27 @@ public class TRPTimelineFromItineraryViewModel {
                     return
                 }
 
-                Log.i("TRPTimelineFromItineraryViewModel: At least one city is valid - proceeding with timeline creation")
+                // Case 2: SOME cities invalid → show alert AND continue in parallel
+                if !invalidItems.isEmpty {
+                    let unavailableCityNames = invalidItems.map { $0.title }
+                    Log.i("TRPTimelineFromItineraryViewModel: Some cities unavailable: \(unavailableCityNames.joined(separator: ", "))")
+
+                    // Filter out invalid destinations from itinerary
+                    self.itineraryModel.destinationItems = validItems
+
+                    // Show alert (non-blocking, fire and forget)
+                    DispatchQueue.main.async {
+                        self.delegate?.someCitiesUnavailable(cityNames: unavailableCityNames)
+                    }
+
+                    // Continue with timeline operations IMMEDIATELY (don't wait for alert)
+                    Log.i("TRPTimelineFromItineraryViewModel: Starting timeline operations while showing alert - \(validItems.count) valid cities")
+                    self.createTimelineInternal()
+                    return
+                }
+
+                // Case 3: ALL cities valid → continue directly
+                Log.i("TRPTimelineFromItineraryViewModel: All cities valid - proceeding with timeline creation")
                 self.createTimelineInternal()
             }
         }

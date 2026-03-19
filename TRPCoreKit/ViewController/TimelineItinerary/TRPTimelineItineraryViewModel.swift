@@ -16,6 +16,7 @@ import MapboxDirections
 public protocol TRPTimelineItineraryViewModelDelegate: ViewModelDelegate {
     func timelineItineraryViewModel(didUpdateTimeline: Bool)
     func timelineItineraryViewModel(noCitiesAvailable: Bool)
+    func timelineItineraryViewModel(someCitiesUnavailable cityNames: [String])
 }
 
 // MARK: - Type Aliases for backward compatibility
@@ -175,13 +176,21 @@ public class TRPTimelineItineraryViewModel {
                 // Update stored destination items with resolved cityIds
                 self.destinationItems = resolvedItinerary.destinationItems
 
-                // Check if ALL cities are invalid (no valid cityId found for any destination)
-                let allCitiesInvalid = resolvedItinerary.destinationItems.allSatisfy { item in
+                // Separate valid and invalid destination items
+                let invalidItems = resolvedItinerary.destinationItems.filter { item in
                     guard let cityId = item.cityId else { return true }
                     return cityId <= 0
                 }
 
-                if allCitiesInvalid {
+                let validItems = resolvedItinerary.destinationItems.filter { item in
+                    guard let cityId = item.cityId else { return false }
+                    return cityId > 0
+                }
+
+                Log.i("TRPTimelineItineraryViewModel: validItems count = \(validItems.count), invalidItems count = \(invalidItems.count)")
+
+                // Case 1: ALL cities invalid → show empty state
+                if validItems.isEmpty {
                     Log.w("TRPTimelineItineraryViewModel: All destination cities are invalid - showing no city state")
                     DispatchQueue.main.async {
                         self.delegate?.viewModel(showPreloader: false)
@@ -190,7 +199,35 @@ public class TRPTimelineItineraryViewModel {
                     return
                 }
 
-                // Create/fetch timeline based on tripHash
+                // Case 2: SOME cities invalid → show alert AND continue in parallel
+                if !invalidItems.isEmpty {
+                    let unavailableCityNames = invalidItems.map { $0.title }
+                    Log.i("TRPTimelineItineraryViewModel: Some cities unavailable: \(unavailableCityNames.joined(separator: ", "))")
+
+                    // Filter out invalid destinations from itinerary
+                    var filteredItinerary = resolvedItinerary
+                    filteredItinerary.destinationItems = validItems
+
+                    // Update stored destination items with only valid items
+                    self.destinationItems = validItems
+
+                    // Show alert (non-blocking, fire and forget)
+                    DispatchQueue.main.async {
+                        self.delegate?.timelineItineraryViewModel(someCitiesUnavailable: unavailableCityNames)
+                    }
+
+                    // Continue with timeline operations IMMEDIATELY (don't wait for alert)
+                    Log.i("TRPTimelineItineraryViewModel: Starting timeline operations while showing alert - \(validItems.count) valid cities")
+                    if let tripHash = tripHash {
+                        self.fetchTimeline(tripHash: tripHash, itineraryModel: filteredItinerary)
+                    } else {
+                        self.createTimelineInternal(from: filteredItinerary)
+                    }
+                    return
+                }
+
+                // Case 3: ALL cities valid → continue directly
+                Log.i("TRPTimelineItineraryViewModel: All cities valid - proceeding with timeline creation")
                 if let tripHash = tripHash {
                     self.fetchTimeline(tripHash: tripHash, itineraryModel: resolvedItinerary)
                 } else {
