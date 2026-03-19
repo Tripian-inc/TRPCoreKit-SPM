@@ -11,6 +11,7 @@ import TRPFoundationKit
 
 public protocol TRPTimelineFromItineraryViewModelDelegate: ViewModelDelegate {
     func timelineGenerated(timeline: TRPTimeline)
+    func noCitiesAvailable()
 }
 
 /// View model responsible for creating a timeline from TRPItineraryWithActivities
@@ -52,38 +53,67 @@ public class TRPTimelineFromItineraryViewModel {
             Log.i("TRPTimelineFromItineraryViewModel: destinationItems[\(index)] - title: \(item.title), cityId: \(String(describing: item.cityId)), coordinate: \(item.coordinate)")
         }
 
-        // Check for missing or invalid cityIds in destination items
-        // cityId is invalid if it's nil, <= 0, or -1 (common placeholder value)
-        let itemsWithoutCityId = itineraryModel.destinationItems.enumerated()
-            .filter { $0.element.cityId == nil || ($0.element.cityId ?? 0) <= 0 }
+        // Get ALL destination items for city resolution
+        let allItems = itineraryModel.destinationItems.enumerated()
             .map { (index: $0.offset, item: $0.element) }
 
-        Log.i("TRPTimelineFromItineraryViewModel: itemsWithoutCityId count = \(itemsWithoutCityId.count)")
+        Log.i("TRPTimelineFromItineraryViewModel: Resolving ALL \(allItems.count) destination items")
 
-        if itemsWithoutCityId.isEmpty {
-            // All have cityId, proceed directly
-            Log.i("TRPTimelineFromItineraryViewModel: All items have cityId, proceeding directly")
+        if allItems.isEmpty {
+            // No destinations, proceed directly
+            Log.i("TRPTimelineFromItineraryViewModel: No destination items")
             createTimelineInternal()
         } else {
-            // Resolve cities first
-            Log.i("TRPTimelineFromItineraryViewModel: Resolving \(itemsWithoutCityId.count) missing cityIds")
-            resolveMissingCities(itemsWithoutCityId) { [weak self] in
-                self?.createTimelineInternal()
+            // Resolve ALL cities first
+            resolveAllCities(allItems) { [weak self] in
+                guard let self = self else { return }
+
+                // Debug: Log final destination items state after city resolution
+                Log.i("TRPTimelineFromItineraryViewModel: After city resolution - checking destinationItems:")
+                for (index, item) in self.itineraryModel.destinationItems.enumerated() {
+                    Log.i("TRPTimelineFromItineraryViewModel: FINAL destinationItems[\(index)] - title: \(item.title), cityId: \(item.cityId ?? -999)")
+                }
+
+                // Check if ALL cities are invalid (cityId is nil, 0, or <= 0)
+                let allCitiesInvalid = self.itineraryModel.destinationItems.allSatisfy { item in
+                    guard let cityId = item.cityId else {
+                        Log.i("TRPTimelineFromItineraryViewModel: cityId is nil for item: \(item.title)")
+                        return true
+                    }
+                    Log.i("TRPTimelineFromItineraryViewModel: cityId is \(cityId) for item: \(item.title), isInvalid: \(cityId <= 0)")
+                    return cityId <= 0
+                }
+
+                Log.i("TRPTimelineFromItineraryViewModel: allCitiesInvalid = \(allCitiesInvalid)")
+
+                if allCitiesInvalid {
+                    Log.w("TRPTimelineFromItineraryViewModel: All destination cities are invalid - showing no city state")
+                    DispatchQueue.main.async {
+                        self.delegate?.viewModel(showPreloader: false)
+                        self.delegate?.noCitiesAvailable()
+                    }
+                    return
+                }
+
+                Log.i("TRPTimelineFromItineraryViewModel: At least one city is valid - proceeding with timeline creation")
+                self.createTimelineInternal()
             }
         }
     }
 
     // MARK: - City Resolution
 
-    /// Resolves missing cityIds for destination items
+    /// Resolves cityIds for ALL destination items via API
+    /// ALL destinations are sent to the API to validate city support
     /// Uses API first, then falls back to local cache if API fails
-    private func resolveMissingCities(_ items: [(index: Int, item: TRPSegmentDestinationItem)],
-                                      completion: @escaping () -> Void) {
+    private func resolveAllCities(_ items: [(index: Int, item: TRPSegmentDestinationItem)],
+                                  completion: @escaping () -> Void) {
         let coordinates = items.map { parseCoordinate(from: $0.item.coordinate) }
 
         Log.i("TRPTimelineFromItineraryViewModel: Calling resolveCities API with \(coordinates.count) coordinates")
         for (index, coord) in coordinates.enumerated() {
-            Log.i("TRPTimelineFromItineraryViewModel: coordinate[\(index)] = lat: \(coord.lat), lon: \(coord.lon)")
+            let item = items[index].item
+            Log.i("TRPTimelineFromItineraryViewModel: coordinate[\(index)] = lat: \(coord.lat), lon: \(coord.lon), currentCityId: \(item.cityId ?? -1)")
         }
 
         // Try API first (more accurate)
@@ -93,8 +123,8 @@ public class TRPTimelineFromItineraryViewModel {
             switch result {
             case .success(let cityIds):
                 Log.i("TRPTimelineFromItineraryViewModel: resolveCities API success - cityIds: \(cityIds)")
-                // Update destination items with resolved cityIds
-                self.updateDestinationItemsCityIds(items: items, cityIds: cityIds)
+                // Update ALL destination items with resolved cityIds
+                self.updateAllDestinationItemsCityIds(items: items, cityIds: cityIds)
                 completion()
 
             case .failure(let error):
@@ -108,22 +138,43 @@ public class TRPTimelineFromItineraryViewModel {
     }
 
     /// Fallback method to resolve cities from local cache using coordinate proximity
+    /// Only used when API fails - uses Haversine distance to find nearest city within 100km
     private func resolveCitiesFromCache(items: [(index: Int, item: TRPSegmentDestinationItem)]) {
+        Log.w("TRPTimelineFromItineraryViewModel: resolveCitiesFromCache - API failed, trying cache")
         for (index, item) in items {
             let coordinate = parseCoordinate(from: item.coordinate)
+            Log.i("TRPTimelineFromItineraryViewModel: Cache check for destinationItems[\(index)] - coordinate: \(coordinate.lat), \(coordinate.lon)")
+
             if let city = TRPCityCache.shared.getCityByCoordinate(coordinate, maxDistanceKm: 100) {
                 itineraryModel.destinationItems[index].cityId = city.id
+                Log.i("TRPTimelineFromItineraryViewModel: Cache found city for destinationItems[\(index)] - cityId: \(city.id), name: \(city.name)")
+            } else {
+                // City not supported - set to 0
+                itineraryModel.destinationItems[index].cityId = 0
+                Log.w("TRPTimelineFromItineraryViewModel: Cache could not find city for destinationItems[\(index)] - setting cityId to 0")
             }
         }
     }
 
-    /// Updates destination items with resolved cityIds from API response
-    private func updateDestinationItemsCityIds(items: [(index: Int, item: TRPSegmentDestinationItem)],
-                                               cityIds: [Int]) {
+    /// Updates ALL destination items with resolved cityIds from API response
+    private func updateAllDestinationItemsCityIds(items: [(index: Int, item: TRPSegmentDestinationItem)],
+                                                  cityIds: [Int]) {
+        Log.i("TRPTimelineFromItineraryViewModel: updateAllDestinationItemsCityIds - cityIds from API: \(cityIds)")
+        Log.i("TRPTimelineFromItineraryViewModel: updateAllDestinationItemsCityIds - items count: \(items.count)")
+
         for (i, (index, _)) in items.enumerated() {
-            if i < cityIds.count {
+            let oldCityId = itineraryModel.destinationItems[index].cityId
+            if i < cityIds.count && cityIds[i] > 0 {
                 itineraryModel.destinationItems[index].cityId = cityIds[i]
+                Log.i("TRPTimelineFromItineraryViewModel: Set destinationItems[\(index)].cityId = \(cityIds[i]) (was: \(oldCityId ?? -999))")
+            } else {
+                // API returned 0 or invalid - city not supported
+                itineraryModel.destinationItems[index].cityId = 0
+                Log.w("TRPTimelineFromItineraryViewModel: City not supported for destinationItems[\(index)] - API returned \(i < cityIds.count ? cityIds[i] : -999), setting to 0 (was: \(oldCityId ?? -999))")
             }
+            // Verify the update worked
+            let newCityId = itineraryModel.destinationItems[index].cityId
+            Log.i("TRPTimelineFromItineraryViewModel: VERIFY destinationItems[\(index)].cityId is now: \(newCityId ?? -999)")
         }
     }
 

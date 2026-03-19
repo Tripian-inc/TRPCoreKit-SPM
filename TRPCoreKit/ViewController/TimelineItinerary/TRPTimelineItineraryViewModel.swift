@@ -15,6 +15,7 @@ import MapboxDirections
 
 public protocol TRPTimelineItineraryViewModelDelegate: ViewModelDelegate {
     func timelineItineraryViewModel(didUpdateTimeline: Bool)
+    func timelineItineraryViewModel(noCitiesAvailable: Bool)
 }
 
 // MARK: - Type Aliases for backward compatibility
@@ -56,6 +57,9 @@ public class TRPTimelineItineraryViewModel {
 
     // Track if initial data has been loaded (prevents showing empty state during loading)
     internal var hasLoadedData: Bool = false
+
+    // Flag to show no city state immediately on VC load
+    public var showNoCityStateOnLoad: Bool = false
 
     // MARK: - Public Methods
 
@@ -164,12 +168,27 @@ public class TRPTimelineItineraryViewModel {
             // Start loading
             self.delegate?.viewModel(showPreloader: true)
 
-            // First resolve missing cityIds (for both create and fetch paths)
+            // First resolve ALL cityIds via API (for both create and fetch paths)
             self.resolveMissingCityIds(in: itineraryModel) { [weak self] resolvedItinerary in
                 guard let self = self else { return }
 
                 // Update stored destination items with resolved cityIds
                 self.destinationItems = resolvedItinerary.destinationItems
+
+                // Check if ALL cities are invalid (no valid cityId found for any destination)
+                let allCitiesInvalid = resolvedItinerary.destinationItems.allSatisfy { item in
+                    guard let cityId = item.cityId else { return true }
+                    return cityId <= 0
+                }
+
+                if allCitiesInvalid {
+                    Log.w("TRPTimelineItineraryViewModel: All destination cities are invalid - showing no city state")
+                    DispatchQueue.main.async {
+                        self.delegate?.viewModel(showPreloader: false)
+                        self.delegate?.timelineItineraryViewModel(noCitiesAvailable: true)
+                    }
+                    return
+                }
 
                 // Create/fetch timeline based on tripHash
                 if let tripHash = tripHash {

@@ -173,6 +173,38 @@ extension TRPTimelineItineraryVC: TRPTimelineItineraryViewModelDelegate {
         guard didUpdateTimeline else { return }
         reload()
     }
+
+    public func timelineItineraryViewModel(noCitiesAvailable: Bool) {
+        guard noCitiesAvailable else { return }
+        showNoCityState()
+    }
+
+    private func showNoCityState() {
+        // Hide other UI elements
+        dayFilterView.isHidden = true
+        savedPlansButton.isHidden = true
+        tableView.isHidden = true
+        mapContainerView.isHidden = true
+        mapFloatingButton.isHidden = true
+        addPlanFloatingButton.isHidden = true
+
+        // Show no city view
+        noCityView.isHidden = false
+    }
+}
+
+// MARK: - TRPNoCityViewDelegate
+
+extension TRPTimelineItineraryVC: TRPNoCityViewDelegate {
+
+    func noCityViewDidTapButton(_ view: TRPNoCityView) {
+        // Dismiss SDK - use same pattern as back button
+        if let navController = navigationController {
+            navController.dismiss(animated: true, completion: nil)
+        } else {
+            dismiss(animated: true, completion: nil)
+        }
+    }
 }
 
 // MARK: - UICollectionViewDataSource & UICollectionViewDelegateFlowLayout

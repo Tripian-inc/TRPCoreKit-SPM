@@ -160,4 +160,15 @@ extension TRPTimelineItineraryVC {
             addPlanButtonBottomConstraint!
         ])
     }
+
+    internal func setupNoCityView() {
+        view.addSubview(noCityView)
+
+        NSLayoutConstraint.activate([
+            noCityView.topAnchor.constraint(equalTo: customNavigationBar.bottomAnchor),
+            noCityView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            noCityView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            noCityView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
+        ])
+    }
 }

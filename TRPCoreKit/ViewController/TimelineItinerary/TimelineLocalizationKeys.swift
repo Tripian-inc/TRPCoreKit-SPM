@@ -35,6 +35,11 @@ public struct TimelineLocalizationKeys {
     public static let noPlansDescription = "timeline.emptyState.noPlansDescription"
     public static let addPlansButton = "timeline.emptyState.addPlansButton"
 
+    // MARK: - No City Empty State
+    public static let noCityTitle = "timeline.noCity.title"
+    public static let noCityDescription = "timeline.noCity.description"
+    public static let noCityButton = "timeline.noCity.button"
+
     // MARK: - Segment/Cell Labels
     public static let recommendations = "timeline.label.recommendations"
     public static let activityBadge = "timeline.label.activityBadge"
@@ -75,6 +80,9 @@ public struct TimelineLocalizationKeys {
         noPlansYet: "No Plans Yet",
         noPlansDescription: "Add must see attractions, restaurants and cafes or block time to rest and recharge.",
         addPlansButton: "Add Plans",
+        noCityTitle: "We haven't landed in these cities yet",
+        noCityDescription: "This feature is not available in your current destinations. We're working to land there very soon!",
+        noCityButton: "Go to My Trip",
         recommendations: "Recommendations",
         activityBadge: "Activity",
         pointOfInterest: "Point of interest",

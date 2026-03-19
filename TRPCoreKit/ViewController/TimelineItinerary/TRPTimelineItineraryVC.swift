@@ -138,6 +138,15 @@ public class TRPTimelineItineraryVC: TRPBaseUIViewController {
         return collectionView
     }()
 
+    // No city empty state view
+    internal lazy var noCityView: TRPNoCityView = {
+        let view = TRPNoCityView()
+        view.translatesAutoresizingMaskIntoConstraints = false
+        view.delegate = self
+        view.isHidden = true
+        return view
+    }()
+
     internal var poiPreviewBottomConstraint: NSLayoutConstraint?
     internal var addPlanButtonBottomConstraint: NSLayoutConstraint?
     internal var dayFilterViewTopConstraint: NSLayoutConstraint?
@@ -215,6 +224,11 @@ public class TRPTimelineItineraryVC: TRPBaseUIViewController {
 
         // Update saved plans button visibility after view is loaded
         updateSavedPlansButton()
+
+        // Check if no city state should be shown immediately
+        if viewModel.showNoCityStateOnLoad {
+            timelineItineraryViewModel(noCitiesAvailable: true)
+        }
     }
 
     public override func viewWillAppear(_ animated: Bool) {
@@ -233,6 +247,7 @@ public class TRPTimelineItineraryVC: TRPBaseUIViewController {
         setupPOIPreviewCards()
         setupMainViewButton()
         setupFloatingButtons()
+        setupNoCityView()
         registerCells()
 
         // Bring navigation bar, day filter, and main view button to front so they appear above the map

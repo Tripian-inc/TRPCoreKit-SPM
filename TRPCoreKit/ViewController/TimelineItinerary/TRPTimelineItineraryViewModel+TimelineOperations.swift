@@ -20,6 +20,22 @@ extension TRPTimelineItineraryViewModel {
         // First, resolve missing cityIds in destination items
         resolveMissingCityIds(in: itineraryModel) { [weak self] resolvedItineraryModel in
             guard let self = self else { return }
+
+            // Check if ALL cities are unresolved (no valid cityId found for any destination)
+            let allCitiesInvalid = resolvedItineraryModel.destinationItems.allSatisfy { item in
+                guard let cityId = item.cityId else { return true }
+                return cityId <= 0
+            }
+
+            if allCitiesInvalid {
+                Log.w("TRPTimelineItineraryViewModel: All destination cities are invalid - showing no city state")
+                DispatchQueue.main.async {
+                    self.delegate?.viewModel(showPreloader: false)
+                    self.delegate?.timelineItineraryViewModel(noCitiesAvailable: true)
+                }
+                return
+            }
+
             self.createTimelineInternal(from: resolvedItineraryModel)
         }
     }
@@ -55,48 +71,34 @@ extension TRPTimelineItineraryViewModel {
 
     // MARK: - City Resolution
 
-    /// Resolves missing or invalid cityIds in destination items
-    /// Checks: cityId is nil, <= 0, OR not found in cache
+    /// Resolves cityIds for ALL destination items via API
+    /// ALL destinations are sent to the API to validate city support
     /// Uses API first, then falls back to local cache if API fails
     /// SDK continues even if some cities cannot be resolved
     internal func resolveMissingCityIds(in itineraryModel: TRPItineraryWithActivities,
                                         completion: @escaping (TRPItineraryWithActivities) -> Void) {
         var mutableItinerary = itineraryModel
 
-        // Find items that need city resolution:
-        // 1. cityId is nil or <= 0
-        // 2. cityId > 0 but not found in cache (invalid/unknown city)
-        let itemsNeedingResolution = mutableItinerary.destinationItems.enumerated()
-            .filter { item in
-                let cityId = item.element.cityId
-                // Need resolution if: no cityId or invalid cityId
-                if cityId == nil || (cityId ?? 0) <= 0 {
-                    return true
-                }
-                // Also need resolution if cityId exists but not found in cache
-                if let id = cityId, TRPCityCache.shared.getCity(byId: id) == nil {
-                    return true
-                }
-                return false
-            }
+        // Get ALL destination items for resolution (not just ones with missing cityIds)
+        let allItems = mutableItinerary.destinationItems.enumerated()
             .map { (index: $0.offset, item: $0.element) }
 
-        Log.i("TRPTimelineItineraryViewModel: Checking destination items for city resolution")
-        Log.i("TRPTimelineItineraryViewModel: Total destinations: \(mutableItinerary.destinationItems.count), needing resolution: \(itemsNeedingResolution.count)")
+        Log.i("TRPTimelineItineraryViewModel: Resolving city IDs for ALL destination items")
+        Log.i("TRPTimelineItineraryViewModel: Total destinations: \(allItems.count)")
 
-        // If all have valid cityId in cache, proceed directly
-        if itemsNeedingResolution.isEmpty {
-            Log.i("TRPTimelineItineraryViewModel: All destination items have valid cityIds in cache, proceeding")
+        // If no destinations, proceed directly
+        if allItems.isEmpty {
+            Log.i("TRPTimelineItineraryViewModel: No destination items to resolve")
             completion(mutableItinerary)
             return
         }
 
-        // Parse coordinates for API call
-        let coordinates = itemsNeedingResolution.map { parseCoordinate(from: $0.item.coordinate) }
+        // Parse coordinates for ALL items
+        let coordinates = allItems.map { parseCoordinate(from: $0.item.coordinate) }
 
-        Log.i("TRPTimelineItineraryViewModel: Resolving \(itemsNeedingResolution.count) cityIds via API")
+        Log.i("TRPTimelineItineraryViewModel: Resolving \(allItems.count) cityIds via API")
         for (i, coord) in coordinates.enumerated() {
-            let item = itemsNeedingResolution[i].item
+            let item = allItems[i].item
             Log.i("TRPTimelineItineraryViewModel: coordinate[\(i)] = lat: \(coord.lat), lon: \(coord.lon), currentCityId: \(item.cityId ?? -1)")
         }
 
@@ -108,13 +110,15 @@ extension TRPTimelineItineraryViewModel {
             switch result {
             case .success(let cityIds):
                 Log.i("TRPTimelineItineraryViewModel: resolveCities API success - cityIds: \(cityIds)")
-                // Update destination items with resolved cityIds
-                for (i, (index, _)) in itemsNeedingResolution.enumerated() {
+                // Update ALL destination items with resolved cityIds
+                for (i, (index, _)) in allItems.enumerated() {
                     if i < cityIds.count && cityIds[i] > 0 {
                         mutableItinerary.destinationItems[index].cityId = cityIds[i]
                         Log.i("TRPTimelineItineraryViewModel: Set destinationItems[\(index)].cityId = \(cityIds[i])")
                     } else {
-                        Log.w("TRPTimelineItineraryViewModel: Could not resolve cityId for destinationItems[\(index)] - API returned invalid id")
+                        // API returned 0 or invalid - city not supported
+                        mutableItinerary.destinationItems[index].cityId = 0
+                        Log.w("TRPTimelineItineraryViewModel: City not supported for destinationItems[\(index)] - API returned invalid id")
                     }
                 }
                 // Continue even if some cities could not be resolved
@@ -124,7 +128,7 @@ extension TRPTimelineItineraryViewModel {
                 Log.e("TRPTimelineItineraryViewModel: resolveCities API failed - \(error.localizedDescription)")
                 // Fallback: Use TRPCityCache (local Haversine distance calculation)
                 Log.i("TRPTimelineItineraryViewModel: Using cache fallback")
-                self.resolveCityIdsFromCache(items: itemsNeedingResolution, itinerary: &mutableItinerary)
+                self.resolveCityIdsFromCache(items: allItems, itinerary: &mutableItinerary)
                 // Continue even if some cities could not be resolved
                 completion(mutableItinerary)
             }
