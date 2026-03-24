@@ -272,69 +272,65 @@ class ActivityCardCell: UITableViewCell {
         delegate?.activityCardCellDidTapAdd(self, tour: tour)
     }
 
-    // MARK: - Configuration
+    // MARK: - Private Helpers
 
-    func configure(with tour: TRPTourProduct) {
-        self.tour = tour
-        titleLabel.text = tour.name
-
-        // Set rating
-        if tour.isRatingAvailable() {
-            ratingLabel.text = String(format: "%.1f", tour.rating ?? 0)
-            reviewCountLabel.text = "\(tour.ratingCount?.formattedWithSeparator ?? "0") " +
-                                   AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.opinions)
+    private func updateRating(rating: Float?, ratingCount: Int?) {
+        if let rating = rating, let count = ratingCount, count > 0 {
+            ratingLabel.text = String(format: "%.1f", rating)
+            reviewCountLabel.text = "\(count.formattedWithSeparator) " +
+                AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.opinions)
             ratingStackView.isHidden = false
         } else {
             ratingStackView.isHidden = true
         }
+    }
 
-        // Set duration
-        if let duration = tour.duration {
-            durationLabel.text = TimelineLocalizationKeys.formatDuration(minutes: duration)
-            durationIconImageView.isHidden = false
-            durationLabel.isHidden = false
+    private func updateDuration(minutes: Int?) {
+        if let minutes = minutes {
+            durationLabel.text = TimelineLocalizationKeys.formatDuration(minutes: minutes)
             durationStackView.isHidden = false
         } else {
             durationStackView.isHidden = true
         }
+    }
 
-        // Set language - hide for now as we don't have this data in TRPTourProduct
-        languageIconImageView.isHidden = true
-        languageLabel.isHidden = true
-
-        // Free cancellation - show if tour is cancellable
-        freeCancellationLabel.isHidden = !tour.isCancellable
-        if tour.isCancellable {
+    private func updateCancellation(isCancellable: Bool) {
+        freeCancellationLabel.isHidden = !isCancellable
+        if isCancellable {
             freeCancellationLabel.text = CommonLocalizationKeys.localized(CommonLocalizationKeys.freeCancellation)
         }
+    }
 
-        // Set price with attributed string
-        if let price = tour.price {
-            let fromText = CommonLocalizationKeys.localized(CommonLocalizationKeys.from) + " "
-            let priceText = TRPCurrencyHelper.formatPrice(price, currency: tour.currency ?? "EUR")
-
-            let attributedString = NSMutableAttributedString()
-            attributedString.append(NSAttributedString(
-                string: fromText,
-                attributes: [
-                    .font: FontSet.montserratMedium.font(14),
-                    .foregroundColor: ColorSet.primaryText.uiColor
-                ]
-            ))
-            attributedString.append(NSAttributedString(
-                string: priceText,
-                attributes: [
-                    .font: FontSet.montserratBold.font(16),
-                    .foregroundColor: ColorSet.primaryText.uiColor
-                ]
-            ))
-            priceLabel.attributedText = attributedString
-        } else {
+    private func updatePrice(value: Double?, currency: String, convertFromCents: Bool = false) {
+        guard let value = value else {
             priceLabel.attributedText = nil
+            return
         }
 
-        // Set activity image using SDWebImage
-        if let imageUrl = tour.image?.url, let url = URL(string: imageUrl) {
+        let displayValue = convertFromCents ? value / 100.0 : value
+        let fromText = CommonLocalizationKeys.localized(CommonLocalizationKeys.from) + " "
+        let priceText = TRPCurrencyHelper.formatPrice(displayValue, currency: currency)
+
+        let attributedString = NSMutableAttributedString()
+        attributedString.append(NSAttributedString(
+            string: fromText,
+            attributes: [
+                .font: FontSet.montserratMedium.font(14),
+                .foregroundColor: ColorSet.primaryText.uiColor
+            ]
+        ))
+        attributedString.append(NSAttributedString(
+            string: priceText,
+            attributes: [
+                .font: FontSet.montserratBold.font(16),
+                .foregroundColor: ColorSet.primaryText.uiColor
+            ]
+        ))
+        priceLabel.attributedText = attributedString
+    }
+
+    private func updateImage(urlString: String?) {
+        if let urlString = urlString, let url = URL(string: urlString) {
             activityImageView.sd_setImage(with: url, placeholderImage: nil)
         } else {
             activityImageView.image = nil
@@ -342,83 +338,52 @@ class ActivityCardCell: UITableViewCell {
         }
     }
 
-    /// Configure cell with TRPSegmentFavoriteItem (for saved plans)
-    func configure(with favoriteItem: TRPSegmentFavoriteItem, tourProduct: TRPTourProduct) {
-        // Store tour product for delegate callback
-        self.tour = tourProduct
-
-        titleLabel.text = favoriteItem.title
-
-        // Set rating
-        if let rating = favoriteItem.rating, let ratingCount = favoriteItem.ratingCount, ratingCount > 0 {
-            ratingLabel.text = String(format: "%.1f", rating)
-            reviewCountLabel.text = "\(ratingCount.formattedWithSeparator) " +
-                                   AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.opinions)
-            ratingStackView.isHidden = false
-        } else {
-            ratingStackView.isHidden = true
-        }
-
-        // Duration - use from favoriteItem if available
-        if let duration = favoriteItem.duration {
-            durationLabel.text = TimelineLocalizationKeys.formatDuration(minutes: Int(duration))
-            durationStackView.isHidden = false
-        } else {
-            durationStackView.isHidden = true
-        }
-
-        // Language not available
+    private func hideLanguageLabels() {
         languageIconImageView.isHidden = true
         languageLabel.isHidden = true
+    }
 
-        // Free cancellation - show only if NOT non_refundable
+    // MARK: - Configuration
+
+    func configure(with tour: TRPTourProduct) {
+        self.tour = tour
+        titleLabel.text = tour.name
+
+        updateRating(rating: tour.rating, ratingCount: tour.ratingCount)
+        updateDuration(minutes: tour.duration)
+        hideLanguageLabels()
+        updateCancellation(isCancellable: tour.isCancellable)
+        updatePrice(value: tour.price.map { Double($0) }, currency: tour.currency ?? "EUR")
+        updateImage(urlString: tour.image?.url)
+    }
+
+    /// Configure cell with TRPSegmentFavoriteItem (for saved plans)
+    func configure(with favoriteItem: TRPSegmentFavoriteItem, tourProduct: TRPTourProduct) {
+        self.tour = tourProduct
+        titleLabel.text = favoriteItem.title
+
+        updateRating(rating: favoriteItem.rating, ratingCount: favoriteItem.ratingCount)
+        updateDuration(minutes: favoriteItem.duration.map { Int($0) })
+        hideLanguageLabels()
+
+        // Cancellation logic for favorite items
         let isCancellable: Bool
-        if let cancellation = favoriteItem.cancellation,
-           !cancellation.isEmpty {
+        if let cancellation = favoriteItem.cancellation, !cancellation.isEmpty {
             isCancellable = cancellation.lowercased() != "non_refundable"
         } else {
-            isCancellable = true // Default to cancellable if no cancellation info
+            isCancellable = true
         }
-        freeCancellationLabel.isHidden = !isCancellable
-        if isCancellable {
-            freeCancellationLabel.text = CommonLocalizationKeys.localized(CommonLocalizationKeys.freeCancellation)
-        }
+        updateCancellation(isCancellable: isCancellable)
 
-        // Set price with currency using attributed string
-        if let price = favoriteItem.price {
-            let fromText = CommonLocalizationKeys.localized(CommonLocalizationKeys.from) + " "
-            let priceText = TRPCurrencyHelper.formatPrice(price.value, currency: price.currency)
+        // Price from cents (convertFromCents: true)
+        updatePrice(
+            value: favoriteItem.price?.value,
+            currency: favoriteItem.price?.currency ?? "EUR",
+            convertFromCents: true
+        )
 
-            let attributedString = NSMutableAttributedString()
-            attributedString.append(NSAttributedString(
-                string: fromText,
-                attributes: [
-                    .font: FontSet.montserratMedium.font(14),
-                    .foregroundColor: ColorSet.primaryText.uiColor
-                ]
-            ))
-            attributedString.append(NSAttributedString(
-                string: priceText,
-                attributes: [
-                    .font: FontSet.montserratBold.font(16),
-                    .foregroundColor: ColorSet.primaryText.uiColor
-                ]
-            ))
-            priceLabel.attributedText = attributedString
-        } else {
-            priceLabel.attributedText = nil
-        }
-
-        // Hide separator for saved plans screen
+        updateImage(urlString: favoriteItem.photoUrl)
         separatorView.isHidden = true
-
-        // Set activity image using SDWebImage
-        if let imageUrl = favoriteItem.photoUrl, let url = URL(string: imageUrl) {
-            activityImageView.sd_setImage(with: url, placeholderImage: nil)
-        } else {
-            activityImageView.image = nil
-            activityImageView.backgroundColor = ColorSet.neutral100.uiColor
-        }
     }
 
     /// Configure separator visibility (hide for last cell)
