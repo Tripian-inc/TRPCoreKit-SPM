@@ -247,6 +247,7 @@ public class TimelinePoiDetailViewController: TRPBaseUIViewController {
             button.imageEdgeInsets = UIEdgeInsets(top: 0, left: 4, bottom: 0, right: 0)
         }
 
+        button.isHidden = true
         return button
     }()
 

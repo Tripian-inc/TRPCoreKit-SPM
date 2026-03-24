@@ -20,10 +20,11 @@ class ProductCardCell: UICollectionViewCell {
     private let imageView: UIImageView = {
         let iv = UIImageView()
         iv.translatesAutoresizingMaskIntoConstraints = false
-        iv.contentMode = .scaleAspectFill
+        iv.contentMode = .scaleToFill
         iv.clipsToBounds = true
         iv.backgroundColor = ColorSet.neutral100.uiColor
         iv.layer.cornerRadius = 8
+        iv.layer.maskedCorners = [.layerMinXMinYCorner, .layerMaxXMinYCorner] // Top corners only
         return iv
     }()
 
@@ -45,11 +46,14 @@ class ProductCardCell: UICollectionViewCell {
         label.numberOfLines = 0
         return label
     }()
-
-    private let ratingContainerView: UIView = {
-        let view = UIView()
-        view.translatesAutoresizingMaskIntoConstraints = false
-        return view
+    
+    private let ratingStackView: UIStackView = {
+        let stackView = UIStackView()
+        stackView.axis = .horizontal
+        stackView.spacing = 2
+        stackView.alignment = .center
+        stackView.distribution = .fill
+        return stackView
     }()
 
     private let starImageView: UIImageView = {
@@ -67,11 +71,35 @@ class ProductCardCell: UICollectionViewCell {
         label.textColor = ColorSet.fg.uiColor
         return label
     }()
+    
+    private let reviewCountLabel: UILabel = {
+        let label = UILabel()
+        label.font = FontSet.montserratMedium.font(14)
+        label.textColor = ColorSet.fgWeak.uiColor
+        return label
+    }()
+    
+    private let durationStackView: UIStackView = {
+        let stackView = UIStackView()
+        stackView.axis = .horizontal
+        stackView.spacing = 4
+        stackView.alignment = .center
+        stackView.distribution = .fill
+        return stackView
+    }()
+    
+    private let durationIconImageView: UIImageView = {
+        let imageView = UIImageView()
+        imageView.image = TRPImageController().getImage(inFramework: "ic_duration", inApp: nil)
+        imageView.tintColor = ColorSet.fgWeak.uiColor
+        imageView.contentMode = .scaleAspectFit
+        return imageView
+    }()
 
     private let durationLabel: UILabel = {
         let label = UILabel()
         label.translatesAutoresizingMaskIntoConstraints = false
-        label.font = FontSet.montserratRegular.font(12)
+        label.font = FontSet.montserratMedium.font(14)
         label.textColor = ColorSet.fgWeak.uiColor
         return label
     }()
@@ -79,7 +107,7 @@ class ProductCardCell: UICollectionViewCell {
     private let freeCancellationLabel: UILabel = {
         let label = UILabel()
         label.translatesAutoresizingMaskIntoConstraints = false
-        label.font = FontSet.montserratRegular.font(12)
+        label.font = FontSet.montserratMedium.font(14)
         label.textColor = ColorSet.greenAdvantage.uiColor
         label.text = CommonLocalizationKeys.localized(CommonLocalizationKeys.freeCancellation)
         return label
@@ -105,14 +133,20 @@ class ProductCardCell: UICollectionViewCell {
 
     private func setupUI() {
         contentView.backgroundColor = .white
+        contentView.clipsToBounds = true
 
         // Add rating subviews
-        ratingContainerView.addSubview(ratingLabel)
-        ratingContainerView.addSubview(starImageView)
+        ratingStackView.addArrangedSubview(ratingLabel)
+        ratingStackView.addArrangedSubview(starImageView)
+        ratingStackView.addArrangedSubview(reviewCountLabel)
+        
+        // Setup duration stack view
+        durationStackView.addArrangedSubview(durationIconImageView)
+        durationStackView.addArrangedSubview(durationLabel)
 
         // Add to details stack
-        detailsStackView.addArrangedSubview(ratingContainerView)
-        detailsStackView.addArrangedSubview(durationLabel)
+        detailsStackView.addArrangedSubview(ratingStackView)
+        detailsStackView.addArrangedSubview(durationStackView)
         detailsStackView.addArrangedSubview(freeCancellationLabel)
 
         // Add to content view
@@ -141,19 +175,26 @@ class ProductCardCell: UICollectionViewCell {
             detailsStackView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 8),
             detailsStackView.trailingAnchor.constraint(lessThanOrEqualTo: contentView.trailingAnchor, constant: -8),
 
-            // Rating Container
-            ratingContainerView.heightAnchor.constraint(equalToConstant: 18),
+//            // Rating Container
+//            ratingContainerView.heightAnchor.constraint(equalToConstant: 18),
+//
+//            // Rating Label - Star ordering: RatingLabel - Star
+//            ratingLabel.leadingAnchor.constraint(equalTo: ratingContainerView.leadingAnchor),
+//            ratingLabel.centerYAnchor.constraint(equalTo: ratingContainerView.centerYAnchor),
+            
+            // Star and duration icons size
+                        ratingStackView.heightAnchor.constraint(equalToConstant: 18),
+            starImageView.widthAnchor.constraint(equalToConstant: 12),
+            starImageView.heightAnchor.constraint(equalToConstant: 12),
+            durationIconImageView.widthAnchor.constraint(equalToConstant: 16),
+            durationIconImageView.heightAnchor.constraint(equalToConstant: 16),
 
-            // Rating Label - Star ordering: RatingLabel - Star
-            ratingLabel.leadingAnchor.constraint(equalTo: ratingContainerView.leadingAnchor),
-            ratingLabel.centerYAnchor.constraint(equalTo: ratingContainerView.centerYAnchor),
-
-            // Star Image
-            starImageView.leadingAnchor.constraint(equalTo: ratingLabel.trailingAnchor, constant: 4),
-            starImageView.centerYAnchor.constraint(equalTo: ratingContainerView.centerYAnchor),
-            starImageView.trailingAnchor.constraint(equalTo: ratingContainerView.trailingAnchor),
-            starImageView.widthAnchor.constraint(equalToConstant: 14),
-            starImageView.heightAnchor.constraint(equalToConstant: 14),
+//            // Star Image
+//            starImageView.leadingAnchor.constraint(equalTo: ratingLabel.trailingAnchor, constant: 4),
+//            starImageView.centerYAnchor.constraint(equalTo: ratingContainerView.centerYAnchor),
+//            starImageView.trailingAnchor.constraint(equalTo: ratingContainerView.trailingAnchor),
+//            starImageView.widthAnchor.constraint(equalToConstant: 14),
+//            starImageView.heightAnchor.constraint(equalToConstant: 14),
 
             // Price - Bottom right corner
             priceLabel.topAnchor.constraint(greaterThanOrEqualTo: detailsStackView.bottomAnchor, constant: 8),
@@ -168,11 +209,7 @@ class ProductCardCell: UICollectionViewCell {
 
         // Configure Image
         if let imageUrlString = product.image, !imageUrlString.isEmpty, let url = URL(string: imageUrlString) {
-            imageView.sd_setImage(with: url, placeholderImage: nil) { [weak self] image, error, _, _ in
-                if error != nil || image == nil {
-                    self?.imageView.backgroundColor = ColorSet.neutral200.uiColor
-                }
-            }
+            imageView.sd_setImage(with: url, placeholderImage: nil)
         } else {
             imageView.backgroundColor = ColorSet.neutral200.uiColor
             imageView.image = nil
@@ -181,9 +218,13 @@ class ProductCardCell: UICollectionViewCell {
         // Configure Rating
         if let rating = product.rating, rating > 0 {
             ratingLabel.text = String(format: "%.1f", rating)
-            ratingContainerView.isHidden = false
+            if let ratingCount = product.ratingCount {
+                reviewCountLabel.text = "\(ratingCount.formattedWithSeparator) " +
+                    AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.opinions)
+            }
+            ratingStackView.isHidden = false
         } else {
-            ratingContainerView.isHidden = true
+            ratingStackView.isHidden = true
         }
 
         // Configure Duration
@@ -196,7 +237,8 @@ class ProductCardCell: UICollectionViewCell {
 
         // Configure Free Cancellation
         let hasNonRefundable = product.info.contains { $0.lowercased() == "non_refundable" }
-        freeCancellationLabel.isHidden = hasNonRefundable
+//        freeCancellationLabel.isHidden = hasNonRefundable
+        freeCancellationLabel.isHidden = true
 
         // Configure Price with "From:" prefix
         let fromText = CommonLocalizationKeys.localized(CommonLocalizationKeys.from)

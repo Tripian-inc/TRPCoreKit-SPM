@@ -56,6 +56,15 @@ public protocol TRPCoreKitDelegate: AnyObject {
     /// Called when a user manually adds an activity to the timeline
     /// - Parameter activityId: The unique identifier of the added activity
     func trpCoreKitDidAddActivity(activityId: String)
+
+    /// Called when authentication fails (refresh token error)
+    /// Host app should dismiss SDK and re-authenticate the user
+    func trpCoreKitDidFailWithAuthError()
+}
+
+// MARK: - TRPCoreKitDelegate Default Implementations
+public extension TRPCoreKitDelegate {
+    func trpCoreKitDidFailWithAuthError() {}
 }
 
 public class TRPCoreKit {

@@ -8,7 +8,7 @@
 
 import Foundation
 import UIKit
-
+import TRPRestKit
 
 public class TRPBaseUIViewController: UIViewController {
     
@@ -193,6 +193,21 @@ extension TRPBaseUIViewController {
 extension TRPBaseUIViewController:  ViewModelDelegate {
     
     @objc nonisolated public func viewModel(error: Error) {
+        // Check for refresh token error - notify host app and dismiss SDK
+        if let trpError = error as? TRPErrors {
+            switch trpError {
+            case .refreshTokenError:
+                DispatchQueue.main.async {
+                    // Notify host app
+                    TRPCoreKit.shared.delegate?.trpCoreKitDidFailWithAuthError()
+                    // Dismiss SDK
+                    TRPCoreKit.dismiss(animated: true)
+                }
+                return
+            default:
+                break
+            }
+        }
         EvrAlertView.showAlert(contentText: error.localizedDescription, type: .error)
     }
     
