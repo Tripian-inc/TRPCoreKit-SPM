@@ -2,7 +2,8 @@
 //  TRPLottieLoadingVC.swift
 //  TRPCoreKit
 //
-//  Full-screen loading view with Lottie animation and rotating text labels.
+//  Loading view with Lottie animation.
+//  Supports full-screen (rotating texts) and bottom sheet (single text) modes.
 //
 //  Created by Cem Çaygöz on 24.03.2026.
 //  Copyright © 2026 Tripian Inc. All rights reserved.
@@ -11,11 +12,29 @@
 import UIKit
 import Lottie
 
+// MARK: - Presentation Mode
+
+/// Defines how the Lottie loading view should be presented
+public enum LottieLoadingPresentationMode {
+    /// Full-screen modal with rotating text labels (for long operations)
+    case fullScreen
+    /// Bottom sheet with single static text (for short operations)
+    case bottomSheet(text: String)
+}
+
+// MARK: - TRPLottieLoadingVC
+
 public class TRPLottieLoadingVC: UIViewController {
 
     // MARK: - Constants
     private let textRotationInterval: TimeInterval = 2.0
     private let animationName = "loading_animation"
+
+    // Layout constants for different modes
+    private let fullScreenAnimationSize: CGFloat = 120
+    private let bottomSheetAnimationSize: CGFloat = 80
+    private let bottomSheetTopPadding: CGFloat = 32
+    private let bottomSheetBottomPadding: CGFloat = 32
 
     // MARK: - UI Components
     private lazy var animationView: LottieAnimationView = {
@@ -62,6 +81,15 @@ public class TRPLottieLoadingVC: UIViewController {
     private var currentTextIndex: Int = 0
     private var textRotationTimer: Timer?
 
+    /// Presentation mode (full-screen or bottom sheet)
+    private var presentationMode: LottieLoadingPresentationMode = .fullScreen
+
+    /// Constraint references for dynamic layout
+    private var animationWidthConstraint: NSLayoutConstraint?
+    private var animationHeightConstraint: NSLayoutConstraint?
+    private var animationCenterYConstraint: NSLayoutConstraint?
+    private var animationTopConstraint: NSLayoutConstraint?
+
     // MARK: - Lifecycle
 
     public override func viewDidLoad() {
@@ -73,7 +101,11 @@ public class TRPLottieLoadingVC: UIViewController {
     public override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         startAnimation()
-        startTextRotation()
+
+        // Only start text rotation for full-screen mode
+        if case .fullScreen = presentationMode {
+            startTextRotation()
+        }
     }
 
     public override func viewWillDisappear(_ animated: Bool) {
@@ -91,23 +123,50 @@ public class TRPLottieLoadingVC: UIViewController {
         view.addSubview(animationView)
         view.addSubview(textLabel)
 
-        // Animation view constraints (centered, slightly above center)
-        NSLayoutConstraint.activate([
-            animationView.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            animationView.centerYAnchor.constraint(equalTo: view.centerYAnchor, constant: -40),
-            animationView.widthAnchor.constraint(equalToConstant: 120),
-            animationView.heightAnchor.constraint(equalToConstant: 120)
-        ])
+        // Common constraints
+        animationView.centerXAnchor.constraint(equalTo: view.centerXAnchor).isActive = true
+        textLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 24).isActive = true
+        textLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -24).isActive = true
+        textLabel.topAnchor.constraint(equalTo: animationView.bottomAnchor, constant: 16).isActive = true
 
-        // Text label constraints (below animation)
-        NSLayoutConstraint.activate([
-            textLabel.topAnchor.constraint(equalTo: animationView.bottomAnchor, constant: 24),
-            textLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 32),
-            textLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -32)
-        ])
+        // Mode-specific layout
+        switch presentationMode {
+        case .fullScreen:
+            setupFullScreenLayout()
+        case .bottomSheet(let text):
+            setupBottomSheetLayout(text: text)
+        }
+    }
+
+    private func setupFullScreenLayout() {
+        // Animation: 120x120, centered slightly above center
+        animationWidthConstraint = animationView.widthAnchor.constraint(equalToConstant: fullScreenAnimationSize)
+        animationHeightConstraint = animationView.heightAnchor.constraint(equalToConstant: fullScreenAnimationSize)
+        animationCenterYConstraint = animationView.centerYAnchor.constraint(equalTo: view.centerYAnchor, constant: -40)
+
+        animationWidthConstraint?.isActive = true
+        animationHeightConstraint?.isActive = true
+        animationCenterYConstraint?.isActive = true
+    }
+
+    private func setupBottomSheetLayout(text: String) {
+        // Animation: 80x80, top-aligned with padding
+        animationWidthConstraint = animationView.widthAnchor.constraint(equalToConstant: bottomSheetAnimationSize)
+        animationHeightConstraint = animationView.heightAnchor.constraint(equalToConstant: bottomSheetAnimationSize)
+        animationTopConstraint = animationView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: bottomSheetTopPadding)
+
+        animationWidthConstraint?.isActive = true
+        animationHeightConstraint?.isActive = true
+        animationTopConstraint?.isActive = true
+
+        // Set static text (no rotation)
+        textLabel.text = text
     }
 
     private func loadRotatingTexts() {
+        // Only load rotating texts for full-screen mode
+        guard case .fullScreen = presentationMode else { return }
+
         rotatingTexts = LoadingLocalizationKeys.allRotatingTexts()
         if !rotatingTexts.isEmpty {
             textLabel.text = rotatingTexts[0]
@@ -157,8 +216,10 @@ public class TRPLottieLoadingVC: UIViewController {
 
     // MARK: - Presentation Helpers
 
-    /// Shows the loading view controller modally over the specified view controller
+    /// Shows the loading view controller as full-screen modal over the specified view controller
     /// Finds the topmost presented view controller to avoid presentation conflicts
+    /// - Parameter presenter: The view controller to present from
+    /// - Returns: The loading view controller for dismissal
     @discardableResult
     public static func show(over presenter: UIViewController) -> TRPLottieLoadingVC {
         // Find topmost presented controller to avoid "already presenting" error
@@ -168,9 +229,36 @@ public class TRPLottieLoadingVC: UIViewController {
         }
 
         let loadingVC = TRPLottieLoadingVC()
+        loadingVC.presentationMode = .fullScreen
         loadingVC.modalPresentationStyle = .overFullScreen
         loadingVC.modalTransitionStyle = .crossDissolve
         topVC.present(loadingVC, animated: true)
+        return loadingVC
+    }
+
+    /// Shows the loading view controller as a bottom sheet with single static text
+    /// - Parameters:
+    ///   - presenter: The view controller to present from
+    ///   - text: The text to display (localized string or direct text)
+    /// - Returns: The loading view controller for dismissal
+    @discardableResult
+    public static func showAsSheet(over presenter: UIViewController, text: String) -> TRPLottieLoadingVC {
+        // Find topmost presented controller to avoid "already presenting" error
+        var topVC = presenter
+        while let presented = topVC.presentedViewController {
+            topVC = presented
+        }
+
+        let loadingVC = TRPLottieLoadingVC()
+        loadingVC.presentationMode = .bottomSheet(text: text)
+
+        // Present as bottom sheet with dynamic height
+        topVC.presentVCWithDynamicHeight(
+            loadingVC,
+            prefersGrabberVisible: false,
+            isDimmed: true,
+            disableSwipeToDismiss: true
+        )
         return loadingVC
     }
 
@@ -188,5 +276,22 @@ public class TRPLottieLoadingVC: UIViewController {
             withExtension: "json",
             subdirectory: "Animations"
         ) != nil
+    }
+}
+
+// MARK: - DynamicHeightPresentable
+
+extension TRPLottieLoadingVC: DynamicHeightPresentable {
+    /// Returns the preferred height for bottom sheet presentation
+    /// Calculated as: top padding + animation + spacing + text + bottom padding
+    public var preferredContentHeight: CGFloat {
+        // Only applicable for bottom sheet mode
+        guard case .bottomSheet = presentationMode else {
+            return UIScreen.main.bounds.height
+        }
+
+        // Calculate height: top padding + animation + spacing + estimated text height + bottom padding
+        // 32 (top) + 80 (animation) + 16 (spacing) + 50 (text estimate) + 32 (bottom)
+        return bottomSheetTopPadding + bottomSheetAnimationSize + 16 + 50 + bottomSheetBottomPadding
     }
 }
