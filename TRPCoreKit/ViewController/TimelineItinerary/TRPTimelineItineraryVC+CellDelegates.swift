@@ -484,9 +484,11 @@ extension TRPTimelineItineraryVC: TRPTimelineSavedPlansButtonDelegate {
 
         let savedPlansVC = SavedPlansVC(viewModel: savedPlansViewModel)
 
-        // Set callback for segment creation
-        savedPlansVC.onSegmentCreated = { [weak self] in
+        // Set callback for segment creation with selected day for navigation
+        savedPlansVC.onSegmentCreated = { [weak self] selectedDay in
             guard let self = self else { return }
+            // Set pending day navigation before refresh
+            self.setPendingDayNavigation(selectedDay: selectedDay)
             // Refresh timeline after segment is created
             self.refreshTimelineAfterSegmentCreation()
         }

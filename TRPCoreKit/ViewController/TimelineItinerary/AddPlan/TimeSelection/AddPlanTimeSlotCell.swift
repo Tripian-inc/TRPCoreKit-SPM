@@ -62,15 +62,13 @@ class AddPlanTimeSlotCell: UICollectionViewCell {
     // MARK: - Configuration
     func configure(with timeSlot: TimeSlot, isSelected: Bool) {
         timeLabel.text = timeSlot.time
+        containerView.backgroundColor = .white
+        timeLabel.textColor = ColorSet.fg.uiColor
 
         if isSelected {
-            containerView.backgroundColor = ColorSet.bgPink.uiColor
-            containerView.layer.borderColor = ColorSet.primary.uiColor.cgColor
-            timeLabel.textColor = ColorSet.primary.uiColor
+            containerView.layer.borderColor = ColorSet.fg.uiColor.cgColor
         } else {
-            containerView.backgroundColor = .white
             containerView.layer.borderColor = ColorSet.neutral200.uiColor.cgColor
-            timeLabel.textColor = ColorSet.fg.uiColor
         }
     }
 }

@@ -23,8 +23,8 @@ public class AddPlanTimeSelectionVC: TRPBaseUIViewController, DynamicHeightPrese
     // Callback when time selection is completed
     public var onTimeSelected: ((Date, TimeSlot) -> Void)?
 
-    // Callback when segment creation completes successfully
-    public var onSegmentCreated: (() -> Void)?
+    // Callback when segment creation completes successfully, passes selected day for navigation
+    public var onSegmentCreated: ((Date?) -> Void)?
 
     // Callback when segment update completes successfully (edit mode)
     public var onSegmentUpdated: (() -> Void)?
@@ -311,9 +311,9 @@ extension AddPlanTimeSelectionVC: AddPlanTimeSelectionViewModelDelegate {
         // Notify host app about activity addition
         TRPCoreKit.shared.delegate?.trpCoreKitDidAddActivity(activityId: activityId)
 
-        // Dismiss and trigger timeline refresh
+        // Dismiss and trigger timeline refresh with selected day for navigation
         dismiss(animated: true) { [weak self] in
-            self?.onSegmentCreated?()
+            self?.onSegmentCreated?(self?.viewModel.getSelectedDate())
         }
     }
 

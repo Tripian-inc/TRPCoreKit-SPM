@@ -17,8 +17,8 @@ public class AddPlanActivityListingVC: TRPBaseUIViewController {
     private var isLoadingMore = false
     private var customNavigationBar: TRPTimelineCustomNavigationBar!
 
-    // Callback when segment is created successfully
-    public var onSegmentCreated: (() -> Void)?
+    // Callback when segment is created successfully, passes selected day for navigation
+    public var onSegmentCreated: ((Date?) -> Void)?
 
     // MARK: - Lifecycle
     public override func viewDidLoad() {
@@ -484,10 +484,10 @@ extension AddPlanActivityListingVC: ActivityCardCellDelegate {
             print("Selected date: \(selectedDate), time: \(selectedTimeSlot.time)")
         }
 
-        // Set segment creation callback
-        timeSelectionVC.onSegmentCreated = { [weak self] in
-            // Trigger parent callback
-            self?.onSegmentCreated?()
+        // Set segment creation callback with selected day for navigation
+        timeSelectionVC.onSegmentCreated = { [weak self] selectedDay in
+            // Trigger parent callback with selected day
+            self?.onSegmentCreated?(selectedDay)
         }
 
         // Present as bottom sheet using base extension

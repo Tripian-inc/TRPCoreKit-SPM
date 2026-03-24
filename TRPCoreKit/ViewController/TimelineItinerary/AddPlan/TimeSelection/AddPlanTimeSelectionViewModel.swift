@@ -175,6 +175,11 @@ public class AddPlanTimeSelectionViewModel {
         return days.firstIndex(where: { Calendar.current.isDate($0, inSameDayAs: selectedDate) }) ?? 0
     }
 
+    /// Get selected date
+    public func getSelectedDate() -> Date? {
+        return selectedDate
+    }
+
     /// Select a day
     public func selectDay(at index: Int) {
         let days = getAvailableDays()

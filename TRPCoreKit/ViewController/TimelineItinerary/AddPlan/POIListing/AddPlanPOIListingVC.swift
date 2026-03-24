@@ -20,8 +20,8 @@ public class AddPlanPOIListingVC: TRPBaseUIViewController {
     // Temporarily stores selected POI while time range is being selected
     private var pendingPoi: TRPPoi?
 
-    // Callback when segment is created successfully
-    public var onSegmentCreated: (() -> Void)?
+    // Callback when segment is created successfully, passes selected day for navigation
+    public var onSegmentCreated: ((Date?) -> Void)?
 
     // MARK: - Lifecycle
     public override func viewDidLoad() {
@@ -325,7 +325,7 @@ extension AddPlanPOIListingVC: AddPlanPOIListingViewModelDelegate {
 
     public func segmentCreatedSuccessfully() {
         dismiss(animated: true) { [weak self] in
-            self?.onSegmentCreated?()
+            self?.onSegmentCreated?(self?.viewModel.getSelectedDay())
         }
     }
 }

@@ -16,8 +16,8 @@ public class SavedPlansVC: TRPBaseUIViewController {
     private var viewModel: SavedPlansViewModel!
     private var customNavigationBar: TRPTimelineCustomNavigationBar!
 
-    // Callback when segment is created successfully
-    public var onSegmentCreated: (() -> Void)?
+    // Callback when segment is created successfully, passes selected day for navigation
+    public var onSegmentCreated: ((Date?) -> Void)?
 
     // MARK: - UI Components
     private lazy var tableView: UITableView = {
@@ -177,12 +177,12 @@ extension SavedPlansVC: ActivityCardCellDelegate {
             print("Selected date: \(selectedDate), time: \(selectedTimeSlot.time)")
         }
 
-        // Set segment creation callback
-        timeSelectionVC.onSegmentCreated = { [weak self] in
+        // Set segment creation callback with selected day for navigation
+        timeSelectionVC.onSegmentCreated = { [weak self] selectedDay in
             // First dismiss time selection, then dismiss saved plans
             self?.dismiss(animated: true) { [weak self] in
-                // Trigger parent callback to refresh timeline
-                self?.onSegmentCreated?()
+                // Trigger parent callback with selected day
+                self?.onSegmentCreated?(selectedDay)
             }
         }
 

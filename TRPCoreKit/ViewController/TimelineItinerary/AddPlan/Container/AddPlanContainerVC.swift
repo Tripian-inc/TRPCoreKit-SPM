@@ -14,7 +14,7 @@ public protocol AddPlanContainerVCDelegate: AnyObject {
     func addPlanContainerDidCancel(_ viewController: AddPlanContainerVC)
     func addPlanContainerShouldShowActivityListing(_ viewController: AddPlanContainerVC, data: AddPlanData)
     func addPlanContainerShouldShowPOIListing(_ viewController: AddPlanContainerVC, data: AddPlanData, categoryType: POIListingCategoryType)
-    func addPlanContainerSegmentCreated(_ viewController: AddPlanContainerVC)
+    func addPlanContainerSegmentCreated(_ viewController: AddPlanContainerVC, selectedDay: Date?)
 }
 
 /// Protocol for child view controllers to provide their preferred content height

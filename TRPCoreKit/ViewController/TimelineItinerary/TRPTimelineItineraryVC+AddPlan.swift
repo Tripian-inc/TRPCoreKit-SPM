@@ -95,11 +95,11 @@ extension TRPTimelineItineraryVC: AddPlanContainerVCDelegate {
         let activityListingVC = AddPlanActivityListingVC()
         activityListingVC.viewModel = activityListingViewModel
 
-        // Set segment creation callback
-        activityListingVC.onSegmentCreated = { [weak self, weak viewController] in
+        // Set segment creation callback with selected day for navigation
+        activityListingVC.onSegmentCreated = { [weak self, weak viewController] selectedDay in
             guard let self = self, let viewController = viewController else { return }
-            // Trigger container delegate
-            self.addPlanContainerSegmentCreated(viewController)
+            // Trigger container delegate with selected day
+            self.addPlanContainerSegmentCreated(viewController, selectedDay: selectedDay)
         }
 
         // Create navigation controller for the activity listing
@@ -122,11 +122,11 @@ extension TRPTimelineItineraryVC: AddPlanContainerVCDelegate {
         let poiListingVC = AddPlanPOIListingVC()
         poiListingVC.viewModel = poiListingViewModel
 
-        // Set segment creation callback
-        poiListingVC.onSegmentCreated = { [weak self, weak viewController] in
+        // Set segment creation callback with selected day for navigation
+        poiListingVC.onSegmentCreated = { [weak self, weak viewController] selectedDay in
             guard let self = self, let viewController = viewController else { return }
-            // Trigger container delegate
-            self.addPlanContainerSegmentCreated(viewController)
+            // Trigger container delegate with selected day
+            self.addPlanContainerSegmentCreated(viewController, selectedDay: selectedDay)
         }
 
         // Create navigation controller for the POI listing
@@ -137,13 +137,25 @@ extension TRPTimelineItineraryVC: AddPlanContainerVCDelegate {
         viewController.present(navController, animated: true)
     }
 
-    public func addPlanContainerSegmentCreated(_ viewController: AddPlanContainerVC) {
+    public func addPlanContainerSegmentCreated(_ viewController: AddPlanContainerVC, selectedDay: Date?) {
         // Dismiss all modals from self (TRPTimelineItineraryVC)
         // This will dismiss AddPlanContainerVC and all modals presented on top of it
         dismiss(animated: true) { [weak self] in
             guard let self = self else { return }
+            // Set pending day navigation before refresh
+            self.setPendingDayNavigation(selectedDay: selectedDay)
             // Refresh timeline after segment creation
             self.refreshTimelineAfterSegmentCreation()
+        }
+    }
+
+    /// Sets pending day navigation index from selected day
+    /// This will be applied after segment generation completes
+    internal func setPendingDayNavigation(selectedDay: Date?) {
+        guard let selectedDay = selectedDay else { return }
+        let availableDays = viewModel.getAvailableDates()
+        if let index = availableDays.firstIndex(where: { Calendar.current.isDate($0, inSameDayAs: selectedDay) }) {
+            viewModel.pendingNavigationDayIndex = index
         }
     }
 
