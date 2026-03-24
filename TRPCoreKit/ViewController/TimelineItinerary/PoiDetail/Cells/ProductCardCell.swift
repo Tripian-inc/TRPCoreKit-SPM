@@ -23,8 +23,6 @@ class ProductCardCell: UICollectionViewCell {
         iv.contentMode = .scaleToFill
         iv.clipsToBounds = true
         iv.backgroundColor = ColorSet.neutral100.uiColor
-        iv.layer.cornerRadius = 8
-        iv.layer.maskedCorners = [.layerMinXMinYCorner, .layerMaxXMinYCorner] // Top corners only
         return iv
     }()
 
@@ -132,8 +130,11 @@ class ProductCardCell: UICollectionViewCell {
     }
 
     private func setupUI() {
+        layer.cornerRadius = 8
+        clipsToBounds = true
+
         contentView.backgroundColor = .white
-        contentView.clipsToBounds = true
+        contentView.layer.cornerRadius = 8
 
         // Add rating subviews
         ratingStackView.addArrangedSubview(ratingLabel)
@@ -157,7 +158,7 @@ class ProductCardCell: UICollectionViewCell {
 
         NSLayoutConstraint.activate([
             // Cell width
-            contentView.widthAnchor.constraint(equalToConstant: 280),
+            contentView.widthAnchor.constraint(equalToConstant: 253),
 
             // Image
             imageView.topAnchor.constraint(equalTo: contentView.topAnchor),
@@ -175,31 +176,19 @@ class ProductCardCell: UICollectionViewCell {
             detailsStackView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 8),
             detailsStackView.trailingAnchor.constraint(lessThanOrEqualTo: contentView.trailingAnchor, constant: -8),
 
-//            // Rating Container
-//            ratingContainerView.heightAnchor.constraint(equalToConstant: 18),
-//
-//            // Rating Label - Star ordering: RatingLabel - Star
-//            ratingLabel.leadingAnchor.constraint(equalTo: ratingContainerView.leadingAnchor),
-//            ratingLabel.centerYAnchor.constraint(equalTo: ratingContainerView.centerYAnchor),
+            // Rating Container
+            ratingStackView.heightAnchor.constraint(equalToConstant: 18),
             
             // Star and duration icons size
-                        ratingStackView.heightAnchor.constraint(equalToConstant: 18),
             starImageView.widthAnchor.constraint(equalToConstant: 12),
             starImageView.heightAnchor.constraint(equalToConstant: 12),
             durationIconImageView.widthAnchor.constraint(equalToConstant: 16),
             durationIconImageView.heightAnchor.constraint(equalToConstant: 16),
 
-//            // Star Image
-//            starImageView.leadingAnchor.constraint(equalTo: ratingLabel.trailingAnchor, constant: 4),
-//            starImageView.centerYAnchor.constraint(equalTo: ratingContainerView.centerYAnchor),
-//            starImageView.trailingAnchor.constraint(equalTo: ratingContainerView.trailingAnchor),
-//            starImageView.widthAnchor.constraint(equalToConstant: 14),
-//            starImageView.heightAnchor.constraint(equalToConstant: 14),
-
-            // Price - Bottom right corner
-            priceLabel.topAnchor.constraint(greaterThanOrEqualTo: detailsStackView.bottomAnchor, constant: 8),
+            // Price - Below details stack with minimum 8px spacing
+            priceLabel.topAnchor.constraint(equalTo: detailsStackView.bottomAnchor, constant: 8),
             priceLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -8),
-            priceLabel.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -8),
+            priceLabel.bottomAnchor.constraint(lessThanOrEqualTo: contentView.bottomAnchor, constant: -8),
             priceLabel.leadingAnchor.constraint(greaterThanOrEqualTo: contentView.leadingAnchor, constant: 8)
         ])
     }
@@ -237,62 +226,40 @@ class ProductCardCell: UICollectionViewCell {
 
         // Configure Free Cancellation
         let hasNonRefundable = product.info.contains { $0.lowercased() == "non_refundable" }
-//        freeCancellationLabel.isHidden = hasNonRefundable
-        freeCancellationLabel.isHidden = true
+        freeCancellationLabel.isHidden = hasNonRefundable
+//        freeCancellationLabel.isHidden = true
 
         // Configure Price with "From:" prefix
-        let fromText = CommonLocalizationKeys.localized(CommonLocalizationKeys.from)
+        let fromText = CommonLocalizationKeys.localized(CommonLocalizationKeys.from) + " "
+        var priceText: String = ""
 
         if let price = product.price, let currency = product.currency {
-            let priceText = TRPCurrencyHelper.formatPrice(price, currency: currency)
-            let fullText = "\(fromText) \(priceText)"
-
-            let attributedString = NSMutableAttributedString(string: fullText)
-
-            // "From:" -> Medium 14, fg
-            attributedString.addAttribute(.font,
-                                        value: FontSet.montserratMedium.font(14),
-                                        range: NSRange(location: 0, length: fromText.count))
-            attributedString.addAttribute(.foregroundColor,
-                                        value: ColorSet.fg.uiColor,
-                                        range: NSRange(location: 0, length: fromText.count))
-
-            // Price (with space) -> Bold 16, fg
-            let priceRange = NSRange(location: fromText.count, length: fullText.count - fromText.count)
-            attributedString.addAttribute(.font,
-                                        value: FontSet.montserratBold.font(16),
-                                        range: priceRange)
-            attributedString.addAttribute(.foregroundColor,
-                                        value: ColorSet.fg.uiColor,
-                                        range: priceRange)
-
-            priceLabel.attributedText = attributedString
+            priceText = TRPCurrencyHelper.formatPrice(price, currency: currency)
         } else if let priceDescription = product.priceDescription {
-            let fullText = "\(fromText) \(priceDescription)"
-
-            let attributedString = NSMutableAttributedString(string: fullText)
-
-            // "From:" -> Medium 14, fg
-            attributedString.addAttribute(.font,
-                                        value: FontSet.montserratMedium.font(14),
-                                        range: NSRange(location: 0, length: fromText.count))
-            attributedString.addAttribute(.foregroundColor,
-                                        value: ColorSet.fg.uiColor,
-                                        range: NSRange(location: 0, length: fromText.count))
-
-            // Price (with space) -> Bold 16, fg
-            let priceRange = NSRange(location: fromText.count, length: fullText.count - fromText.count)
-            attributedString.addAttribute(.font,
-                                        value: FontSet.montserratBold.font(16),
-                                        range: priceRange)
-            attributedString.addAttribute(.foregroundColor,
-                                        value: ColorSet.fg.uiColor,
-                                        range: priceRange)
-
-            priceLabel.attributedText = attributedString
-        } else {
-            priceLabel.text = ""
+            priceText = priceDescription
         }
+        
+        if priceText.isEmpty {
+            priceLabel.text = ""
+            return
+        }
+        
+        let attributedString = NSMutableAttributedString()
+        attributedString.append(NSAttributedString(
+            string: fromText,
+            attributes: [
+                .font: FontSet.montserratMedium.font(14),
+                .foregroundColor: ColorSet.primaryText.uiColor
+            ]
+        ))
+        attributedString.append(NSAttributedString(
+            string: priceText,
+            attributes: [
+                .font: FontSet.montserratBold.font(16),
+                .foregroundColor: ColorSet.primaryText.uiColor
+            ]
+        ))
+        priceLabel.attributedText = attributedString
     }
 
 }

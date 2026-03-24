@@ -256,8 +256,6 @@ public class TimelinePoiDetailViewController: TRPBaseUIViewController {
         layout.scrollDirection = .horizontal
         layout.minimumLineSpacing = 12
         layout.minimumInteritemSpacing = 0
-        layout.estimatedItemSize = CGSize(width: 280, height: 260)
-
         let cv = UICollectionView(frame: .zero, collectionViewLayout: layout)
         cv.translatesAutoresizingMaskIntoConstraints = false
         cv.showsHorizontalScrollIndicator = false

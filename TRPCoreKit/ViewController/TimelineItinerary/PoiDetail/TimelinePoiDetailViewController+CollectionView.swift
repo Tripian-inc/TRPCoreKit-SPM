@@ -58,9 +58,8 @@ extension TimelinePoiDetailViewController: UICollectionViewDelegateFlowLayout {
             let width = collectionView.bounds.width
             return CGSize(width: width, height: width) // 1:1 ratio
         } else if collectionView == productsCollectionView {
-            let width: CGFloat = 280
-            let height: CGFloat = 280 // Increased for dynamic content
-            return CGSize(width: width, height: height)
+            // Fixed size: covers all content variations
+            return CGSize(width: 253, height: 295)
         }
         return .zero
     }
