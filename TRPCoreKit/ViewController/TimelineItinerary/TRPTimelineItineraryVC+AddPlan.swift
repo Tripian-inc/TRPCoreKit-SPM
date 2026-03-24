@@ -11,6 +11,21 @@
 import UIKit
 import TRPFoundationKit
 
+// MARK: - Lottie Loading Storage
+private var lottieLoadingVCKey: UInt8 = 0
+
+extension TRPTimelineItineraryVC {
+    /// Lottie loading view controller reference (stored via associated object)
+    internal var lottieLoadingVC: TRPLottieLoadingVC? {
+        get {
+            return objc_getAssociatedObject(self, &lottieLoadingVCKey) as? TRPLottieLoadingVC
+        }
+        set {
+            objc_setAssociatedObject(self, &lottieLoadingVCKey, newValue, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+        }
+    }
+}
+
 // MARK: - Add Plan Flow
 
 extension TRPTimelineItineraryVC {
@@ -169,11 +184,12 @@ extension TRPTimelineItineraryVC: AddPlanContainerVCDelegate {
     // MARK: - Smart Recommendations Segment Creation
 
     internal func createSmartRecommendationSegment(from data: AddPlanData, containerVC: AddPlanContainerVC) {
-        // Delegate segment creation to ViewModel
-        viewModel.createSmartRecommendationSegment(from: data)
-
-        // Dismiss AddPlan modal after initiating segment creation
-        containerVC.dismiss(animated: true)
+        // Dismiss AddPlan modal first, then start segment creation
+        // This prevents "already presenting" error when showing Lottie loading
+        containerVC.dismiss(animated: true) { [weak self] in
+            // Delegate segment creation to ViewModel (this shows Lottie loading)
+            self?.viewModel.createSmartRecommendationSegment(from: data)
+        }
     }
 }
 
@@ -203,6 +219,20 @@ extension TRPTimelineItineraryVC: TRPTimelineItineraryViewModelDelegate {
 
         // Show alert (no completion needed - timeline continues in background)
         showOkAlert(title: title, message: "", subContent: description, btnTitle: buttonTitle)
+    }
+
+    public func timelineItineraryViewModel(showLottieLoading: Bool) {
+        if showLottieLoading {
+            // Show Lottie loading (only if not already showing)
+            if lottieLoadingVC == nil {
+                lottieLoadingVC = TRPLottieLoadingVC.show(over: self)
+            }
+        } else {
+            // Hide Lottie loading
+            lottieLoadingVC?.hide { [weak self] in
+                self?.lottieLoadingVC = nil
+            }
+        }
     }
 
     private func showNoCityState() {

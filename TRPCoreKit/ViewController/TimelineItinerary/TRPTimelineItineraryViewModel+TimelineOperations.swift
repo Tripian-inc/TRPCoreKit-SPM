@@ -408,6 +408,7 @@ extension TRPTimelineItineraryViewModel {
     internal func fetchAndRefreshTimeline(completion: ((Bool) -> Void)?) {
         guard let tripHash = timeline?.tripHash else {
             delegate?.viewModel(showPreloader: false)
+            delegate?.timelineItineraryViewModel(showLottieLoading: false)
             completion?(true)
             return
         }
@@ -428,7 +429,9 @@ extension TRPTimelineItineraryViewModel {
                 self.resolveFavouriteItemCities { [weak self] in
                     guard let self = self else { return }
                     DispatchQueue.main.async {
+                        // Hide both loaders (standard and Lottie)
                         self.delegate?.viewModel(showPreloader: false)
+                        self.delegate?.timelineItineraryViewModel(showLottieLoading: false)
                         self.processTimelineData()
                         self.delegate?.timelineItineraryViewModel(didUpdateTimeline: true)
                         completion?(true)
@@ -437,7 +440,9 @@ extension TRPTimelineItineraryViewModel {
 
             case .failure:
                 DispatchQueue.main.async {
+                    // Hide both loaders (standard and Lottie)
                     self.delegate?.viewModel(showPreloader: false)
+                    self.delegate?.timelineItineraryViewModel(showLottieLoading: false)
                     // Even if refresh fails, notify UI to reload with local data
                     self.delegate?.timelineItineraryViewModel(didUpdateTimeline: true)
                     completion?(true)

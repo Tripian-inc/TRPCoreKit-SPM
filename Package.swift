@@ -23,6 +23,7 @@ let package = Package(
         .package(url: "https://github.com/rechsteiner/Parchment", from: "3.1.0"),
         .package(url: "https://github.com/SDWebImage/SDWebImage.git", from: "5.19.7"),
         .package(url: "https://github.com/Tripian-inc/TRPRestKit.git", branch: "master"),
+        .package(url: "https://github.com/airbnb/lottie-ios.git", from: "4.4.0"),
 //        .package(url: "https://github.com/mapbox/mapbox-events-ios.git", from: "2.0.0"),
     ],
     targets: [
@@ -38,10 +39,12 @@ let package = Package(
                 "FSCalendar",
                 "Alamofire",
                 .product(name: "TRPRestKit", package: "TRPRestKit"),
+                .product(name: "Lottie", package: "lottie-ios"),
             ],
             path: "TRPCoreKit",
             resources: [
-                .copy("Resources/Fonts")   
+                .copy("Resources/Fonts"),
+                .copy("Resources/Animations")
             ]
         ),
         .testTarget(

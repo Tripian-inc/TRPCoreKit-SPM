@@ -17,6 +17,15 @@ public protocol TRPTimelineItineraryViewModelDelegate: ViewModelDelegate {
     func timelineItineraryViewModel(didUpdateTimeline: Bool)
     func timelineItineraryViewModel(noCitiesAvailable: Bool)
     func timelineItineraryViewModel(someCitiesUnavailable cityNames: [String])
+    func timelineItineraryViewModel(showLottieLoading: Bool)
+}
+
+// MARK: - Default Implementations
+extension TRPTimelineItineraryViewModelDelegate {
+    /// Default implementation falls back to standard preloader
+    public func timelineItineraryViewModel(showLottieLoading: Bool) {
+        viewModel(showPreloader: showLottieLoading)
+    }
 }
 
 // MARK: - Type Aliases for backward compatibility

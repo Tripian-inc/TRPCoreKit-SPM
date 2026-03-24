@@ -103,8 +103,8 @@ public class TRPTimelineCoordinator: CoordinatorProtocol {
     // MARK: - Private Methods - Timeline Creation Flow
 
     private func createTimeline(with profile: TRPTimelineProfile) {
-        // Show loading indicator
-        showLoadingIndicator(message: "Creating your itinerary...")
+        // Show Lottie loading
+        showLottieLoading()
 
         createTimelineUseCase?.executeCreateTimeline(profile: profile) { [weak self] result in
             guard let self = self else { return }
@@ -116,7 +116,7 @@ public class TRPTimelineCoordinator: CoordinatorProtocol {
                     self.checkTimelineGenerationStatus(tripHash: timeline.tripHash)
 
                 case .failure(let error):
-                    self.hideLoadingIndicator()
+                    self.hideLottieLoading()
                     self.showError(message: "Failed to create timeline. Please try again.")
                 }
             }
@@ -124,8 +124,7 @@ public class TRPTimelineCoordinator: CoordinatorProtocol {
     }
 
     private func checkTimelineGenerationStatus(tripHash: String) {
-        // Show generating message
-        showLoadingIndicator(message: "Generating your itinerary...")
+        // Lottie loading already shown from createTimeline, keep it visible
 
         // Setup observer for all segments generated
         observeTimelineAllPlan?.allSegmentGenerated.addObserver(self) { [weak self] isGenerated in
@@ -136,7 +135,7 @@ public class TRPTimelineCoordinator: CoordinatorProtocol {
             if !isGenerated {
                 if self.tryCount > self.maxTryCount {
                     DispatchQueue.main.async {
-                        self.hideLoadingIndicator()
+                        self.hideLottieLoading()
                         self.showError(message: TRPLanguagesController.shared.getLanguageValue(for: "trips.myTrips.localExperiences.tourDetails.bookingStatus.rejected.description"))
                     }
                 }
@@ -145,7 +144,7 @@ public class TRPTimelineCoordinator: CoordinatorProtocol {
 
             // All segments generation completed
             DispatchQueue.main.async {
-                self.hideLoadingIndicator()
+                self.hideLottieLoading()
 
                 // Notify delegate about timeline creation
                 TRPCoreKit.shared.delegate?.trpCoreKitDidCreateTimeline(tripHash: tripHash)
@@ -161,14 +160,14 @@ public class TRPTimelineCoordinator: CoordinatorProtocol {
     // MARK: - Private Methods - Timeline Fetch Flow
 
     private func fetchTimeline(tripHash: String) {
-        // Show loading indicator
-        showLoadingIndicator(message: "Loading your itinerary...")
+        // Show Lottie loading
+        showLottieLoading()
 
         timelineRepository.fetchTimeline(tripHash: tripHash) { [weak self] result in
             guard let self = self else { return }
 
             DispatchQueue.main.async {
-                self.hideLoadingIndicator()
+                self.hideLottieLoading()
 
                 switch result {
                 case .success(let timeline):
@@ -232,6 +231,25 @@ public class TRPTimelineCoordinator: CoordinatorProtocol {
     // MARK: - Private Methods - UI Helpers
 
     private var loadingViewController: UIViewController?
+    private var lottieLoadingVC: TRPLottieLoadingVC?
+
+    /// Shows Lottie loading screen if available, falls back to basic indicator
+    private func showLottieLoading() {
+        guard let navigationController = navigationController else { return }
+
+        // Use Lottie loading
+        lottieLoadingVC = TRPLottieLoadingVC.show(over: navigationController)
+    }
+
+    /// Hides Lottie loading screen
+    private func hideLottieLoading() {
+        if let lottieVC = lottieLoadingVC {
+            lottieVC.hide()
+            lottieLoadingVC = nil
+        } else {
+            hideLoadingIndicator()
+        }
+    }
 
     private func showLoadingIndicator(message: String) {
         guard let navigationController = navigationController else { return }

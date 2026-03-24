@@ -130,8 +130,8 @@ extension TRPTimelineItineraryViewModel {
             pendingNavigationDayIndex = index
         }
 
-        // 2. Show loading
-        delegate?.viewModel(showPreloader: true)
+        // 2. Show Lottie loading
+        delegate?.timelineItineraryViewModel(showLottieLoading: true)
 
         // 3. Build segment profile
         let profile = TRPCreateEditTimelineSegmentProfile(tripHash: tripHash)
@@ -218,12 +218,12 @@ extension TRPTimelineItineraryViewModel {
                 case .success(let success):
                     if success {
                         // Segment created successfully
-                        // Keep loading visible while waiting for generation
+                        // Keep Lottie loading visible while waiting for generation
                         // Wait for segment generation to complete before refreshing
                         self.waitForSegmentGeneration(tripHash: tripHash)
                     } else {
                         // API returned success=false
-                        self.delegate?.viewModel(showPreloader: false)
+                        self.delegate?.timelineItineraryViewModel(showLottieLoading: false)
                         self.delegate?.viewModel(error: NSError(
                             domain: "TRPTimelineItinerary",
                             code: -2,
@@ -233,7 +233,7 @@ extension TRPTimelineItineraryViewModel {
 
                 case .failure(let error):
                     // API error
-                    self.delegate?.viewModel(showPreloader: false)
+                    self.delegate?.timelineItineraryViewModel(showLottieLoading: false)
                     self.delegate?.viewModel(error: error)
                 }
             }
@@ -242,8 +242,9 @@ extension TRPTimelineItineraryViewModel {
 
     /// Waits for segment generation to complete (polls timeline until generatedStatus != 0)
     public func waitForSegmentGeneration(tripHash: String) {
-        // Show loading while waiting for segment generation and timeline refresh
-        delegate?.viewModel(showPreloader: true)
+        // Show Lottie loading (for manual POI/Activity - smart recommendations already show it)
+        // VC ignores duplicate calls if loading is already visible
+        delegate?.timelineItineraryViewModel(showLottieLoading: true)
 
         let repository = TRPTimelineRepository()
         let modelRepository = TRPTimelineModelRepository()
@@ -285,7 +286,7 @@ extension TRPTimelineItineraryViewModel {
 
             case .failure(let error):
                 DispatchQueue.main.async {
-                    self.delegate?.viewModel(showPreloader: false)
+                    self.delegate?.timelineItineraryViewModel(showLottieLoading: false)
                     self.delegate?.viewModel(error: error)
                     // Clear use case reference on error
                     self.checkAllPlanUseCase = nil

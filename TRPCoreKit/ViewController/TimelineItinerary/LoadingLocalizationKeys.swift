@@ -1,0 +1,44 @@
+//
+//  LoadingLocalizationKeys.swift
+//  TRPCoreKit
+//
+//  Created by Cem Çaygöz on 24.03.2026.
+//  Copyright © 2026 Tripian Inc. All rights reserved.
+//
+
+import Foundation
+
+public struct LoadingLocalizationKeys {
+    // MARK: - Rotating Text Keys
+    public static let findingActivities = "loading.text.findingActivities"
+    public static let tailoringRecommendations = "loading.text.tailoringRecommendations"
+    public static let optimizingRoute = "loading.text.optimizingRoute"
+
+    // MARK: - Default English Values
+    private static let defaultValues: [String: String] = [
+        findingActivities: "Finding the best activities in your city",
+        tailoringRecommendations: "Tailoring recommendations to your preferences",
+        optimizingRoute: "Optimizing your route"
+    ]
+
+    // MARK: - Helper Methods
+    public static func localized(_ key: String) -> String {
+        let localizedValue = TRPLanguagesController.shared.getLanguageValue(for: key)
+
+        // If the localization returns the key itself or is empty, use default English value
+        if localizedValue.isEmpty || localizedValue == key {
+            return defaultValues[key] ?? key
+        }
+
+        return localizedValue
+    }
+
+    /// Returns all rotating text messages in order
+    public static func allRotatingTexts() -> [String] {
+        return [
+            localized(findingActivities),
+            localized(tailoringRecommendations),
+            localized(optimizingRoute)
+        ]
+    }
+}
