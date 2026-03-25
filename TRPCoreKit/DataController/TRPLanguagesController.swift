@@ -16,25 +16,40 @@ public class TRPLanguagesController {
         return TRPLanguagesUseCases()
     }()
     private var languageResult: [String: Any] = [:]
-    public init() {
-//        getLanguages()
-    }
-    
     public var isFetched = false
-    
+
+    public init() {
+        loadFromCache()
+    }
+
+    private func loadFromCache() {
+        let currentLanguage = TRPClient.getLanguage()
+        if let cached = TRPLanguagesStorage.shared.getCachedLanguages(for: currentLanguage) {
+            self.languageResult = cached
+            self.isFetched = true
+        }
+    }
+
+    /// Prefetch languages - called from TRPCoreKit.initialize()
+    /// Always fetches fresh data, cache is used for immediate access
+    public func prefetchLanguagesIfNeeded() {
+        getLanguages(completion: nil)
+    }
+
     public func getLanguages(completion: ((Result<Bool, Error>) -> Void)? = nil) {
-//        if !languageResult.isEmpty {
-//            return
-//        }
-        let onComplete = completion ?? { result in }
-        languagesUseCases.executeFetchLanguages() { result in
+        let currentLanguage = TRPClient.getLanguage()
+
+        languagesUseCases.executeFetchLanguages() { [weak self] result in
             switch(result) {
             case .failure(let error):
-                onComplete(.failure(error))
+                completion?(.failure(error))
             case .success(let results):
-                self.isFetched = true
-                self.languageResult = results.translations[TRPClient.getLanguage()] as? [String : Any] ?? [:]
-                onComplete(.success(true))
+                self?.isFetched = true
+                let langData = results.translations[currentLanguage] as? [String: Any] ?? [:]
+                self?.languageResult = langData
+                // Save to cache (for offline fallback)
+                TRPLanguagesStorage.shared.saveLanguages(langData, for: currentLanguage)
+                completion?(.success(true))
             }
         }
     }

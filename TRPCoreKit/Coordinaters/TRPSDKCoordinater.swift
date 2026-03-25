@@ -121,11 +121,11 @@ public class TRPSDKCoordinater {
     public func startForGuest(uniqueId: String? = nil) {
         startWithSplashVC(uniqueId: uniqueId)
     }
-    
+
     public func startWithEmail(_ email: String) {
         startWithSplashVC(email: email)
     }
-    
+
     public func startWithEmailAndPassword(_ email: String, _ password: String) {
         startWithSplashVC(email: email, password: password)
     }
@@ -172,13 +172,15 @@ public class TRPSDKCoordinater {
     }
     
     private func startFirstVC() {
-        
+
         let vc = myTrip
 //        myTrip.isNexus = isAppForNexus
         //navigationController.pushViewController(vc, animated: true)
         DispatchQueue.main.async {
             self.navigationController.pushViewController(vc, animated: true)
             self.setupSomeGeneralAppearances()
+            // Show onboarding after VC is visible
+            self.showOnboardingIfNeeded(from: vc)
         }
     }
     
@@ -193,6 +195,8 @@ public class TRPSDKCoordinater {
         DispatchQueue.main.async {
             self.navigationController.pushViewController(vc, animated: true)
             self.setupSomeGeneralAppearances()
+            // Show onboarding after VC is visible
+            self.showOnboardingIfNeeded(from: vc)
         }
         //navigationController.pushViewController(makePaymetnViewController(), animated: true)
         //navigationController.pushViewController(makeBilling(), animated: true)
@@ -260,28 +264,39 @@ public class TRPSDKCoordinater {
      public func remove() {
         self.navigationController.dismiss(animated: true)
     }
-    
+
+    /// Resets the onboarding state, allowing it to be shown again
+    /// Call this method if you want to show the onboarding to the user again
+    public static func resetOnboarding() {
+        TRPOnboardingStorage.reset()
+    }
+
 }
 
 extension TRPSDKCoordinater: SplashViewControllerDelegate {
     func datasFetchCompleted() {
-        // Check if we have pending itinerary model to open
-        if let itineraryModel = pendingItineraryModel {
-            // Clear pending data first
-            let tripHash = pendingTripHash
-            pendingItineraryModel = nil
-            pendingTripHash = nil
+        // Show onboarding first (if needed), then proceed with flow
+        showOnboardingThenProceed { [weak self] in
+            guard let self = self else { return }
 
-            // Always open TimelineVC immediately - it will show loading
-            // ViewModel handles city resolution and either creates timeline or shows no-city state
-            let viewModel = TRPTimelineItineraryViewModel(itineraryModel: itineraryModel, tripHash: tripHash)
-            let viewController = TRPTimelineItineraryVC(viewModel: viewModel)
+            // Check if we have pending itinerary model to open
+            if let itineraryModel = self.pendingItineraryModel {
+                // Clear pending data first
+                let tripHash = self.pendingTripHash
+                self.pendingItineraryModel = nil
+                self.pendingTripHash = nil
 
-            // Replace splash with timeline VC
-            navigationController.setViewControllers([viewController], animated: true)
-        } else {
-            // Normal flow: open MyTrips screen
-            start()
+                // Always open TimelineVC immediately - it will show loading
+                // ViewModel handles city resolution and either creates timeline or shows no-city state
+                let viewModel = TRPTimelineItineraryViewModel(itineraryModel: itineraryModel, tripHash: tripHash)
+                let viewController = TRPTimelineItineraryVC(viewModel: viewModel)
+
+                // Replace splash with timeline VC
+                self.navigationController.setViewControllers([viewController], animated: true)
+            } else {
+                // Normal flow: open MyTrips screen
+                self.startFirstVC()
+            }
         }
     }
 
@@ -606,6 +621,68 @@ extension TRPSDKCoordinater {
             Log.e("Could not find '\(missingValus)' key in Info.plist")
         }
     }
-    
+
+}
+
+// MARK: - Onboarding
+extension TRPSDKCoordinater {
+
+    /// Shows the onboarding bottom sheet if needed (non-blocking)
+    /// - Parameter presenter: The view controller to present the onboarding from
+    private func showOnboardingIfNeeded(from presenter: UIViewController) {
+        guard TRPOnboardingViewModel.shouldShowOnboarding() else { return }
+
+        // Small delay to ensure the presenter is fully visible
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+            let viewModel = TRPOnboardingViewModel()
+            let onboardingVC = TRPOnboardingVC(viewModel: viewModel)
+
+            // Both Continue and Skip just dismiss onboarding, flow continues
+            presenter.presentVCWithDynamicHeight(
+                onboardingVC,
+                prefersGrabberVisible: false,
+                isDimmed: true,
+                disableSwipeToDismiss: true
+            )
+        }
+    }
+
+    /// Shows onboarding if needed, then calls completion. If not needed, calls completion immediately.
+    /// Used for splash flows where we need to wait for onboarding before proceeding.
+    /// - Parameter completion: Closure to execute after onboarding is dismissed (or immediately if not needed)
+    private func showOnboardingThenProceed(completion: @escaping () -> Void) {
+        guard TRPOnboardingViewModel.shouldShowOnboarding() else {
+            // No onboarding needed, proceed immediately
+            completion()
+            return
+        }
+
+        // Get the current visible view controller to present from
+        guard let presenter = navigationController.visibleViewController else {
+            completion()
+            return
+        }
+
+        // Small delay to ensure the presenter is fully visible
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+            let viewModel = TRPOnboardingViewModel()
+            let onboardingVC = TRPOnboardingVC(viewModel: viewModel)
+
+            // Both Continue and Skip proceed with normal flow
+            onboardingVC.onContinue = {
+                completion()
+            }
+            onboardingVC.onSkip = {
+                completion()
+            }
+
+            presenter.presentVCWithDynamicHeight(
+                onboardingVC,
+                prefersGrabberVisible: false,
+                isDimmed: true,
+                disableSwipeToDismiss: true
+            )
+        }
+    }
 }
 

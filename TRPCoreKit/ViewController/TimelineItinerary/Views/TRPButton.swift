@@ -11,6 +11,7 @@ import UIKit
 public enum TRPButtonStyle {
     case primary
     case secondary
+    case secondaryBold
     case outlined
 }
 
@@ -45,6 +46,8 @@ public class TRPButton: UIButton {
             setupPrimaryStyle()
         case .secondary:
             setupSecondaryStyle()
+        case .secondaryBold:
+            setupSecondaryBoldStyle()
         case .outlined:
             setupOutlinedStyle()
         }
@@ -64,6 +67,13 @@ public class TRPButton: UIButton {
         // Secondary button: transparent background with colored text
         setTitleColor(ColorSet.fg.uiColor, for: .normal)
         titleLabel?.font = FontSet.montserratRegular.font(14)
+        backgroundColor = .clear
+    }
+
+    private func setupSecondaryBoldStyle() {
+        // Secondary button: transparent background with colored text
+        setTitleColor(ColorSet.primary.uiColor, for: .normal)
+        titleLabel?.font = FontSet.montserratMedium.font(16)
         backgroundColor = .clear
     }
 

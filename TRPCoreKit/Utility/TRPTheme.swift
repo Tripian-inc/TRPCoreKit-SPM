@@ -273,6 +273,7 @@ public enum ColorSet {
     case bgDisabled
     case bgOrange
     case bgBlue
+    case bgPurple
     case primaryText
     case primaryWeakText
     case inactive
@@ -340,6 +341,8 @@ public enum ColorSet {
             return UIColor(red: 234, green: 5, blue: 88)
         case .fgGray:
             return UIColor(red: 33, green: 32, blue: 32)
+        case .bgPurple:
+            return UIColor(red: 154, green: 62, blue: 170)
         }
     }
     
