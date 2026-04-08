@@ -180,7 +180,7 @@ public class TRPTimelineItineraryVC: TRPBaseUIViewController {
     // Collection view state
     internal var isCollectionViewExpanded: Bool = false
     internal let collectionViewHeight: CGFloat = 120
-    internal let collapsedOffset: CGFloat = 114  // Only 5% visible (6pt out of 120pt)
+    internal let collapsedOffset: CGFloat = 60   // 50% visible (60pt of 120pt)
     internal let expandedOffset: CGFloat = -16   // Fully visible with margin
 
     // Status bar for fullscreen map
@@ -269,7 +269,7 @@ public class TRPTimelineItineraryVC: TRPBaseUIViewController {
         showAddPlanFlow()
     }
 
-    private func toggleView() {
+    internal func toggleView() {
         isShowingMap.toggle()
 
         if isShowingMap {
@@ -437,8 +437,8 @@ public class TRPTimelineItineraryVC: TRPBaseUIViewController {
         UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut) {
             // Slide collection view down to be half visible
             self.poiPreviewBottomConstraint?.constant = self.collapsedOffset
-            // Move add plan button back to original position
-            self.addPlanButtonBottomConstraint?.constant = -24
+            // Move add plan button above visible collection view (60pt + 24pt spacing)
+            self.addPlanButtonBottomConstraint?.constant = -84
             self.view.layoutIfNeeded()
         }
     }

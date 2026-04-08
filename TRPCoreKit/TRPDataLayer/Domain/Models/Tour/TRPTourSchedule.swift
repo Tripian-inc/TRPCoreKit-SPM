@@ -10,9 +10,11 @@ import Foundation
 
 public struct TRPTourScheduleSlot: Codable {
     public let time: String
+    public let price: Double?
 
-    public init(time: String) {
+    public init(time: String, price: Double? = nil) {
         self.time = time
+        self.price = price
     }
 }
 

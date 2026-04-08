@@ -41,7 +41,16 @@ public struct FilterData {
 }
 
 // MARK: - AddPlanFilterVC
-public class AddPlanFilterVC: TRPBaseUIViewController {
+public class AddPlanFilterVC: TRPBaseUIViewController, DynamicHeightPresentable {
+
+    // MARK: - DynamicHeightPresentable
+    public var preferredContentHeight: CGFloat {
+        // Header: 56
+        // Content: top margin (24) + price title (20) + gap (16) + price slider (50)
+        //        + gap (32) + duration title (20) + gap (16) + duration slider (50) + bottom margin (24) = 252
+        // Button container: 80
+        return 56 + 252 + 80
+    }
 
     // MARK: - Properties
     private var filterData: FilterData

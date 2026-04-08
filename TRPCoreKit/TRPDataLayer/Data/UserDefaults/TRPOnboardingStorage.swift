@@ -11,17 +11,28 @@ import Foundation
 /// Storage for onboarding-related UserDefaults values
 struct TRPOnboardingStorage {
 
+    // MARK: - Keys
+    private static let hasSeenKey = "trp_onboarding_has_seen"
+    private static let continueCountKey = "trp_onboarding_continue_count"
+    private static let dismissedKey = "trp_onboarding_dismissed_permanently"
+
     /// Whether the user has seen the onboarding at least once
-    @Storage(key: "trp_onboarding_has_seen", value: false)
-    static var hasSeenOnboarding: Bool
+    static var hasSeenOnboarding: Bool {
+        get { UserDefaults.standard.bool(forKey: hasSeenKey) }
+        set { UserDefaults.standard.set(newValue, forKey: hasSeenKey) }
+    }
 
     /// Number of times the user has tapped "Continue" on the onboarding
-    @Storage(key: "trp_onboarding_continue_count", value: 0)
-    static var continueCount: Int
+    static var continueCount: Int {
+        get { UserDefaults.standard.integer(forKey: continueCountKey) }
+        set { UserDefaults.standard.set(newValue, forKey: continueCountKey) }
+    }
 
     /// Whether the user has permanently dismissed the onboarding (via "Skip" or close button)
-    @Storage(key: "trp_onboarding_dismissed_permanently", value: false)
-    static var dismissedPermanently: Bool
+    static var dismissedPermanently: Bool {
+        get { UserDefaults.standard.bool(forKey: dismissedKey) }
+        set { UserDefaults.standard.set(newValue, forKey: dismissedKey) }
+    }
 
     // MARK: - Helper Methods
 

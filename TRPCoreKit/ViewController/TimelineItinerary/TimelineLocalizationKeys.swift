@@ -30,6 +30,10 @@ public struct TimelineLocalizationKeys {
     public static let removeRecommendationsTitle = "timeline.removeRecommendations.title"
     public static let removeRecommendationsMessage = "timeline.removeRecommendations.message"
 
+    // MARK: - Remove Step Alert
+    public static let removeStepTitle = "timeline.removeStep.title"
+    public static let removeStepMessage = "timeline.removeStep.message"
+
     // MARK: - Empty State
     public static let noPlansYet = "timeline.emptyState.noPlansYet"
     public static let noPlansDescription = "timeline.emptyState.noPlansDescription"

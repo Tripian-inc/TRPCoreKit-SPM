@@ -138,7 +138,7 @@ public class TRPSDKCoordinater {
     ///   - uniqueId: Optional unique identifier. If not provided, uses device's identifierForVendor
     public func startWithItinerary(_ itineraryModel: TRPItineraryWithActivities, tripHash: String? = nil, uniqueId: String? = nil) {
         checkAllApiKey()
-        userProfile()
+        // Note: userProfile() moved to datasFetchCompleted() - must be called after lightLogin
         // Fetch cities for coordinate-based city lookup (async, no auth required)
         TRPCityCache.shared.fetchCitiesIfNeeded()
 
@@ -162,8 +162,7 @@ public class TRPSDKCoordinater {
 
     public func start() {
         checkAllApiKey()
-        userProfile()
-//        getLanguages()
+        // Note: userProfile() moved to datasFetchCompleted() - must be called after lightLogin
         // Fetch cities for coordinate-based city lookup (async, no auth required)
         TRPCityCache.shared.fetchCitiesIfNeeded()
         // Prefetch POI categories for filtering (async, no auth required)
@@ -186,7 +185,7 @@ public class TRPSDKCoordinater {
     
     public func startForNexus(bookingDetailUrl: String, startDate: String?, endDate: String?, meetingPoint: String?, numberOfAdults: Int?, numberOfChildren: Int?) {
         checkAllApiKey()
-        userProfile()
+        // Note: userProfile() moved to datasFetchCompleted() - must be called after lightLogin
         // Fetch cities for coordinate-based city lookup (async, no auth required)
         TRPCityCache.shared.fetchCitiesIfNeeded()
         let vc = myTrip
@@ -275,6 +274,9 @@ public class TRPSDKCoordinater {
 
 extension TRPSDKCoordinater: SplashViewControllerDelegate {
     func datasFetchCompleted() {
+        // Fetch user profile after successful login (async, non-blocking)
+        userProfile()
+
         // Show onboarding first (if needed), then proceed with flow
         showOnboardingThenProceed { [weak self] in
             guard let self = self else { return }
@@ -641,8 +643,7 @@ extension TRPSDKCoordinater {
             presenter.presentVCWithDynamicHeight(
                 onboardingVC,
                 prefersGrabberVisible: false,
-                isDimmed: true,
-                disableSwipeToDismiss: true
+                isDimmed: true
             )
         }
     }
@@ -679,8 +680,7 @@ extension TRPSDKCoordinater {
             presenter.presentVCWithDynamicHeight(
                 onboardingVC,
                 prefersGrabberVisible: false,
-                isDimmed: true,
-                disableSwipeToDismiss: true
+                isDimmed: true
             )
         }
     }

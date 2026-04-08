@@ -345,9 +345,9 @@ extension TRPTimelineItineraryVC: TRPTimelineRecommendationsCellDelegate {
 
     func recommendationsCellDidTapRemoveStep(_ cell: TRPTimelineRecommendationsCell, step: TRPTimelineStep) {
         showConfirmAlert(
-            title: "Remove Step",
-            message: "Are you sure you want to remove this step from your itinerary?",
-            confirmTitle: "Remove",
+            title: TimelineLocalizationKeys.localized(TimelineLocalizationKeys.removeStepTitle),
+            message: TimelineLocalizationKeys.localized(TimelineLocalizationKeys.removeStepMessage),
+            confirmTitle: TimelineLocalizationKeys.localized(TimelineLocalizationKeys.remove),
             btnConfirmAction: { [weak self] in
                 self?.viewModel.removeStep(step)
             }
@@ -449,7 +449,13 @@ extension TRPTimelineItineraryVC: TRPTimelineRecommendationsCellDelegate {
 extension TRPTimelineItineraryVC: TRPTimelineCustomNavigationBarDelegate {
 
     func customNavigationBarDidTapBack(_ navigationBar: TRPTimelineCustomNavigationBar) {
-        // Close SDK when back button is tapped
+        // If map view is showing, switch back to list view instead of closing SDK
+        if isShowingMap {
+            toggleView()
+            return
+        }
+
+        // Close SDK when back button is tapped from list view
         // Since this is the root screen after splash, dismiss the entire navigation controller
         if let navController = navigationController {
             // Dismiss the navigation controller to close SDK

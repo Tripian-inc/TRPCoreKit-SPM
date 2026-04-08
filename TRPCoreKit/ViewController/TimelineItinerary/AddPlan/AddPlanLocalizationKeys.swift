@@ -44,7 +44,6 @@ public struct AddPlanLocalizationKeys {
     
     // MARK: - POI Selection
     public static let searchPOI = "addPlan.placeholder.searchPOI"
-    public static let nearMe = "addPlan.option.nearMe"
     public static let cityCenter = "addPlan.label.cityCenter"
     public static let savedActivities = "addPlan.section.savedActivities"
     
@@ -131,7 +130,6 @@ public struct AddPlanLocalizationKeys {
         travelers: "Travelers",
         selectATime: "Select a time",
         searchPOI: "Search for a place",
-        nearMe: "Near me",
         cityCenter: "City Center",
         savedActivities: "Itinerary starting locations",
         selectCategories: "Select the Categories You Want",

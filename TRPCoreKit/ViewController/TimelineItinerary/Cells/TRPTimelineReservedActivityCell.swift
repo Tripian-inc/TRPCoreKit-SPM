@@ -62,8 +62,8 @@ class TRPTimelineReservedActivityCell: UITableViewCell {
         let label = TRPPaddingLabel(4, 4, 8, 8)
         label.translatesAutoresizingMaskIntoConstraints = false
         label.font = FontSet.montserratMedium.font(10)
-        label.textColor = ColorSet.fgGreen.uiColor
-        label.backgroundColor = ColorSet.bgGreen.uiColor
+        label.textColor = ColorSet.fgGray.uiColor
+        label.backgroundColor = ColorSet.neutral200.uiColor
         label.textAlignment = .center
         label.layer.cornerRadius = 4
         label.clipsToBounds = true

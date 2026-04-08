@@ -75,6 +75,8 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
         button.translatesAutoresizingMaskIntoConstraints = false
         button.setImage(TRPImageController().getImage(inFramework: "ic_recom_arrow", inApp: nil), for: .normal)
         button.tintColor = ColorSet.fg.uiColor
+        // Button size 24x24 with 4px padding to keep icon visually 16x16
+        button.contentEdgeInsets = UIEdgeInsets(top: 4, left: 4, bottom: 4, right: 4)
         return button
     }()
 
@@ -139,11 +141,11 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
             titleLabel.leadingAnchor.constraint(equalTo: headerView.leadingAnchor),
             titleLabel.centerYAnchor.constraint(equalTo: headerView.centerYAnchor),
 
-            // Chevron Button
-            chevronButton.leadingAnchor.constraint(equalTo: titleLabel.trailingAnchor, constant: 10),
+            // Chevron Button - 24x24 with padding for larger tap area, icon remains visually 16x16
+            chevronButton.leadingAnchor.constraint(equalTo: titleLabel.trailingAnchor, constant: 6),
             chevronButton.centerYAnchor.constraint(equalTo: headerView.centerYAnchor),
-            chevronButton.widthAnchor.constraint(equalToConstant: 16),
-            chevronButton.heightAnchor.constraint(equalToConstant: 16),
+            chevronButton.widthAnchor.constraint(equalToConstant: 24),
+            chevronButton.heightAnchor.constraint(equalToConstant: 24),
 
             // Close Button - 44x44 for Apple HIG tap target
             closeButton.trailingAnchor.constraint(equalTo: headerView.trailingAnchor),
@@ -541,8 +543,8 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
         categoryLabel.font = FontSet.montserratMedium.font(10)
 
         if isActivity {
-            categoryBadge.backgroundColor = ColorSet.bgGreen.uiColor
-            categoryLabel.textColor = ColorSet.fgGreen.uiColor
+            categoryBadge.backgroundColor = ColorSet.neutral200.uiColor
+            categoryLabel.textColor = ColorSet.fgGray.uiColor
             categoryLabel.text = TimelineLocalizationKeys.localized(TimelineLocalizationKeys.activityBadge)
         } else {
             categoryBadge.backgroundColor = ColorSet.neutral200.uiColor

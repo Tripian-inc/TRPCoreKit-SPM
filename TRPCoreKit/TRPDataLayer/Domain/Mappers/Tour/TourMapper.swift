@@ -122,7 +122,7 @@ final class TourMapper {
     func mapSchedule(_ scheduleModel: TRPTourScheduleModel) -> TRPTourSchedule {
         let slots = (scheduleModel.slots ?? []).compactMap { slotModel -> TRPTourScheduleSlot? in
             guard let time = slotModel.time else { return nil }
-            return TRPTourScheduleSlot(time: time)
+            return TRPTourScheduleSlot(time: time, price: slotModel.price)
         }
 
         return TRPTourSchedule(
