@@ -125,12 +125,130 @@ extension TRPTimelineItineraryViewModel {
 
         let selectedDate = allTripDates[selectedDayIndex]
 
+        // Get items for the selected date (flat list, not grouped yet)
+        let dayItems = mergedTimeline.items(for: selectedDate)
+
+        // Detect time conflicts BEFORE grouping by city
+        // This ensures all items on the same day are checked against each other
+        detectTimeConflicts(items: dayItems)
+
         // Get items grouped by city for section display
         // If no items exist for this date, displayItems will be empty (shows empty state)
         displayItems = mergedTimeline.itemsGroupedByCity(for: selectedDate)
 
         // Calculate unified orders for the current day
         calculateUnifiedOrders()
+    }
+
+    // MARK: - Time Conflict Detection
+
+    /// Helper struct for time range comparison
+    private struct TimeRangeInfo {
+        let startTime: Date
+        let endTime: Date
+        let itemIndex: Int       // Index in the items array
+        let stepIndex: Int?      // For itinerary items, the step index
+        let isBookedActivity: Bool
+
+        func overlaps(with other: TimeRangeInfo) -> Bool {
+            // Two ranges overlap if R1.start < R2.end AND R2.start < R1.end
+            // Adjacent times (12:00-13:00 and 13:00-14:00) do NOT overlap
+            return startTime < other.endTime && other.startTime < endTime
+        }
+    }
+
+    /// Detects time conflicts among items for a single day
+    /// - Parameter items: All merged timeline items for the selected day
+    internal func detectTimeConflicts(items: [TRPMergedTimelineItem]) {
+        // Reset conflict flags for all items and steps
+        for item in items {
+            item.hasConflict = false
+            item.showTimeOverlapText = false
+            // Reset step conflicts for itinerary items
+            if item.isItinerary, item.plan != nil {
+                for i in 0..<item.plan!.steps.count {
+                    item.plan!.steps[i].hasConflict = false
+                    item.plan!.steps[i].showTimeOverlapText = false
+                }
+            }
+        }
+
+        // Collect all time ranges
+        var timeRanges: [TimeRangeInfo] = []
+
+        for (itemIndex, item) in items.enumerated() {
+            let isBooked = item.isBookedActivity
+
+            switch item.segmentType {
+            case .bookedActivity, .reservedActivity, .manualPoi:
+                // Single time range for non-itinerary items
+                guard let startDate = item.startDate,
+                      let endDate = item.endDate else { continue }
+
+                timeRanges.append(TimeRangeInfo(
+                    startTime: startDate,
+                    endTime: endDate,
+                    itemIndex: itemIndex,
+                    stepIndex: nil,
+                    isBookedActivity: isBooked
+                ))
+
+            case .itinerary:
+                // Collect time range for each step
+                guard let plan = item.plan else { continue }
+
+                for (stepIndex, step) in plan.steps.enumerated() {
+                    guard let startStr = step.startDateTimes,
+                          let endStr = step.endDateTimes,
+                          let startDate = Date.fromString(startStr, format: "yyyy-MM-dd HH:mm:ss"),
+                          let endDate = Date.fromString(endStr, format: "yyyy-MM-dd HH:mm:ss") else {
+                        continue
+                    }
+
+                    timeRanges.append(TimeRangeInfo(
+                        startTime: startDate,
+                        endTime: endDate,
+                        itemIndex: itemIndex,
+                        stepIndex: stepIndex,
+                        isBookedActivity: false
+                    ))
+                }
+            }
+        }
+
+        // Check for conflicts (O(n²) but n is small - typically < 20 items per day)
+        for i in 0..<timeRanges.count {
+            for j in (i + 1)..<timeRanges.count {
+                let range1 = timeRanges[i]
+                let range2 = timeRanges[j]
+
+                if range1.overlaps(with: range2) {
+                    // Mark both ranges as having conflicts
+                    markAsConflict(items: items, range: range1)
+                    markAsConflict(items: items, range: range2)
+                }
+            }
+        }
+    }
+
+    /// Marks an item or step as having a conflict
+    private func markAsConflict(items: [TRPMergedTimelineItem], range: TimeRangeInfo) {
+        let item = items[range.itemIndex]
+
+        if let stepIndex = range.stepIndex {
+            // Itinerary step conflict
+            if item.plan != nil, stepIndex < item.plan!.steps.count {
+                item.plan!.steps[stepIndex].hasConflict = true
+                item.plan!.steps[stepIndex].showTimeOverlapText = true
+            }
+            // Also mark the parent item as having conflict (for potential container styling)
+            item.hasConflict = true
+        } else {
+            // Non-itinerary item conflict
+            item.hasConflict = true
+            // BookedActivity does NOT show "Time Overlap" text
+            item.showTimeOverlapText = !range.isBookedActivity
+        }
     }
 
     /// Calculates unified order for all items in the current day

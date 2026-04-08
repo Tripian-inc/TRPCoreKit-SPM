@@ -234,7 +234,13 @@ class TRPTimelineBookedActivityCell: UITableViewCell {
         let timeParts = cellData.timeRange.components(separatedBy: " - ")
         let startTime = timeParts.first ?? ""
         let endTime = timeParts.count > 1 ? timeParts[1] : ""
-        timeBadgeView.configure(order: cellData.order, startTime: startTime, endTime: endTime)
+        timeBadgeView.configure(
+            order: cellData.order,
+            startTime: startTime,
+            endTime: endTime,
+            hasConflict: cellData.hasConflict,
+            showTimeOverlapText: false  // BookedActivity never shows "Time Overlap" text
+        )
 
         // Image
         if let imageUrl = cellData.imageUrl {

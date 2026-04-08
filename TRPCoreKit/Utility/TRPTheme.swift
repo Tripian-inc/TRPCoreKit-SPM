@@ -294,7 +294,9 @@ public enum ColorSet {
     case fgTertiary
     case borderActive
     case mainDark
-    
+    case errorIcon
+    case errorBg
+
     public var uiColor: UIColor {
         switch self {
         case .primary, .ratingStar, .fgSecondary:
@@ -343,6 +345,10 @@ public enum ColorSet {
             return UIColor(red: 33, green: 32, blue: 32)
         case .bgPurple:
             return UIColor(red: 154, green: 62, blue: 170)
+        case .errorIcon:
+            return UIColor(red: 234, green: 57, blue: 53)
+        case .errorBg:
+            return UIColor(red: 255, green: 235, blue: 238)
         }
     }
     

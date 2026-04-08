@@ -401,7 +401,13 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
 
         if let startTime = step.getStartTime(), let endTime = step.getEndTime() {
             // Use unified order (startingOrder + index) instead of step.order
-            timeBadgeView.configure(order: order, startTime: startTime, endTime: endTime)
+            timeBadgeView.configure(
+                order: order,
+                startTime: startTime,
+                endTime: endTime,
+                hasConflict: step.hasConflict,
+                showTimeOverlapText: step.showTimeOverlapText
+            )
         }
 
         // Content container (horizontal layout: image | info)

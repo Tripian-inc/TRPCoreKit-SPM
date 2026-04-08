@@ -139,6 +139,7 @@ public class AddPlanTimeSelectionVC: TRPBaseUIViewController, DynamicHeightPrese
             ? TimelineLocalizationKeys.localized(TimelineLocalizationKeys.changeTime)
             : AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.addPlan)
         customNavigationBar = setupCustomNavigationBar(title: navTitle)
+        customNavigationBar.topPadding = 16
         customNavigationBar.delegate = self
 
         view.addSubview(dayFilterView)

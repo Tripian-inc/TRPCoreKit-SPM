@@ -29,11 +29,20 @@ public class TRPMergedTimelineItem {
     public let segment: TRPTimelineSegment
 
     /// The matching plan (nil for booked/reserved activities)
-    public let plan: TRPTimelinePlan?
+    /// NOTE: Mutable to allow updating step conflict flags
+    public var plan: TRPTimelinePlan?
 
     /// Original index in tripProfile.segments array (for API operations)
     /// This index is captured on FIRST fetch and remains constant
     public let originalSegmentIndex: Int
+
+    // MARK: - Conflict Detection
+
+    /// Whether this item has a time conflict with another item on the same day
+    public var hasConflict: Bool = false
+
+    /// Whether to show "Time Overlap" text (false for BookedActivity)
+    public var showTimeOverlapText: Bool = false
 
     // MARK: - Initialization
 

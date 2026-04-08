@@ -187,7 +187,7 @@ extension SavedPlansVC: ActivityCardCellDelegate {
         }
 
         // Present as dynamic height bottom sheet
-        presentVCWithModal(timeSelectionVC, prefersGrabberVisible: false)
+        presentVCWithModal(timeSelectionVC)
     }
 }
 

@@ -95,8 +95,40 @@ class TRPTimelineTimeBadgeView: UIView {
     }
 
     // MARK: - Configuration
-    func configure(order: Int, startTime: String, endTime: String) {
+
+    /// Configures the time badge view with order number, time range, and optional conflict styling
+    /// - Parameters:
+    ///   - order: The order number to display in the badge
+    ///   - startTime: Start time string (e.g., "09:00")
+    ///   - endTime: End time string (e.g., "12:00")
+    ///   - hasConflict: Whether this time slot has a conflict (applies error styling)
+    ///   - showTimeOverlapText: Whether to show "Time Overlap" text after the time range
+    func configure(order: Int, startTime: String, endTime: String,
+                   hasConflict: Bool = false, showTimeOverlapText: Bool = false) {
         orderLabel.text = "\(order)"
-        timeLabel.text = "\(startTime) - \(endTime)"
+
+        // Build time text with optional overlap indicator
+        var timeText = "\(startTime) - \(endTime)"
+        if showTimeOverlapText {
+            let overlapText = TimelineLocalizationKeys.localized(TimelineLocalizationKeys.timeOverlap)
+            timeText += " · \(overlapText)"
+        }
+        timeLabel.text = timeText
+
+        // Apply conflict styling if needed
+        if hasConflict {
+            // Error styling
+            orderLabel.backgroundColor = ColorSet.errorIcon.uiColor
+            containerView.backgroundColor = ColorSet.errorBg.uiColor
+            containerView.layer.borderColor = ColorSet.errorIcon.uiColor.cgColor
+            timeLabel.textColor = ColorSet.errorIcon.uiColor
+        } else {
+            // Normal styling
+            orderLabel.backgroundColor = ColorSet.fg.uiColor
+            containerView.backgroundColor = .clear
+            containerView.layer.borderColor = ColorSet.lineWeak.uiColor.cgColor
+            timeLabel.textColor = ColorSet.fg.uiColor
+        }
+        // Note: verticalLineView color stays unchanged (lineWeak) regardless of conflict state
     }
 }

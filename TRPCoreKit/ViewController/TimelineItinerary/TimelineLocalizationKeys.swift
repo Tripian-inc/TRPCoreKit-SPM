@@ -61,6 +61,9 @@ public struct TimelineLocalizationKeys {
     // MARK: - Map
     public static let mapMainView = "timeline.map.mainView"
 
+    // MARK: - Time Conflict
+    public static let timeOverlap = "timeline.timeOverlap"
+
     // MARK: - Duration & Distance Formats
     public static let durationHours = "timeline.format.hours"
     public static let durationMinutes = "timeline.format.minutes"
@@ -109,7 +112,8 @@ public struct TimelineLocalizationKeys {
         errorSomethingWentWrong: "Something went wrong. Please try again.",
         errorGenerationFailed: "Failed to generate your itinerary. Please try again.",
         errorTimeout: "Request timed out. Please try again.",
-        mapMainView: "Main View"
+        mapMainView: "Main View",
+        timeOverlap: "Time Overlap"
     ]
 
     // MARK: - Helper Methods
