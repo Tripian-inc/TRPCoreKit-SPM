@@ -95,17 +95,8 @@ extension TRPTimelineItineraryVC {
             return
         }
 
-        // Select the first item of each city by default if nothing is selected
-        if selectedMarkerPoiIds.isEmpty {
-            var selectedCities: Set<Int> = []
-            for (_, _, cityIndex, item) in orderedItems {
-                // Select first item of each city
-                if !selectedCities.contains(cityIndex) {
-                    selectedCities.insert(cityIndex)
-                    selectedMarkerPoiIds.insert(item.itemId)
-                }
-            }
-        }
+        // No auto-selection on initial load - all markers start in default (unselected) state
+        // Selection happens when user taps a marker or swipes collection view
 
         // Add annotations with unified order
         addAnnotationsForOrderedItems(orderedItems)
@@ -165,34 +156,19 @@ extension TRPTimelineItineraryVC {
         map.addViewAnnotations(annotations, segmentId: "timeline_unified_annotations", annotationOrder: 0)
     }
 
-    /// Update selected marker for a specific city and refresh map annotations
-    /// When a marker is selected, it replaces the previous selection for that city only
+    /// Update selected marker and refresh map annotations
+    /// Only one marker can be selected at a time across the entire map
     internal func updateSelectedMarker(poiId: String?) {
         guard let poiId = poiId else { return }
 
-        // Find the cityIndex for the selected poiId
-        var selectedCityIndex: Int?
-        for (_, _, cityIndex, item) in mapDisplayItems {
-            if item.itemId == poiId {
-                selectedCityIndex = cityIndex
-                break
-            }
-        }
-
-        guard let cityIndex = selectedCityIndex else { return }
-
-        // Remove previous selection for this city
-        for (_, _, itemCityIndex, item) in mapDisplayItems {
-            if itemCityIndex == cityIndex && selectedMarkerPoiIds.contains(item.itemId) {
-                selectedMarkerPoiIds.remove(item.itemId)
-            }
-        }
+        // Clear all previous selections (single selection mode)
+        selectedMarkerPoiIds.removeAll()
 
         // Add new selection
         selectedMarkerPoiIds.insert(poiId)
 
         // Refresh annotations to show updated selection state
-        guard let map = map else { return }
+        guard map != nil else { return }
 
         // Clear existing annotations
         clearMapAnnotations()
@@ -459,18 +435,25 @@ extension TRPTimelineItineraryVC: TRPMapViewDelegate {
     }
 
     public func mapView(annotationPressed poiId: String, type: TRPAnnotationType) {
-        // Find the index of the item in mapDisplayItems
+        // Find the index and coordinate of the item in mapDisplayItems
         var itemIndex: Int?
+        var itemCoordinate: TRPLocation?
 
         for (index, (_, _, _, item)) in mapDisplayItems.enumerated() {
             if item.itemId == poiId {
                 itemIndex = index
+                itemCoordinate = item.coordinate
                 break
             }
         }
 
         // Update selected marker appearance
         updateSelectedMarker(poiId: poiId)
+
+        // Zoom to marker (like collection view selection)
+        if let coordinate = itemCoordinate {
+            map?.setCenter(coordinate, zoomLevel: 15)
+        }
 
         // Expand the collection view and scroll to the item
         if let index = itemIndex {
@@ -484,6 +467,8 @@ extension TRPTimelineItineraryVC: TRPMapViewDelegate {
                 // Scroll to the item after expansion animation completes
                 DispatchQueue.main.async {
                     self.poiPreviewCollectionView.scrollToItem(at: indexPath, at: .centeredHorizontally, animated: true)
+                    // Reload to update badge styles
+                    self.poiPreviewCollectionView.reloadData()
                 }
             }
         }
@@ -522,6 +507,17 @@ extension TRPTimelineItineraryVC {
         // Reset focus state
         isMarkerFocused = false
         updateMainViewButtonVisibility()
+
+        // Clear all selections
+        selectedMarkerPoiIds.removeAll()
+
+        // Refresh annotations to show all as unselected
+        clearMapAnnotations()
+        let orderedItems = viewModel.getOrderedItemsForMap()
+        addAnnotationsForOrderedItems(orderedItems)
+
+        // Refresh collection view badges
+        poiPreviewCollectionView.reloadData()
 
         // Collapse collection view
         collapseCollectionView()

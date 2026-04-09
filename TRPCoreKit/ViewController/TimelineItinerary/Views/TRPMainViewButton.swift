@@ -31,7 +31,7 @@ class TRPMainViewButton: UIButton {
 
         // Styling
         backgroundColor = .white
-        setTitleColor(ColorSet.primary.uiColor, for: .normal)
+        setTitleColor(ColorSet.fg.uiColor, for: .normal)
         titleLabel?.font = FontSet.montserratMedium.font(16)
 
         // Text

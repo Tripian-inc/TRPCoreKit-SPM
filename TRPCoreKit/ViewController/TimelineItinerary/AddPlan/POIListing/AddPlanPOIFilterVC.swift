@@ -49,13 +49,6 @@ public class AddPlanPOIFilterVC: TRPBaseUIViewController, DynamicHeightPresentab
         return button
     }()
 
-    private let separatorView: UIView = {
-        let view = UIView()
-        view.backgroundColor = ColorSet.neutral200.uiColor
-        view.translatesAutoresizingMaskIntoConstraints = false
-        return view
-    }()
-
     private let tableView: UITableView = {
         let tableView = UITableView(frame: .zero, style: .plain)
         tableView.backgroundColor = .white
@@ -111,7 +104,6 @@ public class AddPlanPOIFilterVC: TRPBaseUIViewController, DynamicHeightPresentab
         view.addSubview(headerView)
         headerView.addSubview(titleLabel)
         headerView.addSubview(closeButton)
-        view.addSubview(separatorView)
         view.addSubview(tableView)
         view.addSubview(buttonContainerView)
         buttonContainerView.addSubview(clearButton)
@@ -142,14 +134,8 @@ public class AddPlanPOIFilterVC: TRPBaseUIViewController, DynamicHeightPresentab
             closeButton.widthAnchor.constraint(equalToConstant: 24),
             closeButton.heightAnchor.constraint(equalToConstant: 24),
 
-            // Separator
-            separatorView.topAnchor.constraint(equalTo: headerView.bottomAnchor),
-            separatorView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            separatorView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            separatorView.heightAnchor.constraint(equalToConstant: 0.5),
-
             // Table view
-            tableView.topAnchor.constraint(equalTo: separatorView.bottomAnchor, constant: 24),
+            tableView.topAnchor.constraint(equalTo: headerView.bottomAnchor, constant: 16),
             tableView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             tableView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             tableView.bottomAnchor.constraint(equalTo: buttonContainerView.topAnchor),

@@ -252,11 +252,14 @@ extension TRPTimelineItineraryViewModel {
     }
 
     /// Calculates unified order for all items in the current day
-    /// Order resets to 1 for each city (section) - city-based numbering
+    /// Order continues across cities - day-based numbering
     /// - BookedActivity/ReservedActivity/ManualPoi: 1 order each
     /// - Itinerary (Recommendations): consumes N orders (where N = number of steps)
     internal func calculateUnifiedOrders() {
         unifiedOrderMap = [:]
+
+        // Start order at 1 for the entire day (continues across cities)
+        var currentOrder = 1
 
         // Calculate order per city group (section)
         for (sectionIndex, cityGroup) in displayItems.enumerated() {
@@ -267,8 +270,6 @@ extension TRPTimelineItineraryViewModel {
                 return date1 < date2
             }
 
-            // Reset order to 1 for each city
-            var currentOrder = 1
             for item in sortedItems {
                 // Key format: "sectionIndex_segmentIndex"
                 let key = "\(sectionIndex)_\(item.originalSegmentIndex)"

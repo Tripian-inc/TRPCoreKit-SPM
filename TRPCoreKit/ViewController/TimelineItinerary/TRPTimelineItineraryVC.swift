@@ -133,6 +133,7 @@ public class TRPTimelineItineraryVC: TRPBaseUIViewController {
         collectionView.translatesAutoresizingMaskIntoConstraints = false
         collectionView.backgroundColor = .clear
         collectionView.showsHorizontalScrollIndicator = false
+        collectionView.decelerationRate = .fast  // For better custom paging experience
         collectionView.delegate = self
         collectionView.dataSource = self
         return collectionView

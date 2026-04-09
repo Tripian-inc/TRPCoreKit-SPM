@@ -104,4 +104,14 @@ public enum TRPMapDisplayItem {
         case .activity: return true
         }
     }
+
+    /// Get city name for the item
+    public var cityName: String? {
+        switch self {
+        case .poi(_, let segment, _):
+            return segment.city?.name
+        case .activity(let segment):
+            return segment.city?.name
+        }
+    }
 }

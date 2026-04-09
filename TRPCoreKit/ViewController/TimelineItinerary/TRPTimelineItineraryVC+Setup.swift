@@ -127,6 +127,58 @@ extension TRPTimelineItineraryVC {
             poiPreviewCollectionView.trailingAnchor.constraint(equalTo: poiPreviewContainerView.trailingAnchor),
             poiPreviewCollectionView.bottomAnchor.constraint(equalTo: poiPreviewContainerView.bottomAnchor)
         ])
+
+        // Add tap gesture to expand when collapsed
+        let tapGesture = UITapGestureRecognizer(target: self, action: #selector(handlePreviewContainerTap))
+        poiPreviewContainerView.addGestureRecognizer(tapGesture)
+
+        // Add pan gesture to drag up/down
+        let panGesture = UIPanGestureRecognizer(target: self, action: #selector(handlePreviewContainerPan(_:)))
+        poiPreviewContainerView.addGestureRecognizer(panGesture)
+    }
+
+    @objc private func handlePreviewContainerTap() {
+        // Expand when tapped in collapsed state
+        if !isCollectionViewExpanded {
+            expandCollectionView()
+        }
+    }
+
+    @objc private func handlePreviewContainerPan(_ gesture: UIPanGestureRecognizer) {
+        let translation = gesture.translation(in: view)
+        let velocity = gesture.velocity(in: view)
+
+        switch gesture.state {
+        case .changed:
+            // Calculate new bottom constraint based on drag
+            let currentOffset = isCollectionViewExpanded ? expandedOffset : collapsedOffset
+            var newOffset = currentOffset - translation.y
+
+            // Clamp to valid range
+            newOffset = max(expandedOffset, min(collapsedOffset, newOffset))
+            poiPreviewBottomConstraint?.constant = newOffset
+
+        case .ended, .cancelled:
+            // Determine final state based on velocity and position
+            let shouldExpand: Bool
+            if abs(velocity.y) > 500 {
+                // Fast swipe - use velocity direction
+                shouldExpand = velocity.y < 0  // Swipe up = expand
+            } else {
+                // Slow drag - use position (midpoint threshold)
+                let midpoint = (expandedOffset + collapsedOffset) / 2
+                shouldExpand = (poiPreviewBottomConstraint?.constant ?? 0) < midpoint
+            }
+
+            if shouldExpand {
+                expandCollectionView()
+            } else {
+                collapseCollectionView()
+            }
+
+        default:
+            break
+        }
     }
 
     internal func setupMainViewButton() {

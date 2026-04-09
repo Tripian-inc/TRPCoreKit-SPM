@@ -18,7 +18,7 @@ public class POIFilterCategoryCell: UITableViewCell {
     private let checkboxView: UIView = {
         let view = UIView()
         view.backgroundColor = .clear
-        view.layer.borderWidth = 2
+        view.layer.borderWidth = 1
         view.layer.borderColor = ColorSet.lineWeak.uiColor.cgColor
         view.layer.cornerRadius = 4
         view.translatesAutoresizingMaskIntoConstraints = false
@@ -27,7 +27,7 @@ public class POIFilterCategoryCell: UITableViewCell {
 
     private let checkmarkImageView: UIImageView = {
         let imageView = UIImageView()
-        imageView.image = UIImage(systemName: "checkmark")
+        imageView.image = TRPImageController().getImage(inFramework: "ic_check", inApp: nil)
         imageView.tintColor = .white
         imageView.contentMode = .scaleAspectFit
         imageView.translatesAutoresizingMaskIntoConstraints = false
