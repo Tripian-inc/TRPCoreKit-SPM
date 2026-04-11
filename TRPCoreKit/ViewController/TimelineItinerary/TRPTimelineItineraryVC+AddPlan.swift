@@ -260,25 +260,34 @@ extension TRPTimelineItineraryVC: UICollectionViewDataSource, UICollectionViewDe
     }
 
     public func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
-        // Always expand and animate to marker (even if already selected)
-        expandCollectionView()
-
         let (_, _, _, item) = mapDisplayItems[indexPath.item]
 
-        // Update selected marker appearance
-        updateSelectedMarker(poiId: item.itemId)
+        // Check if item is already selected
+        let isAlreadySelected = selectedMarkerPoiIds.contains(item.itemId)
 
-        // Center map on selected item's coordinate
-        if let coordinate = item.coordinate, let mapView = map {
-            mapView.setCenter(coordinate, zoomLevel: 15)
+        if isAlreadySelected {
+            // Navigate to detail
+            switch item {
+            case .poi(_, _, let step):
+                if let step = step {
+                    delegate?.timelineItineraryDidSelectStep(self, step: step)
+                }
+            case .activity(let segment):
+                delegate?.timelineItineraryDidSelectBookedActivity(self, segment: segment)
+            }
+        } else {
+            // Normal selection flow
+            expandCollectionView()
+            updateSelectedMarker(poiId: item.itemId)
 
-            // Mark as focused for Main View button
-            isMarkerFocused = true
-            updateMainViewButtonVisibility()
+            if let coordinate = item.coordinate, let mapView = map {
+                mapView.setCenter(coordinate, zoomLevel: 15)
+                isMarkerFocused = true
+                updateMainViewButtonVisibility()
+            }
+
+            poiPreviewCollectionView.reloadData()
         }
-
-        // Reload to update badge styles
-        poiPreviewCollectionView.reloadData()
     }
 
     // MARK: - Custom Paging

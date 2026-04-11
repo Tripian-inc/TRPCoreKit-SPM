@@ -3,6 +3,7 @@
 //  TRPCoreKit
 //
 //  Created on 2.12.2025.
+//
 
 import UIKit
 import TRPFoundationKit
@@ -16,25 +17,16 @@ class TRPTimeRangeSelectionViewController: TRPBaseUIViewController, DynamicHeigh
 
     // MARK: - DynamicHeightPresentable
     var preferredContentHeight: CGFloat {
-        // Header (56) + separator (0.5) + content padding (24) + labels+fields (16+8+40) + picker (200) + button padding (16) + button (52) + bottom (16)
-        return 56 + 0.5 + 24 + 64 + 200 + 16 + 52 + 16  // ~428.5
+        // Header (56) + separator (0.5) + padding (24) + start field (64) + spacing (16) + end field (64) + button padding (16) + button (52) + bottom (16)
+        return 56 + 0.5 + 24 + 64 + 16 + 64 + 16 + 52 + 16  // ~308.5
     }
 
     // MARK: - Properties
     weak var delegate: TRPTimeRangeSelectionDelegate?
-    private var fromTime: String?
-    private var toTime: String?
     private var fromDate: Date?
     private var toDate: Date?
     private var selectedDate: Date?  // The date being planned for (used for minimum time validation)
-
-    // Track which field is being edited
-    enum EditingField {
-        case from
-        case until
-    }
-    private var currentEditingField: EditingField = .from
-    private var initialFocusField: EditingField = .from
+    private var editingStartTime = false  // Track which time is being edited
 
     // MARK: - UI Components
     private let headerView: UIView = {
@@ -69,26 +61,21 @@ class TRPTimeRangeSelectionViewController: TRPBaseUIViewController, DynamicHeigh
         return view
     }()
 
-    // Time Fields
-    private lazy var fromTimeField: TRPTimeFieldView = {
-        let field = TRPTimeFieldView(title: AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.startTime))
-        field.onTap = { [weak self] in self?.fromFieldTapped() }
+    // Time Selection Fields
+    private lazy var startTimeField: TRPTimeSelectionField = {
+        let field = TRPTimeSelectionField(
+            title: AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.startTime)
+        )
+        field.onTap = { [weak self] in self?.startTimeFieldTapped() }
         return field
     }()
 
-    private lazy var toTimeField: TRPTimeFieldView = {
-        let field = TRPTimeFieldView(title: AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.endTime))
-        field.onTap = { [weak self] in self?.toFieldTapped() }
+    private lazy var endTimeField: TRPTimeSelectionField = {
+        let field = TRPTimeSelectionField(
+            title: AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.endTime)
+        )
+        field.onTap = { [weak self] in self?.endTimeFieldTapped() }
         return field
-    }()
-
-    private let timePicker: UIDatePicker = {
-        let picker = UIDatePicker()
-        picker.datePickerMode = .time
-        picker.preferredDatePickerStyle = .wheels
-        picker.locale = Locale(identifier: "en_US")
-        picker.translatesAutoresizingMaskIntoConstraints = false
-        return picker
     }()
 
     private lazy var confirmButton: TRPButton = {
@@ -110,11 +97,8 @@ class TRPTimeRangeSelectionViewController: TRPBaseUIViewController, DynamicHeigh
 
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
-        setupPickerView()
-        updateMinimumTime()  // Apply minimum time restriction for today
-        // Ensure initial values are displayed
-        updateFromDisplay()
-        updateToDisplay()
+        updateStartTimeDisplay()
+        updateEndTimeDisplay()
         updateConfirmButtonState()
     }
 
@@ -131,9 +115,8 @@ class TRPTimeRangeSelectionViewController: TRPBaseUIViewController, DynamicHeigh
         view.addSubview(separatorView)
 
         // Content
-        view.addSubview(fromTimeField)
-        view.addSubview(toTimeField)
-        view.addSubview(timePicker)
+        view.addSubview(startTimeField)
+        view.addSubview(endTimeField)
         view.addSubview(confirmButton)
 
         setupConstraints()
@@ -163,20 +146,15 @@ class TRPTimeRangeSelectionViewController: TRPBaseUIViewController, DynamicHeigh
             separatorView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             separatorView.heightAnchor.constraint(equalToConstant: 0.5),
 
-            // From time field
-            fromTimeField.topAnchor.constraint(equalTo: separatorView.bottomAnchor, constant: 24),
-            fromTimeField.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
-            fromTimeField.trailingAnchor.constraint(equalTo: view.centerXAnchor, constant: -8),
+            // Start time field
+            startTimeField.topAnchor.constraint(equalTo: separatorView.bottomAnchor, constant: 24),
+            startTimeField.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
+            startTimeField.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
 
-            // To time field
-            toTimeField.topAnchor.constraint(equalTo: separatorView.bottomAnchor, constant: 24),
-            toTimeField.leadingAnchor.constraint(equalTo: view.centerXAnchor, constant: 8),
-            toTimeField.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
-
-            // Time picker
-            timePicker.topAnchor.constraint(equalTo: fromTimeField.bottomAnchor, constant: 24),
-            timePicker.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            timePicker.heightAnchor.constraint(equalToConstant: 200),
+            // End time field
+            endTimeField.topAnchor.constraint(equalTo: startTimeField.bottomAnchor, constant: 16),
+            endTimeField.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
+            endTimeField.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
 
             // Confirm button
             confirmButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
@@ -188,52 +166,6 @@ class TRPTimeRangeSelectionViewController: TRPBaseUIViewController, DynamicHeigh
     private func setupActions() {
         closeButton.addTarget(self, action: #selector(closeButtonTapped), for: .touchUpInside)
         confirmButton.addTarget(self, action: #selector(confirmButtonTapped), for: .touchUpInside)
-        // Tap gestures are handled inside TRPTimeFieldView
-    }
-
-    private func setupPickerView() {
-        timePicker.addTarget(self, action: #selector(timePickerValueChanged), for: .valueChanged)
-
-        // If no initial times were set, set default start time
-        if fromDate == nil {
-            let defaultTime = getDefaultStartTime()
-            fromDate = defaultTime
-            fromTime = timeStringFromDate(defaultTime)
-            updateFromDisplay()
-        }
-
-        // Set current editing field based on initial focus
-        currentEditingField = initialFocusField
-
-        // Set picker to the focused field's time
-        let focusedDate = initialFocusField == .from ? fromDate : toDate
-        if let date = focusedDate {
-            timePicker.date = date
-        }
-
-        // Highlight the initial editing field
-        fromTimeField.setHighlighted(initialFocusField == .from)
-        toTimeField.setHighlighted(initialFocusField == .until)
-    }
-
-    /// Returns the default start time based on selected date
-    /// - Today: current time + 30 minutes
-    /// - Future dates: 09:00 AM
-    private func getDefaultStartTime() -> Date {
-        let calendar = Calendar.current
-
-        // If selected date is today, use current time + 30 minutes
-        if let selectedDate = selectedDate, calendar.isDateInToday(selectedDate) {
-            return Date().addingTimeInterval(30 * 60)
-        }
-
-        // For future dates, default to 09:00 AM
-        var components = calendar.dateComponents([.year, .month, .day], from: Date())
-        components.hour = 9
-        components.minute = 0
-        components.second = 0
-
-        return calendar.date(from: components) ?? Date()
     }
 
     // MARK: - Actions
@@ -256,52 +188,65 @@ class TRPTimeRangeSelectionViewController: TRPBaseUIViewController, DynamicHeigh
         })
     }
 
-    /// Converts Date to "HH:mm" format string
-    private func convertTo24HourFormat(_ date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "HH:mm"
-        return formatter.string(from: date)
+    private func startTimeFieldTapped() {
+        editingStartTime = true
+        let picker = TRPSingleTimePickerViewController(
+            title: AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.startTime),
+            selectedDate: selectedDate,
+            minimumTime: getMinimumStartTime(),
+            maximumTime: nil,
+            initialTime: fromDate,
+            showBackButton: true
+        )
+        picker.delegate = self
+        presentVCWithDynamicHeight(picker)
     }
 
-    private func fromFieldTapped() {
-        currentEditingField = .from
-        fromTimeField.setHighlighted(true)
-        toTimeField.setHighlighted(false)
-        updatePickerForCurrentField()
+    private func endTimeFieldTapped() {
+        editingStartTime = false
+        let picker = TRPSingleTimePickerViewController(
+            title: AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.endTime),
+            selectedDate: selectedDate,
+            minimumTime: getMinimumEndTime(),
+            maximumTime: nil,
+            initialTime: toDate,
+            showBackButton: true
+        )
+        picker.delegate = self
+        presentVCWithDynamicHeight(picker)
     }
 
-    private func toFieldTapped() {
-        currentEditingField = .until
-        fromTimeField.setHighlighted(false)
-        toTimeField.setHighlighted(true)
-        updatePickerForCurrentField()
-    }
+    // MARK: - Time Restriction Logic
+    private func getMinimumStartTime() -> Date? {
+        guard let selectedDate = selectedDate else { return nil }
 
-    @objc private func timePickerValueChanged() {
-        let selectedDate = timePicker.date
-        let timeString = timeStringFromDate(selectedDate)
-
-        switch currentEditingField {
-        case .from:
-            fromTime = timeString
-            fromDate = selectedDate
-            updateFromDisplay()
-        case .until:
-            toTime = timeString
-            toDate = selectedDate
-            updateToDisplay()
+        let calendar = Calendar.current
+        if calendar.isDateInToday(selectedDate) {
+            // Today: minimum is current time + 30 minutes
+            return Date().addingTimeInterval(30 * 60)
         }
 
-        updateConfirmButtonState()
+        // Future dates: no minimum restriction
+        return nil
+    }
+
+    private func getMinimumEndTime() -> Date? {
+        // End time must be at least start time
+        if let fromDate = fromDate {
+            return fromDate
+        }
+
+        // If no start time yet, use same logic as start time
+        return getMinimumStartTime()
     }
 
     // MARK: - UI Updates
-    private func updateFromDisplay() {
-        fromTimeField.setValue(fromTime)
+    private func updateStartTimeDisplay() {
+        startTimeField.setValue(fromDate)
     }
 
-    private func updateToDisplay() {
-        toTimeField.setValue(toTime)
+    private func updateEndTimeDisplay() {
+        endTimeField.setValue(toDate)
     }
 
     private func updateConfirmButtonState() {
@@ -314,63 +259,21 @@ class TRPTimeRangeSelectionViewController: TRPBaseUIViewController, DynamicHeigh
         confirmButton.setEnabled(isValid)
     }
 
-    // MARK: - Public Methods
-    func show(from parentViewController: UIViewController? = nil) {
-        guard let presentingViewController = parentViewController ?? UIApplication.getTopViewController() else {
-            print("[Error] TopViewController is nil")
-            return
-        }
-
-        presentingViewController.presentVCWithModal(self)
-    }
-
-    func setInitialFocus(_ field: EditingField) {
-        initialFocusField = field
-    }
-
-    /// Sets the date being planned for (used for minimum time validation)
-    func setSelectedDate(_ date: Date) {
-        self.selectedDate = date
-    }
-
     // MARK: - Helper Methods
-    private func updatePickerForCurrentField() {
-        let dateToEdit = currentEditingField == .from ? fromDate : toDate
-
-        if let date = dateToEdit {
-            DispatchQueue.main.async { [weak self] in
-                self?.timePicker.setDate(date, animated: true)
-            }
-        }
+    /// Converts Date to "HH:mm" format string
+    private func convertTo24HourFormat(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "HH:mm"
+        return formatter.string(from: date)
     }
 
-    /// Updates minimum time based on whether the selected date is today
-    private func updateMinimumTime() {
-        guard let selectedDate = selectedDate else {
-            timePicker.minimumDate = nil
-            return
-        }
-
-        let calendar = Calendar.current
-        if calendar.isDateInToday(selectedDate) {
-            // Today: minimum is current time + 30 minutes
-            let minimumDate = Date().addingTimeInterval(30 * 60)
-            timePicker.minimumDate = minimumDate
-
-            // If current fromDate is before minimum, update it
-            if let fromDate = fromDate, fromDate < minimumDate {
-                self.fromDate = minimumDate
-                self.fromTime = timeStringFromDate(minimumDate)
-                timePicker.date = minimumDate
-                updateFromDisplay()
-            }
-        } else {
-            // Future date: no minimum restriction
-            timePicker.minimumDate = nil
-        }
+    private func timeStringFromDate(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "h:mm a"  // 12-hour format: "9:30 AM"
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        return formatter.string(from: date)
     }
 
-    // MARK: - Time Conversion Helpers
     private func dateFromTimeString(_ timeString: String) -> Date? {
         let formatter = DateFormatter()
         formatter.dateFormat = "h:mm a"
@@ -391,24 +294,29 @@ class TRPTimeRangeSelectionViewController: TRPBaseUIViewController, DynamicHeigh
         return formatter.date(from: timeString.replacingOccurrences(of: " ", with: ""))
     }
 
-    private func timeStringFromDate(_ date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "h:mm a"  // No leading zero for hour
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        return formatter.string(from: date)
+    // MARK: - Public Methods
+    func show(from parentViewController: UIViewController? = nil) {
+        guard let presentingViewController = parentViewController ?? UIApplication.getTopViewController() else {
+            print("[Error] TopViewController is nil")
+            return
+        }
+
+        presentingViewController.presentVCWithDynamicHeight(self)
+    }
+
+    /// Sets the date being planned for (used for minimum time validation)
+    func setSelectedDate(_ date: Date) {
+        self.selectedDate = date
     }
 
     func setInitialTimes(from: String, to: String) {
-        fromTime = from
-        toTime = to
-
         fromDate = dateFromTimeString(from)
         toDate = dateFromTimeString(to)
 
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
-            self.updateFromDisplay()
-            self.updateToDisplay()
+            self.updateStartTimeDisplay()
+            self.updateEndTimeDisplay()
             self.updateConfirmButtonState()
         }
     }
@@ -416,20 +324,44 @@ class TRPTimeRangeSelectionViewController: TRPBaseUIViewController, DynamicHeigh
     func setInitialTimes(from: Date, to: Date) {
         fromDate = from
         toDate = to
-        fromTime = timeStringFromDate(from)
-        toTime = timeStringFromDate(to)
 
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
-            self.updateFromDisplay()
-            self.updateToDisplay()
+            self.updateStartTimeDisplay()
+            self.updateEndTimeDisplay()
             self.updateConfirmButtonState()
         }
     }
 }
 
-// MARK: - TRPTimeFieldView
-private class TRPTimeFieldView: UIView {
+// MARK: - TRPSingleTimePickerDelegate
+extension TRPTimeRangeSelectionViewController: TRPSingleTimePickerDelegate {
+
+    func singleTimePickerDidSelectTime(_ picker: TRPSingleTimePickerViewController, time: Date) {
+        if editingStartTime {  // Start time
+            fromDate = time
+            updateStartTimeDisplay()
+
+            // Clear end time if it's now invalid (before new start time)
+            if let toDate = toDate, toDate <= time {
+                self.toDate = nil
+                updateEndTimeDisplay()
+            }
+        } else {  // End time
+            toDate = time
+            updateEndTimeDisplay()
+        }
+
+        updateConfirmButtonState()
+    }
+
+    func singleTimePickerDidCancel(_ picker: TRPSingleTimePickerViewController) {
+        // No action needed
+    }
+}
+
+// MARK: - TRPTimeSelectionField
+private class TRPTimeSelectionField: UIView {
 
     // MARK: - Properties
     var onTap: (() -> Void)?
@@ -444,30 +376,30 @@ private class TRPTimeFieldView: UIView {
 
     private let container: UIView = {
         let view = UIView()
-        view.backgroundColor = .clear
-        view.layer.cornerRadius = 4
+        view.backgroundColor = .white
+        view.layer.cornerRadius = 8
         view.layer.borderWidth = 1
         view.layer.borderColor = ColorSet.lineWeak.uiColor.cgColor
         view.translatesAutoresizingMaskIntoConstraints = false
         return view
     }()
 
-    private let clockIcon: UIImageView = {
+    private let valueLabel: UILabel = {
+        let label = UILabel()
+        label.text = CommonLocalizationKeys.localized(CommonLocalizationKeys.select)
+        label.font = FontSet.montserratRegular.font(16)
+        label.textColor = ColorSet.fgWeak.uiColor
+        label.translatesAutoresizingMaskIntoConstraints = false
+        return label
+    }()
+
+    private let arrowIcon: UIImageView = {
         let imageView = UIImageView()
-        imageView.image = TRPImageController().getImage(inFramework: "ic_time", inApp: nil)?.withRenderingMode(.alwaysTemplate)
+        imageView.image = TRPImageController().getImage(inFramework: "ic_chevron_right", inApp: nil)?.withRenderingMode(.alwaysTemplate)
         imageView.tintColor = ColorSet.fgWeak.uiColor
         imageView.contentMode = .scaleAspectFit
         imageView.translatesAutoresizingMaskIntoConstraints = false
         return imageView
-    }()
-
-    private let valueLabel: UILabel = {
-        let label = UILabel()
-        label.text = CommonLocalizationKeys.localized(CommonLocalizationKeys.select)
-        label.font = FontSet.montserratLight.font(16)
-        label.textColor = ColorSet.fgWeak.uiColor
-        label.translatesAutoresizingMaskIntoConstraints = false
-        return label
     }()
 
     // MARK: - Init
@@ -487,8 +419,8 @@ private class TRPTimeFieldView: UIView {
 
         addSubview(titleLabel)
         addSubview(container)
-        container.addSubview(clockIcon)
         container.addSubview(valueLabel)
+        container.addSubview(arrowIcon)
 
         let tapGesture = UITapGestureRecognizer(target: self, action: #selector(handleTap))
         container.addGestureRecognizer(tapGesture)
@@ -504,13 +436,13 @@ private class TRPTimeFieldView: UIView {
             container.heightAnchor.constraint(equalToConstant: 40),
             container.bottomAnchor.constraint(equalTo: bottomAnchor),
 
-            clockIcon.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 12),
-            clockIcon.centerYAnchor.constraint(equalTo: container.centerYAnchor),
-            clockIcon.widthAnchor.constraint(equalToConstant: 16),
-            clockIcon.heightAnchor.constraint(equalToConstant: 16),
-
-            valueLabel.leadingAnchor.constraint(equalTo: clockIcon.trailingAnchor, constant: 4),
+            valueLabel.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 12),
             valueLabel.centerYAnchor.constraint(equalTo: container.centerYAnchor),
+
+            arrowIcon.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -12),
+            arrowIcon.centerYAnchor.constraint(equalTo: container.centerYAnchor),
+            arrowIcon.widthAnchor.constraint(equalToConstant: 20),
+            arrowIcon.heightAnchor.constraint(equalToConstant: 20),
         ])
     }
 
@@ -520,21 +452,16 @@ private class TRPTimeFieldView: UIView {
     }
 
     // MARK: - Public Methods
-    func setValue(_ value: String?) {
-        if let value = value {
-            valueLabel.text = value
+    func setValue(_ time: Date?) {
+        if let time = time {
+            let formatter = DateFormatter()
+            formatter.dateFormat = "h:mm a"  // 12-hour format: "9:30 AM"
+            formatter.locale = Locale(identifier: "en_US_POSIX")
+            valueLabel.text = formatter.string(from: time)
             valueLabel.textColor = ColorSet.primaryText.uiColor
         } else {
             valueLabel.text = CommonLocalizationKeys.localized(CommonLocalizationKeys.select)
             valueLabel.textColor = ColorSet.fgWeak.uiColor
-        }
-    }
-
-    func setHighlighted(_ highlighted: Bool) {
-        UIView.animate(withDuration: 0.2) {
-            self.container.layer.borderColor = highlighted
-                ? ColorSet.borderActive.uiColor.cgColor
-                : ColorSet.lineWeak.uiColor.cgColor
         }
     }
 }

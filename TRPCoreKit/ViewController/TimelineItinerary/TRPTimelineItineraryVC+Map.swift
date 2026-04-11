@@ -95,8 +95,11 @@ extension TRPTimelineItineraryVC {
             return
         }
 
-        // No auto-selection on initial load - all markers start in default (unselected) state
-        // Selection happens when user taps a marker or swipes collection view
+        // Auto-select first item on initial load
+        if let firstItem = orderedItems.first {
+            selectedMarkerPoiIds.removeAll()
+            selectedMarkerPoiIds.insert(firstItem.item.itemId)
+        }
 
         // Add annotations with unified order
         addAnnotationsForOrderedItems(orderedItems)

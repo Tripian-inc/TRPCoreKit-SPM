@@ -24,6 +24,7 @@ public class AddPlanTimeAndTravelersVC: TRPBaseUIViewController, AddPlanChildVie
     public var viewModel: AddPlanTimeAndTravelersViewModel!
     public weak var containerVC: AddPlanContainerVC?
     private var selectedDayIndex: Int = 0
+    private var editingStartTime = false  // Track which time is being edited
     
     // MARK: - UI Components
 
@@ -358,31 +359,50 @@ public class AddPlanTimeAndTravelersVC: TRPBaseUIViewController, AddPlanChildVie
     }
     
     @objc private func startTimeButtonTapped() {
-        showTimeRangeSelection(focusField: .from)
+        editingStartTime = true
+        let picker = TRPSingleTimePickerViewController(
+            title: AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.startTime),
+            selectedDate: viewModel.getSelectedDay(),
+            minimumTime: getMinimumStartTime(),
+            maximumTime: nil,
+            initialTime: viewModel.getStartTime()
+        )
+        picker.delegate = self
+        presentVCWithDynamicHeight(picker)
     }
 
     @objc private func endTimeButtonTapped() {
-        showTimeRangeSelection(focusField: .until)
+        editingStartTime = false
+        let picker = TRPSingleTimePickerViewController(
+            title: AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.endTime),
+            selectedDate: viewModel.getSelectedDay(),
+            minimumTime: getMinimumEndTime(),
+            maximumTime: nil,
+            initialTime: viewModel.getEndTime()
+        )
+        picker.delegate = self
+        presentVCWithDynamicHeight(picker)
     }
 
-    private func showTimeRangeSelection(focusField: TRPTimeRangeSelectionViewController.EditingField) {
-        let timeRangeVC = TRPTimeRangeSelectionViewController()
-        timeRangeVC.delegate = self
+    private func getMinimumStartTime() -> Date? {
+        guard let selectedDay = viewModel.getSelectedDay() else { return nil }
 
-        // Set initial focus based on which button was tapped
-        timeRangeVC.setInitialFocus(focusField)
-
-        // Pass selected date for minimum time validation (prevents selecting past times for today)
-        if let selectedDay = viewModel.getSelectedDay() {
-            timeRangeVC.setSelectedDate(selectedDay)
+        let calendar = Calendar.current
+        if calendar.isDateInToday(selectedDay) {
+            // Today: current time + 30 minutes
+            return Date().addingTimeInterval(30 * 60)
         }
+        // Future dates: no restriction
+        return nil
+    }
 
-        // Set initial times if already selected
-        if let startTime = viewModel.getStartTime(), let endTime = viewModel.getEndTime() {
-            timeRangeVC.setInitialTimes(from: startTime, to: endTime)
+    private func getMinimumEndTime() -> Date? {
+        // End time must be at least start time
+        if let startTime = viewModel.getStartTime() {
+            return startTime
         }
-
-        timeRangeVC.show(from: self)
+        // If no start time yet, use same logic as start time
+        return getMinimumStartTime()
     }
     
     @objc private func decrementTapped() {
@@ -434,22 +454,30 @@ public class AddPlanTimeAndTravelersVC: TRPBaseUIViewController, AddPlanChildVie
     }
 }
 
-// MARK: - TRPTimeRangeSelectionDelegate
-extension AddPlanTimeAndTravelersVC: TRPTimeRangeSelectionDelegate {
+// MARK: - TRPSingleTimePickerDelegate
+extension AddPlanTimeAndTravelersVC: TRPSingleTimePickerDelegate {
 
-    func timeRangeSelected(fromTime: String, toTime: String) {
-        // String version - not used, we use Date version
-    }
+    func singleTimePickerDidSelectTime(_ picker: TRPSingleTimePickerViewController, time: Date) {
+        // Combine selected day's date with picked time
+        let combinedTime = combineDate(viewModel.getSelectedDay(), withTime: time)
 
-    func timeRangeSelected(fromDate: Date, toDate: Date) {
-        // Combine selected day's date with picked times
-        let combinedStartTime = combineDate(viewModel.getSelectedDay(), withTime: fromDate)
-        let combinedEndTime = combineDate(viewModel.getSelectedDay(), withTime: toDate)
+        if editingStartTime {  // Start time
+            viewModel.setStartTime(combinedTime)
 
-        viewModel.setStartTime(combinedStartTime)
-        viewModel.setEndTime(combinedEndTime)
+            // Clear end time if it's now invalid (before new start time)
+            if let endTime = viewModel.getEndTime(), endTime <= combinedTime {
+                viewModel.setEndTime(nil)
+            }
+        } else {  // End time
+            viewModel.setEndTime(combinedTime)
+        }
+
         updateUI()
         containerVC?.updateContinueButtonState()
+    }
+
+    func singleTimePickerDidCancel(_ picker: TRPSingleTimePickerViewController) {
+        // No action needed on cancel
     }
 }
 
