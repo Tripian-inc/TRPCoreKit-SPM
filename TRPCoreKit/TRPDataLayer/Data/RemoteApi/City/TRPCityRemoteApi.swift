@@ -135,11 +135,33 @@ final public class TRPCityRemoteApi: CityRemoteApi {
                 return
             }
 
+            // Try parsing as array of integers (backward compatibility)
             if let cityIds = result as? [Int] {
+                Log.d("TRPCityRemoteApi: Resolved \(cityIds.count) city IDs (integer array): \(cityIds)")
                 completion(.success(cityIds))
-            } else {
-                completion(.failure(GeneralError.customMessage("Failed to resolve cities")))
+                return
             }
+
+            // Try parsing as array of dictionaries with cityId field (current API format)
+            if let dataArray = result as? [[String: Any]] {
+                let cityIds = dataArray.compactMap { dict -> Int? in
+                    return dict["cityId"] as? Int
+                }
+
+                // Verify we got the same count (no data loss)
+                guard cityIds.count == dataArray.count else {
+                    Log.e("TRPCityRemoteApi: Failed to parse all city IDs - expected \(dataArray.count), got \(cityIds.count)")
+                    completion(.failure(GeneralError.customMessage("Failed to parse all city IDs from response")))
+                    return
+                }
+
+                Log.d("TRPCityRemoteApi: Resolved \(cityIds.count) city IDs (object array): \(cityIds)")
+                completion(.success(cityIds))
+                return
+            }
+
+            Log.e("TRPCityRemoteApi: Unexpected response format for cities/resolve API")
+            completion(.failure(GeneralError.customMessage("Unexpected response format for cities/resolve API")))
         }
     }
 

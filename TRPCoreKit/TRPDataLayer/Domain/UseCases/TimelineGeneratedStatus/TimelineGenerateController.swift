@@ -49,7 +49,11 @@ class TimelineGenerateController {
                     }
                 }
                 
-                if let firstNotEmptyItineraryIndex = trip.tripProfile?.segments.firstIndex(where: { $0.title != "Empty" && $0.segmentType == .itinerary}) {
+                // Find first non-date-boundary itinerary segment to check generation status
+                // Skip both "Empty" (old system) and "TimelineDate" (new system) segments
+                if let firstNotEmptyItineraryIndex = trip.tripProfile?.segments.firstIndex(where: {
+                    $0.title != "Empty" && $0.title != "TimelineDate" && $0.segmentType == .itinerary
+                }) {
                     let firstStatus = generated[firstNotEmptyItineraryIndex]
                     if firstStatus > 0 {
                         completion?(.success(trip))

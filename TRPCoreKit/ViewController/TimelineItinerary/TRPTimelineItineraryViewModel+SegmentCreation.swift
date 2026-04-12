@@ -66,8 +66,8 @@ extension TRPTimelineItineraryViewModel {
         var existingNumbers: [Int] = []
 
         for segment in allSegments {
-            // Skip empty placeholder segments
-            if isEmptyPlaceholderSegment(segment) { continue }
+            // Skip date boundary segments (Empty or TimelineDate)
+            if isDateBoundarySegment(segment) { continue }
 
             // Only check itinerary type segments
             guard segment.segmentType == .itinerary else { continue }

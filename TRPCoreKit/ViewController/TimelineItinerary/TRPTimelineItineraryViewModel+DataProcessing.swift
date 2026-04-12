@@ -52,8 +52,9 @@ extension TRPTimelineItineraryViewModel {
         // - itinerary → TRPTimelineRecommendationsCell
         if let profileSegments = timeline.tripProfile?.segments {
             for (index, segment) in profileSegments.enumerated() {
-                // Skip empty placeholder segments (title = "Empty" and available = false)
-                if isEmptyPlaceholderSegment(segment) {
+                // Skip date boundary segments (Empty or TimelineDate)
+                // These segments mark trip date boundaries and should not be displayed in UI
+                if isDateBoundarySegment(segment) {
                     continue
                 }
                 let plan: TRPTimelinePlan?
@@ -104,6 +105,22 @@ extension TRPTimelineItineraryViewModel {
     /// - Returns: true if the segment is an empty placeholder (title = "Empty" and available = false)
     internal func isEmptyPlaceholderSegment(_ segment: TRPTimelineSegment) -> Bool {
         return segment.title == "Empty" && segment.available == false
+    }
+
+    /// Checks if a segment is a TimelineDate segment (new system)
+    /// TimelineDate segments span the full trip duration and mark date boundaries
+    /// - Parameter segment: The segment to check
+    /// - Returns: true if the segment is a TimelineDate segment
+    internal func isTimelineDateSegment(_ segment: TRPTimelineSegment) -> Bool {
+        return segment.title == "TimelineDate" && segment.available == false
+    }
+
+    /// Unified check for date boundary segments (supports both old and new systems)
+    /// Returns true if segment is either Empty (old) or TimelineDate (new)
+    /// - Parameter segment: The segment to check
+    /// - Returns: true if the segment is a date boundary segment
+    internal func isDateBoundarySegment(_ segment: TRPTimelineSegment) -> Bool {
+        return isEmptyPlaceholderSegment(segment) || isTimelineDateSegment(segment)
     }
 
     // MARK: - Display Items
@@ -319,11 +336,35 @@ extension TRPTimelineItineraryViewModel {
 
     // MARK: - Date Calculations
 
-    /// Calculates all dates from trip start to end (continuous range for day filter)
-    internal func calculateAllTripDates() -> [Date] {
-        guard let timeline = timeline else { return [] }
+    /// Gets the timeline date boundaries (start and end dates)
+    /// Prioritizes TimelineDate segment for accuracy, falls back to scanning all segments
+    /// - Returns: Tuple of (startDate, endDate) or nil if no valid dates found
+    internal func getTimelineDateBoundaries() -> (startDate: Date, endDate: Date)? {
+        guard let timeline = timeline else { return nil }
 
-        // Collect segments from both sources (avoid duplicates)
+        // STEP 1: Check for TimelineDate segment first (most accurate source)
+        // TimelineDate segment spans the full trip duration
+        if let profileSegments = timeline.tripProfile?.segments {
+            for segment in profileSegments {
+                if isTimelineDateSegment(segment) {
+                    // Found TimelineDate segment - use its dates directly
+                    if let startDateStr = segment.startDate,
+                       let endDateStr = segment.endDate {
+                        // Parse dates
+                        let startDate = Date.fromString(startDateStr, format: "yyyy-MM-dd HH:mm") ??
+                                       Date.fromString(startDateStr, format: "yyyy-MM-dd HH:mm:ss")
+                        let endDate = Date.fromString(endDateStr, format: "yyyy-MM-dd HH:mm") ??
+                                     Date.fromString(endDateStr, format: "yyyy-MM-dd HH:mm:ss")
+
+                        if let start = startDate, let end = endDate {
+                            return (startDate: start, endDate: end)
+                        }
+                    }
+                }
+            }
+        }
+
+        // STEP 2: Fallback - scan all segments for min/max (backward compatibility for Empty segments)
         var allSegments: [TRPTimelineSegment] = []
         var addedSegmentIds = Set<String>()
 
@@ -347,7 +388,7 @@ extension TRPTimelineItineraryViewModel {
             }
         }
 
-        guard !allSegments.isEmpty else { return [] }
+        guard !allSegments.isEmpty else { return nil }
 
         // Use string-based comparison to avoid timezone issues
         var minDateString: String?
@@ -355,40 +396,63 @@ extension TRPTimelineItineraryViewModel {
 
         // Find min and max dates from all segments
         for segment in allSegments {
+            // Check startDate
             var segmentStartDateStr = segment.additionalData?.startDatetime
             if segmentStartDateStr == nil {
                 segmentStartDateStr = segment.startDate
             }
 
-            guard let dateStr = segmentStartDateStr else { continue }
-
-            // Extract only date portion (yyyy-MM-dd)
-            let segmentDateString = String(dateStr.prefix(10))
-
-            if minDateString == nil || segmentDateString < minDateString! {
-                minDateString = segmentDateString
+            if let dateStr = segmentStartDateStr {
+                let segmentDateString = String(dateStr.prefix(10))
+                if minDateString == nil || segmentDateString < minDateString! {
+                    minDateString = segmentDateString
+                }
+                if maxDateString == nil || segmentDateString > maxDateString! {
+                    maxDateString = segmentDateString
+                }
             }
-            if maxDateString == nil || segmentDateString > maxDateString! {
-                maxDateString = segmentDateString
+
+            // Check endDate
+            var segmentEndDateStr = segment.additionalData?.endDatetime
+            if segmentEndDateStr == nil {
+                segmentEndDateStr = segment.endDate
+            }
+
+            if let dateStr = segmentEndDateStr {
+                let segmentDateString = String(dateStr.prefix(10))
+                if minDateString == nil || segmentDateString < minDateString! {
+                    minDateString = segmentDateString
+                }
+                if maxDateString == nil || segmentDateString > maxDateString! {
+                    maxDateString = segmentDateString
+                }
             }
         }
 
-        guard let minStr = minDateString, let maxStr = maxDateString else { return [] }
+        guard let minStr = minDateString, let maxStr = maxDateString else { return nil }
 
         // Convert date strings to Date objects
         let dateFormatter = DateFormatter()
         dateFormatter.dateFormat = "yyyy-MM-dd"
         dateFormatter.timeZone = TimeZone.current
 
-        guard let startDay = dateFormatter.date(from: minStr),
-              let endDay = dateFormatter.date(from: maxStr) else { return [] }
+        guard let startDate = dateFormatter.date(from: minStr),
+              let endDate = dateFormatter.date(from: maxStr) else { return nil }
 
-        let numberOfDays = startDay.numberOfDaysBetween(endDay)
+        return (startDate: startDate, endDate: endDate)
+    }
 
-        // Generate all days from min to max (inclusive)
+    /// Calculates all dates from trip start to end (continuous range for day filter)
+    internal func calculateAllTripDates() -> [Date] {
+        // Use central method to get date boundaries
+        guard let boundaries = getTimelineDateBoundaries() else { return [] }
+
+        let numberOfDays = boundaries.startDate.numberOfDaysBetween(boundaries.endDate)
+
+        // Generate all days from start to end (inclusive)
         var dates: [Date] = []
         for dayIndex in 0..<numberOfDays {
-            if let currentDate = startDay.addDay(dayIndex) {
+            if let currentDate = boundaries.startDate.addDay(dayIndex) {
                 dates.append(currentDate)
             }
         }
