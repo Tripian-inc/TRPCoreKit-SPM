@@ -168,6 +168,30 @@ extension TRPTimelineItineraryViewModel {
         return displayItems.count > 1
     }
 
+    /// Get cities with coordinates for the selected day (for city marker annotations)
+    /// Returns tuples of (city, coordinate) where coordinate is from the first item in each city group
+    public func getCitiesWithCoordinatesForSelectedDay() -> [(city: TRPCity, coordinate: TRPLocation)] {
+        var result: [(city: TRPCity, coordinate: TRPLocation)] = []
+
+        for cityGroup in displayItems {
+            guard let city = cityGroup.city else { continue }
+
+            // Get coordinate from first item in the group
+            if let firstItem = cityGroup.items.first,
+               let coordinate = firstItem.coordinate {
+                result.append((city: city, coordinate: coordinate))
+            }
+        }
+
+        return result
+    }
+
+    /// Get cities for the selected day (for city marker annotations)
+    /// Note: Cities may not have coordinates set - use getCitiesWithCoordinatesForSelectedDay() instead
+    public func getCitiesForSelectedDay() -> [TRPCity] {
+        return displayItems.compactMap { $0.city }
+    }
+
     /// Get the preferred city coordinate for map centering
     /// Priority: selected day's first city > timeline.city > first plan city > nil
     public func getPreferredCityCoordinate() -> TRPLocation? {

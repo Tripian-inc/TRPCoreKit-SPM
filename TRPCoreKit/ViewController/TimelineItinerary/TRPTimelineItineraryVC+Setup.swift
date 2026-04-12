@@ -129,7 +129,9 @@ extension TRPTimelineItineraryVC {
         ])
 
         // Add tap gesture to expand when collapsed
+        // cancelsTouchesInView = false allows collection view cells to receive taps
         let tapGesture = UITapGestureRecognizer(target: self, action: #selector(handlePreviewContainerTap))
+        tapGesture.cancelsTouchesInView = false
         poiPreviewContainerView.addGestureRecognizer(tapGesture)
 
         // Add pan gesture to drag up/down

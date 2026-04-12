@@ -266,14 +266,28 @@ extension TRPTimelineItineraryVC: UICollectionViewDataSource, UICollectionViewDe
         let isAlreadySelected = selectedMarkerPoiIds.contains(item.itemId)
 
         if isAlreadySelected {
-            // Navigate to detail
+            // Navigate to detail - use same logic as list (RecommendationsCell)
             switch item {
             case .poi(_, _, let step):
-                if let step = step {
-                    delegate?.timelineItineraryDidSelectStep(self, step: step)
+                guard let step = step, let poi = step.poi else { return }
+
+                // Activity step - call trpCoreKitDidRequestActivityDetail (same as list)
+                if step.stepType == "activity" {
+                    let activityId = extractActivityId(from: poi)
+                    TRPCoreKit.shared.delegate?.trpCoreKitDidRequestActivityDetail(activityId: activityId)
+                    return
                 }
+
+                // Normal POI step - open POI detail view controller (same as list)
+                let detailVM = TimelinePoiDetailViewModel(poi: poi)
+                let detailVC = TimelinePoiDetailViewController(viewModel: detailVM)
+                navigationController?.pushViewController(detailVC, animated: true)
+
             case .activity(let segment):
-                delegate?.timelineItineraryDidSelectBookedActivity(self, segment: segment)
+                // Booked/Reserved activity - call trpCoreKitDidRequestActivityDetail (same as list)
+                guard let activityId = segment.additionalData?.activityId else { return }
+                let cleanedId = activityId.cleanedAsActivityId()
+                TRPCoreKit.shared.delegate?.trpCoreKitDidRequestActivityDetail(activityId: cleanedId)
             }
         } else {
             // Normal selection flow

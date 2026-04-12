@@ -292,6 +292,7 @@ extension TRPSDKCoordinater: SplashViewControllerDelegate {
                 // ViewModel handles city resolution and either creates timeline or shows no-city state
                 let viewModel = TRPTimelineItineraryViewModel(itineraryModel: itineraryModel, tripHash: tripHash)
                 let viewController = TRPTimelineItineraryVC(viewModel: viewModel)
+                viewController.delegate = self
 
                 // Replace splash with timeline VC
                 self.navigationController.setViewControllers([viewController], animated: true)
@@ -683,6 +684,47 @@ extension TRPSDKCoordinater {
                 isDimmed: true
             )
         }
+    }
+}
+
+// MARK: - TRPTimelineItineraryVCDelegate
+
+extension TRPSDKCoordinater: TRPTimelineItineraryVCDelegate {
+
+    public func timelineItineraryFilterPressed(_ viewController: TRPTimelineItineraryVC) {
+        // Filter functionality
+    }
+
+    public func timelineItineraryAddPlansPressed(_ viewController: TRPTimelineItineraryVC) {
+        // Add plans functionality
+    }
+
+    public func timelineItineraryDidSelectStep(_ viewController: TRPTimelineItineraryVC, step: TRPTimelineStep) {
+        guard let poi = step.poi else { return }
+        let detailVM = TimelinePoiDetailViewModel(poi: poi)
+        let detailVC = TimelinePoiDetailViewController(viewModel: detailVM)
+        viewController.navigationController?.pushViewController(detailVC, animated: true)
+    }
+
+    public func timelineItineraryDidSelectBookedActivity(_ viewController: TRPTimelineItineraryVC, segment: TRPTimelineSegment) {
+        guard let activityId = segment.additionalData?.activityId else { return }
+        TRPCoreKit.shared.delegate?.trpCoreKitDidRequestActivityDetail(activityId: activityId)
+    }
+
+    public func timelineItineraryAddButtonPressed(_ viewController: TRPTimelineItineraryVC, atSectionIndex: Int) {
+        // Add button functionality
+    }
+
+    public func timelineItineraryChangeTimePressed(_ viewController: TRPTimelineItineraryVC, step: TRPTimelineStep) {
+        // Change time functionality
+    }
+
+    public func timelineItineraryRemoveStepPressed(_ viewController: TRPTimelineItineraryVC, step: TRPTimelineStep) {
+        // Remove step functionality
+    }
+
+    public func timelineItineraryDidRequestActivityReservation(_ viewController: TRPTimelineItineraryVC, activityId: String) {
+        TRPCoreKit.shared.delegate?.trpCoreKitDidRequestActivityReservation(activityId: activityId)
     }
 }
 

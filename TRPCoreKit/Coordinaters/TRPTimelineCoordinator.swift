@@ -334,9 +334,22 @@ extension TRPTimelineCoordinator: TRPTimelineItineraryVCDelegate {
     }
 
     public func timelineItineraryDidSelectStep(_ viewController: TRPTimelineItineraryVC, step: TRPTimelineStep) {
-        guard let poi = step.poi else { return }
-        // TODO: Open POI detail view
-        // Example: openPoiDetail(poi: poi, step: step)
+        print("🎯 [Coordinator] timelineItineraryDidSelectStep called")
+        print("🎯 [Coordinator] step.poi: \(step.poi?.name ?? "nil")")
+        print("🎯 [Coordinator] viewController.navigationController: \(viewController.navigationController == nil ? "nil" : "exists")")
+
+        guard let poi = step.poi else {
+            print("🎯 [Coordinator] POI is nil, returning early")
+            return
+        }
+
+        print("🎯 [Coordinator] Creating detail VC for POI: \(poi.name)")
+        let detailVM = TimelinePoiDetailViewModel(poi: poi)
+        let detailVC = TimelinePoiDetailViewController(viewModel: detailVM)
+
+        print("🎯 [Coordinator] Pushing detail VC...")
+        viewController.navigationController?.pushViewController(detailVC, animated: true)
+        print("🎯 [Coordinator] Push completed")
     }
 
     public func timelineItineraryDidSelectBookedActivity(_ viewController: TRPTimelineItineraryVC, segment: TRPTimelineSegment) {

@@ -158,6 +158,18 @@ public class TRPMapView: UIView {
         let viewAnnotations = self.addViewAnnotations(annotations, annotationOrder: annotationOrder)
         addedAnnotations[segmentId] = viewAnnotations
     }
+
+    /// Add city marker annotations for multi-destination days
+    /// Uses TRPCityMarkerAnnotationView with ic_map_city_marker image
+    public func addCityAnnotations(_ annotations: [TRPPointAnnotation], segmentId: String) {
+        let viewAnnotations = annotations.map { annotation -> ViewAnnotation in
+            annotation.asViewAnnotation(tapHandler: { [weak self] cityId in
+                self?.delegate?.mapView(cityAnnotationPressed: cityId)
+            })
+        }
+        addAnnotationToMap(viewAnnotations)
+        addedAnnotations[segmentId] = viewAnnotations
+    }
     
     public func cleanAllAnnotations() {
         addedAnnotations.removeAll()
