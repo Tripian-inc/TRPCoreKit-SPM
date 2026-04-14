@@ -27,6 +27,27 @@ extension TRPTimelineItineraryViewModel {
         return latMatch && lonMatch
     }
 
+    /// Converts activity ID to full format: C_{id}_15_{cityId}
+    /// - Parameters:
+    ///   - activityId: Original activity ID (can be plain "12345", "C_12345_15", or "C_12345_15_109")
+    ///   - cityId: City ID to append
+    /// - Returns: Formatted activity ID in format "C_{id}_15_{cityId}"
+    internal func formatActivityId(_ activityId: String, cityId: Int) -> String {
+        // Extract the core ID (handles both plain and C_ formats)
+        let coreId: String
+        if activityId.hasPrefix("C_") {
+            // Extract ID from "C_12345_15" or "C_12345_15_109" → "12345"
+            let withoutPrefix = String(activityId.dropFirst(2)) // Remove "C_"
+            let components = withoutPrefix.split(separator: "_")
+            coreId = components.first.map(String.init) ?? activityId
+        } else {
+            // Plain ID like "12345"
+            coreId = activityId
+        }
+        // Always build full format with cityId: C_{id}_15_{cityId}
+        return "C_\(coreId)_15_\(cityId)"
+    }
+
     /// Generates a unique segment title based on existing segments
     /// Returns "Recommendations" or "Recommendations 2", "Recommendations 3", etc.
     /// Only applies to segments with segmentType = .itinerary
@@ -179,32 +200,28 @@ extension TRPTimelineItineraryViewModel {
             profile.activityFreeText = data.selectedCategories.joined(separator: ",")
         }
 
-        // FavouriteItems → activityIds (filtered by segment's cityId)
-        if let favouriteItems = timeline.favouriteItems, !favouriteItems.isEmpty {
+        // FavouriteItems → activityIds (filtered favorites with format conversion)
+        if !filteredFavoriteItems.isEmpty {
             let cityId = city.id
-            profile.activityIds = favouriteItems.compactMap { item in
+            profile.activityIds = filteredFavoriteItems.compactMap { item in
                 guard let activityId = item.activityId else { return nil }
                 // Only include favourite items matching the segment's city
                 guard item.cityId == cityId else { return nil }
-                // Validate format: must start with "C_" and contain underscore
-                if activityId.hasPrefix("C_") && activityId.contains("_") {
-                    return activityId
-                }
-                return nil
+                // Convert to full format: C_{id}_15_{cityId}
+                return formatActivityId(activityId, cityId: cityId)
             }
         }
 
-        // Booked Activities → excludedActivityIds
+        // Booked & Reserved Activities → excludedActivityIds
         if let segments = timeline.tripProfile?.segments {
             profile.excludedActivityIds = segments.compactMap { segment in
-                // Only collect from booked_activity segments
-                guard segment.segmentType == .bookedActivity else { return nil }
+                // Collect from both booked_activity and reserved_activity segments
+                guard segment.segmentType == .bookedActivity || segment.segmentType == .reservedActivity else { return nil }
                 guard let activityId = segment.additionalData?.activityId else { return nil }
-                // Validate format: must start with "C_" and contain underscore
-                if activityId.hasPrefix("C_") && activityId.contains("_") {
-                    return activityId
-                }
-                return nil
+                // Get cityId from segment for format conversion
+                let cityId = segment.city?.id ?? city.id
+                // Convert to full format: C_{id}_15_{cityId}
+                return formatActivityId(activityId, cityId: cityId)
             }
         }
 
