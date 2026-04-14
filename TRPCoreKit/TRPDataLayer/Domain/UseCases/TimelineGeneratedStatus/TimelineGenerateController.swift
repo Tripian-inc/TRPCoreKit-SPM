@@ -55,12 +55,13 @@ class TimelineGenerateController {
                     $0.title != "Empty" && $0.title != "TimelineDate" && $0.segmentType == .itinerary
                 }) {
                     let firstStatus = generated[firstNotEmptyItineraryIndex]
-                    if firstStatus > 0 {
-                        completion?(.success(trip))
-                    } else if firstStatus < 0 {
-                        let errorMessage = TimelineLocalizationKeys.localized(TimelineLocalizationKeys.errorGenerationFailed)
-                        completion?(.failure(GeneralError.customMessage(errorMessage)))
-                    }
+                    completion?(.success(trip))
+//                    if firstStatus > 0 {
+//                        completion?(.success(trip))
+//                    } else if firstStatus < 0 {
+//                        let errorMessage = TimelineLocalizationKeys.localized(TimelineLocalizationKeys.errorGenerationFailed)
+//                        completion?(.failure(GeneralError.customMessage(errorMessage)))
+//                    }
                 } else {
                     completion?(.success(trip))
                 }

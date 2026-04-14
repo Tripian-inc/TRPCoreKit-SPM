@@ -29,6 +29,7 @@ public class TRPTimelineItineraryViewModel {
     public weak var delegate: TRPTimelineItineraryViewModelDelegate?
 
     internal var timeline: TRPTimeline?
+    internal var itineraryModel: TRPItineraryWithActivities?
 
     /// Merged timeline with date-grouped items - SINGLE SOURCE OF TRUTH
     internal var mergedTimeline: TRPDateGroupedTimeline?
@@ -96,6 +97,7 @@ public class TRPTimelineItineraryViewModel {
 
     /// Initialize with existing timeline (direct display)
     public init(timeline: TRPTimeline?) {
+        print("🟡 [ViewModel Init] init(timeline:) called")
         if var mutableTimeline = timeline {
             // NOTE: Do NOT sync segments - use API response as-is
             // tripProfile.segments is the single source of truth
@@ -124,6 +126,7 @@ public class TRPTimelineItineraryViewModel {
     ///   - timeline: Existing timeline from server
     ///   - itineraryModel: Itinerary model containing tripItems to check for missing activities
     public init(timeline: TRPTimeline, itineraryModel: TRPItineraryWithActivities) {
+        print("🔵 [ViewModel Init] init(timeline:itinerary:) called")
         var mutableTimeline = timeline
 
         // Store destination items for date-city mapping in AddPlan
@@ -138,8 +141,13 @@ public class TRPTimelineItineraryViewModel {
         populateCitiesInSegments(&mutableTimeline)
 
         self.timeline = mutableTimeline
+        self.itineraryModel = itineraryModel
 
         processTimelineData()
+
+        print("🔵 [ViewModel Init] About to call syncRemovedCitySegments()")
+        // Sync removed city segments (optimistic update)
+        syncRemovedCitySegments()
 
         // Resolve favourite item city IDs asynchronously, then notify UI
         resolveFavouriteItemCities { [weak self] in
@@ -159,6 +167,7 @@ public class TRPTimelineItineraryViewModel {
     ///   - itineraryModel: Itinerary model containing trip items
     ///   - tripHash: Optional trip hash for fetching existing timeline
     public init(itineraryModel: TRPItineraryWithActivities, tripHash: String? = nil) {
+        print("🟢 [ViewModel Init] init(itineraryModel:tripHash:) called with tripHash: \(tripHash ?? "nil")")
         // Store destination items for date-city mapping in AddPlan
         self.destinationItems = itineraryModel.destinationItems
 

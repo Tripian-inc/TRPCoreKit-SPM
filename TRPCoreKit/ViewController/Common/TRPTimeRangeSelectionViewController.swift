@@ -377,7 +377,7 @@ private class TRPTimeSelectionField: UIView {
     private let container: UIView = {
         let view = UIView()
         view.backgroundColor = .white
-        view.layer.cornerRadius = 8
+        view.layer.cornerRadius = 4
         view.layer.borderWidth = 1
         view.layer.borderColor = ColorSet.lineWeak.uiColor.cgColor
         view.translatesAutoresizingMaskIntoConstraints = false
@@ -395,7 +395,7 @@ private class TRPTimeSelectionField: UIView {
 
     private let arrowIcon: UIImageView = {
         let imageView = UIImageView()
-        imageView.image = TRPImageController().getImage(inFramework: "ic_chevron_right", inApp: nil)?.withRenderingMode(.alwaysTemplate)
+        imageView.image = TRPImageController().getImage(inFramework: "ic_next", inApp: nil)?.withRenderingMode(.alwaysTemplate)
         imageView.tintColor = ColorSet.fgWeak.uiColor
         imageView.contentMode = .scaleAspectFit
         imageView.translatesAutoresizingMaskIntoConstraints = false
