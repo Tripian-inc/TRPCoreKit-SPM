@@ -292,7 +292,21 @@ extension TRPTimelineItineraryVC: UICollectionViewDataSource, UICollectionViewDe
         } else {
             // Normal selection flow
             expandCollectionView()
-            updateSelectedMarker(poiId: item.itemId)
+
+            // In multi-city mode, switch to step markers when selecting from collection view
+            if viewModel.hasMultipleCities() && !isShowingStepMarkersInMultiCity {
+                isShowingStepMarkersInMultiCity = true
+
+                // Clear and redraw with step markers
+                selectedMarkerPoiIds.removeAll()
+                selectedMarkerPoiIds.insert(item.itemId)
+
+                clearMapAnnotations()
+                let orderedItems = viewModel.getOrderedItemsForMap()
+                addAnnotationsForOrderedItems(orderedItems)
+            } else {
+                updateSelectedMarker(poiId: item.itemId)
+            }
 
             if let coordinate = item.coordinate, let mapView = map {
                 mapView.setCenter(coordinate, zoomLevel: 15)

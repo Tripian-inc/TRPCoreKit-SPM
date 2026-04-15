@@ -111,7 +111,7 @@ class TRPTimelineTimeBadgeView: UIView {
         var timeText = "\(startTime) - \(endTime)"
         if showTimeOverlapText {
             let overlapText = TimelineLocalizationKeys.localized(TimelineLocalizationKeys.timeOverlap)
-            timeText += " · \(overlapText)"
+            timeText += " \(overlapText)"
         }
         timeLabel.text = timeText
 
@@ -121,7 +121,7 @@ class TRPTimelineTimeBadgeView: UIView {
             orderLabel.backgroundColor = ColorSet.errorIcon.uiColor
             containerView.backgroundColor = ColorSet.errorBg.uiColor
             containerView.layer.borderColor = ColorSet.errorIcon.uiColor.cgColor
-            timeLabel.textColor = ColorSet.errorIcon.uiColor
+            timeLabel.textColor = ColorSet.primaryText.uiColor
         } else {
             // Normal styling
             orderLabel.backgroundColor = ColorSet.fg.uiColor

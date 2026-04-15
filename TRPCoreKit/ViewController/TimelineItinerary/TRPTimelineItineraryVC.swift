@@ -169,6 +169,10 @@ public class TRPTimelineItineraryVC: TRPBaseUIViewController {
     internal var isMarkerFocused: Bool = false
     internal var hasMultipleCitiesOnSelectedDay: Bool = false
 
+    // Multi-city zoom state: true when zoomed in enough to show step markers
+    internal var isShowingStepMarkersInMultiCity: Bool = false
+    internal let multiCityZoomThreshold: CGFloat = 12.0  // Above this = show step markers
+
     // Selected marker tracking for marker appearance (one per city)
     internal var selectedMarkerPoiIds: Set<String> = []
 

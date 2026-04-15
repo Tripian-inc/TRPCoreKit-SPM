@@ -329,6 +329,13 @@ extension TRPMapView {
             self?.hidePOILayers()
         }.store(in: &cancelables)
 
+        // Observe camera changes for zoom level tracking
+        mapView.mapboxMap.onCameraChanged.observe { [weak self] event in
+            guard let self = self else { return }
+            let newZoom = CGFloat(event.cameraState.zoom)
+            self.delegate?.mapViewChangedZoomLevel(self, zoomLevel: newZoom)
+        }.store(in: &cancelables)
+
         addClickPropetyForAnnotations()
         addSubview(mapView)
     }
