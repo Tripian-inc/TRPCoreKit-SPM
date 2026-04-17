@@ -308,6 +308,19 @@ class ActivityCardCell: UITableViewCell {
         }
 
         let displayValue = convertFromCents ? value / 100.0 : value
+
+        // Show "FREE" for zero price
+        if displayValue == 0 {
+            priceLabel.attributedText = NSAttributedString(
+                string: CommonLocalizationKeys.localized(CommonLocalizationKeys.free),
+                attributes: [
+                    .font: FontSet.montserratBold.font(16),
+                    .foregroundColor: ColorSet.primaryText.uiColor
+                ]
+            )
+            return
+        }
+
         let fromText = CommonLocalizationKeys.localized(CommonLocalizationKeys.from) + " "
         let priceText = TRPCurrencyHelper.formatPrice(displayValue, currency: currency)
 

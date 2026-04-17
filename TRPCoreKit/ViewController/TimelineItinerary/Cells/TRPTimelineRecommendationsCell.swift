@@ -638,31 +638,23 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
         priceRow.alignment = .center
 
         if isActivity {
-            // "From" label - medium 14px primaryText
-            let fromLabel = UILabel()
-            fromLabel.font = FontSet.montserratMedium.font(14)
-            fromLabel.textColor = ColorSet.primaryText.uiColor
-            fromLabel.text = CommonLocalizationKeys.localized(CommonLocalizationKeys.from)
-
-            // Price label - bold 16px primaryText
-            let priceLabel = UILabel()
-            priceLabel.font = FontSet.montserratBold.font(16)
-            priceLabel.textColor = ColorSet.primaryText.uiColor
-
-            // Get price from additionalData or booking product
-            var priceText: String? = nil
-            if let price = step.poi?.additionalData?.price, let currency = step.poi?.additionalData?.currency {
-                priceText = TRPCurrencyHelper.formatPrice(price, currency: currency)
-            } else if let price = bookingProduct?.price, let currency = bookingProduct?.currency {
-                priceText = TRPCurrencyHelper.formatPrice(price, currency: currency)
-            } else if let poiPrice = step.poi?.price, poiPrice > 0 {
-                priceText = TRPCurrencyHelper.formatPrice(poiPrice, currency: "EUR")
+            // Check if price is 0 (free activity)
+            var isFreeActivity = false
+            if let price = step.poi?.additionalData?.price, price == 0 {
+                isFreeActivity = true
+            } else if let price = bookingProduct?.price, price == 0 {
+                isFreeActivity = true
+            } else if let poiPrice = step.poi?.price, poiPrice == 0 {
+                isFreeActivity = true
             }
 
-            if let priceText = priceText {
-                priceLabel.text = priceText
-                priceRow.addArrangedSubview(fromLabel)
-                priceRow.addArrangedSubview(priceLabel)
+            if isFreeActivity {
+                // Show "FREE" label only
+                let freeLabel = UILabel()
+                freeLabel.font = FontSet.montserratBold.font(16)
+                freeLabel.textColor = ColorSet.primaryText.uiColor
+                freeLabel.text = CommonLocalizationKeys.localized(CommonLocalizationKeys.free)
+                priceRow.addArrangedSubview(freeLabel)
 
                 // Add priceRow to container, aligned to right
                 priceRowContainer.addSubview(priceRow)
@@ -672,6 +664,42 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
                     priceRow.trailingAnchor.constraint(equalTo: priceRowContainer.trailingAnchor),
                 ])
                 priceRowContainer.isHidden = false
+            } else {
+                // "From" label - medium 14px primaryText
+                let fromLabel = UILabel()
+                fromLabel.font = FontSet.montserratMedium.font(14)
+                fromLabel.textColor = ColorSet.primaryText.uiColor
+                fromLabel.text = CommonLocalizationKeys.localized(CommonLocalizationKeys.from)
+
+                // Price label - bold 16px primaryText
+                let priceLabel = UILabel()
+                priceLabel.font = FontSet.montserratBold.font(16)
+                priceLabel.textColor = ColorSet.primaryText.uiColor
+
+                // Get price from additionalData or booking product
+                var priceText: String? = nil
+                if let price = step.poi?.additionalData?.price, let currency = step.poi?.additionalData?.currency {
+                    priceText = TRPCurrencyHelper.formatPrice(price, currency: currency)
+                } else if let price = bookingProduct?.price, let currency = bookingProduct?.currency {
+                    priceText = TRPCurrencyHelper.formatPrice(price, currency: currency)
+                } else if let poiPrice = step.poi?.price, poiPrice > 0 {
+                    priceText = TRPCurrencyHelper.formatPrice(poiPrice, currency: "EUR")
+                }
+
+                if let priceText = priceText {
+                    priceLabel.text = priceText
+                    priceRow.addArrangedSubview(fromLabel)
+                    priceRow.addArrangedSubview(priceLabel)
+
+                    // Add priceRow to container, aligned to right
+                    priceRowContainer.addSubview(priceRow)
+                    NSLayoutConstraint.activate([
+                        priceRow.topAnchor.constraint(equalTo: priceRowContainer.topAnchor),
+                        priceRow.bottomAnchor.constraint(equalTo: priceRowContainer.bottomAnchor),
+                        priceRow.trailingAnchor.constraint(equalTo: priceRowContainer.trailingAnchor),
+                    ])
+                    priceRowContainer.isHidden = false
+                }
             }
         }
 

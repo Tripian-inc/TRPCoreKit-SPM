@@ -19,6 +19,7 @@ public struct CommonLocalizationKeys {
     // MARK: - Common Labels
     public static let from = "common.label.from"
     public static let freeCancellation = "common.label.freeCancellation"
+    public static let free = "common.label.free"
 
     // MARK: - Default English Values
     private static let defaultValues: [String: String] = [
@@ -27,7 +28,8 @@ public struct CommonLocalizationKeys {
         continueButton: "Continue",
         select: "Select",
         from: "From",
-        freeCancellation: "Free cancellation"
+        freeCancellation: "Free cancellation",
+        free: "FREE"
     ]
 
     // MARK: - Helper Methods

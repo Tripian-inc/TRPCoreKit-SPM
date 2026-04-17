@@ -309,7 +309,7 @@ class TRPTimelineReservedActivityCell: UITableViewCell {
     }
 
     private func configurePriceRow(with priceData: TRPSegmentActivityPrice?) {
-        guard let price = priceData, price.value > 0 else {
+        guard let price = priceData else {
             priceRowContainer.isHidden = true
             return
         }
@@ -317,12 +317,32 @@ class TRPTimelineReservedActivityCell: UITableViewCell {
         // Clear previous content
         priceRowContainer.subviews.forEach { $0.removeFromSuperview() }
 
-        // Price row - "From" medium 14px + price bold 16px
+        // Price row stack
         let priceRow = UIStackView()
         priceRow.translatesAutoresizingMaskIntoConstraints = false
         priceRow.axis = .horizontal
         priceRow.spacing = 4
         priceRow.alignment = .center
+
+        // Check if price is 0 (free)
+        if price.value == 0 {
+            // Show "FREE" label only
+            let freeLabel = UILabel()
+            freeLabel.font = FontSet.montserratBold.font(16)
+            freeLabel.textColor = ColorSet.primaryText.uiColor
+            freeLabel.text = CommonLocalizationKeys.localized(CommonLocalizationKeys.free)
+            priceRow.addArrangedSubview(freeLabel)
+
+            // Add priceRow to container, aligned to right
+            priceRowContainer.addSubview(priceRow)
+            NSLayoutConstraint.activate([
+                priceRow.topAnchor.constraint(equalTo: priceRowContainer.topAnchor),
+                priceRow.bottomAnchor.constraint(equalTo: priceRowContainer.bottomAnchor),
+                priceRow.trailingAnchor.constraint(equalTo: priceRowContainer.trailingAnchor),
+            ])
+            priceRowContainer.isHidden = false
+            return
+        }
 
         // "From" label - medium 14px primaryText
         let fromLabel = UILabel()

@@ -314,6 +314,8 @@ extension TRPTimelineItineraryVC: UICollectionViewDataSource, UICollectionViewDe
                 updateMainViewButtonVisibility()
             }
 
+            // Scroll collection view to center the selected item
+            poiPreviewCollectionView.scrollToItem(at: indexPath, at: .centeredHorizontally, animated: true)
             poiPreviewCollectionView.reloadData()
         }
     }

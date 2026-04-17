@@ -229,7 +229,19 @@ class ProductCardCell: UICollectionViewCell {
         freeCancellationLabel.isHidden = hasNonRefundable
 //        freeCancellationLabel.isHidden = true
 
-        // Configure Price with "From:" prefix
+        // Configure Price with "From:" prefix or "FREE" for zero price
+        if let price = product.price, price == 0 {
+            // Show "FREE" for zero price
+            priceLabel.attributedText = NSAttributedString(
+                string: CommonLocalizationKeys.localized(CommonLocalizationKeys.free),
+                attributes: [
+                    .font: FontSet.montserratBold.font(16),
+                    .foregroundColor: ColorSet.primaryText.uiColor
+                ]
+            )
+            return
+        }
+
         let fromText = CommonLocalizationKeys.localized(CommonLocalizationKeys.from) + " "
         var priceText: String = ""
 
@@ -238,12 +250,12 @@ class ProductCardCell: UICollectionViewCell {
         } else if let priceDescription = product.priceDescription {
             priceText = priceDescription
         }
-        
+
         if priceText.isEmpty {
             priceLabel.text = ""
             return
         }
-        
+
         let attributedString = NSMutableAttributedString()
         attributedString.append(NSAttributedString(
             string: fromText,

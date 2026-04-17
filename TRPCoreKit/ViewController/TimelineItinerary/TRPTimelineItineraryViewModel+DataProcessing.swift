@@ -174,23 +174,216 @@ extension TRPTimelineItineraryViewModel {
         }
     }
 
+    /// Helper struct for grouping conflicting segments
+    private struct ConflictGroup {
+        var segmentIndices: Set<Int>      // Unique segment indices
+        var timeRangeIndices: Set<Int>    // All conflicting time ranges
+    }
+
     /// Detects time conflicts among items for a single day
+    /// New implementation: Shows "Time Overlap" text only on later segments (by plan ID)
     /// - Parameter items: All merged timeline items for the selected day
     internal func detectTimeConflicts(items: [TRPMergedTimelineItem]) {
-        // Reset conflict flags for all items and steps
-        for item in items {
-            item.hasConflict = false
-            item.showTimeOverlapText = false
-            // Reset step conflicts for itinerary items
-            if item.isItinerary, item.plan != nil {
-                for i in 0..<item.plan!.steps.count {
-                    item.plan!.steps[i].hasConflict = false
-                    item.plan!.steps[i].showTimeOverlapText = false
+        // Step 1: Reset all conflict flags
+        resetConflictFlags(items: items)
+
+        // Step 2: Collect all time ranges
+        let timeRanges = collectTimeRanges(from: items)
+
+        // Step 3: Detect overlaps and group conflicts
+        let conflictGroups = detectOverlapsAndGroupConflicts(timeRanges: timeRanges)
+
+        // Step 4: Process each conflict group
+        for group in conflictGroups {
+            // Special case: Self-conflict (all ranges from same segment)
+            if group.segmentIndices.count == 1 {
+                let segmentIndex = group.segmentIndices.first!
+                let item = items[segmentIndex]
+                let isBooked = item.isBookedActivity || item.isReservedActivity
+
+                // Find earliest time range within this segment (by start time)
+                var earliestRangeIndex: Int?
+                var earliestTime = Date.distantFuture
+
+                for rangeIndex in group.timeRangeIndices {
+                    let range = timeRanges[rangeIndex]
+                    if range.startTime < earliestTime {
+                        earliestTime = range.startTime
+                        earliestRangeIndex = rangeIndex
+                    }
+                }
+
+                // Mark conflicts: earliest step shows no text, later steps show text
+                for rangeIndex in group.timeRangeIndices {
+                    let isEarliest = (rangeIndex == earliestRangeIndex)
+
+                    markConflictWithTextLogic(
+                        items: items,
+                        range: timeRanges[rangeIndex],
+                        isEarliest: isEarliest,
+                        isBooked: isBooked
+                    )
+                }
+                continue
+            }
+
+            // Normal case: Multi-segment conflict
+            let earliestIndex = findEarliestNonBookedSegment(
+                items: items,
+                segmentIndices: group.segmentIndices
+            )
+
+            for rangeIndex in group.timeRangeIndices {
+                let range = timeRanges[rangeIndex]
+                let item = items[range.itemIndex]
+                let isBooked = item.isBookedActivity || item.isReservedActivity
+                let isEarliest = !isBooked && (range.itemIndex == earliestIndex)
+
+                markConflictWithTextLogic(
+                    items: items,
+                    range: range,
+                    isEarliest: isEarliest,
+                    isBooked: isBooked
+                )
+            }
+        }
+    }
+
+    // MARK: - Conflict Detection Helper Methods
+
+    /// Extracts numeric plan ID from string
+    /// - Parameter planId: Plan ID string (e.g., "20123" or "20123-20124")
+    /// - Returns: Integer ID, or nil if invalid
+    private func extractPlanIdNumber(_ planId: String?) -> Int? {
+        guard let planId = planId else { return nil }
+        let components = planId.components(separatedBy: "-")
+        return Int(components[0])
+    }
+
+    /// Finds earliest segment among non-booked segments
+    /// - Parameters:
+    ///   - items: All merged timeline items for the day
+    ///   - segmentIndices: Indices of conflicting segments
+    /// - Returns: Index of the earliest segment, or nil if all are booked
+    private func findEarliestNonBookedSegment(
+        items: [TRPMergedTimelineItem],
+        segmentIndices: Set<Int>
+    ) -> Int? {
+        // Filter out booked/reserved
+        let nonBookedIndices = segmentIndices.filter { index in
+            let item = items[index]
+            return !item.isBookedActivity && !item.isReservedActivity
+        }
+
+        guard !nonBookedIndices.isEmpty else { return nil }
+
+        // Find earliest by plan ID (or fallback to originalSegmentIndex)
+        var earliestIndex: Int?
+        var earliestValue = Int.max
+
+        for index in nonBookedIndices {
+            let item = items[index]
+            let comparisonValue: Int
+
+            if let planId = item.plan?.id,
+               let planIdNum = extractPlanIdNumber(planId) {
+                comparisonValue = planIdNum
+            } else {
+                comparisonValue = item.originalSegmentIndex
+            }
+
+            if comparisonValue < earliestValue {
+                earliestValue = comparisonValue
+                earliestIndex = index
+            }
+        }
+
+        return earliestIndex
+    }
+
+    /// Builds conflict groups using BFS on overlap adjacency
+    /// - Parameter timeRanges: All time ranges to check for overlaps
+    /// - Returns: Array of conflict groups
+    private func detectOverlapsAndGroupConflicts(
+        timeRanges: [TimeRangeInfo]
+    ) -> [ConflictGroup] {
+        var conflicts: [Int: Set<Int>] = [:]
+
+        // Build adjacency: O(n²)
+        for i in 0..<timeRanges.count {
+            for j in (i + 1)..<timeRanges.count {
+                if timeRanges[i].overlaps(with: timeRanges[j]) {
+                    conflicts[i, default: []].insert(j)
+                    conflicts[j, default: []].insert(i)
                 }
             }
         }
 
-        // Collect all time ranges
+        // Group connected components via BFS
+        var groups: [ConflictGroup] = []
+        var visited = Set<Int>()
+
+        for start in 0..<timeRanges.count {
+            guard !visited.contains(start),
+                  conflicts[start] != nil else { continue }
+
+            var group = ConflictGroup(segmentIndices: [], timeRangeIndices: [])
+            var queue = [start]
+
+            while !queue.isEmpty {
+                let current = queue.removeFirst()
+                guard !visited.contains(current) else { continue }
+                visited.insert(current)
+
+                group.timeRangeIndices.insert(current)
+                group.segmentIndices.insert(timeRanges[current].itemIndex)
+
+                if let neighbors = conflicts[current] {
+                    queue.append(contentsOf: neighbors)
+                }
+            }
+
+            groups.append(group)
+        }
+
+        return groups
+    }
+
+    /// Marks conflict flags with proper text display logic
+    /// - Parameters:
+    ///   - items: All merged timeline items
+    ///   - range: The time range info to mark
+    ///   - isEarliest: Whether this segment is the earliest in the conflict group
+    ///   - isBooked: Whether this is a booked/reserved activity
+    private func markConflictWithTextLogic(
+        items: [TRPMergedTimelineItem],
+        range: TimeRangeInfo,
+        isEarliest: Bool,
+        isBooked: Bool
+    ) {
+        let item = items[range.itemIndex]
+        let showText = !isBooked && !isEarliest
+
+        if let stepIndex = range.stepIndex {
+            // Itinerary step
+            if let plan = item.plan, stepIndex < plan.steps.count {
+                item.plan!.steps[stepIndex].hasConflict = true
+                item.plan!.steps[stepIndex].showTimeOverlapText = showText
+            }
+            item.hasConflict = true
+        } else {
+            // Non-itinerary item
+            item.hasConflict = true
+            item.showTimeOverlapText = showText
+        }
+    }
+
+    /// Collects all time ranges from items
+    /// - Parameter items: All merged timeline items for the day
+    /// - Returns: Array of time range info
+    private func collectTimeRanges(
+        from items: [TRPMergedTimelineItem]
+    ) -> [TimeRangeInfo] {
         var timeRanges: [TimeRangeInfo] = []
 
         for (itemIndex, item) in items.enumerated() {
@@ -233,38 +426,22 @@ extension TRPTimelineItineraryViewModel {
             }
         }
 
-        // Check for conflicts (O(n²) but n is small - typically < 20 items per day)
-        for i in 0..<timeRanges.count {
-            for j in (i + 1)..<timeRanges.count {
-                let range1 = timeRanges[i]
-                let range2 = timeRanges[j]
-
-                if range1.overlaps(with: range2) {
-                    // Mark both ranges as having conflicts
-                    markAsConflict(items: items, range: range1)
-                    markAsConflict(items: items, range: range2)
-                }
-            }
-        }
+        return timeRanges
     }
 
-    /// Marks an item or step as having a conflict
-    private func markAsConflict(items: [TRPMergedTimelineItem], range: TimeRangeInfo) {
-        let item = items[range.itemIndex]
-
-        if let stepIndex = range.stepIndex {
-            // Itinerary step conflict
-            if item.plan != nil, stepIndex < item.plan!.steps.count {
-                item.plan!.steps[stepIndex].hasConflict = true
-                item.plan!.steps[stepIndex].showTimeOverlapText = true
+    /// Resets all conflict flags
+    /// - Parameter items: All merged timeline items
+    private func resetConflictFlags(items: [TRPMergedTimelineItem]) {
+        for item in items {
+            item.hasConflict = false
+            item.showTimeOverlapText = false
+            // Reset step conflicts for itinerary items
+            if item.isItinerary, item.plan != nil {
+                for i in 0..<item.plan!.steps.count {
+                    item.plan!.steps[i].hasConflict = false
+                    item.plan!.steps[i].showTimeOverlapText = false
+                }
             }
-            // Also mark the parent item as having conflict (for potential container styling)
-            item.hasConflict = true
-        } else {
-            // Non-itinerary item conflict
-            item.hasConflict = true
-            // BookedActivity does NOT show "Time Overlap" text
-            item.showTimeOverlapText = !range.isBookedActivity
         }
     }
 
