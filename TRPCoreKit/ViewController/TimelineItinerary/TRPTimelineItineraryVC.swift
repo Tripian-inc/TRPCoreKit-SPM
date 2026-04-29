@@ -448,6 +448,16 @@ public class TRPTimelineItineraryVC: TRPBaseUIViewController {
         }
     }
 
+    internal func toggleCollectionView() {
+        if isCollectionViewExpanded {
+            collapseCollectionView()
+        } else {
+            expandCollectionView()
+            isMarkerFocused = true
+            updateMainViewButtonVisibility()
+        }
+    }
+
     // MARK: - Public Methods
 
     public func reload() {
@@ -464,6 +474,13 @@ public class TRPTimelineItineraryVC: TRPBaseUIViewController {
 
         // Pre-calculate routes for itinerary segments with multiple steps
         calculateRoutesForItinerarySegments()
+
+        // If map is showing, refresh it and update POI cards
+        // This ensures map syncs with day changes after segment creation
+        if isShowingMap {
+            refreshMap()
+            updatePOIPreviewCards()
+        }
     }
 
     internal func updateSavedPlansButton() {

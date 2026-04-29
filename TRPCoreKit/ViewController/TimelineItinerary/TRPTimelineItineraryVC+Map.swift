@@ -505,8 +505,8 @@ extension TRPTimelineItineraryVC: TRPMapViewDelegate {
     }
 
     public func mapViewCloseAnnotation(_ mapView: TRPMapView) {
-        // Collapse collection view when annotation is closed
-        collapseCollectionView()
+        // Toggle collection view visibility on map tap
+        toggleCollectionView()
     }
 
     public func mapView(annotationPressed poiId: String, type: TRPAnnotationType) {
@@ -550,8 +550,7 @@ extension TRPTimelineItineraryVC: TRPMapViewDelegate {
     }
     
     public func mapView(clickedLocation: TRPLocation) {
-        // Collapse collection view when map is clicked
-        collapseCollectionView()
+        // Toggle is handled by mapViewCloseAnnotation
     }
     
     public func mapView(_ mapView: TRPMapView, regionDidChangeAnimated animated: Bool) {
@@ -593,7 +592,7 @@ extension TRPTimelineItineraryVC: TRPMapViewDelegate {
     }
 
     public func mapView(cityAnnotationPressed cityId: String) {
-        // Find first step index for this city in mapDisplayItems
+        // Find first step of this city to get its coordinate for zooming
         guard let firstIndex = mapDisplayItems.firstIndex(where: { (_, _, _, item) -> Bool in
             switch item {
             case .poi(_, let segment, _):
@@ -605,16 +604,7 @@ extension TRPTimelineItineraryVC: TRPMapViewDelegate {
 
         let (_, _, _, item) = mapDisplayItems[firstIndex]
 
-        // Select first step of this city (keep city markers, update selected step marker)
-        selectedMarkerPoiIds.removeAll()
-        selectedMarkerPoiIds.insert(item.itemId)
-
-        // Update selected step marker (city markers remain)
-        let orderedItems = viewModel.getOrderedItemsForMap()
-        map?.cleanAnnotationList(for: "timeline_selected_step")
-        addSelectedStepAnnotation(orderedItems: orderedItems)
-
-        // Zoom to city coordinate
+        // Zoom to city coordinate only — do NOT change selected step/marker
         if let coordinate = item.coordinate {
             map?.setCenter(coordinate, zoomLevel: 13)
         }
@@ -622,15 +612,6 @@ extension TRPTimelineItineraryVC: TRPMapViewDelegate {
         // Mark as focused for Main View button
         isMarkerFocused = true
         updateMainViewButtonVisibility()
-
-        // Scroll collection view to first step of this city
-        let indexPath = IndexPath(item: firstIndex, section: 0)
-        expandCollectionView {
-            DispatchQueue.main.async {
-                self.poiPreviewCollectionView.scrollToItem(at: indexPath, at: .centeredHorizontally, animated: true)
-                self.poiPreviewCollectionView.reloadData()
-            }
-        }
     }
 }
 
