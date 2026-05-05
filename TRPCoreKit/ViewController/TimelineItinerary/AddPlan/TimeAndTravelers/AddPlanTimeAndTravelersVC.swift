@@ -289,7 +289,7 @@ public class AddPlanTimeAndTravelersVC: TRPBaseUIViewController, AddPlanChildVie
         // Determine selected day index
         selectedDayIndex = viewModel.getSelectedDayIndex()
 
-        dayFilterView.configure(with: days, selectedDay: selectedDayIndex)
+        dayFilterView.configure(with: days, selectedDay: selectedDayIndex, mode: .addPlan)
     }
 
     private func updateUI() {
@@ -485,11 +485,10 @@ extension AddPlanTimeAndTravelersVC: TRPSingleTimePickerDelegate {
 extension AddPlanTimeAndTravelersVC: TRPTimelineDayFilterViewDelegate {
 
     public func dayFilterViewDidSelectDay(_ view: TRPTimelineDayFilterView, dayIndex: Int) {
-        selectedDayIndex = dayIndex
         let days = viewModel.getAvailableDays()
-        if dayIndex < days.count {
-            viewModel.selectDay(days[dayIndex])
-            updateCityCenterIfNeeded()  // Update starting point when day changes
-        }
+        guard dayIndex < days.count, !days[dayIndex].isPastDay() else { return }
+        selectedDayIndex = dayIndex
+        viewModel.selectDay(days[dayIndex])
+        updateCityCenterIfNeeded()  // Update starting point when day changes
     }
 }

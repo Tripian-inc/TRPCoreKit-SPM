@@ -502,6 +502,11 @@ extension TRPTimelineItineraryViewModel {
         // Calculate all trip dates (continuous from start to end)
         allTripDates = calculateAllTripDates()
 
+        // First load: default selectedDayIndex to today (or nearest in-range fallback)
+        if !hasLoadedData {
+            selectedDayIndex = computeInitialSelectedDayIndex()
+        }
+
         updateDisplayItems()
 
         // Filter favorite items to exclude already booked/reserved activities
@@ -617,6 +622,24 @@ extension TRPTimelineItineraryViewModel {
               let endDate = dateFormatter.date(from: maxStr) else { return nil }
 
         return (startDate: startDate, endDate: endDate)
+    }
+
+    /// Computes the initial selectedDayIndex on first load.
+    /// - Returns today's index if today falls within `allTripDates`.
+    /// - Returns 0 if today is before the trip range.
+    /// - Returns last index if today is after the trip range.
+    /// - Returns 0 for empty range.
+    internal func computeInitialSelectedDayIndex() -> Int {
+        guard !allTripDates.isEmpty else { return 0 }
+        let today = Date()
+        let calendar = Calendar.current
+        if let idx = allTripDates.firstIndex(where: { calendar.isDate($0, inSameDayAs: today) }) {
+            return idx
+        }
+        if let first = allTripDates.first, today < first {
+            return 0
+        }
+        return allTripDates.count - 1
     }
 
     /// Calculates all dates from trip start to end (continuous range for day filter)

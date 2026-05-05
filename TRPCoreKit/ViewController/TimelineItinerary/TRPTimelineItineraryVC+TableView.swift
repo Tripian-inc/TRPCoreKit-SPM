@@ -32,6 +32,7 @@ extension TRPTimelineItineraryVC: UITableViewDataSource {
 
     /// Configure cell using TimelineCellType with pre-computed cell data
     internal func configureCell(for cellType: TimelineCellType, at indexPath: IndexPath, in tableView: UITableView) -> UITableViewCell {
+        let isPastDay = viewModel.isSelectedDayPast
         switch cellType {
         case .bookedActivity(let cellData):
             guard let cell = tableView.dequeueReusableCell(withIdentifier: TRPTimelineBookedActivityCell.reuseIdentifier, for: indexPath) as? TRPTimelineBookedActivityCell else {
@@ -39,6 +40,7 @@ extension TRPTimelineItineraryVC: UITableViewDataSource {
             }
             cell.configure(with: cellData)
             cell.delegate = self
+            if isPastDay { cell.applyPastDayStyle() }
             return cell
 
         case .reservedActivity(let cellData):
@@ -47,6 +49,7 @@ extension TRPTimelineItineraryVC: UITableViewDataSource {
             }
             cell.configure(with: cellData)
             cell.delegate = self
+            if isPastDay { cell.applyPastDayStyle() }
             return cell
 
         case .manualPoi(let cellData):
@@ -55,6 +58,7 @@ extension TRPTimelineItineraryVC: UITableViewDataSource {
             }
             cell.configure(with: cellData)
             cell.delegate = self
+            if isPastDay { cell.applyPastDayStyle() }
             return cell
 
         case .activityStep(let cellData):
@@ -63,6 +67,7 @@ extension TRPTimelineItineraryVC: UITableViewDataSource {
             }
             cell.configure(with: cellData.step, order: cellData.step.order)
             cell.delegate = self
+            if isPastDay { cell.applyPastDayStyle() }
             return cell
 
         case .recommendations(let cellData):
@@ -80,6 +85,7 @@ extension TRPTimelineItineraryVC: UITableViewDataSource {
                 }
             }
 
+            if isPastDay { cell.applyPastDayStyle() }
             return cell
 
         case .emptyState:

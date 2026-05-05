@@ -163,6 +163,25 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
 
         closeButton.addTarget(self, action: #selector(closeTapped), for: .touchUpInside)
     }
+
+    override func prepareForReuse() {
+        super.prepareForReuse()
+        resetTextAndBorderDefaults()
+    }
+
+    private func resetTextAndBorderDefaults() {
+        // Static views — dynamic recommendation rows are rebuilt by configure() so they
+        // already pick up fresh defaults.
+        titleLabel.textColor = ColorSet.fg.uiColor
+        containerView.layer.borderColor = ColorSet.neutral200.uiColor.cgColor
+        closeButton.layer.borderColor = ColorSet.neutral200.uiColor.cgColor
+    }
+
+    /// Recolors all text/border to muted gray when this cell belongs to a past day.
+    /// Caller (VC) must invoke this after `configure(...)`.
+    func applyPastDayStyle() {
+        contentView.trp_recolorLabelsAndBorders(to: ColorSet.fgWeaker.uiColor)
+    }
     
     // MARK: - Actions
     @objc private func toggleTapped() {

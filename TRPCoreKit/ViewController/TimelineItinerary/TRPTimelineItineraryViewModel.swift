@@ -48,6 +48,13 @@ public class TRPTimelineItineraryViewModel {
 
     public var selectedDayIndex: Int = 0
 
+    /// True when the currently selected day is strictly before today (calendar-day comparison).
+    /// Used by cells to render past-day items in muted colors.
+    public var isSelectedDayPast: Bool {
+        guard selectedDayIndex >= 0, selectedDayIndex < allTripDates.count else { return false }
+        return allTripDates[selectedDayIndex].isPastDay()
+    }
+
     /// Pending day index to navigate to after segment creation/refresh
     internal var pendingNavigationDayIndex: Int?
 

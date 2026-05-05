@@ -190,7 +190,7 @@ public class AddPlanTimeSelectionVC: TRPBaseUIViewController, DynamicHeightPrese
         let days = viewModel.getAvailableDays()
         let selectedIndex = viewModel.getSelectedDayIndex()
 
-        dayFilterView.configure(with: days, selectedDay: selectedIndex)
+        dayFilterView.configure(with: days, selectedDay: selectedIndex, mode: .addPlan)
     }
 
     private func setupActions() {
@@ -344,6 +344,8 @@ extension Array {
 extension AddPlanTimeSelectionVC: TRPTimelineDayFilterViewDelegate {
 
     public func dayFilterViewDidSelectDay(_ view: TRPTimelineDayFilterView, dayIndex: Int) {
+        let days = viewModel.getAvailableDays()
+        guard dayIndex < days.count, !days[dayIndex].isPastDay() else { return }
         viewModel.selectDay(at: dayIndex)
         collectionView.reloadData()
         updateContinueButton()

@@ -58,7 +58,14 @@ public class AddPlanSelectDayViewModel {
     
     public func clearSelection() {
         if let days = containerViewModel?.getAvailableDays(), !days.isEmpty {
-            containerViewModel?.planData.selectedDay = days.first
+            // Past days are non-selectable in AddPlan; default to today, then first non-past, then last.
+            if let today = days.first(where: { $0.isToday() }) {
+                containerViewModel?.planData.selectedDay = today
+            } else if let firstFuture = days.first(where: { !$0.isPastDay() }) {
+                containerViewModel?.planData.selectedDay = firstFuture
+            } else {
+                containerViewModel?.planData.selectedDay = days.last
+            }
         }
         if let cities = containerViewModel?.getAvailableCities(), !cities.isEmpty {
             containerViewModel?.planData.selectedCity = cities.first
