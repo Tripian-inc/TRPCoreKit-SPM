@@ -237,44 +237,21 @@ extension TRPItineraryWithActivities {
             return timelineProfile
         }
 
-        // Get city from first destinationItem (if no tripItems, use this for empty segments)
+        // Get city from first destinationItem (if no tripItems, use this for TimelineDate segment)
         let city = createCityFromDestination()
 
-        // Check if there's a tripItem on the start date
-        let hasItemOnStartDate = tripItems?.contains { item in
-            guard let itemDate = item.startDatetime else { return false }
-            return extractDateString(from: itemDate) == startDateStr
-        } ?? false
-
-        // Check if there's a tripItem on the end date
-        let hasItemOnEndDate = tripItems?.contains { item in
-            guard let itemDate = item.startDatetime else { return false }
-            return extractDateString(from: itemDate) == endDateStr
-        } ?? false
-
-        // Add empty segment for start date if needed
-        if !hasItemOnStartDate {
-            let emptyStartSegment = createEmptySegment(
-                date: startDateStr,
-                title: "Empty",
-                adults: adults,
-                children: children,
-                city: city
-            )
-            segments.insert(emptyStartSegment, at: 0)
-        }
-
-        // Add empty segment for end date if needed (and different from start)
-        if !hasItemOnEndDate && startDateStr != endDateStr {
-            let emptyEndSegment = createEmptySegment(
-                date: endDateStr,
-                title: "Empty",
-                adults: adults,
-                children: children,
-                city: city
-            )
-            segments.append(emptyEndSegment)
-        }
+        // ✅ ALWAYS create TimelineDate segment (no conditions)
+        // This segment spans the full trip duration and replaces the old two-segment "Empty" system
+        // Unlike Empty segments, this is ALWAYS created regardless of whether activities exist on these dates
+        let timelineDateSegment = createTimelineDateSegment(
+            startDate: startDateStr,
+            endDate: endDateStr,
+            adults: adults,
+            children: children,
+            city: city
+        )
+        // Insert at beginning to maintain segment indexing
+        segments.insert(timelineDateSegment, at: 0)
 
         timelineProfile.segments = segments
 
@@ -292,6 +269,8 @@ extension TRPItineraryWithActivities {
     }
 
     /// Creates an empty segment for a given date
+    /// ⚠️ DEPRECATED: This method is used for backward compatibility only.
+    /// New timelines should use createTimelineDateSegment() instead.
     /// Used to ensure timeline covers the full trip date range even when there are no tripItems on certain days
     private func createEmptySegment(date: String, title: String, adults: Int, children: Int, city: TRPCity?) -> TRPTimelineSegment {
         let segment = TRPTimelineSegment()
@@ -301,6 +280,31 @@ extension TRPItineraryWithActivities {
         segment.distinctPlan = true
         segment.startDate = "\(date) 00:00"
         segment.endDate = "\(date) 23:59"
+        segment.adults = adults
+        segment.children = children
+        segment.pets = 0
+        segment.city = city
+        segment.doNotGenerate = 1
+        return segment
+    }
+
+    /// Creates a TimelineDate segment spanning the full trip duration
+    /// This replaces the old two-segment "Empty" system with a single segment
+    /// - Parameters:
+    ///   - startDate: Trip start date in "yyyy-MM-dd" format
+    ///   - endDate: Trip end date in "yyyy-MM-dd" format
+    ///   - adults: Number of adults
+    ///   - children: Number of children
+    ///   - city: City for the segment
+    /// - Returns: TRPTimelineSegment configured as TimelineDate
+    private func createTimelineDateSegment(startDate: String, endDate: String, adults: Int, children: Int, city: TRPCity?) -> TRPTimelineSegment {
+        let segment = TRPTimelineSegment()
+        segment.segmentType = .itinerary
+        segment.title = "TimelineDate"
+        segment.available = false
+        segment.distinctPlan = true
+        segment.startDate = "\(startDate) 00:00"
+        segment.endDate = "\(endDate) 23:59"
         segment.adults = adults
         segment.children = children
         segment.pets = 0

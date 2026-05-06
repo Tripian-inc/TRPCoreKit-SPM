@@ -17,6 +17,7 @@ protocol ActivityCardCellDelegate: AnyObject {
 class ActivityCardCell: UITableViewCell {
 
     static let reuseIdentifier = "ActivityCardCell"
+    private static let skeletonAnimationKey = "shimmer"
 
     weak var delegate: ActivityCardCellDelegate?
     private var tour: TRPTourProduct?
@@ -157,9 +158,21 @@ class ActivityCardCell: UITableViewCell {
         button.setImage(image, for: .normal)
         button.tintColor = ColorSet.primary.uiColor
         button.imageView?.contentMode = .scaleAspectFit
-        // Center 20x20 image in 32x32 button (6px padding on each side)
-        button.imageEdgeInsets = UIEdgeInsets(top: 6, left: 6, bottom: 6, right: 6)
+        // Visual icon stays 20×20 anchored at the trailing 6pt of a 40×32 hit area.
+        // The extra 8pt of width on the leading side enlarges the tap target without
+        // shifting the icon — the title/content stack now butts up directly against it.
+        button.imageEdgeInsets = UIEdgeInsets(top: 6, left: 14, bottom: 6, right: 6)
         button.translatesAutoresizingMaskIntoConstraints = false
+        return button
+    }()
+
+    /// Transparent button that fills the empty gap between `addButton` and `priceLabel` on
+    /// the trailing edge. Absorbs taps in that region so the cell's `didSelectRowAt`
+    /// (activity detail navigation) does not fire when the user taps near the add button.
+    private let tapBlockerButton: UIButton = {
+        let button = UIButton(type: .custom)
+        button.translatesAutoresizingMaskIntoConstraints = false
+        button.backgroundColor = .clear
         return button
     }()
 
@@ -167,6 +180,44 @@ class ActivityCardCell: UITableViewCell {
         let view = UIView()
         view.backgroundColor = ColorSet.lineWeak.uiColor
         view.translatesAutoresizingMaskIntoConstraints = false
+        return view
+    }()
+
+    // MARK: - Skeleton Placeholders
+
+    private let imageSkeletonView: UIView = {
+        let view = UIView()
+        view.backgroundColor = ColorSet.lineWeak.uiColor
+        view.layer.cornerRadius = 4
+        view.translatesAutoresizingMaskIntoConstraints = false
+        view.isHidden = true
+        return view
+    }()
+
+    private let titleSkeletonView: UIView = {
+        let view = UIView()
+        view.backgroundColor = ColorSet.lineWeak.uiColor
+        view.layer.cornerRadius = 4
+        view.translatesAutoresizingMaskIntoConstraints = false
+        view.isHidden = true
+        return view
+    }()
+
+    private let subtitleSkeletonView: UIView = {
+        let view = UIView()
+        view.backgroundColor = ColorSet.lineWeak.uiColor
+        view.layer.cornerRadius = 3
+        view.translatesAutoresizingMaskIntoConstraints = false
+        view.isHidden = true
+        return view
+    }()
+
+    private let priceSkeletonView: UIView = {
+        let view = UIView()
+        view.backgroundColor = ColorSet.lineWeak.uiColor
+        view.layer.cornerRadius = 3
+        view.translatesAutoresizingMaskIntoConstraints = false
+        view.isHidden = true
         return view
     }()
 
@@ -217,8 +268,16 @@ class ActivityCardCell: UITableViewCell {
         cardContainerView.addSubview(addButton)
         cardContainerView.addSubview(priceLabel)
         cardContainerView.addSubview(separatorView)
+        cardContainerView.addSubview(tapBlockerButton)
+
+        // Skeleton placeholders (overlay; hidden by default)
+        cardContainerView.addSubview(imageSkeletonView)
+        cardContainerView.addSubview(titleSkeletonView)
+        cardContainerView.addSubview(subtitleSkeletonView)
+        cardContainerView.addSubview(priceSkeletonView)
 
         addButton.addTarget(self, action: #selector(addButtonTapped), for: .touchUpInside)
+        tapBlockerButton.addTarget(self, action: #selector(tapBlockerTapped), for: .touchUpInside)
 
         NSLayoutConstraint.activate([
             // Card container
@@ -233,16 +292,20 @@ class ActivityCardCell: UITableViewCell {
             activityImageView.widthAnchor.constraint(equalToConstant: 80),
             activityImageView.heightAnchor.constraint(equalToConstant: 80),
 
-            // Add button (top-right with 24px top padding)
+            // Add button (top-right with 24px top padding). Hit area is 40×32: the icon
+            // visually occupies the right 32×32 (matching the original look) but the extra
+            // 8pt to the left enlarges the tap target.
             addButton.topAnchor.constraint(equalTo: cardContainerView.topAnchor, constant: 24),
             addButton.trailingAnchor.constraint(equalTo: cardContainerView.trailingAnchor),
-            addButton.widthAnchor.constraint(equalToConstant: 32),
+            addButton.widthAnchor.constraint(equalToConstant: 40),
             addButton.heightAnchor.constraint(equalToConstant: 32),
 
-            // Content stack view (between image and add button, with 24px top padding)
+            // Content stack view (between image and add button, with 24px top padding).
+            // Butts up against the add button's leading edge — the previous 8pt gap is now
+            // absorbed into the add button's tap area.
             contentStackView.topAnchor.constraint(equalTo: cardContainerView.topAnchor, constant: 24),
             contentStackView.leadingAnchor.constraint(equalTo: activityImageView.trailingAnchor, constant: 16),
-            contentStackView.trailingAnchor.constraint(equalTo: addButton.leadingAnchor, constant: -8),
+            contentStackView.trailingAnchor.constraint(equalTo: addButton.leadingAnchor),
 
             // Star and duration icons size
             starImageView.widthAnchor.constraint(equalToConstant: 12),
@@ -256,12 +319,53 @@ class ActivityCardCell: UITableViewCell {
             priceLabel.topAnchor.constraint(equalTo: contentStackView.bottomAnchor, constant: 4),
             priceLabel.trailingAnchor.constraint(equalTo: cardContainerView.trailingAnchor),
 
-            // Separator (16px padding from left and right)
+            // Separator (16px padding from left and right). Bottom is upper-bounded by
+            // the card container so that — in skeleton mode where real content collapses —
+            // the skeleton-driven greaterThanOrEqualTo constraints below can grow the card
+            // without conflicting with the separator chain.
             separatorView.topAnchor.constraint(equalTo: priceLabel.bottomAnchor, constant: 14),
             separatorView.leadingAnchor.constraint(equalTo: cardContainerView.leadingAnchor),
             separatorView.trailingAnchor.constraint(equalTo: cardContainerView.trailingAnchor),
-            separatorView.bottomAnchor.constraint(equalTo: cardContainerView.bottomAnchor),
-            separatorView.heightAnchor.constraint(equalToConstant: 0.5)
+            separatorView.bottomAnchor.constraint(lessThanOrEqualTo: cardContainerView.bottomAnchor),
+            separatorView.heightAnchor.constraint(equalToConstant: 0.5),
+
+            // Tap blocker — fills the gap between the add button and the price label on the
+            // trailing column. Width is aligned to addButton so the rest of the cell still
+            // routes taps to the cell's didSelectRowAt for the detail navigation.
+            tapBlockerButton.topAnchor.constraint(equalTo: addButton.bottomAnchor),
+            tapBlockerButton.bottomAnchor.constraint(equalTo: priceLabel.topAnchor),
+            tapBlockerButton.leadingAnchor.constraint(equalTo: addButton.leadingAnchor),
+            tapBlockerButton.trailingAnchor.constraint(equalTo: cardContainerView.trailingAnchor),
+
+            // Skeleton: image placeholder over real image
+            imageSkeletonView.topAnchor.constraint(equalTo: activityImageView.topAnchor),
+            imageSkeletonView.leadingAnchor.constraint(equalTo: activityImageView.leadingAnchor),
+            imageSkeletonView.widthAnchor.constraint(equalTo: activityImageView.widthAnchor),
+            imageSkeletonView.heightAnchor.constraint(equalTo: activityImageView.heightAnchor),
+
+            // Skeleton: title bar — full width next to image
+            titleSkeletonView.topAnchor.constraint(equalTo: cardContainerView.topAnchor, constant: 28),
+            titleSkeletonView.leadingAnchor.constraint(equalTo: activityImageView.trailingAnchor, constant: 16),
+            titleSkeletonView.trailingAnchor.constraint(equalTo: addButton.leadingAnchor, constant: -8),
+            titleSkeletonView.heightAnchor.constraint(equalToConstant: 14),
+
+            // Skeleton: subtitle bar — half width
+            subtitleSkeletonView.topAnchor.constraint(equalTo: titleSkeletonView.bottomAnchor, constant: 10),
+            subtitleSkeletonView.leadingAnchor.constraint(equalTo: activityImageView.trailingAnchor, constant: 16),
+            subtitleSkeletonView.widthAnchor.constraint(equalToConstant: 120),
+            subtitleSkeletonView.heightAnchor.constraint(equalToConstant: 10),
+
+            // Skeleton: price bar — bottom right
+            priceSkeletonView.topAnchor.constraint(equalTo: subtitleSkeletonView.bottomAnchor, constant: 18),
+            priceSkeletonView.trailingAnchor.constraint(equalTo: cardContainerView.trailingAnchor),
+            priceSkeletonView.widthAnchor.constraint(equalToConstant: 60),
+            priceSkeletonView.heightAnchor.constraint(equalToConstant: 10),
+
+            // Force the card to stay tall enough to contain skeleton overlays even when
+            // the real content (which normally drives cell height via the separator chain)
+            // is hidden and collapses to 0.
+            cardContainerView.bottomAnchor.constraint(greaterThanOrEqualTo: imageSkeletonView.bottomAnchor, constant: 16),
+            cardContainerView.bottomAnchor.constraint(greaterThanOrEqualTo: priceSkeletonView.bottomAnchor, constant: 16)
         ])
     }
 
@@ -272,69 +376,84 @@ class ActivityCardCell: UITableViewCell {
         delegate?.activityCardCellDidTapAdd(self, tour: tour)
     }
 
-    // MARK: - Configuration
+    @objc private func tapBlockerTapped() {
+        // Intentional no-op: this button exists only to absorb taps in the gap between
+        // the add button and the price label so they don't propagate to the cell's
+        // didSelectRowAt and trigger activity detail navigation.
+    }
 
-    func configure(with tour: TRPTourProduct) {
-        self.tour = tour
-        titleLabel.text = tour.name
+    // MARK: - Private Helpers
 
-        // Set rating
-        if tour.isRatingAvailable() {
-            ratingLabel.text = String(format: "%.1f", tour.rating ?? 0)
-            reviewCountLabel.text = "\(tour.ratingCount?.formattedWithSeparator ?? "0") " +
-                                   AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.opinions)
+    private func updateRating(rating: Float?, ratingCount: Int?) {
+        if let rating = rating, let count = ratingCount, count > 0 {
+            ratingLabel.text = String(format: "%.1f", rating)
+            reviewCountLabel.text = "\(count.formattedWithSeparator) " +
+                AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.opinions)
             ratingStackView.isHidden = false
         } else {
             ratingStackView.isHidden = true
         }
+    }
 
-        // Set duration
-        if let duration = tour.duration {
-            durationLabel.text = TimelineLocalizationKeys.formatDuration(minutes: duration)
-            durationIconImageView.isHidden = false
-            durationLabel.isHidden = false
+    private func updateDuration(minutes: Int?) {
+        if let minutes = minutes, minutes > 0 {
+            durationLabel.text = TimelineLocalizationKeys.formatDuration(minutes: minutes)
             durationStackView.isHidden = false
         } else {
             durationStackView.isHidden = true
         }
+    }
 
-        // Set language - hide for now as we don't have this data in TRPTourProduct
-        languageIconImageView.isHidden = true
-        languageLabel.isHidden = true
-
-        // Free cancellation - show if tour is cancellable
-        freeCancellationLabel.isHidden = !tour.isCancellable
-        if tour.isCancellable {
+    private func updateCancellation(isCancellable: Bool) {
+        freeCancellationLabel.isHidden = !isCancellable
+        if isCancellable {
             freeCancellationLabel.text = CommonLocalizationKeys.localized(CommonLocalizationKeys.freeCancellation)
         }
+    }
 
-        // Set price with attributed string
-        if let price = tour.price {
-            let fromText = CommonLocalizationKeys.localized(CommonLocalizationKeys.from) + " "
-            let priceText = TRPCurrencyHelper.formatPrice(price, currency: tour.currency ?? "EUR")
+    private func updatePrice(value: Double?, currency: String, convertFromCents: Bool = false) {
+        guard let value = value else {
+            priceLabel.attributedText = nil
+            return
+        }
 
-            let attributedString = NSMutableAttributedString()
-            attributedString.append(NSAttributedString(
-                string: fromText,
-                attributes: [
-                    .font: FontSet.montserratMedium.font(14),
-                    .foregroundColor: ColorSet.primaryText.uiColor
-                ]
-            ))
-            attributedString.append(NSAttributedString(
-                string: priceText,
+        let displayValue = convertFromCents ? value / 100.0 : value
+
+        // Show "FREE" for zero price
+        if displayValue == 0 {
+            priceLabel.attributedText = NSAttributedString(
+                string: CommonLocalizationKeys.localized(CommonLocalizationKeys.free),
                 attributes: [
                     .font: FontSet.montserratBold.font(16),
                     .foregroundColor: ColorSet.primaryText.uiColor
                 ]
-            ))
-            priceLabel.attributedText = attributedString
-        } else {
-            priceLabel.attributedText = nil
+            )
+            return
         }
 
-        // Set activity image using SDWebImage
-        if let imageUrl = tour.image?.url, let url = URL(string: imageUrl) {
+        let fromText = CommonLocalizationKeys.localized(CommonLocalizationKeys.from) + " "
+        let priceText = TRPCurrencyHelper.formatPrice(displayValue, currency: currency)
+
+        let attributedString = NSMutableAttributedString()
+        attributedString.append(NSAttributedString(
+            string: fromText,
+            attributes: [
+                .font: FontSet.montserratMedium.font(14),
+                .foregroundColor: ColorSet.primaryText.uiColor
+            ]
+        ))
+        attributedString.append(NSAttributedString(
+            string: priceText,
+            attributes: [
+                .font: FontSet.montserratBold.font(16),
+                .foregroundColor: ColorSet.primaryText.uiColor
+            ]
+        ))
+        priceLabel.attributedText = attributedString
+    }
+
+    private func updateImage(urlString: String?) {
+        if let urlString = urlString, let url = URL(string: urlString) {
             activityImageView.sd_setImage(with: url, placeholderImage: nil)
         } else {
             activityImageView.image = nil
@@ -342,83 +461,119 @@ class ActivityCardCell: UITableViewCell {
         }
     }
 
-    /// Configure cell with TRPSegmentFavoriteItem (for saved plans)
-    func configure(with favoriteItem: TRPSegmentFavoriteItem, tourProduct: TRPTourProduct) {
-        // Store tour product for delegate callback
-        self.tour = tourProduct
-
-        titleLabel.text = favoriteItem.title
-
-        // Set rating
-        if let rating = favoriteItem.rating, let ratingCount = favoriteItem.ratingCount, ratingCount > 0 {
-            ratingLabel.text = String(format: "%.1f", rating)
-            reviewCountLabel.text = "\(ratingCount.formattedWithSeparator) " +
-                                   AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.opinions)
-            ratingStackView.isHidden = false
-        } else {
-            ratingStackView.isHidden = true
-        }
-
-        // Duration - use from favoriteItem if available
-        if let duration = favoriteItem.duration {
-            durationLabel.text = TimelineLocalizationKeys.formatDuration(minutes: Int(duration))
-            durationStackView.isHidden = false
-        } else {
-            durationStackView.isHidden = true
-        }
-
-        // Language not available
+    private func hideLanguageLabels() {
         languageIconImageView.isHidden = true
         languageLabel.isHidden = true
+    }
 
-        // Free cancellation - show only if NOT non_refundable
-        let isCancellable: Bool
-        if let cancellation = favoriteItem.cancellation,
-           !cancellation.isEmpty {
-            isCancellable = cancellation.lowercased() != "non_refundable"
-        } else {
-            isCancellable = true // Default to cancellable if no cancellation info
-        }
-        freeCancellationLabel.isHidden = !isCancellable
-        if isCancellable {
-            freeCancellationLabel.text = CommonLocalizationKeys.localized(CommonLocalizationKeys.freeCancellation)
-        }
+    // MARK: - Configuration
 
-        // Set price with currency using attributed string
-        if let price = favoriteItem.price {
-            let fromText = CommonLocalizationKeys.localized(CommonLocalizationKeys.from) + " "
-            let priceText = TRPCurrencyHelper.formatPrice(price.value, currency: price.currency)
+    func configure(with tour: TRPTourProduct) {
+        exitSkeletonMode()
 
-            let attributedString = NSMutableAttributedString()
-            attributedString.append(NSAttributedString(
-                string: fromText,
-                attributes: [
-                    .font: FontSet.montserratMedium.font(14),
-                    .foregroundColor: ColorSet.primaryText.uiColor
-                ]
-            ))
-            attributedString.append(NSAttributedString(
-                string: priceText,
-                attributes: [
-                    .font: FontSet.montserratBold.font(16),
-                    .foregroundColor: ColorSet.primaryText.uiColor
-                ]
-            ))
-            priceLabel.attributedText = attributedString
-        } else {
-            priceLabel.attributedText = nil
-        }
+        self.tour = tour
+        titleLabel.text = tour.name
 
-        // Hide separator for saved plans screen
+        updateRating(rating: tour.rating, ratingCount: tour.ratingCount)
+        updateDuration(minutes: tour.duration)
+        hideLanguageLabels()
+        updateCancellation(isCancellable: tour.isCancellable)
+        updatePrice(value: tour.price.map { Double($0) }, currency: tour.currency ?? "EUR")
+        updateImage(urlString: tour.image?.url)
+    }
+
+    /// Render the cell as a shimmering skeleton — used while a search is in flight.
+    func configureSkeleton() {
+        self.tour = nil
+        isUserInteractionEnabled = false
+
+        // Hide real content
+        activityImageView.isHidden = true
+        titleLabel.isHidden = true
+        ratingStackView.isHidden = true
+        durationStackView.isHidden = true
+        freeCancellationLabel.isHidden = true
+        priceLabel.isHidden = true
+        addButton.isHidden = true
         separatorView.isHidden = true
 
-        // Set activity image using SDWebImage
-        if let imageUrl = favoriteItem.photoUrl, let url = URL(string: imageUrl) {
-            activityImageView.sd_setImage(with: url, placeholderImage: nil)
-        } else {
-            activityImageView.image = nil
-            activityImageView.backgroundColor = ColorSet.neutral100.uiColor
+        // Show skeletons
+        imageSkeletonView.isHidden = false
+        titleSkeletonView.isHidden = false
+        subtitleSkeletonView.isHidden = false
+        priceSkeletonView.isHidden = false
+
+        startSkeletonAnimation()
+    }
+
+    private func exitSkeletonMode() {
+        stopSkeletonAnimation()
+        isUserInteractionEnabled = true
+
+        imageSkeletonView.isHidden = true
+        titleSkeletonView.isHidden = true
+        subtitleSkeletonView.isHidden = true
+        priceSkeletonView.isHidden = true
+
+        activityImageView.isHidden = false
+        titleLabel.isHidden = false
+        priceLabel.isHidden = false
+        addButton.isHidden = false
+        separatorView.isHidden = false
+        // ratingStackView / durationStackView / freeCancellationLabel visibility is content-driven
+        // and re-set inside updateRating / updateDuration / updateCancellation below.
+    }
+
+    private func startSkeletonAnimation() {
+        let animation = CABasicAnimation(keyPath: "opacity")
+        animation.fromValue = 0.4
+        animation.toValue = 1.0
+        animation.duration = 0.8
+        animation.autoreverses = true
+        animation.repeatCount = .infinity
+        for view in [imageSkeletonView, titleSkeletonView, subtitleSkeletonView, priceSkeletonView] {
+            view.layer.add(animation, forKey: Self.skeletonAnimationKey)
         }
+    }
+
+    private func stopSkeletonAnimation() {
+        for view in [imageSkeletonView, titleSkeletonView, subtitleSkeletonView, priceSkeletonView] {
+            view.layer.removeAnimation(forKey: Self.skeletonAnimationKey)
+        }
+    }
+
+    override func prepareForReuse() {
+        super.prepareForReuse()
+        stopSkeletonAnimation()
+    }
+
+    /// Configure cell with TRPSegmentFavoriteItem (for saved plans)
+    func configure(with favoriteItem: TRPSegmentFavoriteItem, tourProduct: TRPTourProduct) {
+        self.tour = tourProduct
+        titleLabel.text = favoriteItem.title
+
+        updateRating(rating: favoriteItem.rating, ratingCount: favoriteItem.ratingCount)
+        updateDuration(minutes: favoriteItem.duration.map { Int($0) })
+        hideLanguageLabels()
+
+        // Cancellation logic for favorite items
+        let isCancellable: Bool
+        if let cancellation = favoriteItem.cancellation, !cancellation.isEmpty {
+            isCancellable = cancellation.lowercased() != "non_refundable"
+        } else {
+            isCancellable = true
+        }
+        updateCancellation(isCancellable: isCancellable)
+
+        // Price from cents (convertFromCents: true)
+        updatePrice(
+            value: favoriteItem.price?.value,
+            currency: favoriteItem.price?.currency ?? "EUR",
+            convertFromCents: true
+        )
+
+        updateImage(urlString: favoriteItem.photoUrl)
+        separatorView.isHidden = true
     }
 
     /// Configure separator visibility (hide for last cell)

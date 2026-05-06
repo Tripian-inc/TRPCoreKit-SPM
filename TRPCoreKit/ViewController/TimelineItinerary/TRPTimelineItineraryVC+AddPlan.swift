@@ -276,10 +276,11 @@ extension TRPTimelineItineraryVC: UICollectionViewDataSource, UICollectionViewDe
             return UICollectionViewCell()
         }
 
-        let (order, _, cityIndex, item) = mapDisplayItems[indexPath.item]
+        let (order, _, _, item) = mapDisplayItems[indexPath.item]
+        let isSelected = selectedMarkerPoiIds.contains(item.itemId)
 
-        // Configure cell with MapDisplayItem, unified order, and city-specific color
-        cell.configure(with: item, order: order, cityIndex: cityIndex)
+        // Configure cell with MapDisplayItem, unified order, and selection state
+        cell.configure(with: item, order: order, isSelected: isSelected)
 
         return cell
     }
@@ -289,21 +290,125 @@ extension TRPTimelineItineraryVC: UICollectionViewDataSource, UICollectionViewDe
     }
 
     public func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
-        // Always expand and animate to marker (even if already selected)
-        expandCollectionView()
-
         let (_, _, _, item) = mapDisplayItems[indexPath.item]
 
-        // Update selected marker appearance
+        // Check if item is already selected
+        let isAlreadySelected = selectedMarkerPoiIds.contains(item.itemId)
+
+        if isAlreadySelected {
+            // Navigate to detail - use same logic as list (RecommendationsCell)
+            switch item {
+            case .poi(_, _, let step):
+                guard let step = step, let poi = step.poi else { return }
+
+                // Activity step - call trpCoreKitDidRequestActivityDetail (same as list)
+                if step.stepType == "activity" {
+                    let activityId = extractActivityId(from: poi)
+                    TRPCoreKit.shared.delegate?.trpCoreKitDidRequestActivityDetail(activityId: activityId)
+                    return
+                }
+
+                // Normal POI step - open POI detail view controller (same as list)
+                let detailVM = TimelinePoiDetailViewModel(poi: poi)
+                let detailVC = TimelinePoiDetailViewController(viewModel: detailVM)
+                navigationController?.pushViewController(detailVC, animated: true)
+
+            case .activity(let segment):
+                // Booked/Reserved activity - call trpCoreKitDidRequestActivityDetail (same as list)
+                guard let activityId = segment.additionalData?.activityId else { return }
+                let cleanedId = activityId.cleanedAsActivityId()
+                TRPCoreKit.shared.delegate?.trpCoreKitDidRequestActivityDetail(activityId: cleanedId)
+            }
+        } else {
+            // Normal selection flow
+            expandCollectionView()
+
+            // In multi-city mode, switch to step markers when selecting from collection view
+            if viewModel.hasMultipleCities() && !isShowingStepMarkersInMultiCity {
+                isShowingStepMarkersInMultiCity = true
+
+                // Clear and redraw with step markers
+                selectedMarkerPoiIds.removeAll()
+                selectedMarkerPoiIds.insert(item.itemId)
+
+                clearMapAnnotations()
+                let orderedItems = viewModel.getOrderedItemsForMap()
+                addAnnotationsForOrderedItems(orderedItems)
+            } else {
+                updateSelectedMarker(poiId: item.itemId)
+            }
+
+            if let coordinate = item.coordinate, let mapView = map {
+                mapView.setCenter(coordinate, zoomLevel: 15)
+                isMarkerFocused = true
+                updateMainViewButtonVisibility()
+            }
+
+            // Scroll collection view to center the selected item
+            poiPreviewCollectionView.scrollToItem(at: indexPath, at: .centeredHorizontally, animated: true)
+            poiPreviewCollectionView.reloadData()
+        }
+    }
+
+    // MARK: - Custom Paging
+
+    public func scrollViewWillEndDragging(_ scrollView: UIScrollView, withVelocity velocity: CGPoint, targetContentOffset: UnsafeMutablePointer<CGPoint>) {
+        guard scrollView == poiPreviewCollectionView else { return }
+
+        let cellWidth: CGFloat = 300
+        let spacing: CGFloat = 8
+        let itemWidth = cellWidth + spacing
+        let leftInset: CGFloat = 16
+
+        // Calculate nearest index based on target offset
+        let targetX = targetContentOffset.pointee.x + leftInset
+        var nearestIndex = round(targetX / itemWidth)
+
+        // Clamp to valid range
+        nearestIndex = max(0, min(nearestIndex, CGFloat(mapDisplayItems.count - 1)))
+
+        // Calculate new target offset (left-aligned)
+        let newTargetX = nearestIndex * itemWidth - leftInset
+        targetContentOffset.pointee.x = newTargetX
+    }
+
+    public func scrollViewDidEndDecelerating(_ scrollView: UIScrollView) {
+        guard scrollView == poiPreviewCollectionView else { return }
+        syncMapSelectionWithVisibleCell()
+    }
+
+    public func scrollViewDidEndDragging(_ scrollView: UIScrollView, willDecelerate decelerate: Bool) {
+        guard scrollView == poiPreviewCollectionView, !decelerate else { return }
+        syncMapSelectionWithVisibleCell()
+    }
+
+    /// Sync map selection with the currently visible cell in collection view
+    private func syncMapSelectionWithVisibleCell() {
+        let cellWidth: CGFloat = 300
+        let spacing: CGFloat = 8
+        let itemWidth = cellWidth + spacing
+        let leftInset: CGFloat = 16
+
+        // Find the left-aligned visible cell index
+        let currentIndex = Int(round((poiPreviewCollectionView.contentOffset.x + leftInset) / itemWidth))
+
+        guard currentIndex >= 0, currentIndex < mapDisplayItems.count else { return }
+
+        let (_, _, _, item) = mapDisplayItems[currentIndex]
+
+        // Update selected marker on map
         updateSelectedMarker(poiId: item.itemId)
 
         // Center map on selected item's coordinate
-        if let coordinate = item.coordinate, let mapView = map {
-            mapView.setCenter(coordinate, zoomLevel: 15)
-
-            // Mark as focused for Main View button
-            isMarkerFocused = true
-            updateMainViewButtonVisibility()
+        if let coordinate = item.coordinate {
+            map?.setCenter(coordinate, zoomLevel: 15)
         }
+
+        // Update focus state for Main View button
+        isMarkerFocused = true
+        updateMainViewButtonVisibility()
+
+        // Reload collection view to update badge styles
+        poiPreviewCollectionView.reloadData()
     }
 }

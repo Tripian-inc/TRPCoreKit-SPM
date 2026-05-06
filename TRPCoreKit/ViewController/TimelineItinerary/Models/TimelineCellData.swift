@@ -48,6 +48,10 @@ public struct BookedActivityCellData: TimelineCellData {
     // MARK: - Raw Data (for delegate callbacks)
     public let segment: TRPTimelineSegment
 
+    // MARK: - Conflict Detection
+    /// Whether this activity has a time conflict (UI styling only, no text for booked activities)
+    public var hasConflict: Bool = false
+
     // MARK: - Initialization
 
     public init(
@@ -62,7 +66,8 @@ public struct BookedActivityCellData: TimelineCellData {
         duration: Double?,
         price: TRPSegmentActivityPrice?,
         cancellation: String?,
-        segment: TRPTimelineSegment
+        segment: TRPTimelineSegment,
+        hasConflict: Bool = false
     ) {
         self.segmentIndex = segmentIndex
         self.order = order
@@ -76,6 +81,7 @@ public struct BookedActivityCellData: TimelineCellData {
         self.price = price
         self.cancellation = cancellation
         self.segment = segment
+        self.hasConflict = hasConflict
     }
 
     /// Create from TRPMergedTimelineItem with unified order
@@ -92,6 +98,7 @@ public struct BookedActivityCellData: TimelineCellData {
         self.price = item.price
         self.cancellation = item.cancellation
         self.segment = item.segment
+        self.hasConflict = item.hasConflict
     }
 }
 
@@ -121,6 +128,12 @@ public struct ManualPoiCellData: TimelineCellData {
     public let segment: TRPTimelineSegment
     public let poi: TRPPoi?
 
+    // MARK: - Conflict Detection
+    /// Whether this POI has a time conflict with another item
+    public var hasConflict: Bool = false
+    /// Whether to show "Time Overlap" text in the time badge
+    public var showTimeOverlapText: Bool = false
+
     // MARK: - Initialization
 
     public init(
@@ -133,7 +146,9 @@ public struct ManualPoiCellData: TimelineCellData {
         ratingCount: Int?,
         categoryName: String?,
         segment: TRPTimelineSegment,
-        poi: TRPPoi?
+        poi: TRPPoi?,
+        hasConflict: Bool = false,
+        showTimeOverlapText: Bool = false
     ) {
         self.segmentIndex = segmentIndex
         self.order = order
@@ -145,6 +160,8 @@ public struct ManualPoiCellData: TimelineCellData {
         self.categoryName = categoryName
         self.segment = segment
         self.poi = poi
+        self.hasConflict = hasConflict
+        self.showTimeOverlapText = showTimeOverlapText
     }
 
     /// Create from TRPMergedTimelineItem with unified order
@@ -159,6 +176,8 @@ public struct ManualPoiCellData: TimelineCellData {
         self.categoryName = item.manualPoi?.categories.first?.name
         self.segment = item.segment
         self.poi = item.manualPoi
+        self.hasConflict = item.hasConflict
+        self.showTimeOverlapText = item.showTimeOverlapText
     }
 }
 

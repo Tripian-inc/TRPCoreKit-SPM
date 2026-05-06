@@ -299,6 +299,24 @@ class TRPTimelineManualPoiCell: UITableViewCell {
         contentContainer.isUserInteractionEnabled = true
     }
 
+    override func prepareForReuse() {
+        super.prepareForReuse()
+        resetTextAndBorderDefaults()
+    }
+
+    private func resetTextAndBorderDefaults() {
+        titleLabel.textColor = ColorSet.primaryText.uiColor
+        ratingLabel.textColor = ColorSet.primaryText.uiColor
+        reviewLabel.textColor = ColorSet.fgWeak.uiColor
+        categoryLabel.textColor = ColorSet.fgGray.uiColor
+    }
+
+    /// Recolors all text/border to muted gray when this cell belongs to a past day.
+    /// Caller (VC) must invoke this after `configure(...)`.
+    func applyPastDayStyle() {
+        contentView.trp_recolorLabelsAndBorders(to: ColorSet.fgWeaker.uiColor)
+    }
+
     // MARK: - Configuration
     func configure(with segment: TRPTimelineSegment, poi: TRPPoi?, order: Int = 1) {
         self.segment = segment
@@ -362,7 +380,13 @@ class TRPTimelineManualPoiCell: UITableViewCell {
         let timeParts = cellData.timeRange.components(separatedBy: " - ")
         let startTime = timeParts.first ?? ""
         let endTime = timeParts.count > 1 ? timeParts[1] : ""
-        timeBadgeView.configure(order: cellData.order, startTime: startTime, endTime: endTime)
+        timeBadgeView.configure(
+            order: cellData.order,
+            startTime: startTime,
+            endTime: endTime,
+            hasConflict: cellData.hasConflict,
+            showTimeOverlapText: cellData.showTimeOverlapText
+        )
 
         // Image
         if let imageUrl = cellData.imageUrl {

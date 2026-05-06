@@ -158,6 +158,18 @@ public class TRPMapView: UIView {
         let viewAnnotations = self.addViewAnnotations(annotations, annotationOrder: annotationOrder)
         addedAnnotations[segmentId] = viewAnnotations
     }
+
+    /// Add city marker annotations for multi-destination days
+    /// Uses TRPCityMarkerAnnotationView with ic_map_city_marker image
+    public func addCityAnnotations(_ annotations: [TRPPointAnnotation], segmentId: String) {
+        let viewAnnotations = annotations.map { annotation -> ViewAnnotation in
+            annotation.asViewAnnotation(tapHandler: { [weak self] cityId in
+                self?.delegate?.mapView(cityAnnotationPressed: cityId)
+            })
+        }
+        addAnnotationToMap(viewAnnotations)
+        addedAnnotations[segmentId] = viewAnnotations
+    }
     
     public func cleanAllAnnotations() {
         addedAnnotations.removeAll()
@@ -315,6 +327,13 @@ extension TRPMapView {
         // Hide POI labels after style loads for a cleaner map
         mapView.mapboxMap.onStyleLoaded.observeNext { [weak self] _ in
             self?.hidePOILayers()
+        }.store(in: &cancelables)
+
+        // Observe camera changes for zoom level tracking
+        mapView.mapboxMap.onCameraChanged.observe { [weak self] event in
+            guard let self = self else { return }
+            let newZoom = CGFloat(event.cameraState.zoom)
+            self.delegate?.mapViewChangedZoomLevel(self, zoomLevel: newZoom)
         }.store(in: &cancelables)
 
         addClickPropetyForAnnotations()

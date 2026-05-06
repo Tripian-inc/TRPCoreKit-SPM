@@ -31,6 +31,7 @@ public class AddPlanTimeSelectionViewModel {
     private var allTimeSlots: [Date: [TimeSlot]] = [:] // Date -> TimeSlots
     private var selectedDate: Date?
     private var selectedTimeSlot: TimeSlot?
+    private var hasPreloadedSlots: Bool = false
 
     // Edit mode properties
     private var segment: TRPTimelineSegment?
@@ -44,6 +45,11 @@ public class AddPlanTimeSelectionViewModel {
         self.planData = planData
         self.tourRepository = tourRepository
         self.selectedDate = planData.selectedDay
+
+        if let preloaded = tour.slots {
+            prefillCacheFromPreloadedSlots(preloaded)
+            hasPreloadedSlots = true
+        }
     }
 
     /// Edit mode initializer - creates TRPTourProduct from segment's additionalData
@@ -199,19 +205,19 @@ public class AddPlanTimeSelectionViewModel {
         }
     }
 
-    /// Get time slots for selected day (filtered for today to exclude past times)
+    /// Get time slots for selected day (filtered for today to exclude past times, deduplicated by time)
     public func getTimeSlots() -> [TimeSlot] {
         guard let selectedDate = selectedDate else { return [] }
-        let slots = allTimeSlots[selectedDate] ?? []
+        var slots = allTimeSlots[selectedDate] ?? []
 
         // If today, filter out past times (before current time + 30 minutes)
         let calendar = Calendar.current
         if calendar.isDateInToday(selectedDate) {
-            let minimumTime = Date().addingTimeInterval(30 * 60)  // +30 minutes
+            let minimumTime = Date()  // +30 minutes
             let minimumTimeComponents = calendar.dateComponents([.hour, .minute], from: minimumTime)
             let minimumMinutes = (minimumTimeComponents.hour ?? 0) * 60 + (minimumTimeComponents.minute ?? 0)
 
-            return slots.filter { slot in
+            slots = slots.filter { slot in
                 let timeComponents = slot.time.split(separator: ":")
                 guard timeComponents.count >= 2,
                       let hour = Int(timeComponents[0]),
@@ -223,7 +229,31 @@ public class AddPlanTimeSelectionViewModel {
             }
         }
 
-        return slots
+        // Deduplicate slots by time, keeping the one with lowest price
+        return deduplicateSlotsByTime(slots)
+    }
+
+    /// Deduplicate time slots by time string, keeping the slot with lowest price for each time
+    private func deduplicateSlotsByTime(_ slots: [TimeSlot]) -> [TimeSlot] {
+        var slotsByTime: [String: TimeSlot] = [:]
+
+        for slot in slots {
+            if let existingSlot = slotsByTime[slot.time] {
+                // Keep the one with lower price
+                let existingPrice = existingSlot.price ?? Double.greatestFiniteMagnitude
+                let newPrice = slot.price ?? Double.greatestFiniteMagnitude
+                if newPrice < existingPrice {
+                    slotsByTime[slot.time] = slot
+                }
+            } else {
+                slotsByTime[slot.time] = slot
+            }
+        }
+
+        // Sort by time and return
+        return slotsByTime.values.sorted { slot1, slot2 in
+            slot1.time < slot2.time
+        }
     }
 
     /// Select a time slot
@@ -245,6 +275,14 @@ public class AddPlanTimeSelectionViewModel {
     public func fetchTimeSlots() {
         guard let selectedDate = selectedDate else {
             delegate?.viewModel(error: NSError(domain: "AddPlanTimeSelection", code: -1, userInfo: [NSLocalizedDescriptionKey: "No date selected"]))
+            return
+        }
+
+        // Preload path: search response already populated cache for all trip days; skip API.
+        if hasPreloadedSlots {
+            DispatchQueue.main.async { [weak self] in
+                self?.delegate?.timeSlotsDidLoad()
+            }
             return
         }
 
@@ -279,6 +317,31 @@ public class AddPlanTimeSelectionViewModel {
         }
     }
 
+    /// Bucket preloaded search-response slots into the per-day cache.
+    /// Uses string equality on "yyyy-MM-dd" against canonical Date instances from `availableDays`,
+    /// so dictionary keys exactly match the Date instances `selectDay(at:)`/`getTimeSlots()` use.
+    private func prefillCacheFromPreloadedSlots(_ slots: [TRPTourSlot]) {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+
+        // Build map "yyyy-MM-dd" -> canonical Date from availableDays
+        var dateByString: [String: Date] = [:]
+        for day in planData.availableDays {
+            dateByString[formatter.string(from: day)] = day
+        }
+
+        // Pre-create empty buckets for every trip day so cache miss never triggers a fetch
+        for day in planData.availableDays where allTimeSlots[day] == nil {
+            allTimeSlots[day] = []
+        }
+
+        // Bucket each preloaded slot under its canonical Date; drop trip-range outliers.
+        for slot in slots {
+            guard let canonicalDay = dateByString[slot.date] else { continue }
+            allTimeSlots[canonicalDay]?.append(TRPTourScheduleSlot(time: slot.time, price: slot.price))
+        }
+    }
+
     /// Create reserved activity segment
     public func createReservedActivitySegment() {
         // 1. Validate required data
@@ -308,9 +371,14 @@ public class AddPlanTimeSelectionViewModel {
         // Get duration (convert Int to Double)
         let durationValue: Double? = tour.duration != nil ? Double(tour.duration!) : nil
 
-        // Get price with currency (from offers or default to USD)
+        // Get price with currency - prefer slot price over tour price
         var activityPrice: TRPSegmentActivityPrice? = nil
-        if let priceValue = tour.price, priceValue > 0 {
+        if let slotPrice = selectedTimeSlot.price, slotPrice > 0 {
+            // Use slot price with currency from API request
+            let currency = TRPClient.getCurrency()
+            activityPrice = TRPSegmentActivityPrice(currency: currency, value: slotPrice)
+        } else if let priceValue = tour.price, priceValue > 0 {
+            // Fallback to tour price
             let currency = tour.offers.first?.currency.rawValue ?? "EUR"
             activityPrice = TRPSegmentActivityPrice(currency: currency, value: Double(priceValue))
         }

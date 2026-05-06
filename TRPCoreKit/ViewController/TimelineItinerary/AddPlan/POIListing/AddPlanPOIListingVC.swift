@@ -201,7 +201,7 @@ public class AddPlanPOIListingVC: TRPBaseUIViewController {
                 self?.tableView.scrollToRow(at: IndexPath(row: 0, section: 0), at: .top, animated: true)
             }
         }
-        presentVCWithModal(filterVC, onlyLarge: true, prefersGrabberVisible: true, disableSwipeToDismiss: true)
+        presentVCWithDynamicHeight(filterVC, prefersGrabberVisible: false, isDimmed: false)
     }
 
     @objc private func sortButtonTapped() {

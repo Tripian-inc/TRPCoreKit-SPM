@@ -10,14 +10,11 @@ import Foundation
 import TRPFoundationKit
 import TRPRestKit
 
-import CoreLocation
-
 public protocol AddPlanPOISelectionViewModelDelegate: AnyObject {
     func searchResultsDidUpdate()
     func placeDetailDidLoad(accommodation: TRPAccommodation)
     func searchDidFail(error: Error)
     func viewModel(showPreloader: Bool)
-    func userLocationStatusDidUpdate(isInCity: Bool)
 }
 
 /// Represents a saved item that can be selected as starting point
@@ -68,9 +65,6 @@ public class AddPlanPOISelectionViewModel {
     // Filtered items for selected city (combined booked + favourites)
     private var filteredSavedItems: [SavedItem] = []
 
-    // User location status
-    private(set) var isUserInCity: Bool = false
-
     // Google Places Search
     private var googleApiKey: String?
     private var boundarySW: TRPLocation?
@@ -103,9 +97,6 @@ public class AddPlanPOISelectionViewModel {
 
         // Filter activities by selected city
         filterItemsByCity()
-
-        // Check user location
-        checkUserLocationInCity()
     }
 
     private func filterItemsByCity() {
@@ -147,48 +138,6 @@ public class AddPlanPOISelectionViewModel {
         }
 
         return false
-    }
-
-    // MARK: - User Location Check
-    private func checkUserLocationInCity() {
-        guard let userLocation = TRPUserLocationController.shared.userLatestLocation else {
-            isUserInCity = false
-            return
-        }
-
-        // Check using city boundaries if available
-        if let nw = boundaryNE, let es = boundarySW {
-            var inLat = false
-            var inLon = false
-
-            if nw.lat > es.lat {
-                inLat = nw.lat > userLocation.lat && userLocation.lat > es.lat
-            } else {
-                inLat = nw.lat < userLocation.lat && userLocation.lat < es.lat
-            }
-
-            if nw.lon > es.lon {
-                inLon = nw.lon > userLocation.lon && userLocation.lon > es.lon
-            } else {
-                inLon = nw.lon < userLocation.lon && userLocation.lon < es.lon
-            }
-
-            isUserInCity = inLat && inLon
-        } else if let cityCenter = cityCoordinate {
-            // Fallback: Check distance from city center (50km radius)
-            let userCLLocation = CLLocation(latitude: userLocation.lat, longitude: userLocation.lon)
-            let cityCLLocation = CLLocation(latitude: cityCenter.lat, longitude: cityCenter.lon)
-            let distance = userCLLocation.distance(from: cityCLLocation)
-            isUserInCity = distance < 50000 // 50km
-        } else {
-            isUserInCity = false
-        }
-
-        delegate?.userLocationStatusDidUpdate(isInCity: isUserInCity)
-    }
-
-    public func refreshUserLocationStatus() {
-        checkUserLocationInCity()
     }
 
     // MARK: - City Center Methods

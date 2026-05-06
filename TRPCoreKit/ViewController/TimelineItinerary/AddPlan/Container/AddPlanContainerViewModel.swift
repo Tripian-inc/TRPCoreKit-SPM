@@ -37,9 +37,23 @@ public class AddPlanContainerViewModel {
         self.destinationItems = destinationItems
         self.favouriteItems = favouriteItems
 
-        // Pre-select day and city
+        // Pre-select day and city.
+        // If the incoming selectedDayIndex points at a past day, jump forward to today
+        // (or, if today is outside the trip range, the first available non-past day).
+        // This guarantees AddPlan never opens on a day the user can't actually plan into.
         if selectedDayIndex < days.count {
-            self.planData.selectedDay = days[selectedDayIndex]
+            let candidate = days[selectedDayIndex]
+            if candidate.isPastDay() {
+                if let todayIdx = days.firstIndex(where: { $0.isToday() }) {
+                    self.planData.selectedDay = days[todayIdx]
+                } else if let firstFuture = days.first(where: { !$0.isPastDay() }) {
+                    self.planData.selectedDay = firstFuture
+                } else {
+                    self.planData.selectedDay = days.last
+                }
+            } else {
+                self.planData.selectedDay = candidate
+            }
         }
         self.planData.selectedCity = cities.first
         self.planData.availableDays = days

@@ -223,6 +223,25 @@ class TRPTimelineBookedActivityCell: UITableViewCell {
 
     // MARK: - Configuration with Pre-computed Data
 
+    override func prepareForReuse() {
+        super.prepareForReuse()
+        resetTextAndBorderDefaults()
+    }
+
+    private func resetTextAndBorderDefaults() {
+        titleLabel.textColor = ColorSet.fg.uiColor
+        personLabel.textColor = ColorSet.fg.uiColor
+        durationLabel.textColor = ColorSet.fg.uiColor
+        cancellationLabel.textColor = ColorSet.greenAdvantage.uiColor
+        confirmedBadge.textColor = ColorSet.fgGreen.uiColor
+    }
+
+    /// Recolors all text/border to muted gray when this cell belongs to a past day.
+    /// Caller (VC) must invoke this after `configure(...)`.
+    func applyPastDayStyle() {
+        contentView.trp_recolorLabelsAndBorders(to: ColorSet.fgWeaker.uiColor)
+    }
+
     /// Configure cell with pre-computed BookedActivityCellData
     func configure(with cellData: BookedActivityCellData) {
         self.segment = cellData.segment
@@ -234,7 +253,13 @@ class TRPTimelineBookedActivityCell: UITableViewCell {
         let timeParts = cellData.timeRange.components(separatedBy: " - ")
         let startTime = timeParts.first ?? ""
         let endTime = timeParts.count > 1 ? timeParts[1] : ""
-        timeBadgeView.configure(order: cellData.order, startTime: startTime, endTime: endTime)
+        timeBadgeView.configure(
+            order: cellData.order,
+            startTime: startTime,
+            endTime: endTime,
+            hasConflict: cellData.hasConflict,
+            showTimeOverlapText: false  // BookedActivity never shows "Time Overlap" text
+        )
 
         // Image
         if let imageUrl = cellData.imageUrl {

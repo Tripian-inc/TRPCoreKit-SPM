@@ -61,8 +61,8 @@ class TRPTimelineActivityStepCell: UITableViewCell {
         label.translatesAutoresizingMaskIntoConstraints = false
         label.text = TimelineLocalizationKeys.localized(TimelineLocalizationKeys.activityBadge)
         label.font = FontSet.montserratMedium.font(10)
-        label.textColor = ColorSet.fgGreen.uiColor
-        label.backgroundColor = ColorSet.bgGreen.uiColor
+        label.textColor = ColorSet.fgGray.uiColor
+        label.backgroundColor = ColorSet.neutral200.uiColor
         label.textAlignment = .center
         label.layer.cornerRadius = 4
         label.clipsToBounds = true
@@ -166,6 +166,23 @@ class TRPTimelineActivityStepCell: UITableViewCell {
         ])
     }
     
+    override func prepareForReuse() {
+        super.prepareForReuse()
+        resetTextAndBorderDefaults()
+    }
+
+    private func resetTextAndBorderDefaults() {
+        titleLabel.textColor = ColorSet.fg.uiColor
+        descriptionLabel.textColor = ColorSet.fgWeak.uiColor
+        activityBadge.textColor = ColorSet.fgGray.uiColor
+    }
+
+    /// Recolors all text/border to muted gray when this cell belongs to a past day.
+    /// Caller (VC) must invoke this after `configure(...)`.
+    func applyPastDayStyle() {
+        contentView.trp_recolorLabelsAndBorders(to: ColorSet.fgWeaker.uiColor)
+    }
+
     // MARK: - Configuration
     func configure(with step: TRPTimelineStep, order: Int) {
         self.step = step

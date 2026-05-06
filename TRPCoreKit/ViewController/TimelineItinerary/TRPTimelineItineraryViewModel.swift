@@ -38,6 +38,7 @@ public class TRPTimelineItineraryViewModel {
     public weak var delegate: TRPTimelineItineraryViewModelDelegate?
 
     internal var timeline: TRPTimeline?
+    internal var itineraryModel: TRPItineraryWithActivities?
 
     /// Merged timeline with date-grouped items - SINGLE SOURCE OF TRUTH
     internal var mergedTimeline: TRPDateGroupedTimeline?
@@ -55,6 +56,13 @@ public class TRPTimelineItineraryViewModel {
     internal var allTripDates: [Date] = []
 
     public var selectedDayIndex: Int = 0
+
+    /// True when the currently selected day is strictly before today (calendar-day comparison).
+    /// Used by cells to render past-day items in muted colors.
+    public var isSelectedDayPast: Bool {
+        guard selectedDayIndex >= 0, selectedDayIndex < allTripDates.count else { return false }
+        return allTripDates[selectedDayIndex].isPastDay()
+    }
 
     /// Pending day index to navigate to after segment creation/refresh
     internal var pendingNavigationDayIndex: Int?
@@ -105,6 +113,7 @@ public class TRPTimelineItineraryViewModel {
 
     /// Initialize with existing timeline (direct display)
     public init(timeline: TRPTimeline?) {
+        print("🟡 [ViewModel Init] init(timeline:) called")
         if var mutableTimeline = timeline {
             // NOTE: Do NOT sync segments - use API response as-is
             // tripProfile.segments is the single source of truth
@@ -133,6 +142,7 @@ public class TRPTimelineItineraryViewModel {
     ///   - timeline: Existing timeline from server
     ///   - itineraryModel: Itinerary model containing tripItems to check for missing activities
     public init(timeline: TRPTimeline, itineraryModel: TRPItineraryWithActivities) {
+        print("🔵 [ViewModel Init] init(timeline:itinerary:) called")
         var mutableTimeline = timeline
 
         // Store destination items for date-city mapping in AddPlan
@@ -147,8 +157,13 @@ public class TRPTimelineItineraryViewModel {
         populateCitiesInSegments(&mutableTimeline)
 
         self.timeline = mutableTimeline
+        self.itineraryModel = itineraryModel
 
         processTimelineData()
+
+        print("🔵 [ViewModel Init] About to call syncRemovedCitySegments()")
+        // Sync removed city segments (optimistic update)
+        syncRemovedCitySegments()
 
         // Resolve favourite item city IDs asynchronously, then notify UI
         resolveFavouriteItemCities { [weak self] in
@@ -168,6 +183,7 @@ public class TRPTimelineItineraryViewModel {
     ///   - itineraryModel: Itinerary model containing trip items
     ///   - tripHash: Optional trip hash for fetching existing timeline
     public init(itineraryModel: TRPItineraryWithActivities, tripHash: String? = nil) {
+        print("🟢 [ViewModel Init] init(itineraryModel:tripHash:) called with tripHash: \(tripHash ?? "nil")")
         // Store destination items for date-city mapping in AddPlan
         self.destinationItems = itineraryModel.destinationItems
 
@@ -280,46 +296,13 @@ public class TRPTimelineItineraryViewModel {
     }
 
     public func getDays() -> [String] {
-        var startDate: Date?
-        var endDate: Date?
-
-        // Try to get dates from plans first
-        if let plans = timeline?.plans, !plans.isEmpty {
-            startDate = plans.first?.getStartDate()
-            endDate = plans.last?.getEndDate()
-        } else if let segments = timeline?.segments, !segments.isEmpty {
-            // Fall back to segments if no plans exist
-            for segment in segments {
-                if let segmentStartDateStr = segment.additionalData?.startDatetime {
-                    // Try both formats: with and without seconds
-                    let segmentDate = Date.fromString(segmentStartDateStr, format: "yyyy-MM-dd HH:mm") ??
-                                     Date.fromString(segmentStartDateStr, format: "yyyy-MM-dd HH:mm:ss")
-                    if let date = segmentDate {
-                        if startDate == nil || date < startDate! {
-                            startDate = date
-                        }
-                    }
-                }
-
-                if let segmentEndDateStr = segment.additionalData?.endDatetime {
-                    // Try both formats: with and without seconds
-                    let segmentDate = Date.fromString(segmentEndDateStr, format: "yyyy-MM-dd HH:mm") ??
-                                     Date.fromString(segmentEndDateStr, format: "yyyy-MM-dd HH:mm:ss")
-                    if let date = segmentDate {
-                        if endDate == nil || date > endDate! {
-                            endDate = date
-                        }
-                    }
-                }
-            }
-        }
-
-        guard let start = startDate, let end = endDate else { return [] }
+        // Use central method to get date boundaries
+        guard let boundaries = getTimelineDateBoundaries() else { return [] }
 
         // Calculate number of days
         // Use zero hour dates for accurate day counting
-        let startDay = start.getDateWithZeroHour()
-        let endDay = end.getDateWithZeroHour()
+        let startDay = boundaries.startDate.getDateWithZeroHour()
+        let endDay = boundaries.endDate.getDateWithZeroHour()
         var numberOfDays = startDay.numberOfDaysBetween(endDay)
 
         // If activities are on the same day, numberOfDays will be 0
@@ -341,7 +324,7 @@ public class TRPTimelineItineraryViewModel {
         dateFormatter.dateFormat = "dd/MM"
 
         for dayIndex in 0..<numberOfDays {
-            if let currentDate = start.addDay(dayIndex) {
+            if let currentDate = boundaries.startDate.addDay(dayIndex) {
                 let dayName = dayFormatter.string(from: currentDate).capitalized
                 let dateString = dateFormatter.string(from: currentDate)
                 days.append("\(dayName) \(dateString)")
@@ -357,81 +340,15 @@ public class TRPTimelineItineraryViewModel {
     /// Example: If segments exist on 2025-12-28, 2026-01-04, 2026-01-06
     ///          Returns all days from 2025-12-28 to 2026-01-06
     public func getDayDates() -> [Date] {
-        guard let timeline = timeline else { return [] }
+        // Use central method to get date boundaries
+        guard let boundaries = getTimelineDateBoundaries() else { return [] }
 
-        // Collect segments from both sources (avoid duplicates)
-        var allSegments: [TRPTimelineSegment] = []
-        var addedSegmentIds = Set<String>()
+        let numberOfDays = boundaries.startDate.numberOfDaysBetween(boundaries.endDate)
 
-        if let segments = timeline.segments {
-            for segment in segments {
-                let segmentId = getSegmentUniqueId(segment)
-                if !addedSegmentIds.contains(segmentId) {
-                    allSegments.append(segment)
-                    addedSegmentIds.insert(segmentId)
-                }
-            }
-        }
-
-        if let profileSegments = timeline.tripProfile?.segments {
-            for segment in profileSegments {
-                let segmentId = getSegmentUniqueId(segment)
-                if !addedSegmentIds.contains(segmentId) {
-                    allSegments.append(segment)
-                    addedSegmentIds.insert(segmentId)
-                }
-            }
-        }
-
-        guard !allSegments.isEmpty else { return [] }
-
-        // Use string-based comparison to avoid timezone issues
-        var minDateString: String?
-        var maxDateString: String?
-
-        // Find min and max dates from all segments
-        // Check both segment.startDate and segment.additionalData.startDatetime
-        for segment in allSegments {
-            // First try additionalData.startDatetime (for booked/reserved activities)
-            var segmentStartDateStr = segment.additionalData?.startDatetime
-
-            // If not available, try segment.startDate directly (for itinerary segments)
-            if segmentStartDateStr == nil {
-                segmentStartDateStr = segment.startDate
-            }
-
-            guard let dateStr = segmentStartDateStr else { continue }
-
-            // Extract only date portion (yyyy-MM-dd)
-            let segmentDateString = String(dateStr.prefix(10))
-
-            // Update min date
-            if minDateString == nil || segmentDateString < minDateString! {
-                minDateString = segmentDateString
-            }
-
-            // Update max date
-            if maxDateString == nil || segmentDateString > maxDateString! {
-                maxDateString = segmentDateString
-            }
-        }
-
-        guard let minStr = minDateString, let maxStr = maxDateString else { return [] }
-
-        // Convert date strings to Date objects (at midnight, local timezone)
-        let dateFormatter = DateFormatter()
-        dateFormatter.dateFormat = "yyyy-MM-dd"
-        dateFormatter.timeZone = TimeZone.current
-
-        guard let startDay = dateFormatter.date(from: minStr),
-              let endDay = dateFormatter.date(from: maxStr) else { return [] }
-
-        let numberOfDays = startDay.numberOfDaysBetween(endDay)
-
-        // Generate all days from min to max (inclusive)
+        // Generate all days from start to end (inclusive)
         var dates: [Date] = []
         for dayIndex in 0..<numberOfDays {
-            if let currentDate = startDay.addDay(dayIndex) {
+            if let currentDate = boundaries.startDate.addDay(dayIndex) {
                 dates.append(currentDate)
             }
         }
@@ -441,43 +358,9 @@ public class TRPTimelineItineraryViewModel {
     
     /// Get the trip date range (start and end dates)
     public func getTripDateRange() -> (start: Date, end: Date)? {
-        var startDate: Date?
-        var endDate: Date?
-
-        // Try to get dates from plans first
-        if let plans = timeline?.plans, !plans.isEmpty {
-            startDate = plans.first?.getStartDate()
-            endDate = plans.last?.getEndDate()
-        } else if let segments = timeline?.segments, !segments.isEmpty {
-            // Fall back to segments if no plans exist
-            for segment in segments {
-                if let segmentStartDateStr = segment.additionalData?.startDatetime {
-                    // Try both formats: with and without seconds
-                    let segmentDate = Date.fromString(segmentStartDateStr, format: "yyyy-MM-dd HH:mm") ??
-                                     Date.fromString(segmentStartDateStr, format: "yyyy-MM-dd HH:mm:ss")
-                    if let date = segmentDate {
-                        if startDate == nil || date < startDate! {
-                            startDate = date
-                        }
-                    }
-                }
-
-                if let segmentEndDateStr = segment.additionalData?.endDatetime {
-                    // Try both formats: with and without seconds
-                    let segmentDate = Date.fromString(segmentEndDateStr, format: "yyyy-MM-dd HH:mm") ??
-                                     Date.fromString(segmentEndDateStr, format: "yyyy-MM-dd HH:mm:ss")
-                    if let date = segmentDate {
-                        if endDate == nil || date > endDate! {
-                            endDate = date
-                        }
-                    }
-                }
-            }
-        }
-
-        guard let start = startDate, let end = endDate else { return nil }
-
-        return (start: start, end: end)
+        // Use central method to get date boundaries
+        guard let boundaries = getTimelineDateBoundaries() else { return nil }
+        return (start: boundaries.startDate, end: boundaries.endDate)
     }
     
     /// Get all unique cities from the timeline

@@ -20,19 +20,19 @@ class TRPRotaAnnotationView: UIView {
 
     // MARK: - Initialization
 
-    /// Initialize with order number, city index for multi-city coloring, and selection state
+    /// Initialize with order number and selection state (always uses black color)
     init(order: Int, cityIndex: Int = 0, isSelected: Bool = false) {
         super.init(frame: CGRect(x: 0, y: 0, width: Self.viewSize, height: Self.viewSize))
-        let color = ColorSet.getMapColor(cityIndex)
-        setupView(order: order, color: color, isSelected: isSelected)
+        // Always use black color regardless of cityIndex
+        setupView(order: order, isSelected: isSelected)
     }
 
     /// Legacy initializer for backward compatibility
     init(reuseIdentifier: String?, imageName: String?, order: Int?, isOffer: Bool = false, annotationOrder: Int = 0, isSelected: Bool = false) {
         super.init(frame: CGRect(x: 0, y: 0, width: Self.viewSize, height: Self.viewSize))
         let displayOrder = order ?? 0
-        let color = ColorSet.getMapColor(annotationOrder)
-        setupView(order: displayOrder, color: color, isSelected: isSelected)
+        // Always use black color regardless of annotationOrder
+        setupView(order: displayOrder, isSelected: isSelected)
     }
 
     required init?(coder aDecoder: NSCoder) {
@@ -41,7 +41,10 @@ class TRPRotaAnnotationView: UIView {
 
     // MARK: - Setup
 
-    private func setupView(order: Int, color: UIColor = ColorSet.fg.uiColor, isSelected: Bool = false) {
+    private func setupView(order: Int, isSelected: Bool = false) {
+        // Always use black color
+        let badgeColor = ColorSet.fg.uiColor
+
         // Set content hugging to prevent expansion
         setContentHuggingPriority(.required, for: .horizontal)
         setContentHuggingPriority(.required, for: .vertical)
@@ -54,20 +57,20 @@ class TRPRotaAnnotationView: UIView {
 
         // Apply selected/unselected appearance
         if isSelected {
-            // Selected: Solid color background, white text
-            backgroundColor = color
+            // Selected: Black background, white text, no border
+            backgroundColor = badgeColor
             layer.borderWidth = 0
         } else {
-            // Unselected: White background, colored border, colored text
+            // Unselected: White background, black border, black text
             backgroundColor = .white
             layer.borderWidth = 2
-            layer.borderColor = color.cgColor
+            layer.borderColor = badgeColor.cgColor
         }
 
         // Order label - centered using Auto Layout
         orderLabel.translatesAutoresizingMaskIntoConstraints = false
         orderLabel.text = "\(order)"
-        orderLabel.textColor = isSelected ? .white : color
+        orderLabel.textColor = isSelected ? .white : badgeColor
         orderLabel.font = FontSet.montserratSemiBold.font(18)
         orderLabel.textAlignment = .center
         orderLabel.adjustsFontSizeToFitWidth = true

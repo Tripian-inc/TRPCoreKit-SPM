@@ -8,7 +8,6 @@
 
 import UIKit
 import TRPFoundationKit
-import CoreLocation
 import TRPRestKit
 
 @objc(SPMAddPlanPOISelectionVC)
@@ -18,12 +17,7 @@ public class AddPlanPOISelectionVC: TRPBaseUIViewController {
     public var viewModel: AddPlanPOISelectionViewModel!
     public var onLocationSelected: ((TRPLocation, String, TRPAccommodation?) -> Void)?
 
-    private let locationManager = CLLocationManager()
     private var isSearchActive = false
-
-    // Dynamic constraints for near me visibility
-    private var cityCenterButtonTopToNearMeConstraint: NSLayoutConstraint?
-    private var cityCenterButtonTopToDefaultContentConstraint: NSLayoutConstraint?
 
     // MARK: - UI Components
 
@@ -51,16 +45,6 @@ public class AddPlanPOISelectionVC: TRPBaseUIViewController {
         let view = UIView()
         view.translatesAutoresizingMaskIntoConstraints = false
         view.backgroundColor = .white
-        return view
-    }()
-
-    private lazy var nearMeButton: UIView = {
-        let view = createOptionRow(
-            icon: "ic_near_me",
-            title: AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.nearMe)
-        )
-        let tapGesture = UITapGestureRecognizer(target: self, action: #selector(nearMeButtonTapped))
-        view.addGestureRecognizer(tapGesture)
         return view
     }()
 
@@ -117,12 +101,10 @@ public class AddPlanPOISelectionVC: TRPBaseUIViewController {
         setupNavigationArea()
         setupDefaultContentView()
         setupSearchResultsView()
-        setupLocationManager()
 
         viewModel.delegate = self
         updateCityCenterButton()
         updateActivitiesSectionVisibility()
-        updateNearMeButtonVisibility()
     }
 
     // MARK: - Setup
@@ -145,7 +127,6 @@ public class AddPlanPOISelectionVC: TRPBaseUIViewController {
     private func setupDefaultContentView() {
         view.addSubview(defaultContentView)
 
-        defaultContentView.addSubview(nearMeButton)
         defaultContentView.addSubview(cityCenterButton)
         defaultContentView.addSubview(sectionTitleLabel)
         defaultContentView.addSubview(activitiesTableView)
@@ -156,12 +137,7 @@ public class AddPlanPOISelectionVC: TRPBaseUIViewController {
             defaultContentView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             defaultContentView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
 
-            nearMeButton.topAnchor.constraint(equalTo: defaultContentView.topAnchor),
-            nearMeButton.leadingAnchor.constraint(equalTo: defaultContentView.leadingAnchor, constant: 24),
-            nearMeButton.trailingAnchor.constraint(equalTo: defaultContentView.trailingAnchor, constant: -16),
-            nearMeButton.heightAnchor.constraint(equalToConstant: 56),
-
-            // City center button - horizontal constraints only (top is dynamic)
+            cityCenterButton.topAnchor.constraint(equalTo: defaultContentView.topAnchor),
             cityCenterButton.leadingAnchor.constraint(equalTo: defaultContentView.leadingAnchor, constant: 24),
             cityCenterButton.trailingAnchor.constraint(equalTo: defaultContentView.trailingAnchor, constant: -16),
             cityCenterButton.heightAnchor.constraint(equalToConstant: 56),
@@ -176,13 +152,6 @@ public class AddPlanPOISelectionVC: TRPBaseUIViewController {
             activitiesTableView.trailingAnchor.constraint(equalTo: defaultContentView.trailingAnchor),
             activitiesTableView.bottomAnchor.constraint(equalTo: defaultContentView.bottomAnchor),
         ])
-
-        // Create dynamic constraints for city center button top
-        cityCenterButtonTopToNearMeConstraint = cityCenterButton.topAnchor.constraint(equalTo: nearMeButton.bottomAnchor)
-        cityCenterButtonTopToDefaultContentConstraint = cityCenterButton.topAnchor.constraint(equalTo: defaultContentView.topAnchor)
-
-        // Default: near me is visible
-        cityCenterButtonTopToNearMeConstraint?.isActive = true
     }
 
     private func setupSearchResultsView() {
@@ -194,11 +163,6 @@ public class AddPlanPOISelectionVC: TRPBaseUIViewController {
             searchResultsTableView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             searchResultsTableView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
         ])
-    }
-
-    private func setupLocationManager() {
-        locationManager.delegate = self
-        locationManager.desiredAccuracy = kCLLocationAccuracyBest
     }
 
     private func createOptionRow(icon: String, title: String) -> UIView {
@@ -252,20 +216,6 @@ public class AddPlanPOISelectionVC: TRPBaseUIViewController {
         activitiesTableView.isHidden = !hasActivities
     }
 
-    private func updateNearMeButtonVisibility() {
-        let isInCity = viewModel.isUserInCity
-        nearMeButton.isHidden = !isInCity
-
-        // Update city center button's top constraint based on near me visibility
-        if isInCity {
-            cityCenterButtonTopToNearMeConstraint?.isActive = true
-            cityCenterButtonTopToDefaultContentConstraint?.isActive = false
-        } else {
-            cityCenterButtonTopToNearMeConstraint?.isActive = false
-            cityCenterButtonTopToDefaultContentConstraint?.isActive = true
-        }
-    }
-
     // MARK: - State Management
     private func showDefaultContent() {
         isSearchActive = false
@@ -284,41 +234,12 @@ public class AddPlanPOISelectionVC: TRPBaseUIViewController {
         dismiss(animated: true)
     }
 
-    @objc private func nearMeButtonTapped() {
-        let status = locationManager.authorizationStatus
-        switch status {
-        case .notDetermined:
-            locationManager.requestWhenInUseAuthorization()
-        case .authorizedWhenInUse, .authorizedAlways:
-            locationManager.requestLocation()
-        case .denied, .restricted:
-            showLocationPermissionAlert()
-        @unknown default:
-            break
-        }
-    }
-
     @objc private func cityCenterButtonTapped() {
         if let coordinate = viewModel.getCityCenterLocation(),
            let name = viewModel.getCityCenterDisplayName() {
             onLocationSelected?(coordinate, name, nil)
             dismiss(animated: true)
         }
-    }
-
-    private func showLocationPermissionAlert() {
-        let alert = UIAlertController(
-            title: "Location Access Required",
-            message: "Please enable location access in Settings to use Near Me feature.",
-            preferredStyle: .alert
-        )
-        alert.addAction(UIAlertAction(title: "Settings", style: .default) { _ in
-            if let url = URL(string: UIApplication.openSettingsURLString) {
-                UIApplication.shared.open(url)
-            }
-        })
-        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
-        present(alert, animated: true)
     }
 }
 
@@ -410,33 +331,6 @@ extension AddPlanPOISelectionVC: AddPlanPOISelectionViewModelDelegate {
 
     public func searchDidFail(error: Error) {
         // Show error if needed
-    }
-
-    public func userLocationStatusDidUpdate(isInCity: Bool) {
-        updateNearMeButtonVisibility()
-    }
-}
-
-// MARK: - CLLocationManagerDelegate
-extension AddPlanPOISelectionVC: CLLocationManagerDelegate {
-    public func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
-        guard let location = locations.first else { return }
-
-        let trpLocation = TRPLocation(lat: location.coordinate.latitude, lon: location.coordinate.longitude)
-        let name = AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.nearMe)
-        onLocationSelected?(trpLocation, name, nil)
-        dismiss(animated: true)
-    }
-
-    public func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
-        // Handle location error
-    }
-
-    public func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
-        if manager.authorizationStatus == .authorizedWhenInUse ||
-           manager.authorizationStatus == .authorizedAlways {
-            manager.requestLocation()
-        }
     }
 }
 

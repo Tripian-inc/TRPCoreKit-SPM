@@ -95,20 +95,38 @@ extension TRPTimelineItineraryVC {
             return
         }
 
-        // Select the first item of each city by default if nothing is selected
-        if selectedMarkerPoiIds.isEmpty {
-            var selectedCities: Set<Int> = []
-            for (_, _, cityIndex, item) in orderedItems {
-                // Select first item of each city
-                if !selectedCities.contains(cityIndex) {
-                    selectedCities.insert(cityIndex)
-                    selectedMarkerPoiIds.insert(item.itemId)
-                }
+        // Reset multi-city zoom state on data reload
+        isShowingStepMarkersInMultiCity = false
+
+        // Check if there are multiple cities
+        if viewModel.hasMultipleCities() {
+            // Multi-destination day: Show city markers + selected step marker
+            selectedMarkerPoiIds.removeAll()
+
+            // Auto-select first step
+            if let firstItem = orderedItems.first {
+                selectedMarkerPoiIds.insert(firstItem.item.itemId)
             }
+
+            // Add city markers
+            addCityAnnotations()
+
+            // Add selected step marker
+            addSelectedStepAnnotation(orderedItems: orderedItems)
+        } else {
+            // Single city day: Show step markers
+            // Auto-select first item on initial load
+            if let firstItem = orderedItems.first {
+                selectedMarkerPoiIds.removeAll()
+                selectedMarkerPoiIds.insert(firstItem.item.itemId)
+            }
+
+            // Add annotations with unified order
+            addAnnotationsForOrderedItems(orderedItems)
         }
 
-        // Add annotations with unified order
-        addAnnotationsForOrderedItems(orderedItems)
+        // Reload collection view to reflect initial selection state
+        poiPreviewCollectionView.reloadData()
 
         // Collect all annotation coordinates and fit camera to show them all
         let allCoordinates = orderedItems.compactMap { item -> CLLocationCoordinate2D? in
@@ -143,7 +161,7 @@ extension TRPTimelineItineraryVC {
     }
 
     /// Add annotations for ordered items with unified order, city-specific coloring, and selection state
-    private func addAnnotationsForOrderedItems(_ orderedItems: [(order: Int, section: Int, cityIndex: Int, item: MapDisplayItem)]) {
+    internal func addAnnotationsForOrderedItems(_ orderedItems: [(order: Int, section: Int, cityIndex: Int, item: MapDisplayItem)]) {
         guard let map = map else { return }
 
         var annotations = [TRPPointAnnotation]()
@@ -165,41 +183,74 @@ extension TRPTimelineItineraryVC {
         map.addViewAnnotations(annotations, segmentId: "timeline_unified_annotations", annotationOrder: 0)
     }
 
-    /// Update selected marker for a specific city and refresh map annotations
-    /// When a marker is selected, it replaces the previous selection for that city only
+    /// Add city marker annotations for multi-destination days
+    /// Shows one marker per city instead of individual step markers
+    private func addCityAnnotations() {
+        guard let map = map else { return }
+
+        let citiesWithCoords = viewModel.getCitiesWithCoordinatesForSelectedDay()
+        var annotations = [TRPPointAnnotation]()
+
+        for (city, coordinate) in citiesWithCoords {
+            var annotation = TRPPointAnnotation()
+            annotation.isCityMarker = true
+            annotation.cityId = "\(city.id)"
+            annotation.lat = coordinate.lat
+            annotation.lon = coordinate.lon
+            annotations.append(annotation)
+        }
+
+        map.addCityAnnotations(annotations, segmentId: "timeline_city_markers")
+    }
+
+    /// Add only the selected step marker (used in multi-city mode)
+    /// Shows the selected step alongside city markers
+    private func addSelectedStepAnnotation(orderedItems: [(order: Int, section: Int, cityIndex: Int, item: MapDisplayItem)]) {
+        guard let map = map else { return }
+        guard let selectedId = selectedMarkerPoiIds.first else { return }
+
+        // Find the selected item
+        guard let selectedItem = orderedItems.first(where: { $0.item.itemId == selectedId }) else { return }
+        guard let coordinate = selectedItem.item.coordinate else { return }
+
+        // Create annotation for selected step
+        var annotation = TRPPointAnnotation()
+        annotation.order = selectedItem.order
+        annotation.lat = coordinate.lat
+        annotation.lon = coordinate.lon
+        annotation.poiId = selectedItem.item.itemId
+        annotation.cityIndex = selectedItem.cityIndex
+        annotation.isSelected = true  // Always selected
+
+        // Add with separate segmentId to manage independently
+        map.addViewAnnotations([annotation], segmentId: "timeline_selected_step", annotationOrder: 0)
+    }
+
+    /// Update selected marker and refresh map annotations
+    /// Only one marker can be selected at a time across the entire map
     internal func updateSelectedMarker(poiId: String?) {
         guard let poiId = poiId else { return }
 
-        // Find the cityIndex for the selected poiId
-        var selectedCityIndex: Int?
-        for (_, _, cityIndex, item) in mapDisplayItems {
-            if item.itemId == poiId {
-                selectedCityIndex = cityIndex
-                break
-            }
-        }
-
-        guard let cityIndex = selectedCityIndex else { return }
-
-        // Remove previous selection for this city
-        for (_, _, itemCityIndex, item) in mapDisplayItems {
-            if itemCityIndex == cityIndex && selectedMarkerPoiIds.contains(item.itemId) {
-                selectedMarkerPoiIds.remove(item.itemId)
-            }
-        }
+        // Clear all previous selections (single selection mode)
+        selectedMarkerPoiIds.removeAll()
 
         // Add new selection
         selectedMarkerPoiIds.insert(poiId)
 
         // Refresh annotations to show updated selection state
-        guard let map = map else { return }
+        guard map != nil else { return }
 
-        // Clear existing annotations
-        clearMapAnnotations()
-
-        // Re-add annotations with updated selection state
         let orderedItems = viewModel.getOrderedItemsForMap()
-        addAnnotationsForOrderedItems(orderedItems)
+
+        if viewModel.hasMultipleCities() && !isShowingStepMarkersInMultiCity {
+            // Multi-city (city markers mode): Only update selected step marker, keep city markers
+            map?.cleanAnnotationList(for: "timeline_selected_step")
+            addSelectedStepAnnotation(orderedItems: orderedItems)
+        } else {
+            // Single city OR multi-city zoomed in (step markers mode): Update all step markers
+            clearMapAnnotations()
+            addAnnotationsForOrderedItems(orderedItems)
+        }
     }
     
     private func addAnnotationsForSegments(_ segments: [[TRPPoi]]) {
@@ -454,23 +505,30 @@ extension TRPTimelineItineraryVC: TRPMapViewDelegate {
     }
 
     public func mapViewCloseAnnotation(_ mapView: TRPMapView) {
-        // Collapse collection view when annotation is closed
-        collapseCollectionView()
+        // Toggle collection view visibility on map tap
+        toggleCollectionView()
     }
 
     public func mapView(annotationPressed poiId: String, type: TRPAnnotationType) {
-        // Find the index of the item in mapDisplayItems
+        // Find the index and coordinate of the item in mapDisplayItems
         var itemIndex: Int?
+        var itemCoordinate: TRPLocation?
 
         for (index, (_, _, _, item)) in mapDisplayItems.enumerated() {
             if item.itemId == poiId {
                 itemIndex = index
+                itemCoordinate = item.coordinate
                 break
             }
         }
 
         // Update selected marker appearance
         updateSelectedMarker(poiId: poiId)
+
+        // Zoom to marker (like collection view selection)
+        if let coordinate = itemCoordinate {
+            map?.setCenter(coordinate, zoomLevel: 15)
+        }
 
         // Expand the collection view and scroll to the item
         if let index = itemIndex {
@@ -484,19 +542,76 @@ extension TRPTimelineItineraryVC: TRPMapViewDelegate {
                 // Scroll to the item after expansion animation completes
                 DispatchQueue.main.async {
                     self.poiPreviewCollectionView.scrollToItem(at: indexPath, at: .centeredHorizontally, animated: true)
+                    // Reload to update badge styles
+                    self.poiPreviewCollectionView.reloadData()
                 }
             }
         }
     }
     
     public func mapView(clickedLocation: TRPLocation) {
-        // Collapse collection view when map is clicked
-        collapseCollectionView()
+        // Toggle is handled by mapViewCloseAnnotation
     }
     
     public func mapView(_ mapView: TRPMapView, regionDidChangeAnimated animated: Bool) {
         // Collapse collection view when user moves the map
         collapseCollectionView()
+    }
+
+    public func mapViewChangedZoomLevel(_ mapView: TRPMapView, zoomLevel: CGFloat) {
+        // Only handle zoom-based marker switching in multi-city mode
+        guard viewModel.hasMultipleCities() else { return }
+
+        let shouldShowStepMarkers = zoomLevel > multiCityZoomThreshold
+
+        // Only update if state changed
+        guard shouldShowStepMarkers != isShowingStepMarkersInMultiCity else { return }
+
+        isShowingStepMarkersInMultiCity = shouldShowStepMarkers
+
+        let orderedItems = viewModel.getOrderedItemsForMap()
+
+        if shouldShowStepMarkers {
+            // Zoomed in: Switch to step markers
+            clearMapAnnotations()
+            addAnnotationsForOrderedItems(orderedItems)
+
+            // Show Main View button
+            isMarkerFocused = true
+            updateMainViewButtonVisibility()
+        } else {
+            // Zoomed out: Switch back to city markers + selected step
+            clearMapAnnotations()
+            addCityAnnotations()
+            addSelectedStepAnnotation(orderedItems: orderedItems)
+
+            // Hide Main View button (unless marker was manually focused)
+            isMarkerFocused = false
+            updateMainViewButtonVisibility()
+        }
+    }
+
+    public func mapView(cityAnnotationPressed cityId: String) {
+        // Find first step of this city to get its coordinate for zooming
+        guard let firstIndex = mapDisplayItems.firstIndex(where: { (_, _, _, item) -> Bool in
+            switch item {
+            case .poi(_, let segment, _):
+                return "\(segment.city?.id ?? 0)" == cityId
+            case .activity(let segment):
+                return "\(segment.city?.id ?? 0)" == cityId
+            }
+        }) else { return }
+
+        let (_, _, _, item) = mapDisplayItems[firstIndex]
+
+        // Zoom to city coordinate only — do NOT change selected step/marker
+        if let coordinate = item.coordinate {
+            map?.setCenter(coordinate, zoomLevel: 13)
+        }
+
+        // Mark as focused for Main View button
+        isMarkerFocused = true
+        updateMainViewButtonVisibility()
     }
 }
 
@@ -521,7 +636,25 @@ extension TRPTimelineItineraryVC {
 
         // Reset focus state
         isMarkerFocused = false
+        isShowingStepMarkersInMultiCity = false
         updateMainViewButtonVisibility()
+
+        let orderedItems = viewModel.getOrderedItemsForMap()
+
+        // Refresh annotations based on multi-city state
+        // Keep the current selection - don't reset selectedMarkerPoiIds
+        clearMapAnnotations()
+        if viewModel.hasMultipleCities() {
+            // Multi-city: Show city markers + selected step marker
+            addCityAnnotations()
+            addSelectedStepAnnotation(orderedItems: orderedItems)
+        } else {
+            // Single city: Show step markers
+            addAnnotationsForOrderedItems(orderedItems)
+        }
+
+        // Refresh collection view badges
+        poiPreviewCollectionView.reloadData()
 
         // Collapse collection view
         collapseCollectionView()

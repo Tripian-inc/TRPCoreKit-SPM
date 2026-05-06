@@ -484,7 +484,7 @@ public class AddPlanSelectDayVC: TRPBaseUIViewController, AddPlanChildViewContro
             selectedDayIndex = index
         }
 
-        dayFilterView.configure(with: days, selectedDay: selectedDayIndex)
+        dayFilterView.configure(with: days, selectedDay: selectedDayIndex, mode: .addPlan)
     }
     
     private func updateCityButton() {
@@ -668,12 +668,11 @@ public class AddPlanSelectDayVC: TRPBaseUIViewController, AddPlanChildViewContro
 extension AddPlanSelectDayVC: TRPTimelineDayFilterViewDelegate {
 
     public func dayFilterViewDidSelectDay(_ view: TRPTimelineDayFilterView, dayIndex: Int) {
-        selectedDayIndex = dayIndex
         let days = viewModel.getAvailableDays()
-        if dayIndex < days.count {
-            viewModel.selectDay(days[dayIndex])
-            updateCityButton()  // Update city when day changes (for date-city mapping)
-        }
+        guard dayIndex < days.count, !days[dayIndex].isPastDay() else { return }
+        selectedDayIndex = dayIndex
+        viewModel.selectDay(days[dayIndex])
+        updateCityButton()  // Update city when day changes (for date-city mapping)
     }
 }
 

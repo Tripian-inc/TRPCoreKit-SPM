@@ -62,8 +62,8 @@ class TRPTimelineReservedActivityCell: UITableViewCell {
         let label = TRPPaddingLabel(4, 4, 8, 8)
         label.translatesAutoresizingMaskIntoConstraints = false
         label.font = FontSet.montserratMedium.font(10)
-        label.textColor = ColorSet.fgGreen.uiColor
-        label.backgroundColor = ColorSet.bgGreen.uiColor
+        label.textColor = ColorSet.fgGray.uiColor
+        label.backgroundColor = ColorSet.neutral200.uiColor
         label.textAlignment = .center
         label.layer.cornerRadius = 4
         label.clipsToBounds = true
@@ -257,6 +257,24 @@ class TRPTimelineReservedActivityCell: UITableViewCell {
 
     // MARK: - Configuration with Pre-computed Data
 
+    override func prepareForReuse() {
+        super.prepareForReuse()
+        resetTextAndBorderDefaults()
+    }
+
+    private func resetTextAndBorderDefaults() {
+        titleLabel.textColor = ColorSet.fg.uiColor
+        durationLabel.textColor = ColorSet.fg.uiColor
+        cancellationLabel.textColor = ColorSet.greenAdvantage.uiColor
+        activityBadge.textColor = ColorSet.fgGray.uiColor
+    }
+
+    /// Recolors all text/border to muted gray when this cell belongs to a past day.
+    /// Caller (VC) must invoke this after `configure(...)`.
+    func applyPastDayStyle() {
+        contentView.trp_recolorLabelsAndBorders(to: ColorSet.fgWeaker.uiColor)
+    }
+
     /// Configure cell with pre-computed BookedActivityCellData
     func configure(with cellData: BookedActivityCellData) {
         self.segment = cellData.segment
@@ -268,7 +286,13 @@ class TRPTimelineReservedActivityCell: UITableViewCell {
         let timeParts = cellData.timeRange.components(separatedBy: " - ")
         let startTime = timeParts.first ?? ""
         let endTime = timeParts.count > 1 ? timeParts[1] : ""
-        timeBadgeView.configure(order: cellData.order, startTime: startTime, endTime: endTime)
+        timeBadgeView.configure(
+            order: cellData.order,
+            startTime: startTime,
+            endTime: endTime,
+            hasConflict: cellData.hasConflict,
+            showTimeOverlapText: false  // BookedActivity never shows "Time Overlap" text
+        )
 
         // Image
         if let imageUrl = cellData.imageUrl {
@@ -303,7 +327,7 @@ class TRPTimelineReservedActivityCell: UITableViewCell {
     }
 
     private func configurePriceRow(with priceData: TRPSegmentActivityPrice?) {
-        guard let price = priceData, price.value > 0 else {
+        guard let price = priceData else {
             priceRowContainer.isHidden = true
             return
         }
@@ -311,12 +335,32 @@ class TRPTimelineReservedActivityCell: UITableViewCell {
         // Clear previous content
         priceRowContainer.subviews.forEach { $0.removeFromSuperview() }
 
-        // Price row - "From" medium 14px + price bold 16px
+        // Price row stack
         let priceRow = UIStackView()
         priceRow.translatesAutoresizingMaskIntoConstraints = false
         priceRow.axis = .horizontal
         priceRow.spacing = 4
         priceRow.alignment = .center
+
+        // Check if price is 0 (free)
+        if price.value == 0 {
+            // Show "FREE" label only
+            let freeLabel = UILabel()
+            freeLabel.font = FontSet.montserratBold.font(16)
+            freeLabel.textColor = ColorSet.primaryText.uiColor
+            freeLabel.text = CommonLocalizationKeys.localized(CommonLocalizationKeys.free)
+            priceRow.addArrangedSubview(freeLabel)
+
+            // Add priceRow to container, aligned to right
+            priceRowContainer.addSubview(priceRow)
+            NSLayoutConstraint.activate([
+                priceRow.topAnchor.constraint(equalTo: priceRowContainer.topAnchor),
+                priceRow.bottomAnchor.constraint(equalTo: priceRowContainer.bottomAnchor),
+                priceRow.trailingAnchor.constraint(equalTo: priceRowContainer.trailingAnchor),
+            ])
+            priceRowContainer.isHidden = false
+            return
+        }
 
         // "From" label - medium 14px primaryText
         let fromLabel = UILabel()

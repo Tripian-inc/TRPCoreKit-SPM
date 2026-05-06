@@ -30,6 +30,10 @@ public struct TimelineLocalizationKeys {
     public static let removeRecommendationsTitle = "timeline.removeRecommendations.title"
     public static let removeRecommendationsMessage = "timeline.removeRecommendations.message"
 
+    // MARK: - Remove Step Alert
+    public static let removeStepTitle = "timeline.removeStep.title"
+    public static let removeStepMessage = "timeline.removeStep.message"
+
     // MARK: - Empty State
     public static let noPlansYet = "timeline.emptyState.noPlansYet"
     public static let noPlansDescription = "timeline.emptyState.noPlansDescription"
@@ -56,6 +60,9 @@ public struct TimelineLocalizationKeys {
 
     // MARK: - Map
     public static let mapMainView = "timeline.map.mainView"
+
+    // MARK: - Time Conflict
+    public static let timeOverlap = "timeline.timeOverlap"
 
     // MARK: - Duration & Distance Formats
     public static let durationHours = "timeline.format.hours"
@@ -105,7 +112,8 @@ public struct TimelineLocalizationKeys {
         errorSomethingWentWrong: "Something went wrong. Please try again.",
         errorGenerationFailed: "Failed to generate your itinerary. Please try again.",
         errorTimeout: "Request timed out. Please try again.",
-        mapMainView: "Main View"
+        mapMainView: "Main View",
+        timeOverlap: "Time Overlap"
     ]
 
     // MARK: - Helper Methods

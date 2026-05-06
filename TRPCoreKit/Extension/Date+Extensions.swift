@@ -91,6 +91,15 @@ extension Date {
     func isToday() -> Bool {
         return Calendar.currentWithUTC.isDateInToday(self)
     }
+
+    /// Day-only past comparison (ignores time).
+    /// Returns true if `self`'s calendar day is strictly before `referenceDate`'s calendar day in the user's local calendar.
+    func isPastDay(referenceDate: Date = Date()) -> Bool {
+        let calendar = Calendar.current
+        let selfDay = calendar.startOfDay(for: self)
+        let refDay = calendar.startOfDay(for: referenceDate)
+        return selfDay < refDay
+    }
     
     func isTodayLocal() -> Bool {
         return getDate() == Date().localDate().getDate()

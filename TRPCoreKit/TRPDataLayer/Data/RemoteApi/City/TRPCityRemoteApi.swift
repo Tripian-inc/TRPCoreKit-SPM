@@ -135,11 +135,26 @@ final public class TRPCityRemoteApi: CityRemoteApi {
                 return
             }
 
-            if let cityIds = result as? [Int] {
-                completion(.success(cityIds))
-            } else {
-                completion(.failure(GeneralError.customMessage("Failed to resolve cities")))
+            // Unwrap the optional first
+            guard let unwrappedResult = result else {
+                completion(.failure(GeneralError.customMessage("Cities resolve API returned nil")))
+                return
             }
+
+            // Parse as array of TRPCityResolveInfoModel (TRPRestKit model)
+            if let models = unwrappedResult as? [TRPCityResolveInfoModel] {
+                let cityIds = models.map { $0.cityId }
+                completion(.success(cityIds))
+                return
+            }
+
+            // Backward compatibility: Try parsing as array of integers
+            if let cityIds = unwrappedResult as? [Int] {
+                completion(.success(cityIds))
+                return
+            }
+
+            completion(.failure(GeneralError.customMessage("Unexpected response format for cities/resolve API")))
         }
     }
 

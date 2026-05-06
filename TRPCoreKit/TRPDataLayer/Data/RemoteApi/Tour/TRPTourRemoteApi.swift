@@ -37,9 +37,14 @@ public class TRPTourRemoteApi: TourRemoteApi {
         // Map search text to keywords
         request.keywords = parameters.search
 
-        // Map tour categories array to comma-separated tagIds
+        // Map tour categories array to comma-separated tagIds (legacy keyword path)
         if let categories = parameters.tourCategories, !categories.isEmpty {
             request.tagIds = categories.joined(separator: ",")
+        }
+
+        // Map facet category IDs to comma-separated `categories` parameter
+        if let categoryIds = parameters.categoryIds, !categoryIds.isEmpty {
+            request.categories = categoryIds.joined(separator: ",")
         }
 
         // Map distance to radius (convert Float to Double if needed)
@@ -47,12 +52,12 @@ public class TRPTourRemoteApi: TourRemoteApi {
             request.radius = Double(distance)
         }
 
-        // Map date
+        // Map date range
         request.date = parameters.date
+        request.to = parameters.dateTo
 
-        // Map pagination
-        request.limit = parameters.limit ?? 10
-        request.offset = parameters.offset ?? 0
+        // Hardcoded request limit (server requires it; pagination still disabled client-side)
+        request.limit = 10
 
         // Map price filters
         request.minPrice = parameters.minPrice
@@ -76,17 +81,15 @@ public class TRPTourRemoteApi: TourRemoteApi {
         TRPRestKit().searchTours(request: request) { (result, error) in
 
             if let error = error {
-                completion((.failure(error), nil))
+                completion(.failure(error))
                 return
             }
 
             if let result = result as? TRPTourSearchDataModel {
-                let mapper = TourMapper()
-                let converted = mapper.mapDataModel(result)
-                let pagination = mapper.mapPagination(result)
-                completion((.success(converted), pagination))
+                let outcome = TourMapper().mapDataModel(result)
+                completion(.success(outcome))
             } else {
-                completion((.failure(GeneralError.customMessage("Couldn't convert tour data")), nil))
+                completion(.failure(GeneralError.customMessage("Couldn't convert tour data")))
             }
 
         }
@@ -99,7 +102,7 @@ public class TRPTourRemoteApi: TourRemoteApi {
                            completion: @escaping (TourResultsValue) -> Void) {
 
         guard let cityId = parameters.cityId else {
-            completion((.failure(GeneralError.customMessage("City id is required for tour search")), nil))
+            completion(.failure(GeneralError.customMessage("City id is required for tour search")))
             return
         }
 
@@ -118,9 +121,14 @@ public class TRPTourRemoteApi: TourRemoteApi {
         // Map search text to keywords
         request.keywords = parameters.search
 
-        // Map tour categories array to comma-separated tagIds
+        // Map tour categories array to comma-separated tagIds (legacy keyword path)
         if let categories = parameters.tourCategories, !categories.isEmpty {
             request.tagIds = categories.joined(separator: ",")
+        }
+
+        // Map facet category IDs to comma-separated `categories` parameter
+        if let categoryIds = parameters.categoryIds, !categoryIds.isEmpty {
+            request.categories = categoryIds.joined(separator: ",")
         }
 
         // Map distance to radius (convert Float to Double if needed)
@@ -128,12 +136,12 @@ public class TRPTourRemoteApi: TourRemoteApi {
             request.radius = Double(distance)
         }
 
-        // Map date
+        // Map date range
         request.date = parameters.date
+        request.to = parameters.dateTo
 
-        // Map pagination
-        request.limit = parameters.limit ?? 10
-        request.offset = parameters.offset ?? 0
+        // Hardcoded request limit (server requires it; pagination still disabled client-side)
+        request.limit = 10
 
         // Map price filters
         request.minPrice = parameters.minPrice
@@ -157,17 +165,15 @@ public class TRPTourRemoteApi: TourRemoteApi {
         TRPRestKit().searchTours(request: request) { (result, error) in
 
             if let error = error {
-                completion((.failure(error), nil))
+                completion(.failure(error))
                 return
             }
 
             if let result = result as? TRPTourSearchDataModel {
-                let mapper = TourMapper()
-                let converted = mapper.mapDataModel(result)
-                let pagination = mapper.mapPagination(result)
-                completion((.success(converted), pagination))
+                let outcome = TourMapper().mapDataModel(result)
+                completion(.success(outcome))
             } else {
-                completion((.failure(GeneralError.customMessage("Couldn't convert tour data")), nil))
+                completion(.failure(GeneralError.customMessage("Couldn't convert tour data")))
             }
 
         }

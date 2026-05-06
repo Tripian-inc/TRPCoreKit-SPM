@@ -56,6 +56,15 @@ public protocol TRPCoreKitDelegate: AnyObject {
     /// Called when a user manually adds an activity to the timeline
     /// - Parameter activityId: The unique identifier of the added activity
     func trpCoreKitDidAddActivity(activityId: String)
+
+    /// Called when authentication fails (refresh token error)
+    /// Host app should dismiss SDK and re-authenticate the user
+    func trpCoreKitDidFailWithAuthError()
+}
+
+// MARK: - TRPCoreKitDelegate Default Implementations
+public extension TRPCoreKitDelegate {
+    func trpCoreKitDidFailWithAuthError() {}
 }
 
 public class TRPCoreKit {
@@ -95,6 +104,9 @@ public class TRPCoreKit {
         // Initialize TRPClient (RestKit)
         let baseUrl = environment.baseUrlCreater
         TRPClient.start(baseUrl: baseUrl, apiKey: apiKey, language: language, currency: currency)
+
+        // Prefetch languages - async, non-blocking
+        TRPLanguagesController.shared.prefetchLanguagesIfNeeded()
     }
 
     /// Initialize TRPCoreKit SDK with custom base URL (for advanced use cases)
@@ -119,6 +131,9 @@ public class TRPCoreKit {
         // Initialize TRPClient (RestKit)
         let url = BaseUrlCreater(baseUrl: baseUrl, basePath: basePath)
         TRPClient.start(baseUrl: url, apiKey: apiKey, language: language, currency: currency)
+
+        // Prefetch languages - async, non-blocking
+        TRPLanguagesController.shared.prefetchLanguagesIfNeeded()
     }
 
     // MARK: - Start SDK
@@ -222,6 +237,7 @@ public class TRPCoreKit {
     /// - Parameter language: Language code (e.g., "en", "es", "fr")
     public static func changeLanguage(_ language: String) {
         TRPClient.changeLanguage(language)
+        TRPLanguagesController.shared.applyLanguageChange()
     }
 
     /// Change SDK currency after initialization

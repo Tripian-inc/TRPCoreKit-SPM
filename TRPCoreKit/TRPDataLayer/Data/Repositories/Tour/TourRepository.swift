@@ -11,7 +11,7 @@ import TRPFoundationKit
 
 public typealias TourResultValue = (Result<TRPTourProduct, Error>)
 
-public typealias TourResultsValue = (Result<[TRPTourProduct], Error>, TRPTourPagination?)
+public typealias TourResultsValue = Result<TRPTourSearchOutcome, Error>
 
 
 public protocol TourRepository {
@@ -44,10 +44,12 @@ public struct TourParameters: Hashable {
     public var cityId: Int?
     public var search: String?
     public var tourCategories: [String]?
+    public var categoryIds: [String]?
     public var distance: Float?
     public var limit: Int?
     public var offset: Int?
     public var date: String? // Format: "yyyy-MM-dd"
+    public var dateTo: String? // Format: "yyyy-MM-dd"
     public var minPrice: Int?
     public var maxPrice: Int?
     public var minRating: Double?

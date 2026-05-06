@@ -41,19 +41,37 @@ public struct FilterData {
 }
 
 // MARK: - AddPlanFilterVC
-public class AddPlanFilterVC: TRPBaseUIViewController {
+public class AddPlanFilterVC: TRPBaseUIViewController, DynamicHeightPresentable {
+
+    // MARK: - DynamicHeightPresentable
+    public var preferredContentHeight: CGFloat {
+        // Header: 56
+        // Content: top margin (24) + price title (20) + gap (16) + price slider (50)
+        //        + gap (32) + duration title (20) + gap (16) + duration slider (50) + bottom margin (24) = 252
+        // Button container: 80
+        return 56 + 252 + 80
+    }
 
     // MARK: - Properties
     private var filterData: FilterData
     public var onFilterApplied: ((FilterData) -> Void)?
 
-    // Price range constants
-    private let priceMinValue: Double = 0
-    private let priceMaxValue: Double = 1500
+    /// Inject facet-derived price bounds (optional). When set, overrides hardcoded fallback range.
+    public var priceRangeFacet: TRPTourPriceRangeFacet?
+    /// Inject facet-derived duration bounds (optional). When set, overrides hardcoded fallback range.
+    public var durationRangeFacet: TRPTourDurationRangeFacet?
 
-    // Duration range constants (in minutes)
-    private let durationMinValue: Double = 0
-    private let durationMaxValue: Double = 1440 // 4 days in minutes
+    // Hardcoded fallback bounds — used when facet bounds are unavailable
+    private let priceFallbackMin: Double = 0
+    private let priceFallbackMax: Double = 1500
+    private let durationFallbackMin: Double = 0
+    private let durationFallbackMax: Double = 1440 // 4 days in minutes
+
+    // Effective bounds resolved at setup time
+    private var priceMinValue: Double = 0
+    private var priceMaxValue: Double = 1500
+    private var durationMinValue: Double = 0
+    private var durationMaxValue: Double = 1440
 
     // MARK: - UI Components
     private let headerView: UIView = {
@@ -260,11 +278,28 @@ public class AddPlanFilterVC: TRPBaseUIViewController {
     }
 
     private func setupSliders() {
-        // Price slider
+        // Resolve effective bounds: prefer facet-derived ranges, fallback to hardcoded.
+        priceMinValue = priceRangeFacet?.minAmount ?? priceFallbackMin
+        priceMaxValue = priceRangeFacet?.maxAmount ?? priceFallbackMax
+        if priceMaxValue <= priceMinValue {
+            priceMinValue = priceFallbackMin
+            priceMaxValue = priceFallbackMax
+        }
+
+        durationMinValue = durationRangeFacet.map { Double($0.minMinutes) } ?? durationFallbackMin
+        durationMaxValue = durationRangeFacet.map { Double($0.maxMinutes) } ?? durationFallbackMax
+        if durationMaxValue <= durationMinValue {
+            durationMinValue = durationFallbackMin
+            durationMaxValue = durationFallbackMax
+        }
+
+        // Price slider — clamp persisted filter values into resolved bounds.
         priceSlider.minimumValue = priceMinValue
         priceSlider.maximumValue = priceMaxValue
-        priceSlider.lowerValue = Double(filterData.minPrice ?? Int(priceMinValue))
-        priceSlider.upperValue = Double(filterData.maxPrice ?? Int(priceMaxValue))
+        let persistedMinPrice = Double(filterData.minPrice ?? Int(priceMinValue))
+        let persistedMaxPrice = Double(filterData.maxPrice ?? Int(priceMaxValue))
+        priceSlider.lowerValue = min(max(persistedMinPrice, priceMinValue), priceMaxValue)
+        priceSlider.upperValue = min(max(persistedMaxPrice, priceMinValue), priceMaxValue)
         priceSlider.valueLabelFormatter = { value in
             let intValue = Int(value)
             if intValue == 0 {
@@ -273,11 +308,13 @@ public class AddPlanFilterVC: TRPBaseUIViewController {
             return "\(intValue)€"
         }
 
-        // Duration slider
+        // Duration slider — same clamp.
         durationSlider.minimumValue = durationMinValue
         durationSlider.maximumValue = durationMaxValue
-        durationSlider.lowerValue = Double(filterData.minDuration ?? Int(durationMinValue))
-        durationSlider.upperValue = Double(filterData.maxDuration ?? Int(durationMaxValue))
+        let persistedMinDuration = Double(filterData.minDuration ?? Int(durationMinValue))
+        let persistedMaxDuration = Double(filterData.maxDuration ?? Int(durationMaxValue))
+        durationSlider.lowerValue = min(max(persistedMinDuration, durationMinValue), durationMaxValue)
+        durationSlider.upperValue = min(max(persistedMaxDuration, durationMinValue), durationMaxValue)
         durationSlider.valueLabelFormatter = { [weak self] value in
             return self?.formatDuration(minutes: Int(value)) ?? "\(Int(value))m"
         }

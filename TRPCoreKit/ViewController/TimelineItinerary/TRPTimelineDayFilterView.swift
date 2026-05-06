@@ -22,10 +22,20 @@ public protocol TRPTimelineDayFilterViewDelegate: AnyObject {
 
 public class TRPTimelineDayFilterView: UIView {
 
+    /// Selection mode controlling how past dates behave.
+    /// - timeline: past dates remain fully selectable and styled like other unselected days.
+    /// - addPlan: past dates render greyed out and ignore taps.
+    public enum Mode {
+        case timeline
+        case addPlan
+    }
+
     // MARK: - Properties
     public weak var delegate: TRPTimelineDayFilterViewDelegate?
     private var days: [DayDisplayData] = []
+    private var rawDates: [Date] = []
     private var selectedDayIndex: Int = 0
+    private var mode: Mode = .timeline
 
     // MARK: - UI Components
     private lazy var collectionView: UICollectionView = {
@@ -72,7 +82,9 @@ public class TRPTimelineDayFilterView: UIView {
     }
 
     // MARK: - Public Methods
-    public func configure(with dates: [Date], selectedDay: Int) {
+    public func configure(with dates: [Date], selectedDay: Int, mode: Mode = .timeline) {
+        self.mode = mode
+        self.rawDates = dates
         self.days = formatDays(dates)
         self.selectedDayIndex = selectedDay
         collectionView.reloadData()
@@ -119,13 +131,26 @@ extension TRPTimelineDayFilterView: UICollectionViewDataSource {
         }
 
         let isSelected = indexPath.item == selectedDayIndex
-        cell.configure(with: days[indexPath.item], isSelected: isSelected)
+        let isDisabled = (mode == .addPlan) && isPastIndex(indexPath.item)
+        cell.configure(with: days[indexPath.item], isSelected: isSelected, isDisabled: isDisabled)
         return cell
+    }
+
+    private func isPastIndex(_ index: Int) -> Bool {
+        guard index >= 0, index < rawDates.count else { return false }
+        return rawDates[index].isPastDay()
     }
 }
 
 // MARK: - UICollectionViewDelegate
 extension TRPTimelineDayFilterView: UICollectionViewDelegate {
+
+    public func collectionView(_ collectionView: UICollectionView, shouldSelectItemAt indexPath: IndexPath) -> Bool {
+        if mode == .addPlan, isPastIndex(indexPath.item) {
+            return false
+        }
+        return true
+    }
 
     public func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         selectedDayIndex = indexPath.item
@@ -198,12 +223,19 @@ class TRPTimelineDayCell: UICollectionViewCell {
         ])
     }
 
-    fileprivate func configure(with data: DayDisplayData, isSelected: Bool) {
+    fileprivate func configure(with data: DayDisplayData, isSelected: Bool, isDisabled: Bool = false) {
         dayLetterLabel.text = data.dayLetter
         dayNumberLabel.text = data.dayNumber
         monthLabel.text = data.monthAbbrev
 
-        if isSelected {
+        if isDisabled {
+            contentView.layer.borderWidth = 0
+            contentView.layer.borderColor = nil
+            dayLetterLabel.textColor = ColorSet.fgWeaker.uiColor
+            dayNumberLabel.font = FontSet.montserratMedium.font(16)
+            dayNumberLabel.textColor = ColorSet.fgWeaker.uiColor
+            monthLabel.textColor = ColorSet.fgWeaker.uiColor
+        } else if isSelected {
             contentView.layer.borderWidth = 2
             contentView.layer.borderColor = ColorSet.line.uiColor.cgColor
             dayLetterLabel.textColor = ColorSet.fg.uiColor

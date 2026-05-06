@@ -133,6 +133,7 @@ public class TRPTimelineItineraryVC: TRPBaseUIViewController {
         collectionView.translatesAutoresizingMaskIntoConstraints = false
         collectionView.backgroundColor = .clear
         collectionView.showsHorizontalScrollIndicator = false
+        collectionView.decelerationRate = .fast  // For better custom paging experience
         collectionView.delegate = self
         collectionView.dataSource = self
         return collectionView
@@ -168,6 +169,10 @@ public class TRPTimelineItineraryVC: TRPBaseUIViewController {
     internal var isMarkerFocused: Bool = false
     internal var hasMultipleCitiesOnSelectedDay: Bool = false
 
+    // Multi-city zoom state: true when zoomed in enough to show step markers
+    internal var isShowingStepMarkersInMultiCity: Bool = false
+    internal let multiCityZoomThreshold: CGFloat = 12.0  // Above this = show step markers
+
     // Selected marker tracking for marker appearance (one per city)
     internal var selectedMarkerPoiIds: Set<String> = []
 
@@ -180,7 +185,7 @@ public class TRPTimelineItineraryVC: TRPBaseUIViewController {
     // Collection view state
     internal var isCollectionViewExpanded: Bool = false
     internal let collectionViewHeight: CGFloat = 120
-    internal let collapsedOffset: CGFloat = 114  // Only 5% visible (6pt out of 120pt)
+    internal let collapsedOffset: CGFloat = 60   // 50% visible (60pt of 120pt)
     internal let expandedOffset: CGFloat = -16   // Fully visible with margin
 
     // Status bar for fullscreen map
@@ -269,7 +274,7 @@ public class TRPTimelineItineraryVC: TRPBaseUIViewController {
         showAddPlanFlow()
     }
 
-    private func toggleView() {
+    internal func toggleView() {
         isShowingMap.toggle()
 
         if isShowingMap {
@@ -437,9 +442,19 @@ public class TRPTimelineItineraryVC: TRPBaseUIViewController {
         UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut) {
             // Slide collection view down to be half visible
             self.poiPreviewBottomConstraint?.constant = self.collapsedOffset
-            // Move add plan button back to original position
-            self.addPlanButtonBottomConstraint?.constant = -24
+            // Move add plan button above visible collection view (60pt + 24pt spacing)
+            self.addPlanButtonBottomConstraint?.constant = -84
             self.view.layoutIfNeeded()
+        }
+    }
+
+    internal func toggleCollectionView() {
+        if isCollectionViewExpanded {
+            collapseCollectionView()
+        } else {
+            expandCollectionView()
+            isMarkerFocused = true
+            updateMainViewButtonVisibility()
         }
     }
 
@@ -459,6 +474,13 @@ public class TRPTimelineItineraryVC: TRPBaseUIViewController {
 
         // Pre-calculate routes for itinerary segments with multiple steps
         calculateRoutesForItinerarySegments()
+
+        // If map is showing, refresh it and update POI cards
+        // This ensures map syncs with day changes after segment creation
+        if isShowingMap {
+            refreshMap()
+            updatePOIPreviewCards()
+        }
     }
 
     internal func updateSavedPlansButton() {

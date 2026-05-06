@@ -62,7 +62,8 @@ extension UIViewController {
                             prefersGrabberVisible: Bool = true,
                             prefersScrollingExpandsWhenScrolledToEdge: Bool = false,
                             isDimmed: Bool = true,
-                            disableSwipeToDismiss: Bool = false) {
+                            disableSwipeToDismiss: Bool = false,
+                            cornerRadius: CGFloat? = nil) {
         vc.modalPresentationStyle = .pageSheet
 
         // Disable swipe-to-dismiss if requested (only close button can dismiss)
@@ -80,6 +81,11 @@ extension UIViewController {
                 sheet.prefersGrabberVisible = prefersGrabberVisible
                 sheet.prefersScrollingExpandsWhenScrolledToEdge = prefersScrollingExpandsWhenScrolledToEdge
                 sheet.largestUndimmedDetentIdentifier = isDimmed ? nil : .large
+
+                // Set custom corner radius if provided
+                if let radius = cornerRadius {
+                    sheet.preferredCornerRadius = radius
+                }
             }
         }
         present(vc, animated: true)
@@ -91,10 +97,12 @@ extension UIViewController {
     ///   - prefersGrabberVisible: Whether to show the grabber handle
     ///   - isDimmed: Whether to dim the background
     ///   - disableSwipeToDismiss: Whether to disable swipe-to-dismiss (only close button can dismiss)
+    ///   - cornerRadius: Custom corner radius for the sheet (default uses system value)
     func presentVCWithDynamicHeight(_ vc: UIViewController,
                                     prefersGrabberVisible: Bool = true,
                                     isDimmed: Bool = true,
-                                    disableSwipeToDismiss: Bool = true) {
+                                    disableSwipeToDismiss: Bool = false,
+                                    cornerRadius: CGFloat? = nil) {
         vc.modalPresentationStyle = .pageSheet
 
         // Disable swipe-to-dismiss if requested (only close button can dismiss)
@@ -119,6 +127,11 @@ extension UIViewController {
                 sheet.prefersGrabberVisible = prefersGrabberVisible
                 sheet.prefersScrollingExpandsWhenScrolledToEdge = false
                 sheet.largestUndimmedDetentIdentifier = isDimmed ? nil : .medium
+
+                // Set custom corner radius if provided
+                if let radius = cornerRadius {
+                    sheet.preferredCornerRadius = radius
+                }
             }
         } else if #available(iOS 15.0, *) {
             // Fallback for iOS 15 - use medium detent
@@ -127,6 +140,11 @@ extension UIViewController {
                 sheet.prefersGrabberVisible = prefersGrabberVisible
                 sheet.prefersScrollingExpandsWhenScrolledToEdge = false
                 sheet.largestUndimmedDetentIdentifier = isDimmed ? nil : .medium
+
+                // Set custom corner radius if provided
+                if let radius = cornerRadius {
+                    sheet.preferredCornerRadius = radius
+                }
             }
         }
 

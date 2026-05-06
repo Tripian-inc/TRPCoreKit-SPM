@@ -14,8 +14,9 @@ public class AddPlanActivityListingVC: TRPBaseUIViewController {
     
     // MARK: - Properties
     public var viewModel: AddPlanActivityListingViewModel!
-    private var isLoadingMore = false
     private var customNavigationBar: TRPTimelineCustomNavigationBar!
+    private static let skeletonChipCount: Int = 5
+    private static let skeletonRowCount: Int = 6
 
     // Callback when segment is created successfully, passes selected day for navigation
     public var onSegmentCreated: ((Date?) -> Void)?
@@ -99,7 +100,7 @@ public class AddPlanActivityListingVC: TRPBaseUIViewController {
         label.translatesAutoresizingMaskIntoConstraints = false
         label.font = FontSet.montserratMedium.font(12)
         label.textColor = ColorSet.neutral500.uiColor
-        label.text = "0 actividades"
+        label.isHidden = true
         return label
     }()
     
@@ -110,6 +111,7 @@ public class AddPlanActivityListingVC: TRPBaseUIViewController {
         imageView.contentMode = .scaleAspectFit
         imageView.translatesAutoresizingMaskIntoConstraints = false
         imageView.isUserInteractionEnabled = true
+        imageView.isHidden = true
         return imageView
     }()
     
@@ -127,17 +129,6 @@ public class AddPlanActivityListingVC: TRPBaseUIViewController {
         return tableView
     }()
 
-    private lazy var loadingFooterView: UIView = {
-        let footerView = UIView(frame: CGRect(x: 0, y: 0, width: view.bounds.width, height: 60))
-        let activityIndicator = UIActivityIndicatorView(style: .medium)
-        activityIndicator.color = ColorSet.primary.uiColor
-        activityIndicator.center = CGPoint(x: footerView.bounds.width / 2, y: footerView.bounds.height / 2)
-        activityIndicator.autoresizingMask = [.flexibleLeftMargin, .flexibleRightMargin, .flexibleTopMargin, .flexibleBottomMargin]
-        activityIndicator.startAnimating()
-        footerView.addSubview(activityIndicator)
-        return footerView
-    }()
-    
     // MARK: - Lifecycle
     public override func setupViews() {
         super.setupViews()
@@ -213,6 +204,8 @@ public class AddPlanActivityListingVC: TRPBaseUIViewController {
     // MARK: - Actions
     private func filterButtonTapped() {
         let filterVC = AddPlanFilterVC(filterData: viewModel.filterData)
+        filterVC.priceRangeFacet = viewModel.priceRangeFacet
+        filterVC.durationRangeFacet = viewModel.durationRangeFacet
         filterVC.onFilterApplied = { [weak self] filterData in
             self?.viewModel.updateFilterData(filterData)
             self?.updateFilterButtonAppearance()
@@ -222,7 +215,7 @@ public class AddPlanActivityListingVC: TRPBaseUIViewController {
                 self?.tableView.scrollToRow(at: IndexPath(row: 0, section: 0), at: .top, animated: true)
             }
         }
-        presentVCWithModal(filterVC, onlyLarge: false, prefersGrabberVisible: true, disableSwipeToDismiss: true)
+        presentVCWithDynamicHeight(filterVC, prefersGrabberVisible: false, isDimmed: false)
     }
 
     @objc private func sortButtonTapped() {
@@ -254,30 +247,39 @@ public class AddPlanActivityListingVC: TRPBaseUIViewController {
 
 // MARK: - UICollectionViewDataSource & UICollectionViewDelegateFlowLayout
 extension AddPlanActivityListingVC: UICollectionViewDataSource, UICollectionViewDelegateFlowLayout {
-    
+
     public func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
-        return viewModel.getCategoryNames().count
+        if viewModel.isFacetsLoading() {
+            return Self.skeletonChipCount
+        }
+        return viewModel.getCategoryChipCount()
     }
-    
+
     public func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
         guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: CategoryFilterCell.reuseIdentifier, for: indexPath) as? CategoryFilterCell else {
             return UICollectionViewCell()
         }
-        
-        let categoryNames = viewModel.getCategoryNames()
-        let iconName = viewModel.getCategoryIconName(at: indexPath.item)
-        let isSelected = viewModel.isCategorySelected(at: indexPath.item)
-        cell.configure(title: categoryNames[indexPath.item], iconName: iconName, isSelected: isSelected)
-        
+
+        if viewModel.isFacetsLoading() {
+            cell.configureSkeleton()
+            return cell
+        }
+
+        let title = viewModel.getCategoryChipLabel(at: indexPath.item)
+        let iconName = viewModel.getCategoryChipIconName(at: indexPath.item)
+        let isSelected = viewModel.isCategoryChipSelected(at: indexPath.item)
+        cell.configure(title: title, iconName: iconName, isSelected: isSelected)
+
         return cell
     }
-    
+
     public func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAt indexPath: IndexPath) -> CGSize {
-        return CGSize(width: 80, height: 72)
+        return CGSize(width: 82, height: 72)
     }
-    
+
     public func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
-        viewModel.selectCategory(at: indexPath.item)
+        guard !viewModel.isFacetsLoading() else { return }
+        viewModel.selectCategoryChip(at: indexPath.item)
         collectionView.reloadData()
 
         // Scroll table to top when category changes
@@ -289,14 +291,22 @@ extension AddPlanActivityListingVC: UICollectionViewDataSource, UICollectionView
 
 // MARK: - UITableViewDataSource & UITableViewDelegate
 extension AddPlanActivityListingVC: UITableViewDataSource, UITableViewDelegate {
-    
+
     public func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
+        if viewModel.isLoadingTours {
+            return Self.skeletonRowCount
+        }
         return viewModel.getActivities().count
     }
-    
+
     public func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         guard let cell = tableView.dequeueReusableCell(withIdentifier: ActivityCardCell.reuseIdentifier, for: indexPath) as? ActivityCardCell else {
             return UITableViewCell()
+        }
+
+        if viewModel.isLoadingTours {
+            cell.configureSkeleton()
+            return cell
         }
 
         cell.delegate = self
@@ -314,30 +324,11 @@ extension AddPlanActivityListingVC: UITableViewDataSource, UITableViewDelegate {
 
     public func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         tableView.deselectRow(at: indexPath, animated: true)
+        guard !viewModel.isLoadingTours else { return }
 
         // Notify delegate about activity detail request
         if let tour = viewModel.getTourAt(index: indexPath.row) {
             TRPCoreKit.shared.delegate?.trpCoreKitDidRequestActivityDetail(activityId: tour.productId)
-        }
-    }
-
-    public func scrollViewDidScroll(_ scrollView: UIScrollView) {
-        let offsetY = scrollView.contentOffset.y
-        let contentHeight = scrollView.contentSize.height
-        let frameHeight = scrollView.frame.size.height
-
-        // Only trigger if content is scrollable
-        guard contentHeight > frameHeight else { return }
-
-        // Check if scrolled near bottom (trigger when 100 points from bottom)
-        let threshold: CGFloat = 100
-        if offsetY + frameHeight >= contentHeight - threshold {
-            // Load more tours if available and not already loading
-            if viewModel.hasMoreTours() && !isLoadingMore {
-                isLoadingMore = true
-                tableView.tableFooterView = loadingFooterView
-                viewModel.loadMoreTours()
-            }
         }
     }
 }
@@ -361,9 +352,8 @@ extension AddPlanActivityListingVC: AddPlanActivityListingViewModelDelegate {
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
 
-            // Reset loading state
-            self.isLoadingMore = false
-
+            self.activityCountLabel.isHidden = false
+            self.infoImageView.isHidden = false
             self.tableView.reloadData()
 
             let count = self.viewModel.getActivityCount()
@@ -371,25 +361,29 @@ extension AddPlanActivityListingVC: AddPlanActivityListingViewModelDelegate {
                 ? AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.activity)
                 : AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.activities)
             self.activityCountLabel.text = "\(count) \(activityText)"
-
-            // Update footer - only remove if no more tours
-            self.updateTableFooter()
         }
     }
 
-    private func updateTableFooter() {
-        // Only show footer if there's no more data
-        if !viewModel.hasMoreTours() {
-            tableView.tableFooterView = nil
+    public func facetsDidLoad() {
+        DispatchQueue.main.async { [weak self] in
+            self?.categoryCollectionView.reloadData()
+        }
+    }
+
+    public func tourLoadingStateDidChange() {
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            if self.viewModel.isLoadingTours {
+                self.activityCountLabel.isHidden = true
+                self.infoImageView.isHidden = true
+            }
+            self.tableView.reloadData()
         }
     }
 
     public func activitiesDidFail(error: Error) {
         DispatchQueue.main.async { [weak self] in
-            // Reset loading state on error
-            self?.isLoadingMore = false
-            self?.tableView.tableFooterView = nil
-
+            self?.tableView.reloadData()
             EvrAlertView.showAlert(contentText: error.localizedDescription, type: .error)
         }
     }
@@ -408,14 +402,15 @@ extension AddPlanActivityListingVC: AddPlanActivityListingViewModelDelegate {
 // MARK: - CategoryFilterCell
 private class CategoryFilterCell: UICollectionViewCell {
     static let reuseIdentifier = "CategoryFilterCell"
-    
+    private static let skeletonAnimationKey = "shimmer"
+
     private let iconImageView: UIImageView = {
         let imageView = UIImageView()
         imageView.translatesAutoresizingMaskIntoConstraints = false
         imageView.contentMode = .scaleAspectFit
         return imageView
     }()
-    
+
     private let titleLabel: UILabel = {
         let label = UILabel()
         label.translatesAutoresizingMaskIntoConstraints = false
@@ -423,35 +418,77 @@ private class CategoryFilterCell: UICollectionViewCell {
         label.numberOfLines = 2
         return label
     }()
-    
+
+    private let iconSkeletonView: UIView = {
+        let view = UIView()
+        view.translatesAutoresizingMaskIntoConstraints = false
+        view.backgroundColor = ColorSet.lineWeak.uiColor
+        view.layer.cornerRadius = 16
+        view.isHidden = true
+        return view
+    }()
+
+    private let titleSkeletonView: UIView = {
+        let view = UIView()
+        view.translatesAutoresizingMaskIntoConstraints = false
+        view.backgroundColor = ColorSet.lineWeak.uiColor
+        view.layer.cornerRadius = 4
+        view.isHidden = true
+        return view
+    }()
+
     override init(frame: CGRect) {
         super.init(frame: frame)
         setupUI()
     }
-    
+
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
-    
+
     private func setupUI() {
         contentView.addSubview(iconImageView)
         contentView.addSubview(titleLabel)
+        contentView.addSubview(iconSkeletonView)
+        contentView.addSubview(titleSkeletonView)
         contentView.backgroundColor = .white
-        
+
         NSLayoutConstraint.activate([
             iconImageView.topAnchor.constraint(equalTo: contentView.topAnchor),
             iconImageView.centerXAnchor.constraint(equalTo: contentView.centerXAnchor),
             iconImageView.widthAnchor.constraint(equalToConstant: 32),
             iconImageView.heightAnchor.constraint(equalToConstant: 32),
-            
+
             titleLabel.topAnchor.constraint(equalTo: iconImageView.bottomAnchor, constant: 8),
             titleLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
             titleLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
-            titleLabel.bottomAnchor.constraint(greaterThanOrEqualTo: contentView.bottomAnchor)
+            titleLabel.bottomAnchor.constraint(greaterThanOrEqualTo: contentView.bottomAnchor),
+
+            iconSkeletonView.centerXAnchor.constraint(equalTo: iconImageView.centerXAnchor),
+            iconSkeletonView.centerYAnchor.constraint(equalTo: iconImageView.centerYAnchor),
+            iconSkeletonView.widthAnchor.constraint(equalToConstant: 32),
+            iconSkeletonView.heightAnchor.constraint(equalToConstant: 32),
+
+            titleSkeletonView.centerXAnchor.constraint(equalTo: titleLabel.centerXAnchor),
+            titleSkeletonView.centerYAnchor.constraint(equalTo: titleLabel.centerYAnchor),
+            titleSkeletonView.widthAnchor.constraint(equalToConstant: 56),
+            titleSkeletonView.heightAnchor.constraint(equalToConstant: 8)
         ])
     }
-    
+
+    override func prepareForReuse() {
+        super.prepareForReuse()
+        stopSkeletonAnimation()
+    }
+
     func configure(title: String, iconName: String?, isSelected: Bool) {
+        stopSkeletonAnimation()
+
+        iconImageView.isHidden = false
+        titleLabel.isHidden = false
+        iconSkeletonView.isHidden = true
+        titleSkeletonView.isHidden = true
+
         titleLabel.text = title
 
         // Set icon (use custom icon from framework with template rendering mode)
@@ -470,6 +507,31 @@ private class CategoryFilterCell: UICollectionViewCell {
             titleLabel.textColor = ColorSet.fgWeak.uiColor
             titleLabel.font = FontSet.montserratLight.font(12)
         }
+    }
+
+    func configureSkeleton() {
+        iconImageView.isHidden = true
+        titleLabel.isHidden = true
+        iconSkeletonView.isHidden = false
+        titleSkeletonView.isHidden = false
+
+        startSkeletonAnimation()
+    }
+
+    private func startSkeletonAnimation() {
+        let animation = CABasicAnimation(keyPath: "opacity")
+        animation.fromValue = 0.4
+        animation.toValue = 1.0
+        animation.duration = 0.8
+        animation.autoreverses = true
+        animation.repeatCount = .infinity
+        iconSkeletonView.layer.add(animation, forKey: Self.skeletonAnimationKey)
+        titleSkeletonView.layer.add(animation, forKey: Self.skeletonAnimationKey)
+    }
+
+    private func stopSkeletonAnimation() {
+        iconSkeletonView.layer.removeAnimation(forKey: Self.skeletonAnimationKey)
+        titleSkeletonView.layer.removeAnimation(forKey: Self.skeletonAnimationKey)
     }
 }
 
@@ -491,7 +553,7 @@ extension AddPlanActivityListingVC: ActivityCardCellDelegate {
         }
 
         // Present as bottom sheet using base extension
-        presentVCWithModal(timeSelectionVC, onlyLarge: false, prefersGrabberVisible: false)
+        presentVCWithModal(timeSelectionVC)
     }
 }
 

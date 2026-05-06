@@ -75,6 +75,8 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
         button.translatesAutoresizingMaskIntoConstraints = false
         button.setImage(TRPImageController().getImage(inFramework: "ic_recom_arrow", inApp: nil), for: .normal)
         button.tintColor = ColorSet.fg.uiColor
+        // Button size 24x24 with 4px padding to keep icon visually 16x16
+        button.contentEdgeInsets = UIEdgeInsets(top: 4, left: 4, bottom: 4, right: 4)
         return button
     }()
 
@@ -139,11 +141,11 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
             titleLabel.leadingAnchor.constraint(equalTo: headerView.leadingAnchor),
             titleLabel.centerYAnchor.constraint(equalTo: headerView.centerYAnchor),
 
-            // Chevron Button
-            chevronButton.leadingAnchor.constraint(equalTo: titleLabel.trailingAnchor, constant: 10),
+            // Chevron Button - 24x24 with padding for larger tap area, icon remains visually 16x16
+            chevronButton.leadingAnchor.constraint(equalTo: titleLabel.trailingAnchor, constant: 6),
             chevronButton.centerYAnchor.constraint(equalTo: headerView.centerYAnchor),
-            chevronButton.widthAnchor.constraint(equalToConstant: 16),
-            chevronButton.heightAnchor.constraint(equalToConstant: 16),
+            chevronButton.widthAnchor.constraint(equalToConstant: 24),
+            chevronButton.heightAnchor.constraint(equalToConstant: 24),
 
             // Close Button - 44x44 for Apple HIG tap target
             closeButton.trailingAnchor.constraint(equalTo: headerView.trailingAnchor),
@@ -160,6 +162,25 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
         headerView.addGestureRecognizer(chevronTap)
 
         closeButton.addTarget(self, action: #selector(closeTapped), for: .touchUpInside)
+    }
+
+    override func prepareForReuse() {
+        super.prepareForReuse()
+        resetTextAndBorderDefaults()
+    }
+
+    private func resetTextAndBorderDefaults() {
+        // Static views — dynamic recommendation rows are rebuilt by configure() so they
+        // already pick up fresh defaults.
+        titleLabel.textColor = ColorSet.fg.uiColor
+        containerView.layer.borderColor = ColorSet.neutral200.uiColor.cgColor
+        closeButton.layer.borderColor = ColorSet.neutral200.uiColor.cgColor
+    }
+
+    /// Recolors all text/border to muted gray when this cell belongs to a past day.
+    /// Caller (VC) must invoke this after `configure(...)`.
+    func applyPastDayStyle() {
+        contentView.trp_recolorLabelsAndBorders(to: ColorSet.fgWeaker.uiColor)
     }
     
     // MARK: - Actions
@@ -399,7 +420,13 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
 
         if let startTime = step.getStartTime(), let endTime = step.getEndTime() {
             // Use unified order (startingOrder + index) instead of step.order
-            timeBadgeView.configure(order: order, startTime: startTime, endTime: endTime)
+            timeBadgeView.configure(
+                order: order,
+                startTime: startTime,
+                endTime: endTime,
+                hasConflict: step.hasConflict,
+                showTimeOverlapText: step.showTimeOverlapText
+            )
         }
 
         // Content container (horizontal layout: image | info)
@@ -541,8 +568,8 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
         categoryLabel.font = FontSet.montserratMedium.font(10)
 
         if isActivity {
-            categoryBadge.backgroundColor = ColorSet.bgGreen.uiColor
-            categoryLabel.textColor = ColorSet.fgGreen.uiColor
+            categoryBadge.backgroundColor = ColorSet.neutral200.uiColor
+            categoryLabel.textColor = ColorSet.fgGray.uiColor
             categoryLabel.text = TimelineLocalizationKeys.localized(TimelineLocalizationKeys.activityBadge)
         } else {
             categoryBadge.backgroundColor = ColorSet.neutral200.uiColor
@@ -630,31 +657,23 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
         priceRow.alignment = .center
 
         if isActivity {
-            // "From" label - medium 14px primaryText
-            let fromLabel = UILabel()
-            fromLabel.font = FontSet.montserratMedium.font(14)
-            fromLabel.textColor = ColorSet.primaryText.uiColor
-            fromLabel.text = CommonLocalizationKeys.localized(CommonLocalizationKeys.from)
-
-            // Price label - bold 16px primaryText
-            let priceLabel = UILabel()
-            priceLabel.font = FontSet.montserratBold.font(16)
-            priceLabel.textColor = ColorSet.primaryText.uiColor
-
-            // Get price from additionalData or booking product
-            var priceText: String? = nil
-            if let price = step.poi?.additionalData?.price, let currency = step.poi?.additionalData?.currency {
-                priceText = TRPCurrencyHelper.formatPrice(price, currency: currency)
-            } else if let price = bookingProduct?.price, let currency = bookingProduct?.currency {
-                priceText = TRPCurrencyHelper.formatPrice(price, currency: currency)
-            } else if let poiPrice = step.poi?.price, poiPrice > 0 {
-                priceText = TRPCurrencyHelper.formatPrice(poiPrice, currency: "EUR")
+            // Check if price is 0 (free activity)
+            var isFreeActivity = false
+            if let price = step.poi?.additionalData?.price, price == 0 {
+                isFreeActivity = true
+            } else if let price = bookingProduct?.price, price == 0 {
+                isFreeActivity = true
+            } else if let poiPrice = step.poi?.price, poiPrice == 0 {
+                isFreeActivity = true
             }
 
-            if let priceText = priceText {
-                priceLabel.text = priceText
-                priceRow.addArrangedSubview(fromLabel)
-                priceRow.addArrangedSubview(priceLabel)
+            if isFreeActivity {
+                // Show "FREE" label only
+                let freeLabel = UILabel()
+                freeLabel.font = FontSet.montserratBold.font(16)
+                freeLabel.textColor = ColorSet.primaryText.uiColor
+                freeLabel.text = CommonLocalizationKeys.localized(CommonLocalizationKeys.free)
+                priceRow.addArrangedSubview(freeLabel)
 
                 // Add priceRow to container, aligned to right
                 priceRowContainer.addSubview(priceRow)
@@ -664,6 +683,42 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
                     priceRow.trailingAnchor.constraint(equalTo: priceRowContainer.trailingAnchor),
                 ])
                 priceRowContainer.isHidden = false
+            } else {
+                // "From" label - medium 14px primaryText
+                let fromLabel = UILabel()
+                fromLabel.font = FontSet.montserratMedium.font(14)
+                fromLabel.textColor = ColorSet.primaryText.uiColor
+                fromLabel.text = CommonLocalizationKeys.localized(CommonLocalizationKeys.from)
+
+                // Price label - bold 16px primaryText
+                let priceLabel = UILabel()
+                priceLabel.font = FontSet.montserratBold.font(16)
+                priceLabel.textColor = ColorSet.primaryText.uiColor
+
+                // Get price from additionalData or booking product
+                var priceText: String? = nil
+                if let price = step.poi?.additionalData?.price, let currency = step.poi?.additionalData?.currency {
+                    priceText = TRPCurrencyHelper.formatPrice(price, currency: currency)
+                } else if let price = bookingProduct?.price, let currency = bookingProduct?.currency {
+                    priceText = TRPCurrencyHelper.formatPrice(price, currency: currency)
+                } else if let poiPrice = step.poi?.price, poiPrice > 0 {
+                    priceText = TRPCurrencyHelper.formatPrice(poiPrice, currency: "EUR")
+                }
+
+                if let priceText = priceText {
+                    priceLabel.text = priceText
+                    priceRow.addArrangedSubview(fromLabel)
+                    priceRow.addArrangedSubview(priceLabel)
+
+                    // Add priceRow to container, aligned to right
+                    priceRowContainer.addSubview(priceRow)
+                    NSLayoutConstraint.activate([
+                        priceRow.topAnchor.constraint(equalTo: priceRowContainer.topAnchor),
+                        priceRow.bottomAnchor.constraint(equalTo: priceRowContainer.bottomAnchor),
+                        priceRow.trailingAnchor.constraint(equalTo: priceRowContainer.trailingAnchor),
+                    ])
+                    priceRowContainer.isHidden = false
+                }
             }
         }
 

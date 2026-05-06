@@ -128,9 +128,6 @@ public class AddPlanContainerVC: TRPBaseUIViewController, DynamicHeightPresentab
     public override func viewDidLoad() {
         super.viewDidLoad()
 
-        // Prevent dismissal by tapping outside (X button is available for closing)
-        isModalInPresentation = true
-
         viewModel.delegate = self
         viewModel.start()
     }
