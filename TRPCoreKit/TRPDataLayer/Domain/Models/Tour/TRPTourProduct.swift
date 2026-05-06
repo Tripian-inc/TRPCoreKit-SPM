@@ -40,6 +40,8 @@ public struct TRPTourProduct: Codable {
 
     public var offers: [TRPOffer] = []
     public var additionalData: TRPAdditionalData?
+
+    public var slots: [TRPTourSlot]? = nil
 }
 
 extension TRPTourProduct: Equatable {

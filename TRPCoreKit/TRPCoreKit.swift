@@ -237,6 +237,7 @@ public class TRPCoreKit {
     /// - Parameter language: Language code (e.g., "en", "es", "fr")
     public static func changeLanguage(_ language: String) {
         TRPClient.changeLanguage(language)
+        TRPLanguagesController.shared.applyLanguageChange()
     }
 
     /// Change SDK currency after initialization

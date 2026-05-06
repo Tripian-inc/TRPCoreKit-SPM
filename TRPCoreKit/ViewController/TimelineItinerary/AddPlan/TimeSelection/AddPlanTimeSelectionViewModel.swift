@@ -31,6 +31,7 @@ public class AddPlanTimeSelectionViewModel {
     private var allTimeSlots: [Date: [TimeSlot]] = [:] // Date -> TimeSlots
     private var selectedDate: Date?
     private var selectedTimeSlot: TimeSlot?
+    private var hasPreloadedSlots: Bool = false
 
     // Edit mode properties
     private var segment: TRPTimelineSegment?
@@ -44,6 +45,11 @@ public class AddPlanTimeSelectionViewModel {
         self.planData = planData
         self.tourRepository = tourRepository
         self.selectedDate = planData.selectedDay
+
+        if let preloaded = tour.slots {
+            prefillCacheFromPreloadedSlots(preloaded)
+            hasPreloadedSlots = true
+        }
     }
 
     /// Edit mode initializer - creates TRPTourProduct from segment's additionalData
@@ -272,6 +278,14 @@ public class AddPlanTimeSelectionViewModel {
             return
         }
 
+        // Preload path: search response already populated cache for all trip days; skip API.
+        if hasPreloadedSlots {
+            DispatchQueue.main.async { [weak self] in
+                self?.delegate?.timeSlotsDidLoad()
+            }
+            return
+        }
+
         delegate?.viewModel(showPreloader: true)
 
         // Format date as "yyyy-MM-dd"
@@ -300,6 +314,31 @@ public class AddPlanTimeSelectionViewModel {
                     self.delegate?.viewModel(error: error)
                 }
             }
+        }
+    }
+
+    /// Bucket preloaded search-response slots into the per-day cache.
+    /// Uses string equality on "yyyy-MM-dd" against canonical Date instances from `availableDays`,
+    /// so dictionary keys exactly match the Date instances `selectDay(at:)`/`getTimeSlots()` use.
+    private func prefillCacheFromPreloadedSlots(_ slots: [TRPTourSlot]) {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+
+        // Build map "yyyy-MM-dd" -> canonical Date from availableDays
+        var dateByString: [String: Date] = [:]
+        for day in planData.availableDays {
+            dateByString[formatter.string(from: day)] = day
+        }
+
+        // Pre-create empty buckets for every trip day so cache miss never triggers a fetch
+        for day in planData.availableDays where allTimeSlots[day] == nil {
+            allTimeSlots[day] = []
+        }
+
+        // Bucket each preloaded slot under its canonical Date; drop trip-range outliers.
+        for slot in slots {
+            guard let canonicalDay = dateByString[slot.date] else { continue }
+            allTimeSlots[canonicalDay]?.append(TRPTourScheduleSlot(time: slot.time, price: slot.price))
         }
     }
 

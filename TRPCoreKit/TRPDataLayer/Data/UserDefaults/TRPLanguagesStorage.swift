@@ -11,35 +11,38 @@ import Foundation
 final class TRPLanguagesStorage {
     static let shared = TRPLanguagesStorage()
 
-    private let languageDataKey = "trp_languages_data"
-    private let cachedLanguageKey = "trp_languages_cached_lang"
+    private let translationsKey = "trp_languages_translations"
+    private let fetchedAtKey = "trp_languages_fetched_at"
+
+    // Legacy keys — cleared in clearCache() for hygiene
+    private let legacyDataKey = "trp_languages_data"
+    private let legacyLangKey = "trp_languages_cached_lang"
 
     private let userDefaults = UserDefaults.standard
 
     private init() {}
 
-    // Read from cache (only for same language)
-    func getCachedLanguages(for language: String) -> [String: Any]? {
-        guard let cachedLang = userDefaults.string(forKey: cachedLanguageKey),
-              cachedLang == language else { return nil }
-        guard let data = userDefaults.data(forKey: languageDataKey),
-              let dict = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+    func getCachedTranslations() -> (translations: [String: Any], fetchedAt: Date)? {
+        guard let data = userDefaults.data(forKey: translationsKey),
+              let dict = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              !dict.isEmpty else {
             return nil
         }
-        return dict
+        let interval = userDefaults.double(forKey: fetchedAtKey)
+        guard interval > 0 else { return nil }
+        return (dict, Date(timeIntervalSince1970: interval))
     }
 
-    // Save to cache (translations[language] part)
-    func saveLanguages(_ languageData: [String: Any], for language: String) {
-        if let data = try? JSONSerialization.data(withJSONObject: languageData) {
-            userDefaults.set(data, forKey: languageDataKey)
-            userDefaults.set(language, forKey: cachedLanguageKey)
-        }
+    func saveTranslations(_ translations: [String: Any], at date: Date) {
+        guard let data = try? JSONSerialization.data(withJSONObject: translations) else { return }
+        userDefaults.set(data, forKey: translationsKey)
+        userDefaults.set(date.timeIntervalSince1970, forKey: fetchedAtKey)
     }
 
-    // Manual cache clear
     func clearCache() {
-        userDefaults.removeObject(forKey: languageDataKey)
-        userDefaults.removeObject(forKey: cachedLanguageKey)
+        userDefaults.removeObject(forKey: translationsKey)
+        userDefaults.removeObject(forKey: fetchedAtKey)
+        userDefaults.removeObject(forKey: legacyDataKey)
+        userDefaults.removeObject(forKey: legacyLangKey)
     }
 }

@@ -65,6 +65,12 @@ final class TourMapper {
         // Use default icon for tours
         let icon = "tour"
 
+        // Map per-product slots from search response (date+time required; nil-safe)
+        let slots: [TRPTourSlot]? = restModel.slots?.compactMap { slotModel in
+            guard let date = slotModel.date, let time = slotModel.time else { return nil }
+            return TRPTourSlot(date: date, time: time, price: slotModel.price)
+        }
+
         let tour = TRPTourProduct(id: restModel.id,
                                   productId: restModel.productId,
                                   cityId: restModel.cityId,
@@ -88,7 +94,8 @@ final class TourMapper {
                                   distance: nil,
                                   status: status,
                                   offers: [],
-                                  additionalData: nil)
+                                  additionalData: nil,
+                                  slots: slots)
         return tour
     }
 
@@ -102,20 +109,53 @@ final class TourMapper {
         restModels.compactMap{ map($0) }
     }
 
-    // Map TRPTourSearchDataModel to extract products
-    func mapDataModel(_ dataModel: TRPTourSearchDataModel) -> [TRPTourProduct] {
-        guard let products = dataModel.products else { return [] }
-        return map(products)
+    // Map TRPTourSearchDataModel to a domain outcome (products + facets)
+    func mapDataModel(_ dataModel: TRPTourSearchDataModel) -> TRPTourSearchOutcome {
+        let products = map(dataModel.products ?? [])
+        let facets = mapFacets(dataModel.facets)
+        return TRPTourSearchOutcome(products: products, facets: facets)
     }
 
-    // Extract pagination from TRPTourSearchDataModel
-    func mapPagination(_ dataModel: TRPTourSearchDataModel) -> TRPTourPagination? {
-        guard let total = dataModel.total,
-              let limit = dataModel.limit,
-              let offset = dataModel.offset else {
-            return nil
+    // Map first facet entry (single provider; providerId = 15) to domain TRPTourFacets
+    func mapFacets(_ facetModels: [TRPTourFacetModel]?) -> TRPTourFacets? {
+        guard let facet = facetModels?.first else { return nil }
+
+        let categories: [TRPTourCategoryFacet] = (facet.categories ?? []).compactMap { model in
+            guard let id = model.id, let label = model.label else { return nil }
+            return TRPTourCategoryFacet(
+                id: id,
+                key: model.key,
+                label: label,
+                count: model.count ?? 0
+            )
         }
-        return TRPTourPagination(total: total, limit: limit, offset: offset)
+
+        var priceRange: TRPTourPriceRangeFacet?
+        if let minMoney = facet.priceRange?.minimum,
+           let maxMoney = facet.priceRange?.maximum,
+           let minAmount = minMoney.amount,
+           let maxAmount = maxMoney.amount {
+            priceRange = TRPTourPriceRangeFacet(
+                minAmount: Double(minAmount) / 100.0,
+                maxAmount: Double(maxAmount) / 100.0,
+                currency: minMoney.currency ?? maxMoney.currency ?? ""
+            )
+        }
+
+        var durationRange: TRPTourDurationRangeFacet?
+        if let minMinutes = facet.durationRange?.minimumMinutes,
+           let maxMinutes = facet.durationRange?.maximumMinutes {
+            durationRange = TRPTourDurationRangeFacet(
+                minMinutes: minMinutes,
+                maxMinutes: maxMinutes
+            )
+        }
+
+        return TRPTourFacets(
+            categories: categories,
+            priceRange: priceRange,
+            durationRange: durationRange
+        )
     }
 
     // Map TRPTourScheduleModel to TRPTourSchedule

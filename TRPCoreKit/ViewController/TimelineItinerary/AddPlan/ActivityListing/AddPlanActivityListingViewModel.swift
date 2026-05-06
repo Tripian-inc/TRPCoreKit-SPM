@@ -14,6 +14,8 @@ public protocol AddPlanActivityListingViewModelDelegate: AnyObject {
     func activitiesDidLoad()
     func activitiesDidFail(error: Error)
     func showLoading(_ show: Bool)
+    func facetsDidLoad()
+    func tourLoadingStateDidChange()
 }
 
 public class AddPlanActivityListingViewModel {
@@ -22,20 +24,24 @@ public class AddPlanActivityListingViewModel {
     public let planData: AddPlanData
     public weak var delegate: AddPlanActivityListingViewModelDelegate?
 
-    public var selectedCategoryIndices: Set<Int> = [0] // 0 = "All", multiple selection allowed except "All"
     public var searchText: String = ""
     public var selectedSortOption: SortOption = .popularity
     public var filterData: FilterData = FilterData()
 
-    private var allTours: [TRPTourProduct] = []
+    public var selectedFacetCategoryIds: Set<String> = []
+    private(set) public var facetCategories: [TRPTourCategoryFacet] = []
+    private(set) public var priceRangeFacet: TRPTourPriceRangeFacet?
+    private(set) public var durationRangeFacet: TRPTourDurationRangeFacet?
+    private var hasLoadedInitialFacets: Bool = false
+
+    private(set) public var isLoadingTours: Bool = false
+
+    /// Untouched server response (popularity-sorted baseline). Local sort + filter run on top.
+    private var originalTours: [TRPTourProduct] = []
     private var filteredTours: [TRPTourProduct] = []
 
     private var tourUseCases: TRPTourUseCases?
     private var searchWorkItem: DispatchWorkItem?
-    private var currentPagination: TRPTourPagination?
-    private var isLoadingMore: Bool = false
-    private var searchRetryCount: Int = 0
-    private let maxRetryCount: Int = 1
 
     // MARK: - Initialization
     public init(planData: AddPlanData, tourUseCases: TRPTourUseCases? = nil) {
@@ -47,91 +53,106 @@ public class AddPlanActivityListingViewModel {
             self.tourUseCases?.cityId = cityId
         }
     }
-    
-    // MARK: - Public Methods
-    public func getCategories() -> [PlanCategory] {
-        return PlanCategory.allCategories()
-    }
-    
-    public func getCategoryNames() -> [String] {
-        // Add "All" at the beginning
-        var names = [AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.categoryAll)]
-        names.append(contentsOf: PlanCategory.getCategoryNamesForFilter())
-        return names
-    }
-    
-    public func getCategoryIconName(at index: Int) -> String? {
-        if index == 0 {
-            // "All" category
-            return "ic_all_categories"
-        }
-        let categories = PlanCategory.allCategories()
-        let categoryIndex = index - 1 // Subtract 1 because "All" is at index 0
-        if categoryIndex >= 0 && categoryIndex < categories.count {
-            return categories[categoryIndex].iconName
-        }
-        return nil
-    }
-    
+
     // MARK: - Plan Data Accessors
     public func getSelectedDay() -> Date? {
         return planData.selectedDay
     }
-    
+
     public func getSelectedCity() -> TRPCity? {
         return planData.selectedCity
     }
-    
+
     public func getSelectedCategories() -> [String] {
         return planData.selectedCategories
     }
-    
+
     public func getStartTime() -> Date? {
         return planData.startTime
     }
-    
+
     public func getEndTime() -> Date? {
         return planData.endTime
     }
-    
+
     public func getTravelers() -> Int {
         return planData.travelers
     }
-    
+
     public func getStartingPointLocation() -> TRPLocation? {
         return planData.startingPointLocation
     }
-    
+
     public func getStartingPointName() -> String? {
         return planData.startingPointName
     }
-    
-    public func selectCategory(at index: Int) {
+
+    // MARK: - Facet category UI helpers
+
+    /// Number of chips to render: 1 ("All") + facet categories.
+    public func getCategoryChipCount() -> Int {
+        return 1 + facetCategories.count
+    }
+
+    /// Chip label at index. Index 0 = "All", index >= 1 maps to facetCategories[index-1].
+    public func getCategoryChipLabel(at index: Int) -> String {
         if index == 0 {
-            // "All" selected - clear others and select only "All"
-            selectedCategoryIndices = [0]
+            return AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.categoryAll)
+        }
+        let facetIndex = index - 1
+        guard facetIndex >= 0, facetIndex < facetCategories.count else { return "" }
+        return facetCategories[facetIndex].label
+    }
+
+    /// Icon asset name for chip at index.
+    public func getCategoryChipIconName(at index: Int) -> String {
+        if index == 0 {
+            return TRPTourCategoryIconMapper.allCategoriesIconName
+        }
+        let facetIndex = index - 1
+        guard facetIndex >= 0, facetIndex < facetCategories.count else {
+            return TRPTourCategoryIconMapper.iconName(forKey: nil)
+        }
+        return TRPTourCategoryIconMapper.iconName(forKey: facetCategories[facetIndex].key)
+    }
+
+    public func isCategoryChipSelected(at index: Int) -> Bool {
+        if index == 0 {
+            return selectedFacetCategoryIds.isEmpty
+        }
+        let facetIndex = index - 1
+        guard facetIndex >= 0, facetIndex < facetCategories.count else { return false }
+        return selectedFacetCategoryIds.contains(facetCategories[facetIndex].id)
+    }
+
+    public func selectCategoryChip(at index: Int) {
+        if index == 0 {
+            selectAllCategories()
+            return
+        }
+        let facetIndex = index - 1
+        guard facetIndex >= 0, facetIndex < facetCategories.count else { return }
+        toggleFacetCategory(id: facetCategories[facetIndex].id)
+    }
+
+    public func toggleFacetCategory(id: String) {
+        if selectedFacetCategoryIds.contains(id) {
+            selectedFacetCategoryIds.remove(id)
         } else {
-            // Other category selected
-            // Remove "All" from selection
-            selectedCategoryIndices.remove(0)
-
-            // Toggle the selected category
-            if selectedCategoryIndices.contains(index) {
-                selectedCategoryIndices.remove(index)
-            } else {
-                selectedCategoryIndices.insert(index)
-            }
-
-            // If no categories selected, select "All"
-            if selectedCategoryIndices.isEmpty {
-                selectedCategoryIndices = [0]
-            }
+            selectedFacetCategoryIds.insert(id)
         }
         performSearch()
     }
 
-    public func isCategorySelected(at index: Int) -> Bool {
-        return selectedCategoryIndices.contains(index)
+    public func selectAllCategories() {
+        guard !selectedFacetCategoryIds.isEmpty else { return }
+        selectedFacetCategoryIds.removeAll()
+        performSearch()
+    }
+
+    /// True until the first response has populated facets — VC uses this to render skeletons.
+    public func isFacetsLoading() -> Bool {
+        return !hasLoadedInitialFacets
     }
 
     public func updateSearchText(_ text: String) {
@@ -141,75 +162,20 @@ public class AddPlanActivityListingViewModel {
 
     public func updateSortOption(_ option: SortOption) {
         selectedSortOption = option
-        performSearch()
+        applyLocalSortAndFilter()
+        delegate?.activitiesDidLoad()
     }
 
     public func updateFilterData(_ data: FilterData) {
         filterData = data
-        performSearch()
+        applyLocalSortAndFilter()
+        delegate?.activitiesDidLoad()
     }
 
     public func hasActiveFilters() -> Bool {
         return !filterData.isEmpty
     }
-    
-    /// Returns the selected category IDs. Returns nil if "All" is selected (index 0).
-    public func getSelectedCategoryIds() -> [String]? {
-        // If "All" is selected, return nil
-        if selectedCategoryIndices.contains(0) {
-            return nil
-        }
 
-        let categories = PlanCategory.allCategories()
-        var ids: [String] = []
-
-        for index in selectedCategoryIndices {
-            let categoryIndex = index - 1 // Subtract 1 because "All" is at index 0
-            if categoryIndex >= 0 && categoryIndex < categories.count {
-                ids.append(categories[categoryIndex].id)
-            }
-        }
-
-        return ids.isEmpty ? nil : ids
-    }
-
-    /// Returns the selected category names combined. Returns nil if "All" is selected (index 0).
-    private func getSelectedCategoryNames() -> [String]? {
-        // If "All" is selected, return nil
-        if selectedCategoryIndices.contains(0) {
-            return nil
-        }
-
-        let categories = PlanCategory.allCategories()
-        var names: [String] = []
-
-        for index in selectedCategoryIndices.sorted() {
-            let categoryIndex = index - 1 // Subtract 1 because "All" is at index 0
-            if categoryIndex >= 0 && categoryIndex < categories.count {
-                names.append(categories[categoryIndex].name.replacingOccurrences(of: "\n", with: " "))
-            }
-        }
-
-        return names.isEmpty ? nil : names
-    }
-
-    /// Combines search text and category names for keywords parameter
-    private func buildKeywords() -> String {
-        var keywords: [String] = []
-
-        // Add search text if not empty
-        if !searchText.isEmpty {
-            keywords.append(searchText)
-        }
-
-        // Add category names if specific categories are selected
-        if let categoryNames = getSelectedCategoryNames() {
-            keywords.append(contentsOf: categoryNames)
-        }
-
-        return keywords.joined(separator: " ")
-    }
-    
     // MARK: - Activity Fetching
     public func getActivities() -> [TRPTourProduct] {
         return filteredTours
@@ -241,44 +207,38 @@ public class AddPlanActivityListingViewModel {
     }
 
     private func performSearch() {
-        guard let city = planData.selectedCity else {
+        guard planData.selectedCity != nil else {
             delegate?.activitiesDidFail(error: GeneralError.customMessage("City not selected"))
             return
         }
 
-        // Reset retry count for new search
-        searchRetryCount = 0
         executeSearch()
     }
 
-    private func buildSearchParameters(limit: Int? = nil, offset: Int? = nil) -> TourParameters {
-        // Build keywords combining search text and category name
-        let keywords = buildKeywords()
+    private func buildSearchParameters() -> TourParameters {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
 
-        // Format selected date as "yyyy-MM-dd"
-        var dateString: String?
-        if let selectedDay = planData.selectedDay {
-            let dateFormatter = DateFormatter()
-            dateFormatter.dateFormat = "yyyy-MM-dd"
-            dateString = dateFormatter.string(from: selectedDay)
+        let sortedDays = planData.availableDays.sorted()
+        let dateFromString = sortedDays.first.map { formatter.string(from: $0) }
+        let dateToString = sortedDays.last.map { formatter.string(from: $0) }
+
+        var params = TourParameters(search: searchText.isEmpty ? nil : searchText)
+        params.date = dateFromString
+        params.dateTo = dateToString
+
+        if !selectedFacetCategoryIds.isEmpty {
+            params.categoryIds = Array(selectedFacetCategoryIds)
         }
 
-        // Build parameters
-        var params = TourParameters(search: keywords.isEmpty ? nil : keywords)
-        params.date = dateString
-        params.limit = limit
-        params.offset = offset
+        // Always request the popularity-sorted baseline. Sort is now applied locally
+        // (see `applyLocalSortAndFilter`); leaving this constant means category and
+        // search-text refetches return a stable baseline that local sort runs on top of.
+        params.sortingBy = "score"
+        params.sortingType = "desc"
 
-        // Apply sorting parameters
-        let sortParams = selectedSortOption.apiParameters
-        params.sortingBy = sortParams.sortingBy
-        params.sortingType = sortParams.sortingType
-
-        // Apply filter parameters
-        params.minPrice = filterData.minPrice
-        params.maxPrice = filterData.maxPrice
-        params.minDuration = filterData.minDuration
-        params.maxDuration = filterData.maxDuration
+        // Price and duration filters are applied locally — do NOT send them to the server.
+        // (Leaving them nil so server returns the unfiltered baseline.)
 
         // Set currency and adults
         params.currency = TRPClient.getCurrency()
@@ -288,104 +248,85 @@ public class AddPlanActivityListingViewModel {
     }
 
     private func executeSearch() {
-        delegate?.showLoading(true)
+        isLoadingTours = true
+        delegate?.tourLoadingStateDidChange()
 
         let params = buildSearchParameters()
 
         guard let cityId = planData.selectedCity?.id else { return }
         tourUseCases?.tourRepository.fetchTours(cityId: cityId, parameters: params) { [weak self] result in
-            self?.handleSearchResult(result: result.0, pagination: result.1)
+            self?.handleSearchResult(result: result)
         }
     }
 
-    private func handleSearchResult(result: Result<[TRPTourProduct], Error>, pagination: TRPTourPagination?) {
-        isLoadingMore = false
-
+    private func handleSearchResult(result: TourResultsValue) {
         switch result {
-        case .success(let tours):
-            delegate?.showLoading(false)
-            allTours = tours
-            currentPagination = pagination
-            filterTours()
+        case .success(let outcome):
+            isLoadingTours = false
+            originalTours = outcome.products
+            applyFacetsIfNeeded(outcome.facets)
+            applyLocalSortAndFilter()
             delegate?.activitiesDidLoad()
         case .failure(let error):
-            // Check for 504 Gateway Timeout and retry once
-            if is504Error(error) && searchRetryCount < maxRetryCount {
-                searchRetryCount += 1
-                executeSearch()
-                return
-            }
-            delegate?.showLoading(false)
+            // 504 retry is handled inside TRPTourSearchService (single attempt) — no
+            // additional client-side retry, otherwise we'd compound to two retries.
+            isLoadingTours = false
             delegate?.activitiesDidFail(error: error)
         }
     }
 
-    private func is504Error(_ error: Error) -> Bool {
-        // Check if error contains 504 status code
-        if let nsError = error as NSError? {
-            if nsError.code == 504 {
+    /// Freeze: only the first response (filterless initial load) populates facets.
+    /// Subsequent filtered responses are ignored so chips and slider bounds remain stable.
+    private func applyFacetsIfNeeded(_ facets: TRPTourFacets?) {
+        guard !hasLoadedInitialFacets, let facets = facets else { return }
+        facetCategories = facets.categories
+        priceRangeFacet = facets.priceRange
+        durationRangeFacet = facets.durationRange
+        hasLoadedInitialFacets = true
+        delegate?.facetsDidLoad()
+    }
+
+    /// Apply price + duration filter and sort on top of `originalTours` (the server baseline).
+    /// Sort and filter are now fully local — no service request is dispatched on changes.
+    /// Category and search-text changes still go through the server (they trigger
+    /// `executeSearch()` which repopulates `originalTours` and re-runs this pipeline).
+    private func applyLocalSortAndFilter() {
+        var working = originalTours
+
+        // Price filter — products without a price are excluded when a bound is active.
+        if filterData.minPrice != nil || filterData.maxPrice != nil {
+            working = working.filter { tour in
+                guard let price = tour.price else { return false }
+                if let lo = filterData.minPrice, price < lo { return false }
+                if let hi = filterData.maxPrice, price > hi { return false }
                 return true
             }
-            // Check userInfo for status code
-            if let statusCode = nsError.userInfo["statusCode"] as? Int, statusCode == 504 {
+        }
+
+        // Duration filter — same exclusion semantics as price.
+        if filterData.minDuration != nil || filterData.maxDuration != nil {
+            working = working.filter { tour in
+                guard let duration = tour.duration else { return false }
+                if let lo = filterData.minDuration, duration < lo { return false }
+                if let hi = filterData.maxDuration, duration > hi { return false }
                 return true
             }
         }
-        // Check error description for 504
-        let errorDescription = error.localizedDescription.lowercased()
-        if errorDescription.contains("504") || errorDescription.contains("gateway timeout") {
-            return true
-        }
-        return false
-    }
 
-    // MARK: - Pagination
-    public func hasMoreTours() -> Bool {
-        return currentPagination?.hasMore ?? false
-    }
-
-    public func loadMoreTours() {
-        guard !isLoadingMore,
-              let pagination = currentPagination,
-              let nextOffset = pagination.nextOffset else {
-            return
+        // Sort — `popularity` is preserved by leaving the server-supplied order alone.
+        switch selectedSortOption {
+        case .popularity:
+            break
+        case .rating:
+            working.sort { (Double($0.rating ?? -.greatestFiniteMagnitude)) > (Double($1.rating ?? -.greatestFiniteMagnitude)) }
+        case .priceLowToHigh:
+            working.sort { ($0.price ?? .max) < ($1.price ?? .max) }
+        case .durationShortToLong:
+            working.sort { ($0.duration ?? .max) < ($1.duration ?? .max) }
+        case .durationLongToShort:
+            working.sort { ($0.duration ?? .min) > ($1.duration ?? .min) }
         }
 
-        isLoadingMore = true
-
-        let params = buildSearchParameters(limit: pagination.limit, offset: nextOffset)
-
-        if let cityId = planData.selectedCity?.id {
-            tourUseCases?.tourRepository.fetchTours(cityId: cityId, parameters: params) { [weak self] result in
-                self?.handleLoadMoreResult(result: result.0, pagination: result.1)
-            }
-        }
-    }
-
-    private func handleLoadMoreResult(result: Result<[TRPTourProduct], Error>, pagination: TRPTourPagination?) {
-        isLoadingMore = false
-
-        switch result {
-        case .success(let newTours):
-            allTours.append(contentsOf: newTours)
-            currentPagination = pagination
-            filterTours()
-            delegate?.activitiesDidLoad()
-        case .failure(let error):
-            delegate?.activitiesDidFail(error: error)
-        }
-    }
-
-    private func filterTours() {
-        // API already filters by category (via keywords), so no need to filter client-side
-        // Only apply text search filter if needed
-        filteredTours = allTours
-
-        if !searchText.isEmpty {
-            filteredTours = filteredTours.filter { tour in
-                tour.name.localizedCaseInsensitiveContains(searchText)
-            }
-        }
+        filteredTours = working
     }
 }
-
