@@ -19,6 +19,12 @@ public class TRPBaseUIViewController: UIViewController {
     
     //MARK: UI
     public var loader: TRPLoaderView?
+    /// Active bottom-sheet Lottie loader presented by the current screen (one at a time).
+    /// Tracked as a weak reference so dismissal cleans itself up if anything else dismissed
+    /// the sheet first.
+    private weak var activeLottieBottomSheet: TRPLottieLoadingVC?
+    /// Active embedded (child VC) Lottie loader inside the current screen's view.
+    private weak var activeEmbeddedLottie: TRPLottieLoadingVC?
     private var isPopupOnView = false
     
     public var applyButton: UIButton = {
@@ -216,6 +222,76 @@ extension TRPBaseUIViewController:  ViewModelDelegate {
             loader?.show()
         }else {
             loader?.remove()
+        }
+    }
+
+    /// Show or hide the shared Lottie loading overlay. Marshals to the main thread
+    /// since callers are typically on a network completion. Pass a non-nil `text` for
+    /// a single static label (e.g. "Getting Activities"); pass `nil` for the default
+    /// rotating timeline texts. `completion` fires after the show is initiated or
+    /// after the hide fade-out finishes — sequence follow-up UI inside it.
+    public func viewModel(showLottieLoader: Bool, text: String?, completion: (() -> Void)?) {
+        DispatchQueue.main.async {
+            if showLottieLoader {
+                if let text = text {
+                    TRPLottieLoadingVC.shared.showOnWindow(textMode: .single(text))
+                } else {
+                    TRPLottieLoadingVC.shared.showOnWindow()
+                }
+                completion?()
+            } else {
+                TRPLottieLoadingVC.shared.hideFromWindow(completion: completion)
+            }
+        }
+    }
+
+    /// Show or hide a Lottie loading bottom sheet presented over the current VC.
+    /// Each show creates a fresh sheet via `TRPLottieLoadingVC.showAsSheet(...)`;
+    /// each hide dismisses the active sheet. Suitable for medium-length operations
+    /// where a partial-screen indicator (rather than the full-window Lottie) fits the
+    /// UX — e.g. fetching a tour's schedule inside a time selection screen.
+    public func viewModel(showLottieBottomSheet: Bool, text: String?, completion: (() -> Void)?) {
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else {
+                completion?()
+                return
+            }
+            if showLottieBottomSheet {
+                let sheetText = text ?? ""
+                self.activeLottieBottomSheet = TRPLottieLoadingVC.showAsSheet(
+                    over: self,
+                    text: sheetText
+                )
+                completion?()
+            } else if let sheet = self.activeLottieBottomSheet {
+                self.activeLottieBottomSheet = nil
+                sheet.hide(completion: completion)
+            } else {
+                completion?()
+            }
+        }
+    }
+
+    /// Show or hide a Lottie loader embedded directly in the current VC's view.
+    /// Adds the loader as a child VC pinned to `self.view`'s edges — covers the host's
+    /// content without presenting a new modal/sheet. Use when the host is itself a
+    /// bottom sheet (e.g. `AddPlanTimeSelectionVC`) so we don't stack sheets.
+    public func viewModel(showLottieInView: Bool, text: String?, completion: (() -> Void)?) {
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else {
+                completion?()
+                return
+            }
+            if showLottieInView {
+                let textMode: LottieLoadingTextMode = text.map { .single($0) } ?? .defaultRotating
+                self.activeEmbeddedLottie = TRPLottieLoadingVC.embed(in: self, textMode: textMode)
+                completion?()
+            } else if let lottie = self.activeEmbeddedLottie {
+                self.activeEmbeddedLottie = nil
+                lottie.unembed(completion: completion)
+            } else {
+                completion?()
+            }
         }
     }
     

@@ -18,6 +18,11 @@ public class AddPlanActivityListingVC: TRPBaseUIViewController {
     private static let skeletonChipCount: Int = 5
     private static let skeletonRowCount: Int = 6
 
+    /// True while the shared Lottie overlay is currently presented for this VC. Lets
+    /// `activitiesDidLoad`/`activitiesDidFail` know to dismiss it (with the right
+    /// completion sequencing for follow-up UI) versus a plain skeleton-style refresh.
+    private var lottiePresented: Bool = false
+
     // Callback when segment is created successfully, passes selected day for navigation
     public var onSegmentCreated: ((Date?) -> Void)?
 
@@ -293,7 +298,7 @@ extension AddPlanActivityListingVC: UICollectionViewDataSource, UICollectionView
 extension AddPlanActivityListingVC: UITableViewDataSource, UITableViewDelegate {
 
     public func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        if viewModel.isLoadingTours {
+        if viewModel.loadingStyle == .skeleton {
             return Self.skeletonRowCount
         }
         return viewModel.getActivities().count
@@ -304,7 +309,7 @@ extension AddPlanActivityListingVC: UITableViewDataSource, UITableViewDelegate {
             return UITableViewCell()
         }
 
-        if viewModel.isLoadingTours {
+        if viewModel.loadingStyle == .skeleton {
             cell.configureSkeleton()
             return cell
         }
@@ -352,15 +357,26 @@ extension AddPlanActivityListingVC: AddPlanActivityListingViewModelDelegate {
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
 
-            self.activityCountLabel.isHidden = false
-            self.infoImageView.isHidden = false
-            self.tableView.reloadData()
+            let renderResults = {
+                self.activityCountLabel.isHidden = false
+                self.infoImageView.isHidden = false
+                self.tableView.reloadData()
 
-            let count = self.viewModel.getActivityCount()
-            let activityText = count == 1
-                ? AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.activity)
-                : AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.activities)
-            self.activityCountLabel.text = "\(count) \(activityText)"
+                let count = self.viewModel.getActivityCount()
+                let activityText = count == 1
+                    ? AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.activity)
+                    : AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.activities)
+                self.activityCountLabel.text = "\(count) \(activityText)"
+            }
+
+            // If a Lottie overlay was up (initial open / category change), dismiss it
+            // first so results animate in once the fade-out finishes.
+            if self.lottiePresented {
+                self.lottiePresented = false
+                self.viewModel(showLottieLoader: false, text: nil, completion: renderResults)
+                return
+            }
+            renderResults()
         }
     }
 
@@ -376,15 +392,41 @@ extension AddPlanActivityListingVC: AddPlanActivityListingViewModelDelegate {
             if self.viewModel.isLoadingTours {
                 self.activityCountLabel.isHidden = true
                 self.infoImageView.isHidden = true
+
+                // Style-driven loading UI:
+                //   .lottie   → shared full-screen overlay (initial open + category change)
+                //   .skeleton → inline table skeleton (sort/filter + search-text refresh)
+                if self.viewModel.loadingStyle == .lottie, !self.lottiePresented {
+                    self.lottiePresented = true
+                    let message = LoadingLocalizationKeys.localized(LoadingLocalizationKeys.gettingActivities)
+                    self.viewModel(showLottieLoader: true, text: message)
+                }
             }
             self.tableView.reloadData()
         }
     }
 
+    public func searchTextDidReset() {
+        DispatchQueue.main.async { [weak self] in
+            self?.searchBar.text = ""
+        }
+    }
+
     public func activitiesDidFail(error: Error) {
         DispatchQueue.main.async { [weak self] in
-            self?.tableView.reloadData()
-            EvrAlertView.showAlert(contentText: error.localizedDescription, type: .error)
+            guard let self = self else { return }
+
+            let presentAlert = {
+                self.tableView.reloadData()
+                EvrAlertView.showAlert(contentText: error.localizedDescription, type: .error)
+            }
+
+            if self.lottiePresented {
+                self.lottiePresented = false
+                self.viewModel(showLottieLoader: false, text: nil, completion: presentAlert)
+                return
+            }
+            presentAlert()
         }
     }
 

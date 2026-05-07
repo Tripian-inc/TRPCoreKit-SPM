@@ -11,21 +11,6 @@
 import UIKit
 import TRPFoundationKit
 
-// MARK: - Lottie Loading Storage
-private var lottieLoadingVCKey: UInt8 = 0
-
-extension TRPTimelineItineraryVC {
-    /// Lottie loading view controller reference (stored via associated object)
-    internal var lottieLoadingVC: TRPLottieLoadingVC? {
-        get {
-            return objc_getAssociatedObject(self, &lottieLoadingVCKey) as? TRPLottieLoadingVC
-        }
-        set {
-            objc_setAssociatedObject(self, &lottieLoadingVCKey, newValue, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
-        }
-    }
-}
-
 // MARK: - Add Plan Flow
 
 extension TRPTimelineItineraryVC {
@@ -221,17 +206,11 @@ extension TRPTimelineItineraryVC: TRPTimelineItineraryViewModelDelegate {
         showOkAlert(title: title, message: "", subContent: description, btnTitle: buttonTitle)
     }
 
-    public func timelineItineraryViewModel(showLottieLoading: Bool) {
+    public func timelineItineraryViewModel(showLottieLoading: Bool, textMode: LottieLoadingTextMode) {
         if showLottieLoading {
-            // Show Lottie loading (only if not already showing)
-            if lottieLoadingVC == nil {
-                lottieLoadingVC = TRPLottieLoadingVC.show(over: self)
-            }
+            TRPLottieLoadingVC.shared.showOnWindow(textMode: textMode)
         } else {
-            // Hide Lottie loading
-            lottieLoadingVC?.hide { [weak self] in
-                self?.lottieLoadingVC = nil
-            }
+            TRPLottieLoadingVC.shared.hideFromWindow()
         }
     }
 

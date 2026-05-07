@@ -46,7 +46,12 @@ public class AddPlanTimeSelectionViewModel {
         self.tourRepository = tourRepository
         self.selectedDate = planData.selectedDay
 
-        if let preloaded = tour.slots {
+        // Only treat the search-preloaded slots as authoritative when there's actually
+        // something to render. An empty array means the search response carried the
+        // field but the backend had nothing for this product — fall back to the
+        // per-day `getTourSchedule` API instead of locking the screen into an empty
+        // state.
+        if let preloaded = tour.slots, !preloaded.isEmpty {
             prefillCacheFromPreloadedSlots(preloaded)
             hasPreloadedSlots = true
         }
@@ -286,7 +291,11 @@ public class AddPlanTimeSelectionViewModel {
             return
         }
 
-        delegate?.viewModel(showPreloader: true)
+        // Embed the Lottie loader inside the time-selection screen itself rather than
+        // stacking a second bottom sheet on top — TimeSelectionVC is already presented
+        // as a sheet, so the loader appears inline within the host's view.
+        let loadingText = LoadingLocalizationKeys.localized(LoadingLocalizationKeys.loadingTimeSlots)
+        delegate?.viewModel(showLottieInView: true, text: loadingText)
 
         // Format date as "yyyy-MM-dd"
         let dateFormatter = DateFormatter()
@@ -302,7 +311,7 @@ public class AddPlanTimeSelectionViewModel {
             guard let self = self else { return }
 
             DispatchQueue.main.async {
-                self.delegate?.viewModel(showPreloader: false)
+                self.delegate?.viewModel(showLottieInView: false, text: nil)
 
                 switch result {
                 case .success(let schedule):

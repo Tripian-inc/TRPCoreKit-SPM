@@ -234,6 +234,13 @@ public class TRPTimelineItineraryVC: TRPBaseUIViewController {
         if viewModel.showNoCityStateOnLoad {
             timelineItineraryViewModel(noCitiesAvailable: true)
         }
+
+        // If the ViewModel was constructed with a tripHash only, fetch the timeline now
+        // (Lottie loader is shown via delegate from inside the ViewModel).
+        // Deferred to next runloop so Lottie modal presentation doesn't race with this VC's own presentation.
+        DispatchQueue.main.async { [weak self] in
+            self?.viewModel.loadInitialTimelineIfNeeded()
+        }
     }
 
     public override func viewWillAppear(_ animated: Bool) {

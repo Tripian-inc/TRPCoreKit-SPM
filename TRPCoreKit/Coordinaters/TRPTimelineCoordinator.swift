@@ -144,12 +144,15 @@ public class TRPTimelineCoordinator: CoordinatorProtocol {
 
             // All segments generation completed
             DispatchQueue.main.async {
-                self.hideLottieLoading()
-
                 // Notify delegate about timeline creation
                 TRPCoreKit.shared.delegate?.trpCoreKitDidCreateTimeline(tripHash: tripHash)
 
-                self.openTimelineViewControllerWithHash(tripHash: tripHash)
+                // Hide create-phase Lottie, then open the VC. The VC will run its own GetTimeline
+                // request and show its own Lottie loader — keeping the loading UI in the VC.
+                let profile = self.originalProfile
+                self.hideLottieLoading { [weak self] in
+                    self?.openTimelineViewController(withTripHash: tripHash, mergeProfile: profile)
+                }
             }
         }
 
@@ -159,147 +162,45 @@ public class TRPTimelineCoordinator: CoordinatorProtocol {
 
     // MARK: - Private Methods - Timeline Fetch Flow
 
+    /// Opens the timeline VC immediately with a trip hash. The VC shows its own Lottie loader
+    /// while performing the GetTimeline request — coordinator does NOT show a loader here.
     private func fetchTimeline(tripHash: String) {
-        // Show Lottie loading
-        showLottieLoading()
-
-        timelineRepository.fetchTimeline(tripHash: tripHash) { [weak self] result in
-            guard let self = self else { return }
-
-            DispatchQueue.main.async {
-                self.hideLottieLoading()
-
-                switch result {
-                case .success(let timeline):
-                    self.openTimelineViewController(with: timeline)
-
-                case .failure(let error):
-                    self.showError(message: "Failed to load timeline. Please try again.")
-                }
-            }
-        }
+        openTimelineViewController(withTripHash: tripHash)
     }
 
     // MARK: - Private Methods - View Controllers
 
-    private func openTimelineViewController(with timeline: TRPTimeline) {
-        // Merge segments and favourites from original profile if available
-        var updatedTimeline = timeline
-
-        if let profile = originalProfile {
-            // Merge segments from profile (segments is non-optional array)
-            if !profile.segments.isEmpty {
-                updatedTimeline.segments = profile.segments
-            }
-
-            // Merge favourite items from profile (favouriteItems is optional)
-            if let favouriteItems = profile.favouriteItems, !favouriteItems.isEmpty {
-                updatedTimeline.favouriteItems = favouriteItems
-            }
-        }
-
-        let viewModel = TRPTimelineItineraryViewModel(timeline: updatedTimeline)
+    /// Opens the timeline VC with a trip hash; the VC fetches the timeline itself and shows
+    /// its own Lottie loader. Coordinator does not perform a GetTimeline call here.
+    /// - Parameter mergeProfile: Optional create-flow profile whose segments/favourites are merged
+    ///   into the fetched timeline by the ViewModel.
+    private func openTimelineViewController(withTripHash tripHash: String,
+                                            mergeProfile: TRPTimelineProfile? = nil) {
+        let viewModel = TRPTimelineItineraryViewModel(tripHash: tripHash, mergeProfile: mergeProfile)
         let viewController = TRPTimelineItineraryVC(viewModel: viewModel)
         viewController.delegate = self
 
         self.timelineViewController = viewController
 
-        // Present modally with full screen
         let navController = UINavigationController(rootViewController: viewController)
         navController.modalPresentationStyle = .fullScreen
 
         navigationController?.present(navController, animated: true)
     }
 
-    private func openTimelineViewControllerWithHash(tripHash: String) {
-        // Fetch timeline and open view
-        timelineRepository.fetchTimeline(tripHash: tripHash) { [weak self] result in
-            guard let self = self else { return }
-
-            DispatchQueue.main.async {
-                switch result {
-                case .success(let timeline):
-                    self.openTimelineViewController(with: timeline)
-
-                case .failure(let error):
-                    self.showError(message: "Failed to load timeline. Please try again.")
-                }
-            }
-        }
-    }
-
     // MARK: - Private Methods - UI Helpers
 
-    private var loadingViewController: UIViewController?
-    private var lottieLoadingVC: TRPLottieLoadingVC?
-
-    /// Shows Lottie loading screen if available, falls back to basic indicator
-    private func showLottieLoading() {
-        guard let navigationController = navigationController else { return }
-
-        // Use Lottie loading
-        lottieLoadingVC = TRPLottieLoadingVC.show(over: navigationController)
+    /// Shows Lottie loading screen with the given text mode (animation only / single / rotating).
+    /// Default is rotating timeline texts to match the create+generation flow's UX.
+    /// Window-attached so it survives modal presentations without conflict.
+    private func showLottieLoading(textMode: LottieLoadingTextMode = .defaultRotating) {
+        TRPLottieLoadingVC.shared.showOnWindow(textMode: textMode)
     }
 
-    /// Hides Lottie loading screen
-    private func hideLottieLoading() {
-        if let lottieVC = lottieLoadingVC {
-            lottieVC.hide()
-            lottieLoadingVC = nil
-        } else {
-            hideLoadingIndicator()
-        }
-    }
-
-    private func showLoadingIndicator(message: String) {
-        guard let navigationController = navigationController else { return }
-
-        let loadingVC = UIViewController()
-        loadingVC.view.backgroundColor = UIColor.black.withAlphaComponent(0.5)
-
-        let containerView = UIView()
-        containerView.translatesAutoresizingMaskIntoConstraints = false
-        containerView.backgroundColor = .white
-        containerView.layer.cornerRadius = 12
-        loadingVC.view.addSubview(containerView)
-
-        let activityIndicator = UIActivityIndicatorView(style: .large)
-        activityIndicator.translatesAutoresizingMaskIntoConstraints = false
-        activityIndicator.startAnimating()
-        containerView.addSubview(activityIndicator)
-
-        let messageLabel = UILabel()
-        messageLabel.translatesAutoresizingMaskIntoConstraints = false
-        messageLabel.text = message
-        messageLabel.font = UIFont.systemFont(ofSize: 16, weight: .medium)
-        messageLabel.textColor = .darkGray
-        messageLabel.textAlignment = .center
-        containerView.addSubview(messageLabel)
-
-        NSLayoutConstraint.activate([
-            containerView.centerXAnchor.constraint(equalTo: loadingVC.view.centerXAnchor),
-            containerView.centerYAnchor.constraint(equalTo: loadingVC.view.centerYAnchor),
-            containerView.widthAnchor.constraint(equalToConstant: 250),
-            containerView.heightAnchor.constraint(equalToConstant: 120),
-
-            activityIndicator.centerXAnchor.constraint(equalTo: containerView.centerXAnchor),
-            activityIndicator.topAnchor.constraint(equalTo: containerView.topAnchor, constant: 24),
-
-            messageLabel.topAnchor.constraint(equalTo: activityIndicator.bottomAnchor, constant: 16),
-            messageLabel.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 16),
-            messageLabel.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -16)
-        ])
-
-        loadingVC.modalPresentationStyle = .overFullScreen
-        loadingVC.modalTransitionStyle = .crossDissolve
-
-        navigationController.present(loadingVC, animated: true)
-        loadingViewController = loadingVC
-    }
-
-    private func hideLoadingIndicator() {
-        loadingViewController?.dismiss(animated: true)
-        loadingViewController = nil
+    /// Hides Lottie loading screen.
+    /// - Parameter completion: Called after the loader is fully dismissed.
+    private func hideLottieLoading(completion: (() -> Void)? = nil) {
+        TRPLottieLoadingVC.shared.hideFromWindow(completion: completion)
     }
 
     private func showError(message: String) {

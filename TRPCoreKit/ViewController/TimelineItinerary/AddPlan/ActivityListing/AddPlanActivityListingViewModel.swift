@@ -16,6 +16,20 @@ public protocol AddPlanActivityListingViewModelDelegate: AnyObject {
     func showLoading(_ show: Bool)
     func facetsDidLoad()
     func tourLoadingStateDidChange()
+    /// Fires when the VM has reset the active search text (e.g. on a category change),
+    /// so the VC can clear the search bar UI to mirror the underlying state.
+    func searchTextDidReset()
+}
+
+/// Drives which loading UI the listing screen should render while a tour fetch or local
+/// recompute is in flight.
+public enum AddPlanLoadingStyle {
+    case none
+    /// Inline table skeleton — used for sort/filter local recompute and search-text refresh.
+    case skeleton
+    /// Window-attached Lottie overlay — used for initial open and category chip changes,
+    /// where the user is waiting on a fresh server fetch and a heavier indicator is warranted.
+    case lottie
 }
 
 public class AddPlanActivityListingViewModel {
@@ -35,13 +49,17 @@ public class AddPlanActivityListingViewModel {
     private var hasLoadedInitialFacets: Bool = false
 
     private(set) public var isLoadingTours: Bool = false
+    private(set) public var loadingStyle: AddPlanLoadingStyle = .none
+
+    /// Duration of the deliberate skeleton flash for local sort/filter changes — gives
+    /// the user clear visual feedback even though the actual recompute is instant.
+    private let localChangeAnimationDuration: TimeInterval = 0.7
 
     /// Untouched server response (popularity-sorted baseline). Local sort + filter run on top.
     private var originalTours: [TRPTourProduct] = []
     private var filteredTours: [TRPTourProduct] = []
 
     private var tourUseCases: TRPTourUseCases?
-    private var searchWorkItem: DispatchWorkItem?
 
     // MARK: - Initialization
     public init(planData: AddPlanData, tourUseCases: TRPTourUseCases? = nil) {
@@ -141,13 +159,25 @@ public class AddPlanActivityListingViewModel {
         } else {
             selectedFacetCategoryIds.insert(id)
         }
-        performSearch()
+        clearSearchTextOnCategoryChange()
+        performSearch(style: .lottie)
     }
 
     public func selectAllCategories() {
         guard !selectedFacetCategoryIds.isEmpty else { return }
         selectedFacetCategoryIds.removeAll()
-        performSearch()
+        clearSearchTextOnCategoryChange()
+        performSearch(style: .lottie)
+    }
+
+    /// Reset the local search text whenever the user changes their category selection.
+    /// A persistent search query across category switches is rarely the intent and easily
+    /// produces a confusing empty list. Notifies the delegate so the VC can clear the
+    /// search bar UI to match.
+    private func clearSearchTextOnCategoryChange() {
+        guard !searchText.isEmpty else { return }
+        searchText = ""
+        delegate?.searchTextDidReset()
     }
 
     /// True until the first response has populated facets — VC uses this to render skeletons.
@@ -157,19 +187,39 @@ public class AddPlanActivityListingViewModel {
 
     public func updateSearchText(_ text: String) {
         searchText = text
-        performSearchWithDebounce()
+        applyLocalSortAndFilter()
+        delegate?.activitiesDidLoad()
     }
 
     public func updateSortOption(_ option: SortOption) {
         selectedSortOption = option
-        applyLocalSortAndFilter()
-        delegate?.activitiesDidLoad()
+        applyLocalChangeWithSkeletonFlash {
+            self.applyLocalSortAndFilter()
+        }
     }
 
     public func updateFilterData(_ data: FilterData) {
         filterData = data
-        applyLocalSortAndFilter()
-        delegate?.activitiesDidLoad()
+        applyLocalChangeWithSkeletonFlash {
+            self.applyLocalSortAndFilter()
+        }
+    }
+
+    /// Show the inline skeleton briefly while a local recompute "happens", giving
+    /// the user a clear visual signal that their sort/filter selection took effect.
+    /// Matches the UX of a short server roundtrip without actually hitting the network.
+    private func applyLocalChangeWithSkeletonFlash(_ work: @escaping () -> Void) {
+        loadingStyle = .skeleton
+        isLoadingTours = true
+        delegate?.tourLoadingStateDidChange()
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + localChangeAnimationDuration) { [weak self] in
+            guard let self = self else { return }
+            work()
+            self.isLoadingTours = false
+            self.loadingStyle = .none
+            self.delegate?.activitiesDidLoad()
+        }
     }
 
     public func hasActiveFilters() -> Bool {
@@ -192,27 +242,16 @@ public class AddPlanActivityListingViewModel {
 
     // MARK: - Search Logic
     public func performInitialSearch() {
-        performSearch()
+        performSearch(style: .lottie)
     }
 
-    private func performSearchWithDebounce() {
-        searchWorkItem?.cancel()
-
-        let workItem = DispatchWorkItem { [weak self] in
-            self?.performSearch()
-        }
-
-        searchWorkItem = workItem
-        DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(650), execute: workItem)
-    }
-
-    private func performSearch() {
+    private func performSearch(style: AddPlanLoadingStyle) {
         guard planData.selectedCity != nil else {
             delegate?.activitiesDidFail(error: GeneralError.customMessage("City not selected"))
             return
         }
 
-        executeSearch()
+        executeSearch(style: style)
     }
 
     private func buildSearchParameters() -> TourParameters {
@@ -223,7 +262,8 @@ public class AddPlanActivityListingViewModel {
         let dateFromString = sortedDays.first.map { formatter.string(from: $0) }
         let dateToString = sortedDays.last.map { formatter.string(from: $0) }
 
-        var params = TourParameters(search: searchText.isEmpty ? nil : searchText)
+        // Search text is filtered locally — never sent to the server.
+        var params = TourParameters()
         params.date = dateFromString
         params.dateTo = dateToString
 
@@ -247,7 +287,8 @@ public class AddPlanActivityListingViewModel {
         return params
     }
 
-    private func executeSearch() {
+    private func executeSearch(style: AddPlanLoadingStyle) {
+        loadingStyle = style
         isLoadingTours = true
         delegate?.tourLoadingStateDidChange()
 
@@ -263,27 +304,69 @@ public class AddPlanActivityListingViewModel {
         switch result {
         case .success(let outcome):
             isLoadingTours = false
+            loadingStyle = .none
             originalTours = outcome.products
-            applyFacetsIfNeeded(outcome.facets)
+            applyFirstResponseBaselines(facets: outcome.facets, products: outcome.products)
             applyLocalSortAndFilter()
             delegate?.activitiesDidLoad()
         case .failure(let error):
             // 504 retry is handled inside TRPTourSearchService (single attempt) — no
             // additional client-side retry, otherwise we'd compound to two retries.
             isLoadingTours = false
+            loadingStyle = .none
             delegate?.activitiesDidFail(error: error)
         }
     }
 
-    /// Freeze: only the first response (filterless initial load) populates facets.
-    /// Subsequent filtered responses are ignored so chips and slider bounds remain stable.
-    private func applyFacetsIfNeeded(_ facets: TRPTourFacets?) {
-        guard !hasLoadedInitialFacets, let facets = facets else { return }
-        facetCategories = facets.categories
-        priceRangeFacet = facets.priceRange
-        durationRangeFacet = facets.durationRange
+    /// Freeze: only the first response populates the chip list and slider bounds.
+    /// Subsequent (filtered) responses are ignored so the filter UI stays stable.
+    ///
+    /// Categories come from the facet payload (server-curated taxonomy + counts), but
+    /// the price/duration slider bounds are derived from the actual product set —
+    /// gives an accurate, dataset-aware range without depending on the server's facet
+    /// numbers.
+    private func applyFirstResponseBaselines(facets: TRPTourFacets?, products: [TRPTourProduct]) {
+        guard !hasLoadedInitialFacets else { return }
+        facetCategories = facets?.categories ?? []
+        let bounds = computeBoundsFromProducts(products)
+        priceRangeFacet = bounds.price
+        durationRangeFacet = bounds.duration
         hasLoadedInitialFacets = true
         delegate?.facetsDidLoad()
+    }
+
+    /// Walk the product set and produce the price + duration min/max in domain types.
+    /// Returns nil for either side when there isn't a meaningful range (no priced items
+    /// or all products share a single value) — the filter UI then falls back to its
+    /// hardcoded bounds.
+    private func computeBoundsFromProducts(
+        _ products: [TRPTourProduct]
+    ) -> (price: TRPTourPriceRangeFacet?, duration: TRPTourDurationRangeFacet?) {
+        let prices = products.compactMap { $0.price }
+        let durations = products.compactMap { $0.duration }
+
+        var priceRange: TRPTourPriceRangeFacet?
+        if let minPrice = prices.min(), let maxPrice = prices.max(), minPrice < maxPrice {
+            let currency = products.first(where: { $0.currency != nil })?.currency
+                ?? TRPClient.getCurrency()
+            priceRange = TRPTourPriceRangeFacet(
+                minAmount: Double(minPrice),
+                maxAmount: Double(maxPrice),
+                currency: currency
+            )
+        }
+
+        var durationRange: TRPTourDurationRangeFacet?
+        if let minDuration = durations.min(),
+           let maxDuration = durations.max(),
+           minDuration < maxDuration {
+            durationRange = TRPTourDurationRangeFacet(
+                minMinutes: minDuration,
+                maxMinutes: maxDuration
+            )
+        }
+
+        return (priceRange, durationRange)
     }
 
     /// Apply price + duration filter and sort on top of `originalTours` (the server baseline).
@@ -292,6 +375,13 @@ public class AddPlanActivityListingViewModel {
     /// `executeSearch()` which repopulates `originalTours` and re-runs this pipeline).
     private func applyLocalSortAndFilter() {
         var working = originalTours
+
+        // Free-text search — local case-insensitive contains match on product name.
+        if !searchText.isEmpty {
+            working = working.filter { tour in
+                tour.name.localizedCaseInsensitiveContains(searchText)
+            }
+        }
 
         // Price filter — products without a price are excluded when a bound is active.
         if filterData.minPrice != nil || filterData.maxPrice != nil {

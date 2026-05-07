@@ -17,14 +17,23 @@ public protocol TRPTimelineItineraryViewModelDelegate: ViewModelDelegate {
     func timelineItineraryViewModel(didUpdateTimeline: Bool)
     func timelineItineraryViewModel(noCitiesAvailable: Bool)
     func timelineItineraryViewModel(someCitiesUnavailable cityNames: [String])
-    func timelineItineraryViewModel(showLottieLoading: Bool)
+    /// Show or hide the Lottie loader. The `textMode` controls what (if anything) is rendered
+    /// next to the animation: `.none`, `.single(text)`, or `.rotating([texts])`.
+    func timelineItineraryViewModel(showLottieLoading: Bool, textMode: LottieLoadingTextMode)
 }
 
 // MARK: - Default Implementations
 extension TRPTimelineItineraryViewModelDelegate {
-    /// Default implementation falls back to standard preloader
-    public func timelineItineraryViewModel(showLottieLoading: Bool) {
+    /// Default implementation falls back to the standard preloader (text mode is ignored
+    /// when the conformer doesn't provide a Lottie-aware override).
+    public func timelineItineraryViewModel(showLottieLoading: Bool, textMode: LottieLoadingTextMode) {
         viewModel(showPreloader: showLottieLoading)
+    }
+
+    /// Convenience wrapper that uses the default rotating timeline texts. Existing call sites
+    /// that don't care about the text content can keep calling this.
+    public func timelineItineraryViewModel(showLottieLoading: Bool) {
+        timelineItineraryViewModel(showLottieLoading: showLottieLoading, textMode: .defaultRotating)
     }
 }
 
@@ -109,7 +118,28 @@ public class TRPTimelineItineraryViewModel {
     // Use case for step operations (edit, delete, etc.)
     internal lazy var timelineModeUseCases: TRPTimelineModeUseCases = TRPTimelineModeUseCases()
 
+    /// Trip hash to fetch on first load. Set when ViewModel is constructed via `init(tripHash:)`;
+    /// consumed once by `loadInitialTimelineIfNeeded()`.
+    internal var pendingInitialTripHash: String?
+
+    /// Optional profile merged into the fetched timeline on first load. Used by the create flow
+    /// to carry segments/favourites from the original `TRPTimelineProfile`.
+    internal var pendingMergeProfile: TRPTimelineProfile?
+
     // MARK: - Initialization
+
+    /// Initialize with a trip hash only — timeline will be fetched on first VC load,
+    /// and the Lottie loader is shown by the VC during the fetch.
+    /// - Parameters:
+    ///   - tripHash: Trip hash for the GetTimeline request.
+    ///   - mergeProfile: Optional profile whose segments/favourites are merged into the fetched timeline
+    ///     (used by the create flow to preserve user-supplied data).
+    public init(tripHash: String, mergeProfile: TRPTimelineProfile? = nil) {
+        print("🟣 [ViewModel Init] init(tripHash:) called")
+        self.timeline = nil
+        self.pendingInitialTripHash = tripHash
+        self.pendingMergeProfile = mergeProfile
+    }
 
     /// Initialize with existing timeline (direct display)
     public init(timeline: TRPTimeline?) {
@@ -191,8 +221,8 @@ public class TRPTimelineItineraryViewModel {
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
 
-            // Start loading
-            self.delegate?.viewModel(showPreloader: true)
+            // Start loading (Lottie loader inside the VC)
+            self.delegate?.timelineItineraryViewModel(showLottieLoading: true)
 
             // First resolve ALL cityIds via API (for both create and fetch paths)
             self.resolveMissingCityIds(in: itineraryModel) { [weak self] resolvedItinerary in
@@ -214,7 +244,7 @@ public class TRPTimelineItineraryViewModel {
 
                 if validItems.isEmpty {
                     DispatchQueue.main.async {
-                        self.delegate?.viewModel(showPreloader: false)
+                        self.delegate?.timelineItineraryViewModel(showLottieLoading: false)
                         self.delegate?.timelineItineraryViewModel(noCitiesAvailable: true)
                     }
                     return

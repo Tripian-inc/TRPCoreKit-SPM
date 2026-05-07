@@ -29,7 +29,7 @@ extension TRPTimelineItineraryViewModel {
 
             if allCitiesInvalid {
                 DispatchQueue.main.async {
-                    self.delegate?.viewModel(showPreloader: false)
+                    self.delegate?.timelineItineraryViewModel(showLottieLoading: false)
                     self.delegate?.timelineItineraryViewModel(noCitiesAvailable: true)
                 }
                 return
@@ -61,7 +61,7 @@ extension TRPTimelineItineraryViewModel {
 
             case .failure(let error):
                 DispatchQueue.main.async {
-                    self.delegate?.viewModel(showPreloader: false)
+                    self.delegate?.timelineItineraryViewModel(showLottieLoading: false)
                     self.delegate?.viewModel(error: error)
                 }
             }
@@ -164,7 +164,7 @@ extension TRPTimelineItineraryViewModel {
 
             case .failure(let error):
                 DispatchQueue.main.async {
-                    self.delegate?.viewModel(showPreloader: false)
+                    self.delegate?.timelineItineraryViewModel(showLottieLoading: false)
                     self.delegate?.viewModel(error: error)
                     // Clear use case reference on error
                     self.checkAllPlanUseCase = nil
@@ -210,14 +210,14 @@ extension TRPTimelineItineraryViewModel {
                         self.syncRemovedCitySegments()
 
                         // Notify delegate - UI is ready
-                        self.delegate?.viewModel(showPreloader: false)
+                        self.delegate?.timelineItineraryViewModel(showLottieLoading: false)
                         self.delegate?.timelineItineraryViewModel(didUpdateTimeline: true)
                     }
                 }
 
             case .failure(let error):
                 DispatchQueue.main.async {
-                    self.delegate?.viewModel(showPreloader: false)
+                    self.delegate?.timelineItineraryViewModel(showLottieLoading: false)
                     self.delegate?.viewModel(error: error)
                 }
             }
@@ -337,8 +337,8 @@ extension TRPTimelineItineraryViewModel {
             return
         }
 
-        // Show loading
-        delegate?.viewModel(showPreloader: true)
+        // Show loading (Lottie loader inside the VC)
+        delegate?.timelineItineraryViewModel(showLottieLoading: true)
 
         // Resolve cityIds for ALL missing tripItems BEFORE sequential addition
         resolveTripItemsCityIds(tripItems: missingTripItems) { [weak self] resolvedTripItems in
@@ -484,6 +484,58 @@ extension TRPTimelineItineraryViewModel {
                         }
                         break
                     }
+                }
+            }
+        }
+    }
+
+    // MARK: - Initial Load (GetTimeline)
+
+    /// Performs the initial GetTimeline request when the ViewModel was created with `init(tripHash:)`.
+    /// Called by the VC in `viewDidLoad` after the delegate is wired up so that the Lottie loader
+    /// can be presented from the VC itself (not from the coordinator).
+    public func loadInitialTimelineIfNeeded() {
+        guard let tripHash = pendingInitialTripHash else { return }
+        // Consume so we don't refetch on subsequent view appearances
+        pendingInitialTripHash = nil
+        let mergeProfile = pendingMergeProfile
+        pendingMergeProfile = nil
+
+        delegate?.timelineItineraryViewModel(showLottieLoading: true)
+
+        let repository = TRPTimelineRepository()
+        repository.fetchTimeline(tripHash: tripHash) { [weak self] result in
+            guard let self = self else { return }
+
+            switch result {
+            case .success(var fetchedTimeline):
+                // Merge segments/favourites from the create-flow profile if provided
+                if let profile = mergeProfile {
+                    if !profile.segments.isEmpty {
+                        fetchedTimeline.segments = profile.segments
+                    }
+                    if let favouriteItems = profile.favouriteItems, !favouriteItems.isEmpty {
+                        fetchedTimeline.favouriteItems = favouriteItems
+                    }
+                }
+
+                self.populateCitiesInSegments(&fetchedTimeline)
+                self.timeline = fetchedTimeline
+
+                self.resolveFavouriteItemCities { [weak self] in
+                    guard let self = self else { return }
+                    DispatchQueue.main.async {
+                        self.delegate?.timelineItineraryViewModel(showLottieLoading: false)
+                        self.processTimelineData()
+                        self.filterFavoriteItems()
+                        self.delegate?.timelineItineraryViewModel(didUpdateTimeline: true)
+                    }
+                }
+
+            case .failure(let error):
+                DispatchQueue.main.async {
+                    self.delegate?.timelineItineraryViewModel(showLottieLoading: false)
+                    self.delegate?.viewModel(error: error)
                 }
             }
         }
