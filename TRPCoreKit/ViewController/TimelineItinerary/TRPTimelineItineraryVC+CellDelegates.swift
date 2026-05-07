@@ -109,7 +109,7 @@ extension TRPTimelineItineraryVC: TRPTimelineReservedActivityCellDelegate {
         }
 
         // Present as bottom sheet
-        presentVCWithModal(timeSelectionVC)
+        presentVCWithDynamicHeight(timeSelectionVC, prefersGrabberVisible: true, isDimmed: true)
     }
 
     func reservedActivityCellDidTapCell(_ cell: TRPTimelineReservedActivityCell, segment: TRPTimelineSegment) {
@@ -301,7 +301,7 @@ extension TRPTimelineItineraryVC: TRPTimelineRecommendationsCellDelegate {
         }
 
         // Present as bottom sheet
-        presentVCWithModal(timeSelectionVC)
+        presentVCWithDynamicHeight(timeSelectionVC, prefersGrabberVisible: true, isDimmed: true)
     }
 
     /// Opens TRPTimeRangeSelectionViewController for regular POI steps

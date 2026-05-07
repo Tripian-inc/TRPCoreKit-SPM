@@ -208,8 +208,19 @@ extension TRPTimelineItineraryVC: TRPTimelineItineraryViewModelDelegate {
 
     public func timelineItineraryViewModel(showLottieLoading: Bool, textMode: LottieLoadingTextMode) {
         if showLottieLoading {
-            TRPLottieLoadingVC.shared.showOnWindow(textMode: textMode)
+            // If this VC isn't on screen yet (e.g., splash → timeline transition in progress),
+            // defer the requested text mode so the splash phase stays text-free. We still show
+            // the loader (with `.none`) to keep the window overlay continuous; `viewDidAppear`
+            // applies the pending mode once the transition completes.
+            if viewIfLoaded?.window == nil {
+                pendingLoaderTextMode = textMode
+                TRPLottieLoadingVC.shared.showOnWindow(textMode: .none)
+            } else {
+                pendingLoaderTextMode = nil
+                TRPLottieLoadingVC.shared.showOnWindow(textMode: textMode)
+            }
         } else {
+            pendingLoaderTextMode = nil
             TRPLottieLoadingVC.shared.hideFromWindow()
         }
     }

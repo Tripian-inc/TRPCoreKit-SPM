@@ -143,8 +143,11 @@ public struct TRPSegmentActivityItem: Codable {
     public var duration: Double?
     public var price: TRPSegmentActivityPrice?
     public var cityId: Int?
+    /// `true` when the activity is valid any time on its date (no specific start time).
+    /// Surfaces the flexible-time slot that backend marks with `time = null`.
+    public var isFlexible: Bool?
 
-    public init(activityId: String?, bookingId: String?, title: String?, imageUrl: String?, description: String?, startDatetime: String?, endDatetime: String?, coordinate: TRPLocation, cancellation: String?, adultCount: Int, childCount: Int, bookingUrl: String? = nil, duration: Double? = nil, price: TRPSegmentActivityPrice? = nil, cityId: Int? = nil) {
+    public init(activityId: String?, bookingId: String?, title: String?, imageUrl: String?, description: String?, startDatetime: String?, endDatetime: String?, coordinate: TRPLocation, cancellation: String?, adultCount: Int, childCount: Int, bookingUrl: String? = nil, duration: Double? = nil, price: TRPSegmentActivityPrice? = nil, cityId: Int? = nil, isFlexible: Bool? = nil) {
         self.activityId = activityId
         self.bookingId = bookingId
         self.title = title
@@ -160,6 +163,7 @@ public struct TRPSegmentActivityItem: Codable {
         self.duration = duration
         self.price = price
         self.cityId = cityId
+        self.isFlexible = isFlexible
     }
 
     enum CodingKeys: String, CodingKey {
@@ -178,6 +182,7 @@ public struct TRPSegmentActivityItem: Codable {
         case duration
         case price
         case cityId
+        case isFlexible
     }
 
 }

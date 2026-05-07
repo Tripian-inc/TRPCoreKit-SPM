@@ -65,10 +65,12 @@ final class TourMapper {
         // Use default icon for tours
         let icon = "tour"
 
-        // Map per-product slots from search response (date+time required; nil-safe)
+        // Map per-product slots from search response. `date` is required; `time` may be
+        // nil to indicate a flexible (any-time) slot for that day — we keep those so
+        // the time-selection screen can render a flexible-time card instead of a grid.
         let slots: [TRPTourSlot]? = restModel.slots?.compactMap { slotModel in
-            guard let date = slotModel.date, let time = slotModel.time else { return nil }
-            return TRPTourSlot(date: date, time: time, price: slotModel.price)
+            guard let date = slotModel.date else { return nil }
+            return TRPTourSlot(date: date, time: slotModel.time, price: slotModel.price)
         }
 
         let tour = TRPTourProduct(id: restModel.id,
@@ -158,11 +160,12 @@ final class TourMapper {
         )
     }
 
-    // Map TRPTourScheduleModel to TRPTourSchedule
+    // Map TRPTourScheduleModel to TRPTourSchedule. `time` may be nil to indicate
+    // a flexible (any-time) slot — we preserve those so the booking flow can render
+    // a flexible-time card instead of a time grid.
     func mapSchedule(_ scheduleModel: TRPTourScheduleModel) -> TRPTourSchedule {
-        let slots = (scheduleModel.slots ?? []).compactMap { slotModel -> TRPTourScheduleSlot? in
-            guard let time = slotModel.time else { return nil }
-            return TRPTourScheduleSlot(time: time, price: slotModel.price)
+        let slots = (scheduleModel.slots ?? []).map { slotModel in
+            TRPTourScheduleSlot(time: slotModel.time, price: slotModel.price)
         }
 
         return TRPTourSchedule(

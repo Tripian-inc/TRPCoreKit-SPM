@@ -28,7 +28,11 @@ public class AddPlanTimeSelectionViewModel {
     internal let planData: AddPlanData
     private let tourRepository: TourRepository
 
-    private var allTimeSlots: [Date: [TimeSlot]] = [:] // Date -> TimeSlots
+    private var allTimeSlots: [Date: [TimeSlot]] = [:] // Date -> Timed slots only
+    /// Days where the activity is "flexible" (valid any time). Populated alongside
+    /// `allTimeSlots` from the search/schedule response. Mixed days (with both timed
+    /// and flexible markers) are NOT considered flexible — timed grid wins.
+    private var flexibleDays: Set<Date> = []
     private var selectedDate: Date?
     private var selectedTimeSlot: TimeSlot?
     private var hasPreloadedSlots: Bool = false
@@ -223,7 +227,12 @@ public class AddPlanTimeSelectionViewModel {
             let minimumMinutes = (minimumTimeComponents.hour ?? 0) * 60 + (minimumTimeComponents.minute ?? 0)
 
             slots = slots.filter { slot in
-                let timeComponents = slot.time.split(separator: ":")
+                guard let timeString = slot.time else {
+                    // Defensive: timed grid never holds flexible slots, but if one slipped
+                    // through, keep it so we don't silently drop entries.
+                    return true
+                }
+                let timeComponents = timeString.split(separator: ":")
                 guard timeComponents.count >= 2,
                       let hour = Int(timeComponents[0]),
                       let minute = Int(timeComponents[1]) else {
@@ -238,26 +247,27 @@ public class AddPlanTimeSelectionViewModel {
         return deduplicateSlotsByTime(slots)
     }
 
-    /// Deduplicate time slots by time string, keeping the slot with lowest price for each time
+    /// Deduplicate time slots by time string, keeping the slot with lowest price for each time.
+    /// Slots without a time (flexible) are skipped here — they live in `flexibleDays`.
     private func deduplicateSlotsByTime(_ slots: [TimeSlot]) -> [TimeSlot] {
         var slotsByTime: [String: TimeSlot] = [:]
 
         for slot in slots {
-            if let existingSlot = slotsByTime[slot.time] {
-                // Keep the one with lower price
+            guard let timeKey = slot.time else { continue }
+            if let existingSlot = slotsByTime[timeKey] {
                 let existingPrice = existingSlot.price ?? Double.greatestFiniteMagnitude
                 let newPrice = slot.price ?? Double.greatestFiniteMagnitude
                 if newPrice < existingPrice {
-                    slotsByTime[slot.time] = slot
+                    slotsByTime[timeKey] = slot
                 }
             } else {
-                slotsByTime[slot.time] = slot
+                slotsByTime[timeKey] = slot
             }
         }
 
         // Sort by time and return
         return slotsByTime.values.sorted { slot1, slot2 in
-            slot1.time < slot2.time
+            (slot1.time ?? "") < (slot2.time ?? "")
         }
     }
 
@@ -271,9 +281,20 @@ public class AddPlanTimeSelectionViewModel {
         return selectedTimeSlot
     }
 
-    /// Check if continue button should be enabled
+    /// True when the currently selected day is flexible-time (activity is valid any
+    /// time on that date). Mixed-day rule: a day with at least one timed slot is NOT
+    /// flexible — the timed grid wins.
+    public func isSelectedDayFlexible() -> Bool {
+        guard let selectedDate = selectedDate else { return false }
+        let hasTimedSlot = !(allTimeSlots[selectedDate] ?? []).isEmpty
+        return !hasTimedSlot && flexibleDays.contains(selectedDate)
+    }
+
+    /// Check if continue button should be enabled. Flexible days don't need a time
+    /// slot selection — the activity is valid any time on that date.
     public func canContinue() -> Bool {
-        return selectedDate != nil && selectedTimeSlot != nil
+        guard selectedDate != nil else { return false }
+        return selectedTimeSlot != nil || isSelectedDayFlexible()
     }
 
     /// Fetch available time slots from API
@@ -315,8 +336,14 @@ public class AddPlanTimeSelectionViewModel {
 
                 switch result {
                 case .success(let schedule):
-                    // Store slots for selected date
-                    self.allTimeSlots[selectedDate] = schedule.slots
+                    // Split timed and flexible slots: only timed entries land in the
+                    // grid cache; presence of any nil-time slot marks the day flexible.
+                    let timed = schedule.slots.filter { $0.time != nil }
+                    let hasFlexible = schedule.slots.contains(where: { $0.time == nil })
+                    self.allTimeSlots[selectedDate] = timed
+                    if hasFlexible {
+                        self.flexibleDays.insert(selectedDate)
+                    }
                     self.delegate?.timeSlotsDidLoad()
 
                 case .failure(let error):
@@ -345,9 +372,14 @@ public class AddPlanTimeSelectionViewModel {
         }
 
         // Bucket each preloaded slot under its canonical Date; drop trip-range outliers.
+        // Timed slots → `allTimeSlots`; nil-time entries → `flexibleDays` marker.
         for slot in slots {
             guard let canonicalDay = dateByString[slot.date] else { continue }
-            allTimeSlots[canonicalDay]?.append(TRPTourScheduleSlot(time: slot.time, price: slot.price))
+            if slot.time != nil {
+                allTimeSlots[canonicalDay]?.append(TRPTourScheduleSlot(time: slot.time, price: slot.price))
+            } else {
+                flexibleDays.insert(canonicalDay)
+            }
         }
     }
 
@@ -364,13 +396,20 @@ public class AddPlanTimeSelectionViewModel {
             return
         }
 
-        guard let selectedDate = selectedDate,
-              let selectedTimeSlot = selectedTimeSlot else {
+        guard let selectedDate = selectedDate else {
+            delegate?.viewModel(error: NSError(domain: "AddPlanTimeSelection", code: -3, userInfo: [NSLocalizedDescriptionKey: "Please select a date."]))
+            return
+        }
+
+        let isFlexible = isSelectedDayFlexible()
+        // Flexible day → no slot selection required; otherwise enforce slot pick.
+        guard isFlexible || selectedTimeSlot != nil else {
             delegate?.viewModel(error: NSError(domain: "AddPlanTimeSelection", code: -3, userInfo: [NSLocalizedDescriptionKey: "Please select a time slot."]))
             return
         }
 
-        // 2. Calculate start and end times
+        // 2. Calculate start and end times — `calculateSegmentTimes` handles the
+        //    flexible case internally (start = end = 00:00 on selectedDate).
         let (startDateString, endDateString, startDatetimeString, endDatetimeString) = calculateSegmentTimes(
             selectedDate: selectedDate,
             selectedTimeSlot: selectedTimeSlot
@@ -382,7 +421,7 @@ public class AddPlanTimeSelectionViewModel {
 
         // Get price with currency - prefer slot price over tour price
         var activityPrice: TRPSegmentActivityPrice? = nil
-        if let slotPrice = selectedTimeSlot.price, slotPrice > 0 {
+        if let slotPrice = selectedTimeSlot?.price, slotPrice > 0 {
             // Use slot price with currency from API request
             let currency = TRPClient.getCurrency()
             activityPrice = TRPSegmentActivityPrice(currency: currency, value: slotPrice)
@@ -405,7 +444,8 @@ public class AddPlanTimeSelectionViewModel {
             adultCount: planData.travelers,
             childCount: 0,
             duration: durationValue,
-            price: activityPrice
+            price: activityPrice,
+            isFlexible: isFlexible ? true : nil
         )
 
         // 4. Create TRPCreateEditTimelineSegmentProfile
@@ -465,22 +505,28 @@ public class AddPlanTimeSelectionViewModel {
             return
         }
 
-        guard let selectedDate = selectedDate,
-              let selectedTimeSlot = selectedTimeSlot else {
+        guard let selectedDate = selectedDate else {
+            delegate?.viewModel(error: NSError(domain: "AddPlanTimeSelection", code: -3, userInfo: [NSLocalizedDescriptionKey: "Please select a date."]))
+            return
+        }
+
+        let isFlexible = isSelectedDayFlexible()
+        guard isFlexible || selectedTimeSlot != nil else {
             delegate?.viewModel(error: NSError(domain: "AddPlanTimeSelection", code: -3, userInfo: [NSLocalizedDescriptionKey: "Please select a time slot."]))
             return
         }
 
-        // 2. Calculate new times
+        // 2. Calculate new times — flexible day yields 00:00/00:00 internally.
         let (startDateString, endDateString, startDatetimeString, endDatetimeString) = calculateSegmentTimes(
             selectedDate: selectedDate,
             selectedTimeSlot: selectedTimeSlot
         )
 
-        // 3. Update additionalData times
+        // 3. Update additionalData times + flexible flag
         var updatedAdditionalData = segment.additionalData
         updatedAdditionalData?.startDatetime = startDatetimeString
         updatedAdditionalData?.endDatetime = endDatetimeString
+        updatedAdditionalData?.isFlexible = isFlexible ? true : nil
 
         // 4. Create edit profile from existing segment
         let profile = TRPCreateEditTimelineSegmentProfile(from: segment, tripHash: tripHash, segmentIndex: segmentIndex)
@@ -522,14 +568,17 @@ public class AddPlanTimeSelectionViewModel {
             return
         }
 
-        guard let selectedTimeSlot = selectedTimeSlot else {
+        guard let selectedTimeSlot = selectedTimeSlot,
+              let timeString = selectedTimeSlot.time else {
+            // Step edit mode requires a specific time — flexible-time entries are not
+            // editable here; the user must pick a concrete slot.
             delegate?.viewModel(error: NSError(domain: "AddPlanTimeSelection", code: -2, userInfo: [NSLocalizedDescriptionKey: "Please select a time slot."]))
             return
         }
 
         // Get start time from time slot (format: "HH:mm" or "HH:mm:ss")
         // Extract just the "HH:mm" part
-        let startTimeComponents = selectedTimeSlot.time.split(separator: ":")
+        let startTimeComponents = timeString.split(separator: ":")
         guard startTimeComponents.count >= 2 else {
             delegate?.viewModel(error: NSError(domain: "AddPlanTimeSelection", code: -3, userInfo: [NSLocalizedDescriptionKey: "Invalid time format."]))
             return
@@ -573,19 +622,41 @@ public class AddPlanTimeSelectionViewModel {
 
     private func calculateSegmentTimes(
         selectedDate: Date,
-        selectedTimeSlot: TimeSlot
+        selectedTimeSlot: TimeSlot?
     ) -> (startDateString: String, endDateString: String, startDatetimeString: String, endDatetimeString: String) {
 
+        // Flexible-time path: no slot selected (or slot has nil time) AND the selected
+        // day is flexible. Both start and end pinned to 00:00 — duration is intentionally
+        // not added so the segment lands at the top of the day's itinerary.
+        if (selectedTimeSlot?.time == nil) && isSelectedDayFlexible() {
+            return formatDatesAtStartOfDay(selectedDate)
+        }
+
         // Parse time slot (format: "HH:mm" or "HH:mm:ss")
-        let timeComponents = selectedTimeSlot.time.split(separator: ":")
+        guard let timeString = selectedTimeSlot?.time else {
+            // Defensive: shouldn't reach here unless a non-flexible day somehow lacks
+            // a time. Fall back to noon to preserve existing safety net.
+            return calculateTimesWithDefaults(selectedDate: selectedDate, hour: 12, minute: 0)
+        }
+        let timeComponents = timeString.split(separator: ":")
         guard timeComponents.count >= 2,
               let hour = Int(timeComponents[0]),
               let minute = Int(timeComponents[1]) else {
-            // Fallback to noon if parsing fails
             return calculateTimesWithDefaults(selectedDate: selectedDate, hour: 12, minute: 0)
         }
 
         return calculateTimesWithDefaults(selectedDate: selectedDate, hour: hour, minute: minute)
+    }
+
+    /// Build segment date strings with both start and end pinned to 00:00 of the given
+    /// date — used for flexible-time activities.
+    private func formatDatesAtStartOfDay(_ selectedDate: Date) -> (String, String, String, String) {
+        var components = Calendar.current.dateComponents([.year, .month, .day], from: selectedDate)
+        components.hour = 0
+        components.minute = 0
+        components.second = 0
+        let startOfDay = Calendar.current.date(from: components) ?? selectedDate
+        return formatDates(start: startOfDay, end: startOfDay)
     }
 
     private func calculateTimesWithDefaults(selectedDate: Date, hour: Int, minute: Int) -> (String, String, String, String) {

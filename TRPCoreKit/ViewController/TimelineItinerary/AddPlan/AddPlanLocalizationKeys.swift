@@ -99,6 +99,10 @@ public struct AddPlanLocalizationKeys {
     public static let addSavedPlansToItinerary = "addPlan.emptyState.addSavedPlansToItinerary"
     public static let noAvailableTimes = "addPlan.emptyState.noAvailableTimes"
 
+    // MARK: - Flexible-time Activity
+    public static let flexibleTimeInfo = "addPlan.time.flexibleInfo"
+    public static let flexibleTimePinTopHint = "addPlan.time.flexibleTopOfItinerary"
+
     // MARK: - Saved Plans Screen
     public static let savedPlans = "addPlan.title.savedPlans"
 
@@ -170,7 +174,9 @@ public struct AddPlanLocalizationKeys {
         noAvailableTimes: "No available times",
         savedPlans: "Saved Plans",
         errorMissingData: "Missing required information. Please complete all fields.",
-        errorCreateFailed: "Failed to create smart recommendation. Please try again."
+        errorCreateFailed: "Failed to create smart recommendation. Please try again.",
+        flexibleTimeInfo: "Valid at any time on the chosen day. Check the opening hours.",
+        flexibleTimePinTopHint: "This plan will always appear at the top of your itinerary."
     ]
     
     // MARK: - Helper Methods

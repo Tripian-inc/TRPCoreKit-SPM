@@ -595,7 +595,7 @@ extension AddPlanActivityListingVC: ActivityCardCellDelegate {
         }
 
         // Present as bottom sheet using base extension
-        presentVCWithModal(timeSelectionVC)
+        presentVCWithDynamicHeight(timeSelectionVC, prefersGrabberVisible: true, isDimmed: true)
     }
 }
 

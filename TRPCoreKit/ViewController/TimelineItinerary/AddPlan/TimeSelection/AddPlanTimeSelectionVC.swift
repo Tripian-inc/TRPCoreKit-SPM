@@ -12,9 +12,64 @@ public class AddPlanTimeSelectionVC: TRPBaseUIViewController, DynamicHeightPrese
 
     // MARK: - DynamicHeightPresentable
     public var preferredContentHeight: CGFloat {
-        // Nav bar (56) + day filter margin (16) + day filter (48) + title margin (24) + title (24)
-        // + collection margin (16) + collection (~196 for 4 rows) + button margin (16) + button (52) + bottom (16)
-        return 56 + 16 + 48 + 24 + 24 + 16 + 196 + 16 + 52 + 16
+        // Top chrome: nav bar + day filter chrome + title chrome.
+        let chrome: CGFloat = 56 + 16 + 48 + 24 + 24
+        // Bottom: 16pt gap above button + button (52) + home-indicator inset.
+        // `safeAreaInsets` is 0 before the view is in a window, so fall back to 34pt
+        // (typical home-indicator height) — close enough for the initial sheet sizing
+        // and refined after `updateSheetHeight` runs post-layout.
+        let safeAreaBottom = view.safeAreaInsets.bottom > 0 ? view.safeAreaInsets.bottom : 34
+        let bottom: CGFloat = 16 + 52 + safeAreaBottom
+
+        // viewModel may be force-unwrapped post-init, but guard defensively in case
+        // this is queried before the model is ready.
+        let isFlexible = viewModel?.isSelectedDayFlexible() == true
+
+        let middle: CGFloat
+        if isFlexible {
+            // Measure the live label texts at the available width so the sheet adapts
+            // to translations and screen sizes — wrap-induced extra lines grow the
+            // sheet just enough, no clipping.
+            let availableWidth = (view.bounds.width > 0)
+                ? view.bounds.width
+                : UIScreen.main.bounds.width
+            // Card label width = view width − (16+16 outer h-margin) − (16 icon left + 20 icon + 8 gap + 16 label right)
+            let cardLabelMaxWidth = max(0, availableWidth - 92)
+            // Subtitle width = view width − (16+16 h-margin)
+            let subtitleMaxWidth = max(0, availableWidth - 32)
+
+            let labelFont = FontSet.montserratMedium.font(14)
+            let cardLabelText = AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.flexibleTimeInfo)
+            let subtitleText = AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.flexibleTimePinTopHint)
+
+            let cardLabelHeight = Self.textHeight(for: cardLabelText, font: labelFont, maxWidth: cardLabelMaxWidth)
+            let subtitleHeight = Self.textHeight(for: subtitleText, font: labelFont, maxWidth: subtitleMaxWidth)
+
+            // Card: 16pt top padding + max(icon, label) + 16pt bottom padding.
+            let cardHeight = 16 + max(20, cardLabelHeight) + 16
+
+            // 16 (card top from title) + cardHeight + 8 (subtitle top from card)
+            // + subtitleHeight + 32 (subtitle bottom to button)
+            middle = 16 + cardHeight + 8 + subtitleHeight + 32
+        } else {
+            // 16 (collection top) + ~196 (~4 rows of slots) + 16 (collection bottom to button)
+            middle = 16 + 196 + 16
+        }
+        return chrome + middle + bottom
+    }
+
+    /// Measure the rendered height of `text` at the given font and width — used to
+    /// size the dynamic-height sheet around translation-dependent label content.
+    private static func textHeight(for text: String, font: UIFont, maxWidth: CGFloat) -> CGFloat {
+        guard maxWidth > 0 else { return 0 }
+        let constrainedSize = CGSize(width: maxWidth, height: .greatestFiniteMagnitude)
+        let bounding = (text as NSString).boundingRect(
+            with: constrainedSize,
+            options: [.usesLineFragmentOrigin, .usesFontLeading],
+            attributes: [.font: font],
+            context: nil
+        )
+        return ceil(bounding.height)
     }
 
     // MARK: - Properties
@@ -93,6 +148,49 @@ public class AddPlanTimeSelectionVC: TRPBaseUIViewController, DynamicHeightPrese
         return label
     }()
 
+    // MARK: - Flexible-time UI
+    /// Container for flexible-time activities — info icon + descriptive text rendered
+    /// in place of the time grid when the selected day has no specific slots.
+    private let flexibleInfoCard: UIView = {
+        let view = UIView()
+        view.translatesAutoresizingMaskIntoConstraints = false
+        view.backgroundColor = ColorSet.infoBg.uiColor
+        view.layer.cornerRadius = 8
+        view.isHidden = true
+        return view
+    }()
+
+    private let flexibleInfoIcon: UIImageView = {
+        let iv = UIImageView()
+        iv.translatesAutoresizingMaskIntoConstraints = false
+        // Same icon family used by the listing screen's info button.
+        iv.image = UIImage(systemName: "info.circle")
+        iv.tintColor = ColorSet.infoIcon.uiColor
+        iv.contentMode = .scaleAspectFit
+        return iv
+    }()
+
+    private let flexibleInfoLabel: UILabel = {
+        let label = UILabel()
+        label.translatesAutoresizingMaskIntoConstraints = false
+        label.text = AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.flexibleTimeInfo)
+        label.font = FontSet.montserratMedium.font(14)
+        label.textColor = ColorSet.fg.uiColor
+        label.numberOfLines = 0
+        return label
+    }()
+
+    private let flexibleSubtitleLabel: UILabel = {
+        let label = UILabel()
+        label.translatesAutoresizingMaskIntoConstraints = false
+        label.text = AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.flexibleTimePinTopHint)
+        label.font = FontSet.montserratMedium.font(14)
+        label.textColor = ColorSet.fgWeak.uiColor
+        label.numberOfLines = 0
+        label.isHidden = true
+        return label
+    }()
+
     // MARK: - Initialization
     public init(tour: TRPTourProduct, planData: AddPlanData) {
         super.init(nibName: nil, bundle: nil)
@@ -146,6 +244,10 @@ public class AddPlanTimeSelectionVC: TRPBaseUIViewController, DynamicHeightPrese
         view.addSubview(titleLabel)
         view.addSubview(collectionView)
         view.addSubview(emptyStateLabel)
+        view.addSubview(flexibleInfoCard)
+        flexibleInfoCard.addSubview(flexibleInfoIcon)
+        flexibleInfoCard.addSubview(flexibleInfoLabel)
+        view.addSubview(flexibleSubtitleLabel)
         view.addSubview(continueButton)
         view.addSubview(loadingIndicator)
 
@@ -181,6 +283,32 @@ public class AddPlanTimeSelectionVC: TRPBaseUIViewController, DynamicHeightPrese
             emptyStateLabel.centerYAnchor.constraint(equalTo: collectionView.centerYAnchor),
             emptyStateLabel.leadingAnchor.constraint(equalTo: collectionView.leadingAnchor, constant: 16),
             emptyStateLabel.trailingAnchor.constraint(equalTo: collectionView.trailingAnchor, constant: -16),
+
+            // Flexible-time card — same top/leading/trailing as the collection view so it
+            // takes the time grid's slot. Hidden by default; toggled in `timeSlotsDidLoad`.
+            flexibleInfoCard.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 16),
+            flexibleInfoCard.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
+            flexibleInfoCard.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
+
+            // 20×20 info icon, 16pt from the card's top/left edges.
+            flexibleInfoIcon.leadingAnchor.constraint(equalTo: flexibleInfoCard.leadingAnchor, constant: 16),
+            flexibleInfoIcon.topAnchor.constraint(equalTo: flexibleInfoCard.topAnchor, constant: 16),
+            flexibleInfoIcon.widthAnchor.constraint(equalToConstant: 20),
+            flexibleInfoIcon.heightAnchor.constraint(equalToConstant: 20),
+
+            // Message label — 16pt top/right/bottom margins; 8pt gap from icon.
+            flexibleInfoLabel.topAnchor.constraint(equalTo: flexibleInfoCard.topAnchor, constant: 16),
+            flexibleInfoLabel.bottomAnchor.constraint(equalTo: flexibleInfoCard.bottomAnchor, constant: -16),
+            flexibleInfoLabel.leadingAnchor.constraint(equalTo: flexibleInfoIcon.trailingAnchor, constant: 8),
+            flexibleInfoLabel.trailingAnchor.constraint(equalTo: flexibleInfoCard.trailingAnchor, constant: -16),
+
+            // Subtitle hint — 8pt from the card; 16pt horizontal; pinned 16pt above the
+            // continue button so it sits flush at the bottom when the flexible UI is shown
+            // (the dynamic-height sheet then sizes the screen to fit just this content).
+            flexibleSubtitleLabel.topAnchor.constraint(equalTo: flexibleInfoCard.bottomAnchor, constant: 8),
+            flexibleSubtitleLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
+            flexibleSubtitleLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
+            flexibleSubtitleLabel.bottomAnchor.constraint(lessThanOrEqualTo: continueButton.topAnchor, constant: -32),
         ])
     }
 
@@ -199,13 +327,17 @@ public class AddPlanTimeSelectionVC: TRPBaseUIViewController, DynamicHeightPrese
 
     // MARK: - Actions
     @objc private func continueTapped() {
-        guard let selectedTimeSlot = viewModel.getSelectedTimeSlot(),
-              let selectedDate = viewModel.getAvailableDays()[safe: viewModel.getSelectedDayIndex()] else {
+        guard let selectedDate = viewModel.getAvailableDays()[safe: viewModel.getSelectedDayIndex()] else {
             return
         }
+        // Flexible-time day: no slot is selected but Continue is still valid.
+        let selectedTimeSlot = viewModel.getSelectedTimeSlot()
+        guard selectedTimeSlot != nil || viewModel.isSelectedDayFlexible() else { return }
 
-        // Call existing callback (for compatibility)
-        onTimeSelected?(selectedDate, selectedTimeSlot)
+        // Call existing callback (for compatibility) only when an actual slot is picked.
+        if let selectedTimeSlot = selectedTimeSlot {
+            onTimeSelected?(selectedDate, selectedTimeSlot)
+        }
 
         // Create or update based on mode
         if viewModel.isStepEditMode {
@@ -279,9 +411,21 @@ extension AddPlanTimeSelectionVC: UICollectionViewDelegateFlowLayout {
 extension AddPlanTimeSelectionVC: AddPlanTimeSelectionViewModelDelegate {
 
     public func timeSlotsDidLoad() {
+        let isFlexible = viewModel.isSelectedDayFlexible()
         let hasTimeSlots = !viewModel.getTimeSlots().isEmpty
-        emptyStateLabel.isHidden = hasTimeSlots
+
+        // Flexible day → info card replaces the grid; subtitle hint visible.
+        flexibleInfoCard.isHidden = !isFlexible
+        flexibleSubtitleLabel.isHidden = !isFlexible
+        collectionView.isHidden = isFlexible
+        emptyStateLabel.isHidden = isFlexible || hasTimeSlots
+
         collectionView.reloadData()
+        updateContinueButton()
+
+        // The bottom-sheet detent depends on which UI is showing — refresh so the
+        // sheet shrinks for flexible (no grid) and grows back for timed days.
+        updateSheetHeight()
     }
 
     public func timeSlotsDidFail(error: Error) {
