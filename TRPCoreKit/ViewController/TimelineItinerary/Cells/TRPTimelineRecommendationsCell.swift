@@ -101,6 +101,19 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
         stack.isHidden = false
         return stack
     }()
+
+    /// References to per-step reservation CTA buttons created in `createRecommendationView`.
+    /// Tracked so `applyPastDayStyle()` can hide them all in one place. Rebuilt every `configure`.
+    private var stepReservationButtons: [UIButton] = []
+
+    /// References to per-step icon action buttons (change-time, remove-step) for past-day disabling.
+    /// Rebuilt every `configure`.
+    private var stepActionButtons: [UIButton] = []
+
+    /// `true` while the cell is rendered for a past day. Per-step buttons stay enabled so
+    /// they consume taps (blocking parent gestures and table view selection); this flag
+    /// short-circuits their action handlers. Reset by `prepareForReuse`.
+    private var isPastDayMode: Bool = false
     
     // MARK: - Initialization
     override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
@@ -167,6 +180,7 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
     override func prepareForReuse() {
         super.prepareForReuse()
         resetTextAndBorderDefaults()
+        isPastDayMode = false
     }
 
     private func resetTextAndBorderDefaults() {
@@ -177,10 +191,19 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
         closeButton.layer.borderColor = ColorSet.neutral200.uiColor.cgColor
     }
 
-    /// Recolors all text/border to muted gray when this cell belongs to a past day.
-    /// Caller (VC) must invoke this after `configure(...)`.
+    /// Past-day rendering: keep all per-step info content (time/title/rating/category/
+    /// duration/cancellation/price/tag) at normal colors. Hide every per-step reservation
+    /// CTA, and grey out the change-time / remove-step icon buttons. Buttons stay enabled
+    /// so they consume taps (blocking parent gestures); `isPastDayMode` makes their action
+    /// handlers no-op. Must be called AFTER `configure(...)`.
     func applyPastDayStyle() {
-        contentView.trp_recolorLabelsAndBorders(to: ColorSet.fgWeaker.uiColor)
+        isPastDayMode = true
+        for button in stepReservationButtons {
+            button.isHidden = true
+        }
+        for button in stepActionButtons {
+            button.setPastDayDisabled(true, originalTint: ColorSet.primary.uiColor)
+        }
     }
     
     // MARK: - Actions
@@ -229,6 +252,9 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
         // Clear existing views and distance views
         recommendationsStackView.arrangedSubviews.forEach { $0.removeFromSuperview() }
         distanceViews.removeAll()
+        // Reset per-step button trackers — repopulated by `createRecommendationView`.
+        stepReservationButtons.removeAll()
+        stepActionButtons.removeAll()
 
         // Track distance view index
         var distanceIndex = 0
@@ -328,6 +354,9 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
         // Clear existing views and distance views
         recommendationsStackView.arrangedSubviews.forEach { $0.removeFromSuperview() }
         distanceViews.removeAll()
+        // Reset per-step button trackers — repopulated by `createRecommendationView`.
+        stepReservationButtons.removeAll()
+        stepActionButtons.removeAll()
 
         // Track distance view index
         var distanceIndex = 0
@@ -499,6 +528,9 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
 
         actionButtonsStack.addArrangedSubview(changeTimeButton)
         actionButtonsStack.addArrangedSubview(removeStepButton)
+        // Track for past-day disable.
+        stepActionButtons.append(changeTimeButton)
+        stepActionButtons.append(removeStepButton)
 
         // Add to title row
         titleRow.addSubview(titleLabel)
@@ -728,6 +760,9 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
         reservationButton.tag = steps.firstIndex(where: { $0.id == step.id }) ?? 0
         reservationButton.addTarget(self, action: #selector(reservationTapped(_:)), for: .touchUpInside)
         reservationButton.isHidden = !isActivity
+        // Track for past-day hide. Activity-step rows that aren't past will keep `isActivity`
+        // visibility logic above; past-day rows hide them all in `applyPastDayStyle()`.
+        stepReservationButtons.append(reservationButton)
 
         // Add all subviews
         containerView.addSubview(timeBadgeView)
@@ -824,6 +859,7 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
 
         // Add tap gesture for selection
         let tapGesture = UITapGestureRecognizer(target: self, action: #selector(recommendationTapped(_:)))
+        tapGesture.delegate = TRPDisabledControlAwareTapDelegate.shared
         contentContainer.addGestureRecognizer(tapGesture)
         contentContainer.tag = steps.firstIndex(where: { $0.id == step.id }) ?? 0
 
@@ -836,18 +872,21 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
     }
 
     @objc private func changeTimeTapped(_ sender: UIButton) {
+        guard !isPastDayMode else { return }
         let tag = sender.tag
         guard tag < steps.count else { return }
         delegate?.recommendationsCellDidTapChangeTime(self, step: steps[tag])
     }
 
     @objc private func removeStepTapped(_ sender: UIButton) {
+        guard !isPastDayMode else { return }
         let tag = sender.tag
         guard tag < steps.count else { return }
         delegate?.recommendationsCellDidTapRemoveStep(self, step: steps[tag])
     }
 
     @objc private func reservationTapped(_ sender: UIButton) {
+        guard !isPastDayMode else { return }
         let tag = sender.tag
         guard tag < steps.count else { return }
         delegate?.recommendationsCellDidTapReservation(self, step: steps[tag])

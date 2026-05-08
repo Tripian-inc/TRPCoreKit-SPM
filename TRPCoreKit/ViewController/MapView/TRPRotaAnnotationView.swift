@@ -68,8 +68,9 @@ class TRPRotaAnnotationView: UIView {
         }
 
         // Order label - centered using Auto Layout
+        // Non-positive orders (e.g. flexible-time activities) render as "-" instead of a number.
         orderLabel.translatesAutoresizingMaskIntoConstraints = false
-        orderLabel.text = "\(order)"
+        orderLabel.text = order > 0 ? "\(order)" : "-"
         orderLabel.textColor = isSelected ? .white : badgeColor
         orderLabel.font = FontSet.montserratSemiBold.font(18)
         orderLabel.textAlignment = .center

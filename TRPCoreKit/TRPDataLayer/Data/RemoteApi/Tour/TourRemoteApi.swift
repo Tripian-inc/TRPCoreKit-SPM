@@ -23,6 +23,7 @@ public protocol TourRemoteApi {
 
     func getTourSchedule(productId: String,
                         date: String,
+                        to: String?,
                         currency: String,
                         lang: String,
                         completion: @escaping (Result<TRPTourSchedule, Error>) -> Void)

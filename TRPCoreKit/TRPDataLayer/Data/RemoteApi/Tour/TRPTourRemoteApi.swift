@@ -182,6 +182,7 @@ public class TRPTourRemoteApi: TourRemoteApi {
 
     public func getTourSchedule(productId: String,
                                 date: String,
+                                to: String?,
                                 currency: String,
                                 lang: String,
                                 completion: @escaping (Result<TRPTourSchedule, Error>) -> Void) {
@@ -189,6 +190,7 @@ public class TRPTourRemoteApi: TourRemoteApi {
         let request = TRPTourScheduleRequestModel(
             productId: productId,
             date: date,
+            to: to,
             currency: currency,
             lang: lang
         )

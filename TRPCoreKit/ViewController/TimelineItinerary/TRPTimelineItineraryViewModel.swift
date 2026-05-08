@@ -221,8 +221,8 @@ public class TRPTimelineItineraryViewModel {
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
 
-            // Start loading (Lottie loader inside the VC)
-            self.delegate?.timelineItineraryViewModel(showLottieLoading: true)
+            // First GetTimeline on SDK open — animation only, no text (per UX policy).
+            self.delegate?.timelineItineraryViewModel(showLottieLoading: true, textMode: .none)
 
             // First resolve ALL cityIds via API (for both create and fetch paths)
             self.resolveMissingCityIds(in: itineraryModel) { [weak self] resolvedItinerary in

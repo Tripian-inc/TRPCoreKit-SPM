@@ -26,6 +26,11 @@ public class AddPlanActivityListingVC: TRPBaseUIViewController {
     // Callback when segment is created successfully, passes selected day for navigation
     public var onSegmentCreated: ((Date?) -> Void)?
 
+    /// Fires after a manual activity is added but the user chose to stay on the
+    /// listing screen (no dismiss). The host VC should refresh its timeline data
+    /// silently — the listing handles its own success toast locally.
+    public var onSegmentCreatedSilent: ((Date?) -> Void)?
+
     // MARK: - Lifecycle
     public override func viewDidLoad() {
         super.viewDidLoad()
@@ -588,10 +593,18 @@ extension AddPlanActivityListingVC: ActivityCardCellDelegate {
             print("Selected date: \(selectedDate), time: \(selectedTimeSlot.time)")
         }
 
-        // Set segment creation callback with selected day for navigation
+        // Capture the activity name; day label comes from the Date extension.
+        let activityName = tour.name
         timeSelectionVC.onSegmentCreated = { [weak self] selectedDay in
-            // Trigger parent callback with selected day
-            self?.onSegmentCreated?(selectedDay)
+            guard let self = self else { return }
+
+            let dayLabel = selectedDay?.weekdayWithDayMonth() ?? ""
+            let template = AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.activityAddedToast)
+            let message = String(format: template, activityName, dayLabel)
+            TRPSuccessToast.show(over: self, message: message)
+
+            // Stay on the listing — host VC refreshes the timeline silently.
+            self.onSegmentCreatedSilent?(selectedDay)
         }
 
         // Present as bottom sheet using base extension

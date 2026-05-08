@@ -17,6 +17,7 @@ public struct LoadingLocalizationKeys {
     // MARK: - Single Text Keys
     public static let gettingActivities = "loading.text.gettingActivities"
     public static let loadingTimeSlots = "loading.text.loadingTimeSlots"
+    public static let addingToItinerary = "loading.text.addingToItinerary"
 
     // MARK: - Default English Values
     private static let defaultValues: [String: String] = [
@@ -24,7 +25,8 @@ public struct LoadingLocalizationKeys {
         tailoringRecommendations: "Tailoring recommendations to your preferences",
         optimizingRoute: "Optimizing your route",
         gettingActivities: "Getting Activities",
-        loadingTimeSlots: "Loading available times"
+        loadingTimeSlots: "Loading available times",
+        addingToItinerary: "Adding to your itinerary..."
     ]
 
     // MARK: - Helper Methods

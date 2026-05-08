@@ -23,6 +23,10 @@ class TRPTimelineManualPoiCell: UITableViewCell {
     weak var delegate: TRPTimelineManualPoiCellDelegate?
 
     private var segment: TRPTimelineSegment?
+
+    /// `true` while the cell is rendered for a past day. See
+    /// `TRPTimelineReservedActivityCell.isPastDayMode` for full reasoning.
+    private var isPastDayMode: Bool = false
     private var poi: TRPPoi?
 
     // MARK: - UI Components
@@ -295,6 +299,7 @@ class TRPTimelineManualPoiCell: UITableViewCell {
 
     private func setupTapGesture() {
         let tapGesture = UITapGestureRecognizer(target: self, action: #selector(cellTapped))
+        tapGesture.delegate = TRPDisabledControlAwareTapDelegate.shared
         contentContainer.addGestureRecognizer(tapGesture)
         contentContainer.isUserInteractionEnabled = true
     }
@@ -302,6 +307,7 @@ class TRPTimelineManualPoiCell: UITableViewCell {
     override func prepareForReuse() {
         super.prepareForReuse()
         resetTextAndBorderDefaults()
+        resetPastDayState()
     }
 
     private func resetTextAndBorderDefaults() {
@@ -311,10 +317,20 @@ class TRPTimelineManualPoiCell: UITableViewCell {
         categoryLabel.textColor = ColorSet.fgGray.uiColor
     }
 
-    /// Recolors all text/border to muted gray when this cell belongs to a past day.
-    /// Caller (VC) must invoke this after `configure(...)`.
+    /// Past-day rendering: keep info content (time/title/rating/category) at normal colors.
+    /// Grey out the change-time and remove icon buttons — buttons stay enabled so they
+    /// consume taps; `isPastDayMode` makes their action handlers no-op.
     func applyPastDayStyle() {
-        contentView.trp_recolorLabelsAndBorders(to: ColorSet.fgWeaker.uiColor)
+        isPastDayMode = true
+        changeTimeButton.setPastDayDisabled(true, originalTint: ColorSet.primary.uiColor)
+        removeButton.setPastDayDisabled(true, originalTint: ColorSet.primary.uiColor)
+    }
+
+    /// Reverse of `applyPastDayStyle()` for cell reuse.
+    private func resetPastDayState() {
+        isPastDayMode = false
+        changeTimeButton.setPastDayDisabled(false, originalTint: ColorSet.primary.uiColor)
+        removeButton.setPastDayDisabled(false, originalTint: ColorSet.primary.uiColor)
     }
 
     // MARK: - Configuration
@@ -434,12 +450,12 @@ class TRPTimelineManualPoiCell: UITableViewCell {
 
     // MARK: - Actions
     @objc private func changeTimeButtonTapped() {
-        guard let segment = segment else { return }
+        guard !isPastDayMode, let segment = segment else { return }
         delegate?.manualPoiCellDidTapChangeTime(self, segment: segment)
     }
 
     @objc private func removeButtonTapped() {
-        guard let segment = segment else { return }
+        guard !isPastDayMode, let segment = segment else { return }
         delegate?.manualPoiCellDidTapRemove(self, segment: segment)
     }
 

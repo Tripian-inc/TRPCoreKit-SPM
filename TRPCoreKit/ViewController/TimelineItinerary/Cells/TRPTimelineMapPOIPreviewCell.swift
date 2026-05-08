@@ -68,25 +68,25 @@ class TRPTimelineMapPOIPreviewCell: UICollectionViewCell {
     private lazy var cityLabel: UILabel = {
         let label = UILabel()
         label.translatesAutoresizingMaskIntoConstraints = false
-        label.font = FontSet.montserratLight.font(14)
+        label.font = FontSet.montserratMedium.font(12)
         label.textColor = ColorSet.fgWeak.uiColor
         label.numberOfLines = 1
         return label
     }()
-    
+
     private lazy var timeIcon: UIImageView = {
         let imageView = UIImageView()
         imageView.translatesAutoresizingMaskIntoConstraints = false
-        imageView.image = UIImage(systemName: "clock")
+        imageView.image = TRPImageController().getImage(inFramework: "ic_time", inApp: nil)?.withRenderingMode(.alwaysTemplate)
         imageView.tintColor = ColorSet.fgWeak.uiColor
         imageView.contentMode = .scaleAspectFit
         return imageView
     }()
-    
+
     private lazy var timeLabel: UILabel = {
         let label = UILabel()
         label.translatesAutoresizingMaskIntoConstraints = false
-        label.font = FontSet.montserratLight.font(14)
+        label.font = FontSet.montserratMedium.font(13)
         label.textColor = ColorSet.fg.uiColor
         return label
     }()
@@ -135,19 +135,19 @@ class TRPTimelineMapPOIPreviewCell: UICollectionViewCell {
             numberLabel.centerXAnchor.constraint(equalTo: numberBadge.centerXAnchor),
             numberLabel.centerYAnchor.constraint(equalTo: numberBadge.centerYAnchor),
 
-            // Title (14px semibold, top/right 12, left 16 from image)
-            titleLabel.topAnchor.constraint(equalTo: containerView.topAnchor, constant: 12),
-            titleLabel.leadingAnchor.constraint(equalTo: thumbnailImageView.trailingAnchor, constant: 16),
-            titleLabel.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -12),
+            // City Label (top — Montserrat medium 12, fgWeak)
+            cityLabel.topAnchor.constraint(equalTo: containerView.topAnchor, constant: 12),
+            cityLabel.leadingAnchor.constraint(equalTo: thumbnailImageView.trailingAnchor, constant: 16),
+            cityLabel.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -12),
 
-            // City Label (below title)
-            cityLabel.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 2),
-            cityLabel.leadingAnchor.constraint(equalTo: titleLabel.leadingAnchor),
-            cityLabel.trailingAnchor.constraint(equalTo: titleLabel.trailingAnchor),
+            // Title (below city — Montserrat semibold 14, fg)
+            titleLabel.topAnchor.constraint(equalTo: cityLabel.bottomAnchor, constant: 2),
+            titleLabel.leadingAnchor.constraint(equalTo: cityLabel.leadingAnchor),
+            titleLabel.trailingAnchor.constraint(equalTo: cityLabel.trailingAnchor),
 
-            // Time Icon (below date)
-            timeIcon.topAnchor.constraint(equalTo: cityLabel.bottomAnchor, constant: 4),
-            timeIcon.leadingAnchor.constraint(equalTo: titleLabel.leadingAnchor),
+            // Time Icon (below title)
+            timeIcon.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 4),
+            timeIcon.leadingAnchor.constraint(equalTo: cityLabel.leadingAnchor),
             timeIcon.widthAnchor.constraint(equalToConstant: 16),
             timeIcon.heightAnchor.constraint(equalToConstant: 16),
             timeIcon.bottomAnchor.constraint(lessThanOrEqualTo: containerView.bottomAnchor, constant: -12),
@@ -209,7 +209,8 @@ class TRPTimelineMapPOIPreviewCell: UICollectionViewCell {
 
     /// Configure cell with MapDisplayItem, unified order, and selection state
     func configure(with item: MapDisplayItem, order: Int, isSelected: Bool = false) {
-        numberLabel.text = "\(order)"
+        // Non-positive orders (e.g. flexible-time activities) render as "-" instead of a number.
+        numberLabel.text = order > 0 ? "\(order)" : "-"
         titleLabel.text = item.title
 
         // Set city name
@@ -227,8 +228,12 @@ class TRPTimelineMapPOIPreviewCell: UICollectionViewCell {
             thumbnailImageView.backgroundColor = ColorSet.neutral100.uiColor
         }
 
-        // Show start time for all items (both POIs and activities)
-        if let startTime = item.startTime {
+        // Flexible-time activities show "Flexible" instead of a clock time.
+        if item.isFlexibleActivity {
+            timeLabel.text = TimelineLocalizationKeys.localized(TimelineLocalizationKeys.flexibleShort)
+            timeIcon.isHidden = false
+            timeLabel.isHidden = false
+        } else if let startTime = item.startTime {
             timeLabel.text = startTime
             timeIcon.isHidden = false
             timeLabel.isHidden = false

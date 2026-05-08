@@ -146,8 +146,13 @@ public struct TRPSegmentActivityItem: Codable {
     /// `true` when the activity is valid any time on its date (no specific start time).
     /// Surfaces the flexible-time slot that backend marks with `time = null`.
     public var isFlexible: Bool?
+    /// Average user rating (1.0–5.0). Carried from the source product so the
+    /// timeline can render rating + review count without re-fetching the product.
+    public var rating: Float?
+    /// Number of ratings backing `rating`.
+    public var ratingCount: Int?
 
-    public init(activityId: String?, bookingId: String?, title: String?, imageUrl: String?, description: String?, startDatetime: String?, endDatetime: String?, coordinate: TRPLocation, cancellation: String?, adultCount: Int, childCount: Int, bookingUrl: String? = nil, duration: Double? = nil, price: TRPSegmentActivityPrice? = nil, cityId: Int? = nil, isFlexible: Bool? = nil) {
+    public init(activityId: String?, bookingId: String?, title: String?, imageUrl: String?, description: String?, startDatetime: String?, endDatetime: String?, coordinate: TRPLocation, cancellation: String?, adultCount: Int, childCount: Int, bookingUrl: String? = nil, duration: Double? = nil, price: TRPSegmentActivityPrice? = nil, cityId: Int? = nil, isFlexible: Bool? = nil, rating: Float? = nil, ratingCount: Int? = nil) {
         self.activityId = activityId
         self.bookingId = bookingId
         self.title = title
@@ -164,6 +169,8 @@ public struct TRPSegmentActivityItem: Codable {
         self.price = price
         self.cityId = cityId
         self.isFlexible = isFlexible
+        self.rating = rating
+        self.ratingCount = ratingCount
     }
 
     enum CodingKeys: String, CodingKey {
@@ -183,6 +190,8 @@ public struct TRPSegmentActivityItem: Codable {
         case price
         case cityId
         case isFlexible
+        case rating
+        case ratingCount
     }
 
 }

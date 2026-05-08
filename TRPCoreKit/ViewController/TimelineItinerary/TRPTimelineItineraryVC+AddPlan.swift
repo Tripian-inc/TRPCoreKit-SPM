@@ -95,11 +95,12 @@ extension TRPTimelineItineraryVC: AddPlanContainerVCDelegate {
         let activityListingVC = AddPlanActivityListingVC()
         activityListingVC.viewModel = activityListingViewModel
 
-        // Set segment creation callback with selected day for navigation
-        activityListingVC.onSegmentCreated = { [weak self, weak viewController] selectedDay in
-            guard let self = self, let viewController = viewController else { return }
-            // Trigger container delegate with selected day
-            self.addPlanContainerSegmentCreated(viewController, selectedDay: selectedDay)
+        // Manual activity flow now stays on the listing on success and shows a toast
+        // there — only the underlying timeline needs a silent refresh, no modal
+        // dismiss. `onSegmentCreated` is intentionally not wired so the legacy
+        // dismiss-everything path doesn't fire.
+        activityListingVC.onSegmentCreatedSilent = { [weak self] selectedDay in
+            self?.refreshTimelineSilently(selectedDay: selectedDay)
         }
 
         // Create navigation controller for the activity listing
@@ -166,6 +167,16 @@ extension TRPTimelineItineraryVC: AddPlanContainerVCDelegate {
         viewModel.waitForSegmentGeneration(tripHash: tripHash)
     }
 
+    /// Refresh the timeline data without dismissing any of the modal stack
+    /// (AddPlanContainerVC / ActivityListing / TimeSelection). Used by flows that
+    /// surface their own in-screen confirmation (toast) and want the user to keep
+    /// browsing — the underlying timeline still reflects the new segment when the
+    /// user eventually returns to it.
+    internal func refreshTimelineSilently(selectedDay: Date?) {
+        setPendingDayNavigation(selectedDay: selectedDay)
+        refreshTimelineAfterSegmentCreation()
+    }
+
     // MARK: - Smart Recommendations Segment Creation
 
     internal func createSmartRecommendationSegment(from data: AddPlanData, containerVC: AddPlanContainerVC) {
@@ -208,19 +219,8 @@ extension TRPTimelineItineraryVC: TRPTimelineItineraryViewModelDelegate {
 
     public func timelineItineraryViewModel(showLottieLoading: Bool, textMode: LottieLoadingTextMode) {
         if showLottieLoading {
-            // If this VC isn't on screen yet (e.g., splash → timeline transition in progress),
-            // defer the requested text mode so the splash phase stays text-free. We still show
-            // the loader (with `.none`) to keep the window overlay continuous; `viewDidAppear`
-            // applies the pending mode once the transition completes.
-            if viewIfLoaded?.window == nil {
-                pendingLoaderTextMode = textMode
-                TRPLottieLoadingVC.shared.showOnWindow(textMode: .none)
-            } else {
-                pendingLoaderTextMode = nil
-                TRPLottieLoadingVC.shared.showOnWindow(textMode: textMode)
-            }
+            TRPLottieLoadingVC.shared.showOnWindow(textMode: textMode)
         } else {
-            pendingLoaderTextMode = nil
             TRPLottieLoadingVC.shared.hideFromWindow()
         }
     }

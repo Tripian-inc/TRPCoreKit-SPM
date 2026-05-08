@@ -120,6 +120,35 @@ extension TRPTimelineItineraryVC: TRPTimelineReservedActivityCellDelegate {
     }
 }
 
+// MARK: - TRPTimelineFlexibleActivityCellDelegate
+
+extension TRPTimelineItineraryVC: TRPTimelineFlexibleActivityCellDelegate {
+
+    func flexibleActivityCellDidTapReservation(_ cell: TRPTimelineFlexibleActivityCell, segment: TRPTimelineSegment) {
+        guard let activityId = segment.additionalData?.activityId else { return }
+        let cleanedId = activityId.cleanedAsActivityId()
+        TRPCoreKit.shared.delegate?.trpCoreKitDidRequestActivityReservation(activityId: cleanedId)
+    }
+
+    func flexibleActivityCellDidTapRemove(_ cell: TRPTimelineFlexibleActivityCell, segment: TRPTimelineSegment) {
+        showConfirmAlert(
+            title: TimelineLocalizationKeys.localized(TimelineLocalizationKeys.removeActivityTitle),
+            message: TimelineLocalizationKeys.localized(TimelineLocalizationKeys.removeActivityMessage),
+            confirmTitle: TimelineLocalizationKeys.localized(TimelineLocalizationKeys.remove),
+            cancelTitle: CommonLocalizationKeys.localized(CommonLocalizationKeys.cancel),
+            btnConfirmAction: { [weak self] in
+                self?.viewModel.removeSegment(segment)
+            }
+        )
+    }
+
+    func flexibleActivityCellDidTapCell(_ cell: TRPTimelineFlexibleActivityCell, segment: TRPTimelineSegment) {
+        guard let activityId = segment.additionalData?.activityId else { return }
+        let cleanedId = activityId.cleanedAsActivityId()
+        TRPCoreKit.shared.delegate?.trpCoreKitDidRequestActivityDetail(activityId: cleanedId)
+    }
+}
+
 // MARK: - TRPTimelineActivityStepCellDelegate
 
 extension TRPTimelineItineraryVC: TRPTimelineActivityStepCellDelegate {

@@ -52,6 +52,15 @@ extension TRPTimelineItineraryVC: UITableViewDataSource {
             if isPastDay { cell.applyPastDayStyle() }
             return cell
 
+        case .flexibleActivity(let cellData):
+            guard let cell = tableView.dequeueReusableCell(withIdentifier: TRPTimelineFlexibleActivityCell.reuseIdentifier, for: indexPath) as? TRPTimelineFlexibleActivityCell else {
+                return UITableViewCell()
+            }
+            cell.configure(with: cellData)
+            cell.delegate = self
+            if isPastDay { cell.applyPastDayStyle() }
+            return cell
+
         case .manualPoi(let cellData):
             guard let cell = tableView.dequeueReusableCell(withIdentifier: TRPTimelineManualPoiCell.reuseIdentifier, for: indexPath) as? TRPTimelineManualPoiCell else {
                 return UITableViewCell()
@@ -211,6 +220,9 @@ extension TRPTimelineItineraryVC: UITableViewDelegate {
             delegate?.timelineItineraryDidSelectBookedActivity(self, segment: cellData.segment)
 
         case .reservedActivity(let cellData):
+            delegate?.timelineItineraryDidSelectBookedActivity(self, segment: cellData.segment)
+
+        case .flexibleActivity(let cellData):
             delegate?.timelineItineraryDidSelectBookedActivity(self, segment: cellData.segment)
 
         case .manualPoi:

@@ -179,6 +179,7 @@ class TRPTimelineBookedActivityCell: UITableViewCell {
 
         // Add tap gesture for cell selection
         let cellTapGesture = UITapGestureRecognizer(target: self, action: #selector(cellTapped))
+        cellTapGesture.delegate = TRPDisabledControlAwareTapDelegate.shared
         contentView.addGestureRecognizer(cellTapGesture)
 
         setupConstraints()
@@ -236,10 +237,10 @@ class TRPTimelineBookedActivityCell: UITableViewCell {
         confirmedBadge.textColor = ColorSet.fgGreen.uiColor
     }
 
-    /// Recolors all text/border to muted gray when this cell belongs to a past day.
-    /// Caller (VC) must invoke this after `configure(...)`.
+    /// Past-day rendering: BookedActivity has no action buttons or reservation CTA, so all
+    /// info (time/title/cancellation/price/tag) stays at normal colors — no-op.
     func applyPastDayStyle() {
-        contentView.trp_recolorLabelsAndBorders(to: ColorSet.fgWeaker.uiColor)
+        // Intentionally empty.
     }
 
     /// Configure cell with pre-computed BookedActivityCellData

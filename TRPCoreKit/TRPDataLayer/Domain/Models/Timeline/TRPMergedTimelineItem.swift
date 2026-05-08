@@ -79,6 +79,23 @@ public class TRPMergedTimelineItem {
         return segmentType == .itinerary
     }
 
+    /// Check if this reserved activity was created with a flexible-time slot.
+    /// Detection: reservedActivity + additionalData.duration == -1 + start/end time in {00:00, 23:59}.
+    public var isFlexibleActivity: Bool {
+        guard segmentType == .reservedActivity else { return false }
+        guard let duration = segment.additionalData?.duration, duration == -1 else { return false }
+
+        let flexibleTimes: Set<String> = ["00:00", "23:59"]
+        let startStr = segment.additionalData?.startDatetime ?? segment.startDate
+        let endStr = segment.additionalData?.endDatetime ?? segment.endDate
+
+        guard let startTime = TRPDateHelper.extractTimeString(startStr),
+              let endTime = TRPDateHelper.extractTimeString(endStr) else {
+            return false
+        }
+        return flexibleTimes.contains(startTime) && flexibleTimes.contains(endTime)
+    }
+
     // MARK: - Computed Properties (Dates)
 
     /// Definitive start date (from segment, using additionalData if available)

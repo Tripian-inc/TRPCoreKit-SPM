@@ -151,7 +151,22 @@ extension TRPTimelineItineraryViewModel {
 
         // Get items grouped by city for section display
         // If no items exist for this date, displayItems will be empty (shows empty state)
-        displayItems = mergedTimeline.itemsGroupedByCity(for: selectedDate)
+        let cityGroups = mergedTimeline.itemsGroupedByCity(for: selectedDate)
+
+        // Within each city, pin flexible-time activities to the top of the section.
+        // Flex items keep their city; only the in-section order is overridden so that
+        // their `00:00` / `23:59` timestamps don't push them out of place.
+        displayItems = cityGroups.map { group in
+            let reordered = group.items.sorted { lhs, rhs in
+                if lhs.isFlexibleActivity != rhs.isFlexibleActivity {
+                    return lhs.isFlexibleActivity
+                }
+                let d1 = lhs.startDate ?? Date.distantFuture
+                let d2 = rhs.startDate ?? Date.distantFuture
+                return d1 < d2
+            }
+            return TRPTimelineCityGroup(city: group.city, items: reordered)
+        }
 
         // Calculate unified orders for the current day
         calculateUnifiedOrders()
@@ -467,6 +482,14 @@ extension TRPTimelineItineraryViewModel {
             for item in sortedItems {
                 // Key format: "sectionIndex_segmentIndex"
                 let key = "\(sectionIndex)_\(item.originalSegmentIndex)"
+
+                // Flexible activities render with "-" instead of an order number;
+                // they must not consume a slot in the day's unified ordering.
+                if item.isFlexibleActivity {
+                    unifiedOrderMap[key] = 0
+                    continue
+                }
+
                 unifiedOrderMap[key] = currentOrder
 
                 switch item.segmentType {

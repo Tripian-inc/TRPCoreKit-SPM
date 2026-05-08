@@ -191,11 +191,6 @@ public class TRPTimelineItineraryVC: TRPBaseUIViewController {
     // Status bar for fullscreen map
     private var statusBarHidden: Bool = false
 
-    /// Text mode requested for the Lottie loader before this VC was on screen. Applied
-    /// on `viewDidAppear` to avoid showing rotating timeline texts while the splash → timeline
-    /// transition is still in progress (the loader is window-attached and visually overlaps splash).
-    internal var pendingLoaderTextMode: LottieLoadingTextMode?
-
     // MARK: - Status Bar
 
     public override var prefersStatusBarHidden: Bool {
@@ -252,16 +247,6 @@ public class TRPTimelineItineraryVC: TRPBaseUIViewController {
         super.viewWillAppear(animated)
         // Ensure default navigation bar stays hidden
         navigationController?.setNavigationBarHidden(true, animated: false)
-    }
-
-    public override func viewDidAppear(_ animated: Bool) {
-        super.viewDidAppear(animated)
-        // Apply any deferred Lottie loader text mode now that the splash → timeline
-        // transition is fully complete (this VC is actually on screen).
-        if let mode = pendingLoaderTextMode {
-            pendingLoaderTextMode = nil
-            TRPLottieLoadingVC.shared.showOnWindow(textMode: mode)
-        }
     }
 
     public override func setupViews() {

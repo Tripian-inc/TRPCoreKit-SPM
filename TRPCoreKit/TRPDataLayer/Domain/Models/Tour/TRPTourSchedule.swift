@@ -24,12 +24,33 @@ public struct TRPTourScheduleSlot: Codable {
     public var isFlexible: Bool { time == nil }
 }
 
-public struct TRPTourSchedule: Codable {
-    public let title: String
+/// One day's worth of slots inside a tour schedule. Always present in the domain
+/// `TRPTourSchedule.dates` array — single-day responses become a 1-entry list, range
+/// responses produce N entries, one per requested day.
+public struct TRPTourScheduleDay: Codable {
+    public let date: String          // "yyyy-MM-dd"
     public let slots: [TRPTourScheduleSlot]
 
-    public init(title: String, slots: [TRPTourScheduleSlot]) {
-        self.title = title
+    public init(date: String, slots: [TRPTourScheduleSlot]) {
+        self.date = date
         self.slots = slots
+    }
+}
+
+public struct TRPTourSchedule: Codable {
+    public let title: String
+    /// Per-day slot buckets. Always populated (at least one entry); range queries
+    /// fan out across multiple days.
+    public let dates: [TRPTourScheduleDay]
+
+    public init(title: String, dates: [TRPTourScheduleDay]) {
+        self.title = title
+        self.dates = dates
+    }
+
+    /// Convenience: flat list of every slot across every day. Useful for callers
+    /// that don't care about per-day grouping.
+    public var allSlots: [TRPTourScheduleSlot] {
+        return dates.flatMap { $0.slots }
     }
 }

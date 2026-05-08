@@ -105,6 +105,34 @@ public enum TRPMapDisplayItem {
         }
     }
 
+    /// Check if this map item is a flexible-time reserved activity.
+    /// Detection: activity segment + additionalData.duration == -1 + start/end times in {00:00, 23:59}.
+    public var isFlexibleActivity: Bool {
+        guard case .activity(let segment) = self else { return false }
+        guard let duration = segment.additionalData?.duration, duration == -1 else { return false }
+
+        let flexibleTimes: Set<String> = ["00:00", "23:59"]
+        let startStr = segment.additionalData?.startDatetime ?? segment.startDate
+        let endStr = segment.additionalData?.endDatetime ?? segment.endDate
+
+        guard let startTime = Self.extractHHmm(startStr),
+              let endTime = Self.extractHHmm(endStr) else {
+            return false
+        }
+        return flexibleTimes.contains(startTime) && flexibleTimes.contains(endTime)
+    }
+
+    private static func extractHHmm(_ raw: String?) -> String? {
+        guard let raw = raw else { return nil }
+        if let date = Date.fromString(raw, format: "yyyy-MM-dd HH:mm:ss") {
+            return date.toString(format: "HH:mm")
+        }
+        if let date = Date.fromString(raw, format: "yyyy-MM-dd HH:mm") {
+            return date.toString(format: "HH:mm")
+        }
+        return nil
+    }
+
     /// Get city name for the item
     public var cityName: String? {
         switch self {

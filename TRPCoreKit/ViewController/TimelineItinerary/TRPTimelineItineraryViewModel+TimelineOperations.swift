@@ -501,7 +501,8 @@ extension TRPTimelineItineraryViewModel {
         let mergeProfile = pendingMergeProfile
         pendingMergeProfile = nil
 
-        delegate?.timelineItineraryViewModel(showLottieLoading: true)
+        // First GetTimeline on SDK open — animation only, no text (per UX policy).
+        delegate?.timelineItineraryViewModel(showLottieLoading: true, textMode: .none)
 
         let repository = TRPTimelineRepository()
         repository.fetchTimeline(tripHash: tripHash) { [weak self] result in

@@ -102,6 +102,34 @@ public struct BookedActivityCellData: TimelineCellData {
     }
 }
 
+// MARK: - Flexible Activity Cell Data
+
+/// Cell data for flexible-time reserved activities (duration == -1, times in {00:00, 23:59}).
+/// Renders without an order number or fixed time range — pinned to the top of the day.
+public struct FlexibleActivityCellData: TimelineCellData {
+    public let segmentIndex: Int
+    public let title: String
+    public let imageUrl: String?
+    public let adultCount: Int
+    public let childCount: Int
+    public let duration: Double?
+    public let price: TRPSegmentActivityPrice?
+    public let cancellation: String?
+    public let segment: TRPTimelineSegment
+
+    public init(from item: TRPMergedTimelineItem) {
+        self.segmentIndex = item.originalSegmentIndex
+        self.title = item.title ?? ""
+        self.imageUrl = item.imageUrl
+        self.adultCount = item.adultCount
+        self.childCount = item.childCount
+        self.duration = item.duration
+        self.price = item.price
+        self.cancellation = item.cancellation
+        self.segment = item.segment
+    }
+}
+
 // MARK: - Manual POI Cell Data
 
 /// Cell data for manual POI cells.
@@ -310,6 +338,9 @@ public enum TimelineCellType {
     /// Reserved activity (pending payment)
     case reservedActivity(BookedActivityCellData)
 
+    /// Reserved activity with a flexible-time slot (no specific start time, pinned to top)
+    case flexibleActivity(FlexibleActivityCellData)
+
     /// Manual POI added by user
     case manualPoi(ManualPoiCellData)
 
@@ -329,6 +360,7 @@ public enum TimelineCellType {
         switch self {
         case .bookedActivity(let data): return data.segmentIndex
         case .reservedActivity(let data): return data.segmentIndex
+        case .flexibleActivity(let data): return data.segmentIndex
         case .manualPoi(let data): return data.segmentIndex
         case .activityStep(let data): return data.segmentIndex
         case .recommendations(let data): return data.segmentIndex
@@ -341,6 +373,7 @@ public enum TimelineCellType {
         switch self {
         case .bookedActivity(let data): return data.segment
         case .reservedActivity(let data): return data.segment
+        case .flexibleActivity(let data): return data.segment
         case .manualPoi(let data): return data.segment
         case .activityStep(let data): return data.segment
         case .recommendations(let data): return data.segment
@@ -365,6 +398,9 @@ extension TimelineCellType {
             return .bookedActivity(BookedActivityCellData(from: item, order: order))
 
         case .reservedActivity:
+            if item.isFlexibleActivity {
+                return .flexibleActivity(FlexibleActivityCellData(from: item))
+            }
             return .reservedActivity(BookedActivityCellData(from: item, order: order))
 
         case .manualPoi:

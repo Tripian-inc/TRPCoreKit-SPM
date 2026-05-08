@@ -103,6 +103,10 @@ public struct AddPlanLocalizationKeys {
     public static let flexibleTimeInfo = "addPlan.time.flexibleInfo"
     public static let flexibleTimePinTopHint = "addPlan.time.flexibleTopOfItinerary"
 
+    // MARK: - Toast / Success Notifications
+    /// Format: takes activity name as %1$@ and day display string as %2$@.
+    public static let activityAddedToast = "addPlan.toast.activityAdded"
+
     // MARK: - Saved Plans Screen
     public static let savedPlans = "addPlan.title.savedPlans"
 
@@ -176,7 +180,8 @@ public struct AddPlanLocalizationKeys {
         errorMissingData: "Missing required information. Please complete all fields.",
         errorCreateFailed: "Failed to create smart recommendation. Please try again.",
         flexibleTimeInfo: "Valid at any time on the chosen day. Check the opening hours.",
-        flexibleTimePinTopHint: "This plan will always appear at the top of your itinerary."
+        flexibleTimePinTopHint: "This plan will always appear at the top of your itinerary.",
+        activityAddedToast: "%1$@ has been added to %2$@"
     ]
     
     // MARK: - Helper Methods

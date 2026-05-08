@@ -169,6 +169,7 @@ class TRPTimelineActivityStepCell: UITableViewCell {
     override func prepareForReuse() {
         super.prepareForReuse()
         resetTextAndBorderDefaults()
+        reservationButton.isHidden = false
     }
 
     private func resetTextAndBorderDefaults() {
@@ -177,10 +178,10 @@ class TRPTimelineActivityStepCell: UITableViewCell {
         activityBadge.textColor = ColorSet.fgGray.uiColor
     }
 
-    /// Recolors all text/border to muted gray when this cell belongs to a past day.
-    /// Caller (VC) must invoke this after `configure(...)`.
+    /// Past-day rendering: keep info content (title/description/badge) at normal colors;
+    /// only hide the reservation CTA so the row is no longer actionable.
     func applyPastDayStyle() {
-        contentView.trp_recolorLabelsAndBorders(to: ColorSet.fgWeaker.uiColor)
+        reservationButton.isHidden = true
     }
 
     // MARK: - Configuration

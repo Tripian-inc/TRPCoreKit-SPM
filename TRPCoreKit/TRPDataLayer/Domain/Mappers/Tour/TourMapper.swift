@@ -160,17 +160,35 @@ final class TourMapper {
         )
     }
 
-    // Map TRPTourScheduleModel to TRPTourSchedule. `time` may be nil to indicate
-    // a flexible (any-time) slot — we preserve those so the booking flow can render
-    // a flexible-time card instead of a time grid.
+    // Map TRPTourScheduleModel to TRPTourSchedule. `time` on individual slots may be
+    // nil to indicate a flexible (any-time) slot — preserved so the booking flow can
+    // render a flexible-time card instead of a time grid.
+    //
+    // The domain `TRPTourSchedule.dates` always carries per-day buckets — range
+    // queries (`to` set) populate the SDK's `dates[]` directly; single-day responses
+    // are synthesized into a 1-entry list from the top-level `date` + flat `slots`
+    // so callers iterate the same shape regardless.
     func mapSchedule(_ scheduleModel: TRPTourScheduleModel) -> TRPTourSchedule {
-        let slots = (scheduleModel.slots ?? []).map { slotModel in
-            TRPTourScheduleSlot(time: slotModel.time, price: slotModel.price)
+        let title = scheduleModel.title
+
+        // Range path: server populated `dates[]`.
+        if let dateModels = scheduleModel.dates, !dateModels.isEmpty {
+            let mappedDays: [TRPTourScheduleDay] = dateModels.compactMap { dayModel in
+                guard let date = dayModel.date else { return nil }
+                let slots = (dayModel.slots ?? []).map { slot in
+                    TRPTourScheduleSlot(time: slot.time, price: slot.price)
+                }
+                return TRPTourScheduleDay(date: date, slots: slots)
+            }
+            return TRPTourSchedule(title: title, dates: mappedDays)
         }
 
-        return TRPTourSchedule(
-            title: scheduleModel.title ?? "",
-            slots: slots
-        )
+        // Single-day fallback: synthesize one TRPTourScheduleDay from the response's
+        // top-level `date` + flat `slots`.
+        let slots = (scheduleModel.slots ?? []).map { slot in
+            TRPTourScheduleSlot(time: slot.time, price: slot.price)
+        }
+        let day = TRPTourScheduleDay(date: scheduleModel.date, slots: slots)
+        return TRPTourSchedule(title: title, dates: [day])
     }
 }

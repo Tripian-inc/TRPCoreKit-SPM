@@ -423,6 +423,12 @@ extension AddPlanTimeSelectionVC: AddPlanTimeSelectionViewModelDelegate {
         collectionView.reloadData()
         updateContinueButton()
 
+        // Days the activity has no availability for render disabled in the day
+        // filter, same as past dates. The VM also auto-shifts `selectedDate` if the
+        // user landed on an unavailable day, so re-sync the visual selection here.
+        dayFilterView.setUnavailableDayIndices(viewModel.unavailableDayIndices())
+        dayFilterView.updateSelectedDay(viewModel.getSelectedDayIndex())
+
         // The bottom-sheet detent depends on which UI is showing — refresh so the
         // sheet shrinks for flexible (no grid) and grows back for timed days.
         updateSheetHeight()

@@ -64,6 +64,11 @@ public struct TimelineLocalizationKeys {
     // MARK: - Time Conflict
     public static let timeOverlap = "timeline.timeOverlap"
 
+    // MARK: - Flexible Activity
+    public static let flexibleEntryTitle = "timeline.flexibleActivity.entryTitle"
+    public static let flexibleEntrySubtitle = "timeline.flexibleActivity.entrySubtitle"
+    public static let flexibleShort = "timeline.flexibleActivity.short"
+
     // MARK: - Duration & Distance Formats
     public static let durationHours = "timeline.format.hours"
     public static let durationMinutes = "timeline.format.minutes"
@@ -113,7 +118,10 @@ public struct TimelineLocalizationKeys {
         errorGenerationFailed: "Failed to generate your itinerary. Please try again.",
         errorTimeout: "Request timed out. Please try again.",
         mapMainView: "Main View",
-        timeOverlap: "Time Overlap"
+        timeOverlap: "Time Overlap",
+        flexibleEntryTitle: "Flexible entry",
+        flexibleEntrySubtitle: "Check the timetable",
+        flexibleShort: "Flexible"
     ]
 
     // MARK: - Helper Methods

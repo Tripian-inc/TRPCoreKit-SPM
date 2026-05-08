@@ -23,7 +23,8 @@ public protocol TRPTimelineDayFilterViewDelegate: AnyObject {
 public class TRPTimelineDayFilterView: UIView {
 
     /// Selection mode controlling how past dates behave.
-    /// - timeline: past dates remain fully selectable and styled like other unselected days.
+    /// - timeline: past dates render with muted text colors so they're visually distinct, but
+    ///   remain selectable (taps are accepted).
     /// - addPlan: past dates render greyed out and ignore taps.
     public enum Mode {
         case timeline
@@ -36,6 +37,10 @@ public class TRPTimelineDayFilterView: UIView {
     private var rawDates: [Date] = []
     private var selectedDayIndex: Int = 0
     private var mode: Mode = .timeline
+    /// Extra indices that should render disabled in `.addPlan` mode in addition to
+    /// past dates — e.g. days a tour has no availability for. Updated by callers via
+    /// `setUnavailableDayIndices(_:)` after their data loads.
+    private var unavailableIndices: Set<Int> = []
 
     // MARK: - UI Components
     private lazy var collectionView: UICollectionView = {
@@ -87,6 +92,9 @@ public class TRPTimelineDayFilterView: UIView {
         self.rawDates = dates
         self.days = formatDays(dates)
         self.selectedDayIndex = selectedDay
+        // Reset any previously-applied unavailable set; callers reapply via
+        // `setUnavailableDayIndices(_:)` after their data is ready.
+        self.unavailableIndices = []
         collectionView.reloadData()
 
         // Scroll to selected day if needed
@@ -95,6 +103,24 @@ public class TRPTimelineDayFilterView: UIView {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
                 self?.collectionView.scrollToItem(at: indexPath, at: .centeredHorizontally, animated: false)
             }
+        }
+    }
+
+    /// Mark which day indices should render disabled (in addition to past dates in
+    /// `.addPlan` mode). Triggers a reload so cells repaint.
+    public func setUnavailableDayIndices(_ indices: Set<Int>) {
+        self.unavailableIndices = indices
+        collectionView.reloadData()
+    }
+
+    /// Update the visually-selected day index without re-running `configure`. Useful
+    /// when the underlying VM auto-shifts the selection after a fetch.
+    public func updateSelectedDay(_ index: Int) {
+        guard index < days.count, index != selectedDayIndex else { return }
+        selectedDayIndex = index
+        collectionView.reloadData()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
+            self?.collectionView.scrollToItem(at: IndexPath(item: index, section: 0), at: .centeredHorizontally, animated: false)
         }
     }
 
@@ -131,8 +157,9 @@ extension TRPTimelineDayFilterView: UICollectionViewDataSource {
         }
 
         let isSelected = indexPath.item == selectedDayIndex
-        let isDisabled = (mode == .addPlan) && isPastIndex(indexPath.item)
-        cell.configure(with: days[indexPath.item], isSelected: isSelected, isDisabled: isDisabled)
+        let isPast = isPastIndex(indexPath.item)
+        let isDisabled = (mode == .addPlan) && (isPast || unavailableIndices.contains(indexPath.item))
+        cell.configure(with: days[indexPath.item], isSelected: isSelected, isDisabled: isDisabled, isPast: isPast)
         return cell
     }
 
@@ -146,7 +173,7 @@ extension TRPTimelineDayFilterView: UICollectionViewDataSource {
 extension TRPTimelineDayFilterView: UICollectionViewDelegate {
 
     public func collectionView(_ collectionView: UICollectionView, shouldSelectItemAt indexPath: IndexPath) -> Bool {
-        if mode == .addPlan, isPastIndex(indexPath.item) {
+        if mode == .addPlan, (isPastIndex(indexPath.item) || unavailableIndices.contains(indexPath.item)) {
             return false
         }
         return true
@@ -223,7 +250,7 @@ class TRPTimelineDayCell: UICollectionViewCell {
         ])
     }
 
-    fileprivate func configure(with data: DayDisplayData, isSelected: Bool, isDisabled: Bool = false) {
+    fileprivate func configure(with data: DayDisplayData, isSelected: Bool, isDisabled: Bool = false, isPast: Bool = false) {
         dayLetterLabel.text = data.dayLetter
         dayNumberLabel.text = data.dayNumber
         monthLabel.text = data.monthAbbrev
@@ -238,10 +265,22 @@ class TRPTimelineDayCell: UICollectionViewCell {
         } else if isSelected {
             contentView.layer.borderWidth = 2
             contentView.layer.borderColor = ColorSet.line.uiColor.cgColor
-            dayLetterLabel.textColor = ColorSet.fg.uiColor
+            // Selected past day keeps the selection border so the user knows which day is active,
+            // but uses muted text colors to retain the "past" signal.
+            let primaryColor = isPast ? ColorSet.fgWeaker.uiColor : ColorSet.fg.uiColor
+            dayLetterLabel.textColor = isPast ? ColorSet.fgWeaker.uiColor : ColorSet.fg.uiColor
             dayNumberLabel.font = FontSet.montserratBold.font(16)
-            dayNumberLabel.textColor = ColorSet.fg.uiColor
-            monthLabel.textColor = ColorSet.fg.uiColor
+            dayNumberLabel.textColor = primaryColor
+            monthLabel.textColor = primaryColor
+        } else if isPast {
+            // Past unselected day in timeline mode — greyed out so it's visually distinct from
+            // today/future. Still tappable (selection isn't blocked here, only in `.addPlan` mode).
+            contentView.layer.borderWidth = 0
+            contentView.layer.borderColor = nil
+            dayLetterLabel.textColor = ColorSet.fgWeaker.uiColor
+            dayNumberLabel.font = FontSet.montserratMedium.font(16)
+            dayNumberLabel.textColor = ColorSet.fgWeaker.uiColor
+            monthLabel.textColor = ColorSet.fgWeaker.uiColor
         } else {
             contentView.layer.borderWidth = 0
             contentView.layer.borderColor = nil
