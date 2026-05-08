@@ -25,10 +25,15 @@ extension TRPTimelineItineraryVC: TRPTimelineDayFilterViewDelegate {
         // Use the same reload flow as initial load to ensure routes are calculated
         reload()
 
-        // Scroll table view to top after reload
+        // Scroll table view to top after reload. When the conflict banner is
+        // installed as `tableHeaderView`, `scrollToRow(0, 0, .top)` would push
+        // the first row to the top — hiding the banner. Use absolute zero
+        // offset so the banner stays visible at the top of the viewport.
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
-            if self.viewModel.numberOfSections() > 0 && self.viewModel.numberOfRows(in: 0) > 0 {
+            if self.tableView.tableHeaderView != nil {
+                self.tableView.setContentOffset(.zero, animated: true)
+            } else if self.viewModel.numberOfSections() > 0 && self.viewModel.numberOfRows(in: 0) > 0 {
                 self.tableView.scrollToRow(at: IndexPath(row: 0, section: 0), at: .top, animated: true)
             } else {
                 self.tableView.setContentOffset(.zero, animated: true)

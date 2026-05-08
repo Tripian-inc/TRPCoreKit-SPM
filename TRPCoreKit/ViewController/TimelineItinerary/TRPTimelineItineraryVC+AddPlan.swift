@@ -196,6 +196,11 @@ extension TRPTimelineItineraryVC: TRPTimelineItineraryViewModelDelegate {
 
     public func timelineItineraryViewModel(didUpdateTimeline: Bool) {
         guard didUpdateTimeline else { return }
+        // Data changed via `fetchAndRefreshTimeline` (add/remove/time edit).
+        // Re-evaluate conflicts from a clean slate: clear the per-day banner
+        // dismissal so a freshly introduced overlap on this day re-surfaces
+        // the warning even if the user dismissed an earlier instance of it.
+        conflictWarningDismissedDayIndex = nil
         // Dismiss any active bottom sheet loader (e.g. "Changing time", "Removing from plan")
         // before reloading so the UI transitions cleanly.
         viewModel(hideLottie: .bottomSheet)

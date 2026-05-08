@@ -60,8 +60,20 @@ public class AddPlanTimeSelectionVC: TRPBaseUIViewController, DynamicHeightPrese
             // + subtitleHeight + 32 (subtitle bottom to button)
             middle = 16 + cardHeight + 8 + subtitleHeight + 32
         } else {
-            // 16 (collection top) + ~196 (~4 rows of slots) + 16 (collection bottom to button)
-            middle = 16 + 196 + 16
+            // Timed grid — height grows with the number of visible cells so the sheet
+            // shrinks for short lists (1 row) and expands for long ones (≥3 rows).
+            // The "Show more" affordance is rendered as the 8th cell, so it just
+            // counts as one more slot in the grid for sizing purposes.
+            // Cell: 40pt tall, 12pt line spacing, 4 columns.
+            let displayedCount = viewModel?.getDisplayedTimeSlots().count ?? 0
+            let extraForShowMore = (viewModel?.hasMoreTimeSlotsToShow() == true) ? 1 : 0
+            let cellCount = displayedCount + extraForShowMore
+            let rowCount = max(1, Int(ceil(Double(cellCount) / 4.0)))
+            let cellHeight: CGFloat = 40
+            let lineSpacing: CGFloat = 12
+            let gridHeight = CGFloat(rowCount) * cellHeight + CGFloat(max(0, rowCount - 1)) * lineSpacing
+            // 16 (collection top) + grid + 16 (collection bottom to button)
+            middle = 16 + gridHeight + 16
         }
         return chrome + middle + bottom
     }
@@ -126,6 +138,7 @@ public class AddPlanTimeSelectionVC: TRPBaseUIViewController, DynamicHeightPrese
         cv.dataSource = self
         cv.showsVerticalScrollIndicator = false
         cv.register(AddPlanTimeSlotCell.self, forCellWithReuseIdentifier: AddPlanTimeSlotCell.reuseIdentifier)
+        cv.register(AddPlanShowMoreSlotCell.self, forCellWithReuseIdentifier: AddPlanShowMoreSlotCell.reuseIdentifier)
         return cv
     }()
 
@@ -305,7 +318,9 @@ public class AddPlanTimeSelectionVC: TRPBaseUIViewController, DynamicHeightPrese
             titleLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
             titleLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
 
-            // Collection View
+            // Collection View — bottom pinned directly to the continue button. The
+            // "Show more" link is rendered as the 8th cell inside the grid, not as a
+            // separate subview, so no extra layout slot is needed.
             collectionView.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 16),
             collectionView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
             collectionView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
@@ -410,6 +425,15 @@ public class AddPlanTimeSelectionVC: TRPBaseUIViewController, DynamicHeightPrese
         }
     }
 
+    /// Expand the slot grid in response to a tap on the "Show more" cell. Reloads the
+    /// collection view so the previously-clipped slots animate in, and refreshes the
+    /// sheet detent because the grid now has more rows.
+    private func handleShowMoreTapped() {
+        viewModel.expandTimeSlots()
+        collectionView.reloadData()
+        updateSheetHeight()
+    }
+
     // MARK: - Helpers
     private func updateContinueButton() {
         let canContinue = viewModel.canContinue()
@@ -421,15 +445,31 @@ public class AddPlanTimeSelectionVC: TRPBaseUIViewController, DynamicHeightPrese
 extension AddPlanTimeSelectionVC: UICollectionViewDataSource {
 
     public func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
-        return viewModel.getTimeSlots().count
+        // Slot cells + one trailing "Show more" cell when the grid is collapsed and
+        // the day has hidden slots. Renders as the 8th item in the 4-column grid.
+        let displayedCount = viewModel.getDisplayedTimeSlots().count
+        let extraForShowMore = viewModel.hasMoreTimeSlotsToShow() ? 1 : 0
+        return displayedCount + extraForShowMore
     }
 
     public func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
+        let displayedCount = viewModel.getDisplayedTimeSlots().count
+        let isShowMoreItem = viewModel.hasMoreTimeSlotsToShow() && indexPath.item == displayedCount
+
+        if isShowMoreItem {
+            guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: AddPlanShowMoreSlotCell.reuseIdentifier, for: indexPath) as? AddPlanShowMoreSlotCell else {
+                return UICollectionViewCell()
+            }
+            let title = AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.showMoreTimeSlots)
+            cell.configure(title: title)
+            return cell
+        }
+
         guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: AddPlanTimeSlotCell.reuseIdentifier, for: indexPath) as? AddPlanTimeSlotCell else {
             return UICollectionViewCell()
         }
 
-        let timeSlots = viewModel.getTimeSlots()
+        let timeSlots = viewModel.getDisplayedTimeSlots()
         let timeSlot = timeSlots[indexPath.item]
         let isSelected = viewModel.getSelectedTimeSlot()?.time == timeSlot.time
 
@@ -443,7 +483,15 @@ extension AddPlanTimeSelectionVC: UICollectionViewDataSource {
 extension AddPlanTimeSelectionVC: UICollectionViewDelegate {
 
     public func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
-        let timeSlots = viewModel.getTimeSlots()
+        let displayedCount = viewModel.getDisplayedTimeSlots().count
+
+        // Trailing "Show more" cell — expand the grid instead of selecting a slot.
+        if viewModel.hasMoreTimeSlotsToShow() && indexPath.item == displayedCount {
+            handleShowMoreTapped()
+            return
+        }
+
+        let timeSlots = viewModel.getDisplayedTimeSlots()
         let timeSlot = timeSlots[indexPath.item]
 
         viewModel.selectTimeSlot(timeSlot)
@@ -481,6 +529,10 @@ extension AddPlanTimeSelectionVC: AddPlanTimeSelectionViewModelDelegate {
         flexibleSubtitleLabel.isHidden = allDaysUnavailable || !isFlexible
         collectionView.isHidden = allDaysUnavailable || isFlexible
         emptyStateLabel.isHidden = allDaysUnavailable || isFlexible || hasTimeSlots
+
+        // The "Show more" cell is rendered inline by the data source as the 8th item
+        // when the grid is collapsed and there are >8 slots — no separate visibility
+        // toggle needed here.
 
         collectionView.reloadData()
         updateContinueButton()

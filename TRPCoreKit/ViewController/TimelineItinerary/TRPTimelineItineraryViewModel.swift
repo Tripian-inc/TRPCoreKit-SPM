@@ -326,6 +326,17 @@ public class TRPTimelineItineraryViewModel {
         updateDisplayItems()
     }
 
+    /// Whether any displayed item on the currently selected day has a time conflict.
+    /// Drives the "Time Overlap" banner shown above the timeline list.
+    public func hasConflictOnSelectedDay() -> Bool {
+        for cityGroup in displayItems {
+            for item in cityGroup.items {
+                if item.hasConflict { return true }
+            }
+        }
+        return false
+    }
+
     // MARK: - Collapse State Management
 
     /// Get collapse state for a section (default is expanded = true)

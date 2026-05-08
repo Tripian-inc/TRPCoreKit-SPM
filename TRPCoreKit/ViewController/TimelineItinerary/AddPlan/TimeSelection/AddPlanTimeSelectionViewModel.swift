@@ -37,6 +37,17 @@ public class AddPlanTimeSelectionViewModel {
     private var selectedTimeSlot: TimeSlot?
     private var hasPreloadedSlots: Bool = false
 
+    /// Maximum slots shown collapsed before the "More" link appears. When the day has
+    /// strictly more than this many slots, the grid renders the first
+    /// `collapsedSlotCount` and a "Show more" link below; tapping the link expands the
+    /// grid to the full set.
+    private let collapsedSlotThreshold: Int = 8
+    private let collapsedSlotCount: Int = 7
+
+    /// Expansion flag for the slot grid. Reset to `false` whenever the day changes so
+    /// each day starts collapsed.
+    private(set) public var isTimeSlotsExpanded: Bool = false
+
     /// Polling use case retained for the duration of a "wait for timeline regeneration"
     /// step that runs after a successful segment-creation API call. Held as a strong
     /// reference so it isn't deallocated mid-poll; cleared once the cycle finishes.
@@ -211,6 +222,8 @@ public class AddPlanTimeSelectionViewModel {
         if selectedDate != newDate {
             selectedDate = newDate
             selectedTimeSlot = nil
+            // Each day starts collapsed — user has to expand again per-day if needed.
+            isTimeSlotsExpanded = false
             delegate?.timeSlotsDidLoad()
         }
     }
@@ -221,6 +234,28 @@ public class AddPlanTimeSelectionViewModel {
         let slots = validTimedSlots(for: selectedDate)
         // Deduplicate slots by time, keeping the one with lowest price
         return deduplicateSlotsByTime(slots)
+    }
+
+    /// Slots actually shown in the grid right now. Honours the collapsed/expanded state
+    /// so the "Show more" link can hide the tail. When the total count is at or below
+    /// `collapsedSlotThreshold`, returns everything regardless of expansion state.
+    public func getDisplayedTimeSlots() -> [TimeSlot] {
+        let all = getTimeSlots()
+        guard !isTimeSlotsExpanded, all.count > collapsedSlotThreshold else { return all }
+        return Array(all.prefix(collapsedSlotCount))
+    }
+
+    /// True when there are strictly more slots than `collapsedSlotThreshold` AND the grid
+    /// is still collapsed — drives whether the "Show more" link is visible.
+    public func hasMoreTimeSlotsToShow() -> Bool {
+        return !isTimeSlotsExpanded && getTimeSlots().count > collapsedSlotThreshold
+    }
+
+    /// Expand the slot grid to show every available slot. No-op if already expanded.
+    /// Caller should reload the grid + refresh the sheet height afterward.
+    public func expandTimeSlots() {
+        guard !isTimeSlotsExpanded else { return }
+        isTimeSlotsExpanded = true
     }
 
     /// Returns the cached timed slots for `date` minus any whose time-of-day is already

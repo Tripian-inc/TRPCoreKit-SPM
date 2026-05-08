@@ -49,8 +49,11 @@ public struct BookedActivityCellData: TimelineCellData {
     public let segment: TRPTimelineSegment
 
     // MARK: - Conflict Detection
-    /// Whether this activity has a time conflict (UI styling only, no text for booked activities)
+    /// Whether this activity has a time conflict (drives the red time-badge styling).
     public var hasConflict: Bool = false
+    /// Whether to render the "Time Overlap" label next to the time range.
+    /// Booked-activity cells hard-code this to false; reserved-activity cells honour it.
+    public var showTimeOverlapText: Bool = false
 
     // MARK: - Initialization
 
@@ -67,7 +70,8 @@ public struct BookedActivityCellData: TimelineCellData {
         price: TRPSegmentActivityPrice?,
         cancellation: String?,
         segment: TRPTimelineSegment,
-        hasConflict: Bool = false
+        hasConflict: Bool = false,
+        showTimeOverlapText: Bool = false
     ) {
         self.segmentIndex = segmentIndex
         self.order = order
@@ -82,6 +86,7 @@ public struct BookedActivityCellData: TimelineCellData {
         self.cancellation = cancellation
         self.segment = segment
         self.hasConflict = hasConflict
+        self.showTimeOverlapText = showTimeOverlapText
     }
 
     /// Create from TRPMergedTimelineItem with unified order
@@ -99,6 +104,7 @@ public struct BookedActivityCellData: TimelineCellData {
         self.cancellation = item.cancellation
         self.segment = item.segment
         self.hasConflict = item.hasConflict
+        self.showTimeOverlapText = item.showTimeOverlapText
     }
 }
 

@@ -313,7 +313,7 @@ class TRPTimelineReservedActivityCell: UITableViewCell {
             startTime: startTime,
             endTime: endTime,
             hasConflict: cellData.hasConflict,
-            showTimeOverlapText: false  // BookedActivity never shows "Time Overlap" text
+            showTimeOverlapText: cellData.showTimeOverlapText
         )
 
         // Image

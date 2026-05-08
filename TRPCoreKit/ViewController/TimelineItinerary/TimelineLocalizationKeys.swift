@@ -63,6 +63,7 @@ public struct TimelineLocalizationKeys {
 
     // MARK: - Time Conflict
     public static let timeOverlap = "timeline.timeOverlap"
+    public static let conflictWarning = "timeline.conflictWarning"
 
     // MARK: - Flexible Activity
     public static let flexibleEntryTitle = "timeline.flexibleActivity.entryTitle"
@@ -119,6 +120,7 @@ public struct TimelineLocalizationKeys {
         errorTimeout: "Request timed out. Please try again.",
         mapMainView: "Main View",
         timeOverlap: "Time Overlap",
+        conflictWarning: "Some of your planned activities overlap. Please review the timing to resolve any conflicts.",
         flexibleEntryTitle: "Flexible entry",
         flexibleEntrySubtitle: "Check the timetable",
         flexibleShort: "Flexible"

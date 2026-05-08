@@ -86,6 +86,9 @@ extension TRPTimelineItineraryVC {
     }
 
     internal func setupTableView() {
+        // Banner is attached to tableView as `tableHeaderView` — it scrolls with
+        // the list contents instead of staying pinned above them. The host VC
+        // installs/removes it in `updateConflictWarningVisibility()`.
         view.addSubview(tableView)
 
         NSLayoutConstraint.activate([

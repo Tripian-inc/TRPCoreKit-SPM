@@ -63,6 +63,27 @@ public class TRPTimelineItineraryVC: TRPBaseUIViewController {
         return view
     }()
 
+    /// Pink banner shown as `tableView.tableHeaderView` when any item on the
+    /// selected day has a time conflict. Lives inside the table so it scrolls
+    /// with the list. Visibility is driven by `updateConflictWarningVisibility()`
+    /// from `reload()`. Once the user dismisses it for the current day,
+    /// `conflictWarningDismissedDayIndex` keeps it hidden until the day changes
+    /// or the timeline is refreshed.
+    internal lazy var conflictWarningView: TRPTimelineConflictWarningView = {
+        let view = TRPTimelineConflictWarningView()
+        view.onCloseTapped = { [weak self] in
+            guard let self = self else { return }
+            self.conflictWarningDismissedDayIndex = self.viewModel.selectedDayIndex
+            self.updateConflictWarningVisibility()
+        }
+        return view
+    }()
+
+    /// Day index for which the user manually dismissed the conflict banner.
+    /// Reset on timeline refresh (in `updateTimeline`) so a new conflict that
+    /// arrives later still surfaces.
+    internal var conflictWarningDismissedDayIndex: Int?
+
     internal lazy var tableView: UITableView = {
         let table = UITableView(frame: .zero, style: .grouped)
         table.translatesAutoresizingMaskIntoConstraints = false
@@ -171,7 +192,7 @@ public class TRPTimelineItineraryVC: TRPBaseUIViewController {
 
     // Multi-city zoom state: true when zoomed in enough to show step markers
     internal var isShowingStepMarkersInMultiCity: Bool = false
-    internal let multiCityZoomThreshold: CGFloat = 12.0  // Above this = show step markers
+    internal let multiCityZoomThreshold: CGFloat = 13.0  // Above this = show step markers
 
     // Selected marker tracking for marker appearance (one per city)
     internal var selectedMarkerPoiIds: Set<String> = []
@@ -478,6 +499,7 @@ public class TRPTimelineItineraryVC: TRPBaseUIViewController {
         updateSavedPlansButton()
 
         tableView.reloadData()
+        updateConflictWarningVisibility()
 
         // Pre-calculate routes for itinerary segments with multiple steps
         calculateRoutesForItinerarySegments()
@@ -487,6 +509,53 @@ public class TRPTimelineItineraryVC: TRPBaseUIViewController {
         if isShowingMap {
             refreshMap()
             updatePOIPreviewCards()
+        }
+    }
+
+    /// Install the pink conflict banner as `tableView.tableHeaderView` when the
+    /// selected day has conflicts and the user hasn't dismissed it. The banner
+    /// scrolls with the list — once the user scrolls past it, it disappears
+    /// off-screen naturally. When the banner first becomes visible we also
+    /// reset the table to absolute top so the banner is actually shown
+    /// (otherwise any prior content offset would keep it hidden behind the day
+    /// filter).
+    internal func updateConflictWarningVisibility() {
+        let dayIndex = viewModel.selectedDayIndex
+        let hasConflict = viewModel.hasConflictOnSelectedDay()
+        let dismissedForThisDay = (conflictWarningDismissedDayIndex == dayIndex)
+        let shouldShow = hasConflict && !dismissedForThisDay
+
+        guard shouldShow else {
+            tableView.tableHeaderView = nil
+            return
+        }
+
+        let wasAlreadyInstalled = (tableView.tableHeaderView != nil)
+
+        // tableHeaderView needs an explicit frame — Auto Layout doesn't size it
+        // for us. Force any pending layout pass so tableView.bounds.width is
+        // valid even on the very first reload, then compute the banner height
+        // for that width and (re-)assign it so UITableView picks up the size.
+        view.layoutIfNeeded()
+        let banner = conflictWarningView
+        let width = tableView.bounds.width
+        guard width > 0 else { return }
+
+        let target = CGSize(width: width, height: UIView.layoutFittingCompressedSize.height)
+        let height = banner.systemLayoutSizeFitting(
+            target,
+            withHorizontalFittingPriority: .required,
+            verticalFittingPriority: .fittingSizeLevel
+        ).height
+        banner.frame = CGRect(x: 0, y: 0, width: width, height: height)
+        tableView.tableHeaderView = banner
+
+        // Banner just became visible — pull the table to absolute top so it's
+        // not hidden behind the day filter. Skip when re-installing during a
+        // routine reload (banner already visible) to avoid yanking the scroll
+        // away from where the user was reading.
+        if !wasAlreadyInstalled {
+            tableView.setContentOffset(.zero, animated: false)
         }
     }
 
@@ -510,6 +579,9 @@ public class TRPTimelineItineraryVC: TRPBaseUIViewController {
         // Clear both caches when timeline data changes
         routeCache.removeAll()
         calculatedDistances.removeAll()
+        // Reset banner dismissal — fresh data may surface conflicts the user
+        // dismissed previously for a different state of the day.
+        conflictWarningDismissedDayIndex = nil
         viewModel.updateTimeline(timeline)
         reload()
     }

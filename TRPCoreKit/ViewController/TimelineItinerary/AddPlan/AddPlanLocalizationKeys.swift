@@ -108,6 +108,10 @@ public struct AddPlanLocalizationKeys {
     /// today with all slots already expired).
     public static let activityNotAvailableForTrip = "addPlan.time.activityNotAvailableForTrip"
 
+    /// Underlined "Show more" link rendered below the time-slot grid when there are
+    /// strictly more slots than fit in the collapsed view (>8). Tap expands to all.
+    public static let showMoreTimeSlots = "addPlan.time.showMore"
+
     // MARK: - Toast / Success Notifications
     /// Format: takes activity name as %1$@ and day display string as %2$@.
     public static let activityAddedToast = "addPlan.toast.activityAdded"
@@ -207,6 +211,7 @@ public struct AddPlanLocalizationKeys {
         flexibleTimeInfo: "Valid at any time on the chosen day. Check the opening hours.",
         flexibleTimePinTopHint: "This plan will always appear at the top of your itinerary.",
         activityNotAvailableForTrip: "This activity is not available on the days of your trip.",
+        showMoreTimeSlots: "More",
         activityAddedToast: "%1$@ has been added to %2$@"
     ]
     
