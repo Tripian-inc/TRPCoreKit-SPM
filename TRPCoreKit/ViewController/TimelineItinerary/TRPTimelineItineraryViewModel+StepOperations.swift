@@ -74,8 +74,8 @@ extension TRPTimelineItineraryViewModel {
     ///   - step: The step to remove
     ///   - completion: Completion handler with success/failure result
     public func removeStep(_ step: TRPTimelineStep, completion: ((Result<Bool, Error>) -> Void)? = nil) {
-        // Show loading
-        delegate?.viewModel(showPreloader: true)
+        let removingText = LoadingLocalizationKeys.localized(LoadingLocalizationKeys.removingFromPlan)
+        delegate?.viewModel(showLottieBottomSheet: true, text: removingText)
 
         // Use the UseCase for step deletion
         timelineModeUseCases.executeDeleteStep(id: step.id) { [weak self] result in
@@ -84,13 +84,16 @@ extension TRPTimelineItineraryViewModel {
             DispatchQueue.main.async {
                 switch result {
                 case .success:
-                    // Refresh timeline from server to get correct ordering
+                    // Keep the "Removing from plan" sheet visible until the refresh
+                    // completes, then dismiss it so the user sees a single continuous
+                    // loader for the whole operation.
                     self.fetchAndRefreshTimeline { _ in
+                        self.delegate?.viewModel(showLottieBottomSheet: false, text: nil)
                         completion?(.success(true))
                     }
 
                 case .failure(let error):
-                    self.delegate?.viewModel(showPreloader: false)
+                    self.delegate?.viewModel(showLottieBottomSheet: false, text: nil)
                     self.delegate?.viewModel(error: error)
                     completion?(.failure(error))
                 }

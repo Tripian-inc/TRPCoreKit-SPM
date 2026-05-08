@@ -16,8 +16,17 @@ public class SavedPlansVC: TRPBaseUIViewController {
     private var viewModel: SavedPlansViewModel!
     private var customNavigationBar: TRPTimelineCustomNavigationBar!
 
-    // Callback when segment is created successfully, passes selected day for navigation
+    // Callback when segment is created successfully, passes selected day for navigation.
+    // Legacy "dismiss everything" path; left in place for any external caller still wired
+    // to it. Internal flow now prefers the silent variant below.
     public var onSegmentCreated: ((Date?) -> Void)?
+
+    /// Callback fired AFTER the activity has been added and the timeline regeneration
+    /// poll has completed. Saved Plans stays open (no dismiss); the host VC is expected
+    /// to refresh its timeline silently (e.g. apply pending day navigation). Mirrors
+    /// `AddPlanActivityListingVC.onSegmentCreatedSilent` so both add-to-itinerary entry
+    /// points behave the same — keep the listing visible, show a success toast on it.
+    public var onSegmentCreatedSilent: ((Date?) -> Void)?
 
     // MARK: - UI Components
     private lazy var tableView: UITableView = {
@@ -173,17 +182,30 @@ extension SavedPlansVC: ActivityCardCellDelegate {
         let planData = viewModel.createAddPlanData(cityId: tour.cityId)
         let timeSelectionVC = AddPlanTimeSelectionVC(tour: tour, planData: planData)
 
-        timeSelectionVC.onTimeSelected = { [weak self] selectedDate, selectedTimeSlot in
-            print("Selected date: \(selectedDate), time: \(selectedTimeSlot.time)")
-        }
+        timeSelectionVC.onTimeSelected = { _, _ in }
 
-        // Set segment creation callback with selected day for navigation
+        // Capture the activity name + product id; day label comes from the Date extension.
+        // Mirrors the ActivityListing flow: keep Saved Plans visible, show a success toast
+        // on it, and let the host refresh the timeline silently. The "Adding…" Lottie loader
+        // is shown inside the time-selection sheet for the entire create + GetTimeline poll
+        // window, so by the time this callback fires the regeneration is already done.
+        let activityName = tour.name
+        let productId = tour.productId
         timeSelectionVC.onSegmentCreated = { [weak self] selectedDay in
-            // First dismiss time selection, then dismiss saved plans
-            self?.dismiss(animated: true) { [weak self] in
-                // Trigger parent callback with selected day
-                self?.onSegmentCreated?(selectedDay)
-            }
+            guard let self = self else { return }
+
+            let dayLabel = selectedDay?.weekdayWithDayMonth() ?? ""
+            let template = AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.activityAddedToast)
+            let message = String(format: template, activityName, dayLabel)
+            TRPSuccessToast.show(over: self, message: message)
+
+            // Drop the just-added activity from the saved-plans list so the user sees it
+            // disappear immediately. The VM fires `savedPlansDidLoad` after mutating, which
+            // reloads the table for us.
+            self.viewModel.removeItem(matchingProductId: productId)
+
+            // Stay on Saved Plans — host VC refreshes the timeline silently.
+            self.onSegmentCreatedSilent?(selectedDay)
         }
 
         // Present as dynamic height bottom sheet

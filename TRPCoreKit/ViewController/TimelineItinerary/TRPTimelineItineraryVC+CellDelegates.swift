@@ -519,13 +519,15 @@ extension TRPTimelineItineraryVC: TRPTimelineSavedPlansButtonDelegate {
 
         let savedPlansVC = SavedPlansVC(viewModel: savedPlansViewModel)
 
-        // Set callback for segment creation with selected day for navigation
-        savedPlansVC.onSegmentCreated = { [weak self] selectedDay in
-            guard let self = self else { return }
-            // Set pending day navigation before refresh
-            self.setPendingDayNavigation(selectedDay: selectedDay)
-            // Refresh timeline after segment is created
-            self.refreshTimelineAfterSegmentCreation()
+        // Saved Plans now mirrors the Activity Listing flow: it stays open after a
+        // successful add, the time-selection sheet's own Lottie loader covers the
+        // create + GetTimeline regeneration window, and only the timeline behind us
+        // needs a silent refresh (pending-day navigation; the actual data sync is
+        // already driven by `TRPTimelineRefreshState.shared.setCompleted` from the
+        // time-selection VM). Pass through the legacy `onSegmentCreated` too so any
+        // external caller still using it keeps working.
+        savedPlansVC.onSegmentCreatedSilent = { [weak self] selectedDay in
+            self?.refreshTimelineSilently(selectedDay: selectedDay)
         }
 
         // Present in navigation controller

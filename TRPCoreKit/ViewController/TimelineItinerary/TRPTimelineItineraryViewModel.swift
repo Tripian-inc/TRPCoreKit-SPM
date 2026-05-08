@@ -44,7 +44,18 @@ public typealias MapDisplayItem = TRPMapDisplayItem
 public class TRPTimelineItineraryViewModel {
 
     // MARK: - Properties
-    public weak var delegate: TRPTimelineItineraryViewModelDelegate?
+    public weak var delegate: TRPTimelineItineraryViewModelDelegate? {
+        didSet {
+            // Lazy subscription to the shared refresh state — installed on first
+            // delegate assignment so any cross-screen refresh trigger (e.g. manual
+            // activity add from `AddPlanTimeSelectionVC`) propagates back into a
+            // local `refreshTimeline()` without each call site having to wire it.
+            ensureRefreshStateObserverInstalled()
+        }
+    }
+    /// Whether the shared `TRPTimelineRefreshState` observer has been installed for
+    /// this VM. One-shot — multiple delegate set/clears don't re-subscribe.
+    private var hasObservedRefreshState: Bool = false
 
     internal var timeline: TRPTimeline?
     internal var itineraryModel: TRPItineraryWithActivities?
@@ -477,5 +488,25 @@ public class TRPTimelineItineraryViewModel {
             return TRPLocation(lat: 0, lon: 0)
         }
         return TRPLocation(lat: lat, lon: lon)
+    }
+
+    /// Subscribe to the app-wide `TRPTimelineRefreshState` once. When any flow
+    /// (this VM's own `waitForSegmentGeneration`, or a sibling VM such as
+    /// `AddPlanTimeSelectionViewModel`'s post-creation polling) reports
+    /// `.completed`, apply any pending day navigation and refresh local timeline
+    /// data so the screen shows the latest segments the next time it's visible.
+    private func ensureRefreshStateObserverInstalled() {
+        guard !hasObservedRefreshState else { return }
+        hasObservedRefreshState = true
+        TRPTimelineRefreshState.shared.status.addObserver(self, getDefaultValues: false) { [weak self] status in
+            guard let self = self, case .completed = status else { return }
+            DispatchQueue.main.async {
+                if let dayIndex = self.pendingNavigationDayIndex {
+                    self.selectedDayIndex = dayIndex
+                    self.pendingNavigationDayIndex = nil
+                }
+                self.refreshTimeline()
+            }
+        }
     }
 }

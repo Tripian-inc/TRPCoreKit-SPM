@@ -257,11 +257,23 @@ extension TRPTimelineItineraryViewModel {
         }
     }
 
-    /// Waits for segment generation to complete (polls timeline until generatedStatus != 0)
-    public func waitForSegmentGeneration(tripHash: String) {
-        // Show Lottie loading (for manual POI/Activity - smart recommendations already show it)
-        // VC ignores duplicate calls if loading is already visible
-        delegate?.timelineItineraryViewModel(showLottieLoading: true)
+    /// Waits for segment generation to complete (polls timeline until generatedStatus != 0).
+    ///
+    /// - Parameters:
+    ///   - tripHash: Trip identifier for the polling endpoint.
+    ///   - silent: When `true`, the window-level Lottie loader and the error alert
+    ///     are suppressed. The shared `TRPTimelineRefreshState` publisher is still
+    ///     updated for every transition, so screens initiating a silent refresh
+    ///     (e.g. manual activity add from `AddPlanActivityListingVC`) can subscribe
+    ///     for completion without hijacking the foreground UX. Defaults to `false`
+    ///     so existing flows (Smart Recommendations, edit modes) keep their loader.
+    public func waitForSegmentGeneration(tripHash: String, silent: Bool = false) {
+        if !silent {
+            // Show Lottie loading (manual POI/Activity — smart recommendations already
+            // show it; VC ignores duplicate calls if loading is already visible).
+            delegate?.timelineItineraryViewModel(showLottieLoading: true)
+        }
+        TRPTimelineRefreshState.shared.setRefreshing()
 
         let repository = TRPTimelineRepository()
         let modelRepository = TRPTimelineModelRepository()
@@ -278,17 +290,15 @@ extension TRPTimelineItineraryViewModel {
             guard isGenerated else { return }
 
             DispatchQueue.main.async {
-                // Apply pending day navigation before refresh
-                if let dayIndex = self.pendingNavigationDayIndex {
-                    self.selectedDayIndex = dayIndex
-                    self.pendingNavigationDayIndex = nil
-                }
-
-                // Refresh timeline now that generation is complete
-                self.refreshTimeline()
-
                 // Clear use case reference after completion
                 self.checkAllPlanUseCase = nil
+
+                // Broadcast completion — the VM's own observer on
+                // `TRPTimelineRefreshState` (installed on delegate set) applies
+                // `pendingNavigationDayIndex` and runs `refreshTimeline()` in a
+                // single place, so this path and silent paths from sibling VMs
+                // share the same post-completion handler.
+                TRPTimelineRefreshState.shared.setCompleted()
             }
         }
 
@@ -303,10 +313,15 @@ extension TRPTimelineItineraryViewModel {
 
             case .failure(let error):
                 DispatchQueue.main.async {
-                    self.delegate?.timelineItineraryViewModel(showLottieLoading: false)
-                    self.delegate?.viewModel(error: error)
+                    if !silent {
+                        self.delegate?.timelineItineraryViewModel(showLottieLoading: false)
+                        self.delegate?.viewModel(error: error)
+                    }
                     // Clear use case reference on error
                     self.checkAllPlanUseCase = nil
+
+                    // Broadcast failure regardless of silent — subscribers decide UX.
+                    TRPTimelineRefreshState.shared.setFailed(error)
                 }
             }
         }
@@ -328,8 +343,8 @@ extension TRPTimelineItineraryViewModel {
 
         let tripHash = timeline.tripHash
 
-        // Show loading
-        delegate?.viewModel(showPreloader: true)
+        let removingText = LoadingLocalizationKeys.localized(LoadingLocalizationKeys.removingFromPlan)
+        delegate?.viewModel(showLottieBottomSheet: true, text: removingText)
 
         // Delete segment via repository
         let repository = TRPTimelineRepository()
@@ -340,14 +355,18 @@ extension TRPTimelineItineraryViewModel {
                 switch result {
                 case .success(let success):
                     if success {
-                        // Refresh timeline to get updated data
-                        self.refreshTimeline()
+                        // Keep the "Removing from plan" sheet visible through the
+                        // refresh; dismiss after the timeline data is reloaded so the
+                        // loader covers the full operation.
+                        self.fetchAndRefreshTimeline { _ in
+                            self.delegate?.viewModel(showLottieBottomSheet: false, text: nil)
+                        }
                     } else {
-                        self.delegate?.viewModel(showPreloader: false)
+                        self.delegate?.viewModel(showLottieBottomSheet: false, text: nil)
                         self.delegate?.viewModel(error: NSError(domain: "Timeline", code: -1, userInfo: [NSLocalizedDescriptionKey: "Failed to remove segment"]))
                     }
                 case .failure(let error):
-                    self.delegate?.viewModel(showPreloader: false)
+                    self.delegate?.viewModel(showLottieBottomSheet: false, text: nil)
                     self.delegate?.viewModel(error: error)
                 }
             }

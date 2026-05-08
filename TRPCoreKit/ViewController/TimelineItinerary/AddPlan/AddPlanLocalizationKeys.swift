@@ -103,6 +103,11 @@ public struct AddPlanLocalizationKeys {
     public static let flexibleTimeInfo = "addPlan.time.flexibleInfo"
     public static let flexibleTimePinTopHint = "addPlan.time.flexibleTopOfItinerary"
 
+    /// Banner shown on the time-selection screen when the activity has no availability
+    /// for any day of the user's trip (every day is unavailable: past, no slots, or
+    /// today with all slots already expired).
+    public static let activityNotAvailableForTrip = "addPlan.time.activityNotAvailableForTrip"
+
     // MARK: - Toast / Success Notifications
     /// Format: takes activity name as %1$@ and day display string as %2$@.
     public static let activityAddedToast = "addPlan.toast.activityAdded"
@@ -181,6 +186,7 @@ public struct AddPlanLocalizationKeys {
         errorCreateFailed: "Failed to create smart recommendation. Please try again.",
         flexibleTimeInfo: "Valid at any time on the chosen day. Check the opening hours.",
         flexibleTimePinTopHint: "This plan will always appear at the top of your itinerary.",
+        activityNotAvailableForTrip: "This activity is not available on the days of your trip.",
         activityAddedToast: "%1$@ has been added to %2$@"
     ]
     

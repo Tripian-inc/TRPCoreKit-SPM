@@ -169,17 +169,19 @@ extension TRPTimelineItineraryViewModel {
     }
 
     /// Get cities with coordinates for the selected day (for city marker annotations)
-    /// Returns tuples of (city, coordinate) where coordinate is from the first item in each city group
+    /// Prefers `TRPCity.coordinate` so the city marker doesn't collide with the auto-selected
+    /// step marker (which uses the first item's coordinate). Falls back to the first item only
+    /// when the city has no coordinate set (lat/lon both zero).
     public func getCitiesWithCoordinatesForSelectedDay() -> [(city: TRPCity, coordinate: TRPLocation)] {
         var result: [(city: TRPCity, coordinate: TRPLocation)] = []
 
         for cityGroup in displayItems {
             guard let city = cityGroup.city else { continue }
 
-            // Get coordinate from first item in the group
-            if let firstItem = cityGroup.items.first,
-               let coordinate = firstItem.coordinate {
-                result.append((city: city, coordinate: coordinate))
+            if city.coordinate.lat != 0 || city.coordinate.lon != 0 {
+                result.append((city: city, coordinate: city.coordinate))
+            } else if let firstItemCoordinate = cityGroup.items.first?.coordinate {
+                result.append((city: city, coordinate: firstItemCoordinate))
             }
         }
 

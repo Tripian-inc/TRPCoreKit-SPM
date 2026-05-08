@@ -167,14 +167,13 @@ extension TRPTimelineItineraryVC: AddPlanContainerVCDelegate {
         viewModel.waitForSegmentGeneration(tripHash: tripHash)
     }
 
-    /// Refresh the timeline data without dismissing any of the modal stack
-    /// (AddPlanContainerVC / ActivityListing / TimeSelection). Used by flows that
-    /// surface their own in-screen confirmation (toast) and want the user to keep
-    /// browsing — the underlying timeline still reflects the new segment when the
-    /// user eventually returns to it.
+    /// Set up the pending day navigation hint for screens that initiate their
+    /// own silent refresh (e.g. `AddPlanTimeSelectionViewModel` polls + emits
+    /// `TRPTimelineRefreshState.completed` directly). The VM's state observer
+    /// applies the pending day and runs `refreshTimeline()` when completion
+    /// fires, so there's no need to start a parallel polling cycle here.
     internal func refreshTimelineSilently(selectedDay: Date?) {
         setPendingDayNavigation(selectedDay: selectedDay)
-        refreshTimelineAfterSegmentCreation()
     }
 
     // MARK: - Smart Recommendations Segment Creation

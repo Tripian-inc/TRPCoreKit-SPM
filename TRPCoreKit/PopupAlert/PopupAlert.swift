@@ -78,8 +78,11 @@ class PopupAlert: UIViewController {
         subContentLbl.text = subContentTitle
     }
     @IBAction func okAction(_ sender: Any) {
-        btnConfirmAction?()
-        closeSelf()
+        // Dismiss the alert first, then fire the confirm action so that any
+        // loading UI shown inside the action doesn't get pulled away by the
+        // dismiss animation.
+        let action = btnConfirmAction
+        closeSelf { action?() }
     }
     
     @IBAction func cancelAction(_ sender: Any) {
@@ -129,9 +132,9 @@ class PopupAlert: UIViewController {
         closeSelf()
     }
     
-    public func closeSelf() {
+    public func closeSelf(completion: (() -> Void)? = nil) {
         self.delegate?.closedPopup()
-        self.dismiss(animated: true, completion: nil)
+        self.dismiss(animated: true, completion: completion)
     }
 }
 

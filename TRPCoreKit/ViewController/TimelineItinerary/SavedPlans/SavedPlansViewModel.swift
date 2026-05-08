@@ -71,9 +71,49 @@ public class SavedPlansViewModel {
         return sections[indexPath.section].items[indexPath.row]
     }
 
-    /// Get total count of all items
+    /// Get total count of all items currently displayed (after any removals).
     public func getTotalItemCount() -> Int {
-        return favouriteItems.count
+        return sections.reduce(0) { $0 + $1.items.count }
+    }
+
+    /// Removes the favourite item whose activity id matches `productId` from the
+    /// displayed sections. Used after a successful add-to-timeline so the just-added
+    /// activity disappears from the list immediately, without waiting for a full
+    /// refresh round-trip. `productId` may be the raw id (`"12345"`), the `C_` form
+    /// (`"C_12345_15"`), or the city-suffixed form (`"C_12345_15_109"`); they all
+    /// reduce to the same core id for matching.
+    /// - Returns: `true` if any item was removed.
+    @discardableResult
+    public func removeItem(matchingProductId productId: String) -> Bool {
+        let target = coreActivityId(productId)
+        var didRemove = false
+
+        for sectionIndex in sections.indices {
+            sections[sectionIndex].items.removeAll { item in
+                guard let activityId = item.activityId else { return false }
+                if coreActivityId(activityId) == target {
+                    didRemove = true
+                    return true
+                }
+                return false
+            }
+        }
+        // Drop sections that just emptied out so the list collapses naturally.
+        sections.removeAll { $0.items.isEmpty }
+
+        if didRemove {
+            delegate?.savedPlansDidLoad()
+        }
+        return didRemove
+    }
+
+    /// Strip the `C_` prefix and any provider/city suffixes so we can compare ids
+    /// regardless of which encoding the caller hands us. `"C_12345_15_109"` → `"12345"`.
+    private func coreActivityId(_ id: String) -> String {
+        guard id.hasPrefix("C_") else { return id }
+        let withoutPrefix = id.dropFirst(2) // "12345_15_109"
+        let parts = withoutPrefix.split(separator: "_")
+        return parts.first.map(String.init) ?? id
     }
 
     /// Convert TRPSegmentFavoriteItem to TRPTourProduct for time selection flow

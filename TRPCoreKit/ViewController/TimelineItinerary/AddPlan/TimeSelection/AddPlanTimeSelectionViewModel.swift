@@ -37,6 +37,11 @@ public class AddPlanTimeSelectionViewModel {
     private var selectedTimeSlot: TimeSlot?
     private var hasPreloadedSlots: Bool = false
 
+    /// Polling use case retained for the duration of a "wait for timeline regeneration"
+    /// step that runs after a successful segment-creation API call. Held as a strong
+    /// reference so it isn't deallocated mid-poll; cleared once the cycle finishes.
+    private var checkAllPlanUseCase: TRPTimelineCheckAllPlanUseCases?
+
     // Edit mode properties
     private var segment: TRPTimelineSegment?
     private var step: TRPTimelineStep?
@@ -213,34 +218,36 @@ public class AddPlanTimeSelectionViewModel {
     /// Get time slots for selected day (filtered for today to exclude past times, deduplicated by time)
     public func getTimeSlots() -> [TimeSlot] {
         guard let selectedDate = selectedDate else { return [] }
-        var slots = allTimeSlots[selectedDate] ?? []
-
-        // If today, filter out past times (before current time + 30 minutes)
-        let calendar = Calendar.current
-        if calendar.isDateInToday(selectedDate) {
-            let minimumTime = Date()  // +30 minutes
-            let minimumTimeComponents = calendar.dateComponents([.hour, .minute], from: minimumTime)
-            let minimumMinutes = (minimumTimeComponents.hour ?? 0) * 60 + (minimumTimeComponents.minute ?? 0)
-
-            slots = slots.filter { slot in
-                guard let timeString = slot.time else {
-                    // Defensive: timed grid never holds flexible slots, but if one slipped
-                    // through, keep it so we don't silently drop entries.
-                    return true
-                }
-                let timeComponents = timeString.split(separator: ":")
-                guard timeComponents.count >= 2,
-                      let hour = Int(timeComponents[0]),
-                      let minute = Int(timeComponents[1]) else {
-                    return true  // Keep slot if parsing fails
-                }
-                let slotMinutes = hour * 60 + minute
-                return slotMinutes >= minimumMinutes
-            }
-        }
-
+        let slots = validTimedSlots(for: selectedDate)
         // Deduplicate slots by time, keeping the one with lowest price
         return deduplicateSlotsByTime(slots)
+    }
+
+    /// Returns the cached timed slots for `date` minus any whose time-of-day is already
+    /// in the past when `date` is today. For non-today dates this is just the cached
+    /// slots. Used by both `getTimeSlots()` (UI) and `isDayUnavailable(_:)` (day filter
+    /// gating) so the two stay consistent — a "today" with all slots expired is treated
+    /// as having no slots, i.e. unavailable.
+    private func validTimedSlots(for date: Date) -> [TimeSlot] {
+        let cached = allTimeSlots[date] ?? []
+        let calendar = Calendar.current
+        guard calendar.isDateInToday(date) else { return cached }
+
+        let nowComponents = calendar.dateComponents([.hour, .minute], from: Date())
+        let nowMinutes = (nowComponents.hour ?? 0) * 60 + (nowComponents.minute ?? 0)
+
+        return cached.filter { slot in
+            guard let timeString = slot.time else {
+                // Defensive: timed grid never holds flexible slots, but if one slipped
+                // through, keep it so we don't silently drop entries.
+                return true
+            }
+            let parts = timeString.split(separator: ":")
+            guard parts.count >= 2, let hour = Int(parts[0]), let minute = Int(parts[1]) else {
+                return true  // Keep slot if parsing fails
+            }
+            return (hour * 60 + minute) >= nowMinutes
+        }
     }
 
     /// Deduplicate time slots by time string, keeping the slot with lowest price for each time.
@@ -293,10 +300,13 @@ public class AddPlanTimeSelectionViewModel {
         return selectedTimeSlot != nil || isSelectedDayFlexible()
     }
 
-    /// True when the given date has neither timed slots nor a flexible-time marker —
-    /// i.e. the activity has no availability for that day.
+    /// True when the given date has no usable timed slots and no flexible-time marker —
+    /// i.e. the activity has no bookable availability for that day. Critically, "today"
+    /// is also unavailable when every cached slot is already in the past (current time
+    /// has crossed all of them); without this gate the day shows as available in the
+    /// filter but tapping it lands on an empty grid.
     public func isDayUnavailable(_ date: Date) -> Bool {
-        let hasTimedSlot = !(allTimeSlots[date] ?? []).isEmpty
+        let hasTimedSlot = !validTimedSlots(for: date).isEmpty
         let isFlexible = flexibleDays.contains(date)
         return !hasTimedSlot && !isFlexible
     }
@@ -309,6 +319,17 @@ public class AddPlanTimeSelectionViewModel {
             result.insert(index)
         }
         return result
+    }
+
+    /// True when the activity has no bookable availability on ANY day of the trip —
+    /// every day is either in the past, has no slots, or is today with all slots
+    /// already expired. The VC swaps the time grid for a "not available" banner and
+    /// keeps the Continue button disabled.
+    public func allDaysUnavailable() -> Bool {
+        guard !planData.availableDays.isEmpty else { return false }
+        return planData.availableDays.allSatisfy { day in
+            day.isPastDay() || isDayUnavailable(day)
+        }
     }
 
     /// Fetch available time slots for the entire trip range in a single call.
@@ -552,24 +573,63 @@ public class AddPlanTimeSelectionViewModel {
         let loadingText = LoadingLocalizationKeys.localized(LoadingLocalizationKeys.addingToItinerary)
         delegate?.viewModel(showLottieInView: true, text: loadingText)
 
-        // 6. Create segment via repository
+        // 6. Create segment via repository — keep the loader on through both the
+        //    creation API and the timeline-regeneration polling that follows on
+        //    success, so the user sees a single continuous "Adding…" state.
         let repository = TRPTimelineRepository()
         repository.createEditTimelineSegment(profile: profile) { [weak self] result in
             guard let self = self else { return }
 
             DispatchQueue.main.async {
-                self.delegate?.viewModel(showLottieInView: false, text: nil)
-
                 switch result {
                 case .success(let success):
                     if success {
-                        self.delegate?.segmentCreationDidSucceed()
+                        self.waitForTimelineRefreshAfterCreation(tripHash: tripHash)
                     } else {
+                        self.delegate?.viewModel(showLottieInView: false, text: nil)
                         let error = NSError(domain: "AddPlanTimeSelection", code: -4, userInfo: [NSLocalizedDescriptionKey: "Failed to create reservation. Please try again."])
                         self.delegate?.viewModel(error: error)
                     }
 
                 case .failure(let error):
+                    self.delegate?.viewModel(showLottieInView: false, text: nil)
+                    self.delegate?.viewModel(error: error)
+                }
+            }
+        }
+    }
+
+    /// Poll for segment generation completion after a successful create. Loader
+    /// stays visible throughout. On completion this method emits the shared
+    /// refresh state so any subscribed screen (notably `TRPTimelineItineraryVC`)
+    /// can sync its data, then hides the loader and signals success.
+    private func waitForTimelineRefreshAfterCreation(tripHash: String) {
+        TRPTimelineRefreshState.shared.setRefreshing()
+
+        let timelineRepository = TRPTimelineRepository()
+        let modelRepository = TRPTimelineModelRepository()
+        checkAllPlanUseCase = TRPTimelineCheckAllPlanUseCases(
+            timelineRepository: timelineRepository,
+            timelineModelRepository: modelRepository
+        )
+
+        checkAllPlanUseCase?.allSegmentGenerated.addObserver(self) { [weak self] isGenerated in
+            guard let self = self, isGenerated else { return }
+            DispatchQueue.main.async {
+                TRPTimelineRefreshState.shared.setCompleted()
+                self.checkAllPlanUseCase = nil
+                self.delegate?.viewModel(showLottieInView: false, text: nil)
+                self.delegate?.segmentCreationDidSucceed()
+            }
+        }
+
+        checkAllPlanUseCase?.executeFetchTimelineCheckAllPlanGenerate(tripHash: tripHash) { [weak self] result in
+            guard let self = self else { return }
+            if case .failure(let error) = result {
+                DispatchQueue.main.async {
+                    TRPTimelineRefreshState.shared.setFailed(error)
+                    self.checkAllPlanUseCase = nil
+                    self.delegate?.viewModel(showLottieInView: false, text: nil)
                     self.delegate?.viewModel(error: error)
                 }
             }

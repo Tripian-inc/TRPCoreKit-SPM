@@ -23,22 +23,30 @@ public class AddPlanTimeSelectionVC: TRPBaseUIViewController, DynamicHeightPrese
 
         // viewModel may be force-unwrapped post-init, but guard defensively in case
         // this is queried before the model is ready.
-        let isFlexible = viewModel?.isSelectedDayFlexible() == true
+        let allDaysUnavailable = viewModel?.allDaysUnavailable() == true
+        let isFlexible = !allDaysUnavailable && viewModel?.isSelectedDayFlexible() == true
+
+        let availableWidth = (view.bounds.width > 0)
+            ? view.bounds.width
+            : UIScreen.main.bounds.width
+        let labelFont = FontSet.montserratMedium.font(14)
+        // Card label width = view width − (16+16 outer h-margin) − (16 icon left + 20 icon + 8 gap + 16 label right)
+        let cardLabelMaxWidth = max(0, availableWidth - 92)
 
         let middle: CGFloat
-        if isFlexible {
+        if allDaysUnavailable {
+            let bannerText = AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.activityNotAvailableForTrip)
+            let bannerLabelHeight = Self.textHeight(for: bannerText, font: labelFont, maxWidth: cardLabelMaxWidth)
+            let bannerHeight = 16 + max(20, bannerLabelHeight) + 16
+            // 16 (banner top from title) + bannerHeight + 16 (banner bottom to button)
+            middle = 16 + bannerHeight + 16
+        } else if isFlexible {
             // Measure the live label texts at the available width so the sheet adapts
             // to translations and screen sizes — wrap-induced extra lines grow the
             // sheet just enough, no clipping.
-            let availableWidth = (view.bounds.width > 0)
-                ? view.bounds.width
-                : UIScreen.main.bounds.width
-            // Card label width = view width − (16+16 outer h-margin) − (16 icon left + 20 icon + 8 gap + 16 label right)
-            let cardLabelMaxWidth = max(0, availableWidth - 92)
             // Subtitle width = view width − (16+16 h-margin)
             let subtitleMaxWidth = max(0, availableWidth - 32)
 
-            let labelFont = FontSet.montserratMedium.font(14)
             let cardLabelText = AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.flexibleTimeInfo)
             let subtitleText = AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.flexibleTimePinTopHint)
 
@@ -191,6 +199,37 @@ public class AddPlanTimeSelectionVC: TRPBaseUIViewController, DynamicHeightPrese
         return label
     }()
 
+    // MARK: - All-days-unavailable banner
+    /// Cream/orange warning card shown in place of the time grid when the activity
+    /// has no availability on any day of the trip.
+    private let unavailableBanner: UIView = {
+        let view = UIView()
+        view.translatesAutoresizingMaskIntoConstraints = false
+        view.backgroundColor = ColorSet.bgOrange.uiColor
+        view.layer.cornerRadius = 8
+        view.isHidden = true
+        return view
+    }()
+
+    private let unavailableBannerIcon: UIImageView = {
+        let iv = UIImageView()
+        iv.translatesAutoresizingMaskIntoConstraints = false
+        iv.image = UIImage(systemName: "exclamationmark.triangle")
+        iv.tintColor = ColorSet.fgOrange.uiColor
+        iv.contentMode = .scaleAspectFit
+        return iv
+    }()
+
+    private let unavailableBannerLabel: UILabel = {
+        let label = UILabel()
+        label.translatesAutoresizingMaskIntoConstraints = false
+        label.text = AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.activityNotAvailableForTrip)
+        label.font = FontSet.montserratMedium.font(14)
+        label.textColor = ColorSet.fg.uiColor
+        label.numberOfLines = 0
+        return label
+    }()
+
     // MARK: - Initialization
     public init(tour: TRPTourProduct, planData: AddPlanData) {
         super.init(nibName: nil, bundle: nil)
@@ -248,6 +287,9 @@ public class AddPlanTimeSelectionVC: TRPBaseUIViewController, DynamicHeightPrese
         flexibleInfoCard.addSubview(flexibleInfoIcon)
         flexibleInfoCard.addSubview(flexibleInfoLabel)
         view.addSubview(flexibleSubtitleLabel)
+        view.addSubview(unavailableBanner)
+        unavailableBanner.addSubview(unavailableBannerIcon)
+        unavailableBanner.addSubview(unavailableBannerLabel)
         view.addSubview(continueButton)
         view.addSubview(loadingIndicator)
 
@@ -309,6 +351,22 @@ public class AddPlanTimeSelectionVC: TRPBaseUIViewController, DynamicHeightPrese
             flexibleSubtitleLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
             flexibleSubtitleLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
             flexibleSubtitleLabel.bottomAnchor.constraint(lessThanOrEqualTo: continueButton.topAnchor, constant: -32),
+
+            // Unavailable banner — same horizontal alignment as the flexible card; takes
+            // the time grid's slot when shown. Hidden by default.
+            unavailableBanner.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 16),
+            unavailableBanner.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
+            unavailableBanner.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
+
+            unavailableBannerIcon.leadingAnchor.constraint(equalTo: unavailableBanner.leadingAnchor, constant: 16),
+            unavailableBannerIcon.topAnchor.constraint(equalTo: unavailableBanner.topAnchor, constant: 16),
+            unavailableBannerIcon.widthAnchor.constraint(equalToConstant: 20),
+            unavailableBannerIcon.heightAnchor.constraint(equalToConstant: 20),
+
+            unavailableBannerLabel.topAnchor.constraint(equalTo: unavailableBanner.topAnchor, constant: 16),
+            unavailableBannerLabel.bottomAnchor.constraint(equalTo: unavailableBanner.bottomAnchor, constant: -16),
+            unavailableBannerLabel.leadingAnchor.constraint(equalTo: unavailableBannerIcon.trailingAnchor, constant: 8),
+            unavailableBannerLabel.trailingAnchor.constraint(equalTo: unavailableBanner.trailingAnchor, constant: -16),
         ])
     }
 
@@ -411,14 +469,18 @@ extension AddPlanTimeSelectionVC: UICollectionViewDelegateFlowLayout {
 extension AddPlanTimeSelectionVC: AddPlanTimeSelectionViewModelDelegate {
 
     public func timeSlotsDidLoad() {
-        let isFlexible = viewModel.isSelectedDayFlexible()
-        let hasTimeSlots = !viewModel.getTimeSlots().isEmpty
+        let allDaysUnavailable = viewModel.allDaysUnavailable()
+        let isFlexible = !allDaysUnavailable && viewModel.isSelectedDayFlexible()
+        let hasTimeSlots = !allDaysUnavailable && !viewModel.getTimeSlots().isEmpty
+
+        // No availability anywhere on the trip → swap every other state for the warning banner.
+        unavailableBanner.isHidden = !allDaysUnavailable
 
         // Flexible day → info card replaces the grid; subtitle hint visible.
-        flexibleInfoCard.isHidden = !isFlexible
-        flexibleSubtitleLabel.isHidden = !isFlexible
-        collectionView.isHidden = isFlexible
-        emptyStateLabel.isHidden = isFlexible || hasTimeSlots
+        flexibleInfoCard.isHidden = allDaysUnavailable || !isFlexible
+        flexibleSubtitleLabel.isHidden = allDaysUnavailable || !isFlexible
+        collectionView.isHidden = allDaysUnavailable || isFlexible
+        emptyStateLabel.isHidden = allDaysUnavailable || isFlexible || hasTimeSlots
 
         collectionView.reloadData()
         updateContinueButton()
