@@ -23,6 +23,24 @@ public enum LottieLoadingPresentationMode {
     case bottomSheet
 }
 
+// MARK: - Loader Presentation
+
+/// How a `TRPLottieLoadingVC` is presented over (or inside) the current screen. Used by
+/// the unified `viewModel(showLottie:textMode:completion:)` /
+/// `viewModel(hideLottie:completion:)` `ViewModelDelegate` API so callers don't have to
+/// pick between three differently-named methods.
+public enum LottieLoaderPresentation {
+    /// App-wide overlay attached to the key window. Survives modal pushes; ideal for
+    /// long-running flows that span multiple screens (timeline create, GetTimeline).
+    case fullScreen
+    /// Modal bottom sheet on the current screen. Use for medium-length operations where a
+    /// partial-screen indicator fits better than a full-window overlay.
+    case bottomSheet
+    /// Embedded child VC pinned to the current screen's view bounds. Use when the host is
+    /// itself already a bottom sheet — stacking another sheet would feel wrong.
+    case inView
+}
+
 // MARK: - Text Mode
 
 /// Configures what (if anything) is rendered next to the Lottie animation in full-screen mode.

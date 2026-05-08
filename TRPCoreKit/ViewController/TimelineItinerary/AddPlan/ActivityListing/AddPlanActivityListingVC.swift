@@ -18,10 +18,11 @@ public class AddPlanActivityListingVC: TRPBaseUIViewController {
     private static let skeletonChipCount: Int = 5
     private static let skeletonRowCount: Int = 6
 
-    /// True while the shared Lottie overlay is currently presented for this VC. Lets
-    /// `activitiesDidLoad`/`activitiesDidFail` know to dismiss it (with the right
-    /// completion sequencing for follow-up UI) versus a plain skeleton-style refresh.
-    private var lottiePresented: Bool = false
+    /// Which Lottie loader (if any) is currently presented for this VC, so
+    /// `activitiesDidLoad`/`activitiesDidFail` know to dismiss the matching one (with
+    /// the right completion sequencing for follow-up UI) versus a plain skeleton refresh.
+    /// `nil` means no Lottie is up.
+    private var currentLottiePresentation: LottieLoaderPresentation?
 
     // Callback when segment is created successfully, passes selected day for navigation
     public var onSegmentCreated: ((Date?) -> Void)?
@@ -375,10 +376,12 @@ extension AddPlanActivityListingVC: AddPlanActivityListingViewModelDelegate {
             }
 
             // If a Lottie overlay was up (initial open / category change), dismiss it
-            // first so results animate in once the fade-out finishes.
-            if self.lottiePresented {
-                self.lottiePresented = false
-                self.viewModel(showLottieLoader: false, text: nil, completion: renderResults)
+            // first so results animate in once the fade-out finishes. Match the same
+            // presentation we showed it under — full-screen for initial open, bottom
+            // sheet for category change.
+            if let presentation = self.currentLottiePresentation {
+                self.currentLottiePresentation = nil
+                self.viewModel(hideLottie: presentation, completion: renderResults)
                 return
             }
             renderResults()
@@ -399,12 +402,21 @@ extension AddPlanActivityListingVC: AddPlanActivityListingViewModelDelegate {
                 self.infoImageView.isHidden = true
 
                 // Style-driven loading UI:
-                //   .lottie   → shared full-screen overlay (initial open + category change)
-                //   .skeleton → inline table skeleton (sort/filter + search-text refresh)
-                if self.viewModel.loadingStyle == .lottie, !self.lottiePresented {
-                    self.lottiePresented = true
+                //   .lottie      → shared full-screen overlay (initial open)
+                //   .bottomSheet → modal Lottie sheet (category chip change)
+                //   .skeleton    → inline table skeleton (sort/filter + search-text refresh)
+                if self.currentLottiePresentation == nil {
                     let message = LoadingLocalizationKeys.localized(LoadingLocalizationKeys.gettingActivities)
-                    self.viewModel(showLottieLoader: true, text: message)
+                    switch self.viewModel.loadingStyle {
+                    case .lottie:
+                        self.currentLottiePresentation = .fullScreen
+                        self.viewModel(showLottie: .fullScreen, textMode: .single(message))
+                    case .bottomSheet:
+                        self.currentLottiePresentation = .bottomSheet
+                        self.viewModel(showLottie: .bottomSheet, textMode: .single(message))
+                    case .skeleton, .none:
+                        break  // table skeleton handles itself via reload below
+                    }
                 }
             }
             self.tableView.reloadData()
@@ -426,9 +438,9 @@ extension AddPlanActivityListingVC: AddPlanActivityListingViewModelDelegate {
                 EvrAlertView.showAlert(contentText: error.localizedDescription, type: .error)
             }
 
-            if self.lottiePresented {
-                self.lottiePresented = false
-                self.viewModel(showLottieLoader: false, text: nil, completion: presentAlert)
+            if let presentation = self.currentLottiePresentation {
+                self.currentLottiePresentation = nil
+                self.viewModel(hideLottie: presentation, completion: presentAlert)
                 return
             }
             presentAlert()

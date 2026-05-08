@@ -22,24 +22,23 @@ extension TRPTimelineItineraryViewModel {
     ///   - endTime: New end time in "yyyy-MM-dd HH:mm" format
     ///   - completion: Completion handler with success/failure result
     public func updateStepTime(step: TRPTimelineStep, startTime: String, endTime: String, completion: @escaping (Result<TRPTimelineStep, Error>) -> Void) {
-        // Show loading
-        delegate?.viewModel(showPreloader: true)
+        let changingTimeText = LoadingLocalizationKeys.localized(LoadingLocalizationKeys.changingTime)
+        delegate?.viewModel(showLottie: .bottomSheet, textMode: .single(changingTimeText))
 
-        // Use the UseCase for step editing
         timelineModeUseCases.executeEditStepHour(id: step.id, startTime: startTime, endTime: endTime) { [weak self] result in
             guard let self = self else { return }
 
             DispatchQueue.main.async {
                 switch result {
                 case .success(let updatedStep):
-                    // Refresh timeline from server to get correct ordering
-                    // (first step time change can affect segment position)
+                    // Bottom sheet stays visible through the refresh; dismissed via
+                    // timelineItineraryViewModel(didUpdateTimeline:) once data reloads.
                     self.fetchAndRefreshTimeline { _ in
                         completion(.success(updatedStep))
                     }
 
                 case .failure(let error):
-                    self.delegate?.viewModel(showPreloader: false)
+                    self.delegate?.viewModel(hideLottie: .bottomSheet)
                     self.delegate?.viewModel(error: error)
                     completion(.failure(error))
                 }
@@ -75,7 +74,7 @@ extension TRPTimelineItineraryViewModel {
     ///   - completion: Completion handler with success/failure result
     public func removeStep(_ step: TRPTimelineStep, completion: ((Result<Bool, Error>) -> Void)? = nil) {
         let removingText = LoadingLocalizationKeys.localized(LoadingLocalizationKeys.removingFromPlan)
-        delegate?.viewModel(showLottieBottomSheet: true, text: removingText)
+        delegate?.viewModel(showLottie: .bottomSheet, textMode: .single(removingText))
 
         // Use the UseCase for step deletion
         timelineModeUseCases.executeDeleteStep(id: step.id) { [weak self] result in
@@ -88,12 +87,12 @@ extension TRPTimelineItineraryViewModel {
                     // completes, then dismiss it so the user sees a single continuous
                     // loader for the whole operation.
                     self.fetchAndRefreshTimeline { _ in
-                        self.delegate?.viewModel(showLottieBottomSheet: false, text: nil)
+                        self.delegate?.viewModel(hideLottie: .bottomSheet)
                         completion?(.success(true))
                     }
 
                 case .failure(let error):
-                    self.delegate?.viewModel(showLottieBottomSheet: false, text: nil)
+                    self.delegate?.viewModel(hideLottie: .bottomSheet)
                     self.delegate?.viewModel(error: error)
                     completion?(.failure(error))
                 }
@@ -153,8 +152,8 @@ extension TRPTimelineItineraryViewModel {
         let newStartDateTime = "\(datePart) \(startTime)"
         let newEndDateTime = "\(datePart) \(endTime)"
 
-        // Show loading
-        delegate?.viewModel(showPreloader: true)
+        let changingTimeText = LoadingLocalizationKeys.localized(LoadingLocalizationKeys.changingTime)
+        delegate?.viewModel(showLottie: .bottomSheet, textMode: .single(changingTimeText))
 
         // Create edit profile from existing segment with updated times
         let profile = TRPCreateEditTimelineSegmentProfile(from: segment, tripHash: timeline.tripHash, segmentIndex: segmentIndex)
@@ -170,18 +169,19 @@ extension TRPTimelineItineraryViewModel {
                 switch result {
                 case .success(let success):
                     if success {
-                        // Refresh timeline to get updated data with correct ordering
+                        // Bottom sheet stays visible through the refresh; dismissed via
+                        // timelineItineraryViewModel(didUpdateTimeline:) once data reloads.
                         self.fetchAndRefreshTimeline { _ in
                             completion(.success(true))
                         }
                     } else {
-                        self.delegate?.viewModel(showPreloader: false)
+                        self.delegate?.viewModel(hideLottie: .bottomSheet)
                         let error = NSError(domain: "Timeline", code: -1, userInfo: [NSLocalizedDescriptionKey: "Failed to update segment time"])
                         self.delegate?.viewModel(error: error)
                         completion(.failure(error))
                     }
                 case .failure(let error):
-                    self.delegate?.viewModel(showPreloader: false)
+                    self.delegate?.viewModel(hideLottie: .bottomSheet)
                     self.delegate?.viewModel(error: error)
                     completion(.failure(error))
                 }

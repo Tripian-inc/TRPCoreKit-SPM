@@ -232,8 +232,10 @@ public class TRPTimelineItineraryViewModel {
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
 
-            // First GetTimeline on SDK open — animation only, no text (per UX policy).
-            self.delegate?.timelineItineraryViewModel(showLottieLoading: true, textMode: .none)
+            // First GetTimeline on SDK open — show "Getting your itinerary plan" so the
+            // splash → timeline transition keeps a single readable message on the loader.
+            let initialLoadText = LoadingLocalizationKeys.localized(LoadingLocalizationKeys.gettingYourItineraryPlan)
+            self.delegate?.timelineItineraryViewModel(showLottieLoading: true, textMode: .single(initialLoadText))
 
             // First resolve ALL cityIds via API (for both create and fetch paths)
             self.resolveMissingCityIds(in: itineraryModel) { [weak self] resolvedItinerary in

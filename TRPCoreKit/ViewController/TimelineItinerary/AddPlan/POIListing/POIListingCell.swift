@@ -17,6 +17,7 @@ protocol POIListingCellDelegate: AnyObject {
 class POIListingCell: UITableViewCell {
 
     static let reuseIdentifier = "POIListingCell"
+    private static let skeletonAnimationKey = "shimmer"
 
     weak var delegate: POIListingCellDelegate?
     private var poi: TRPPoi?
@@ -102,6 +103,37 @@ class POIListingCell: UITableViewCell {
         return button
     }()
 
+    // MARK: - Skeleton Placeholders
+    // Mirrors `ActivityCardCell`'s skeleton pattern: greyed bars overlayed on the real
+    // subviews while a fetch / local recompute is in flight, animated with a shimmer.
+
+    private let imageSkeletonView: UIView = {
+        let view = UIView()
+        view.backgroundColor = ColorSet.lineWeak.uiColor
+        view.layer.cornerRadius = 4
+        view.translatesAutoresizingMaskIntoConstraints = false
+        view.isHidden = true
+        return view
+    }()
+
+    private let titleSkeletonView: UIView = {
+        let view = UIView()
+        view.backgroundColor = ColorSet.lineWeak.uiColor
+        view.layer.cornerRadius = 4
+        view.translatesAutoresizingMaskIntoConstraints = false
+        view.isHidden = true
+        return view
+    }()
+
+    private let subtitleSkeletonView: UIView = {
+        let view = UIView()
+        view.backgroundColor = ColorSet.lineWeak.uiColor
+        view.layer.cornerRadius = 3
+        view.translatesAutoresizingMaskIntoConstraints = false
+        view.isHidden = true
+        return view
+    }()
+
     // MARK: - Initialization
     override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
         super.init(style: style, reuseIdentifier: reuseIdentifier)
@@ -124,6 +156,7 @@ class POIListingCell: UITableViewCell {
         ratingLabel.text = nil
         reviewCountLabel.text = nil
         ratingStackView.isHidden = false
+        stopSkeletonAnimation()
     }
 
     // MARK: - Setup
@@ -135,6 +168,10 @@ class POIListingCell: UITableViewCell {
         containerView.addSubview(poiImageView)
         containerView.addSubview(contentStackView)
         containerView.addSubview(addButton)
+        // Skeleton overlays — invisible by default; toggled by `configureSkeleton()`.
+        containerView.addSubview(imageSkeletonView)
+        containerView.addSubview(titleSkeletonView)
+        containerView.addSubview(subtitleSkeletonView)
 
         contentStackView.addArrangedSubview(titleLabel)
         contentStackView.addArrangedSubview(ratingStackView)
@@ -180,12 +217,31 @@ class POIListingCell: UITableViewCell {
 
             // Star Image
             starImageView.widthAnchor.constraint(equalToConstant: 12),
-            starImageView.heightAnchor.constraint(equalToConstant: 12)
+            starImageView.heightAnchor.constraint(equalToConstant: 12),
+
+            // Skeleton: image placeholder over real image
+            imageSkeletonView.topAnchor.constraint(equalTo: poiImageView.topAnchor),
+            imageSkeletonView.leadingAnchor.constraint(equalTo: poiImageView.leadingAnchor),
+            imageSkeletonView.widthAnchor.constraint(equalTo: poiImageView.widthAnchor),
+            imageSkeletonView.heightAnchor.constraint(equalTo: poiImageView.heightAnchor),
+
+            // Skeleton: title bar — full width next to image
+            titleSkeletonView.topAnchor.constraint(equalTo: poiImageView.topAnchor, constant: 8),
+            titleSkeletonView.leadingAnchor.constraint(equalTo: poiImageView.trailingAnchor, constant: 16),
+            titleSkeletonView.trailingAnchor.constraint(equalTo: addButton.leadingAnchor, constant: -8),
+            titleSkeletonView.heightAnchor.constraint(equalToConstant: 14),
+
+            // Skeleton: subtitle bar — half width
+            subtitleSkeletonView.topAnchor.constraint(equalTo: titleSkeletonView.bottomAnchor, constant: 10),
+            subtitleSkeletonView.leadingAnchor.constraint(equalTo: poiImageView.trailingAnchor, constant: 16),
+            subtitleSkeletonView.widthAnchor.constraint(equalToConstant: 120),
+            subtitleSkeletonView.heightAnchor.constraint(equalToConstant: 10)
         ])
     }
 
     // MARK: - Configuration
     func configure(with poi: TRPPoi) {
+        exitSkeletonMode()
         self.poi = poi
 
         titleLabel.text = poi.name
@@ -225,6 +281,62 @@ class POIListingCell: UITableViewCell {
         numberFormatter.numberStyle = .decimal
         numberFormatter.groupingSeparator = "."
         return numberFormatter.string(from: NSNumber(value: count)) ?? "\(count)"
+    }
+
+    // MARK: - Skeleton Mode
+
+    /// Render the cell as a shimmering skeleton — used while a POI fetch / local
+    /// recompute is in flight. Mirrors `ActivityCardCell.configureSkeleton()`.
+    func configureSkeleton() {
+        self.poi = nil
+        isUserInteractionEnabled = false
+
+        // Hide real content
+        poiImageView.isHidden = true
+        titleLabel.isHidden = true
+        ratingStackView.isHidden = true
+        addButton.isHidden = true
+
+        // Show skeleton overlays
+        imageSkeletonView.isHidden = false
+        titleSkeletonView.isHidden = false
+        subtitleSkeletonView.isHidden = false
+
+        startSkeletonAnimation()
+    }
+
+    /// Reverse of `configureSkeleton()` — restores real subviews. Called from `configure(with:)`
+    /// so a recycled skeleton cell snaps back cleanly when bound to a real POI.
+    private func exitSkeletonMode() {
+        stopSkeletonAnimation()
+        isUserInteractionEnabled = true
+
+        imageSkeletonView.isHidden = true
+        titleSkeletonView.isHidden = true
+        subtitleSkeletonView.isHidden = true
+
+        poiImageView.isHidden = false
+        titleLabel.isHidden = false
+        addButton.isHidden = false
+        // ratingStackView visibility is content-driven (set by configure based on rating presence).
+    }
+
+    private func startSkeletonAnimation() {
+        let animation = CABasicAnimation(keyPath: "opacity")
+        animation.fromValue = 0.4
+        animation.toValue = 1.0
+        animation.duration = 0.8
+        animation.autoreverses = true
+        animation.repeatCount = .infinity
+        for view in [imageSkeletonView, titleSkeletonView, subtitleSkeletonView] {
+            view.layer.add(animation, forKey: Self.skeletonAnimationKey)
+        }
+    }
+
+    private func stopSkeletonAnimation() {
+        for view in [imageSkeletonView, titleSkeletonView, subtitleSkeletonView] {
+            view.layer.removeAnimation(forKey: Self.skeletonAnimationKey)
+        }
     }
 
     // MARK: - Actions

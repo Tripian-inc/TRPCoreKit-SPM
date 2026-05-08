@@ -45,9 +45,18 @@ public protocol TRPCoreKitDelegate: AnyObject {
     /// - Parameter activityId: The unique identifier of the activity to display
     func trpCoreKitDidRequestActivityDetail(activityId: String)
 
+    /// Called when the SDK needs to open a booking detail screen for an already-booked activity
+    /// - Parameter bookingId: The unique identifier of the booking to display
+    func trpCoreKitDidRequestBookingDetail(bookingId: String)
+
     /// Called when the SDK needs to open an activity reservation screen
-    /// - Parameter activityId: The unique identifier of the activity to reserve
-    func trpCoreKitDidRequestActivityReservation(activityId: String)
+    /// - Parameters:
+    ///   - activityId: The unique identifier of the activity to reserve
+    ///   - date: The date and start time of the reservation. Time component reflects
+    ///           the source segment/step start time; flexible activities always carry
+    ///           a 00:00 time. Falls back to the timeline's selected day at 00:00 when
+    ///           no source datetime is available.
+    func trpCoreKitDidRequestActivityReservation(activityId: String, date: Date)
 
     /// Called when a timeline has been successfully created
     /// - Parameter tripHash: The trip hash of the newly created timeline

@@ -53,10 +53,9 @@ extension TRPTimelineItineraryVC: TRPTimelineDayFilterViewDelegate {
 extension TRPTimelineItineraryVC: TRPTimelineBookedActivityCellDelegate {
 
     func bookedActivityCellDidTapCell(_ cell: TRPTimelineBookedActivityCell, segment: TRPTimelineSegment) {
-        // Open activity detail
-        guard let activityId = segment.additionalData?.activityId else { return }
-        let cleanedId = activityId.cleanedAsActivityId()
-        TRPCoreKit.shared.delegate?.trpCoreKitDidRequestActivityDetail(activityId: cleanedId)
+        // Booked activity → host opens booking detail (not activity detail)
+        guard let bookingId = segment.additionalData?.bookingId else { return }
+        TRPCoreKit.shared.delegate?.trpCoreKitDidRequestBookingDetail(bookingId: bookingId)
     }
 }
 
@@ -68,7 +67,10 @@ extension TRPTimelineItineraryVC: TRPTimelineReservedActivityCellDelegate {
         // Notify delegate about activity reservation request
         guard let activityId = segment.additionalData?.activityId else { return }
         let cleanedId = activityId.cleanedAsActivityId()
-        TRPCoreKit.shared.delegate?.trpCoreKitDidRequestActivityReservation(activityId: cleanedId)
+        let isFlexible = segment.additionalData?.isFlexible == true
+        let preferred = segment.additionalData?.startDatetime ?? segment.startDate
+        let reservationDate = resolveReservationDate(preferred: preferred, isFlexible: isFlexible)
+        TRPCoreKit.shared.delegate?.trpCoreKitDidRequestActivityReservation(activityId: cleanedId, date: reservationDate)
     }
 
     func reservedActivityCellDidTapRemove(_ cell: TRPTimelineReservedActivityCell, segment: TRPTimelineSegment) {
@@ -103,9 +105,13 @@ extension TRPTimelineItineraryVC: TRPTimelineReservedActivityCellDelegate {
         // Create time selection VC in edit mode
         let timeSelectionVC = AddPlanTimeSelectionVC(segment: segment, planData: planData)
 
-        // Set callback for segment update
+        // Set callback for segment update — sheet is already dismissed at this point,
+        // so show the bottom sheet loader on the timeline screen during refresh.
         timeSelectionVC.onSegmentUpdated = { [weak self] in
-            self?.refreshTimelineAfterSegmentCreation()
+            guard let self = self else { return }
+            let text = LoadingLocalizationKeys.localized(LoadingLocalizationKeys.changingTime)
+            self.viewModel(showLottie: .bottomSheet, textMode: .single(text))
+            self.viewModel.refreshTimeline()
         }
 
         // Present as bottom sheet
@@ -127,7 +133,10 @@ extension TRPTimelineItineraryVC: TRPTimelineFlexibleActivityCellDelegate {
     func flexibleActivityCellDidTapReservation(_ cell: TRPTimelineFlexibleActivityCell, segment: TRPTimelineSegment) {
         guard let activityId = segment.additionalData?.activityId else { return }
         let cleanedId = activityId.cleanedAsActivityId()
-        TRPCoreKit.shared.delegate?.trpCoreKitDidRequestActivityReservation(activityId: cleanedId)
+        // Flex cell → time always pinned to 00:00 by the resolver.
+        let preferred = segment.additionalData?.startDatetime ?? segment.startDate
+        let reservationDate = resolveReservationDate(preferred: preferred, isFlexible: true)
+        TRPCoreKit.shared.delegate?.trpCoreKitDidRequestActivityReservation(activityId: cleanedId, date: reservationDate)
     }
 
     func flexibleActivityCellDidTapRemove(_ cell: TRPTimelineFlexibleActivityCell, segment: TRPTimelineSegment) {
@@ -161,7 +170,8 @@ extension TRPTimelineItineraryVC: TRPTimelineActivityStepCellDelegate {
         // Notify delegate about activity reservation request
         guard let poi = step.poi else { return }
         let activityId = extractActivityId(from: poi)
-        TRPCoreKit.shared.delegate?.trpCoreKitDidRequestActivityReservation(activityId: activityId)
+        let reservationDate = resolveReservationDate(preferred: step.startDateTimes)
+        TRPCoreKit.shared.delegate?.trpCoreKitDidRequestActivityReservation(activityId: activityId, date: reservationDate)
     }
 }
 
@@ -189,22 +199,46 @@ extension TRPTimelineItineraryVC: TRPTimelineManualPoiCellDelegate {
         timeRangeVC.show(from: self)
     }
 
-    /// Parses segment datetime string to Date without timezone conversion
-    /// Supports formats: "yyyy-MM-dd HH:mm:ss" and "yyyy-MM-dd HH:mm"
-    /// Uses current timezone to avoid UTC conversion issues
-    internal func parseSegmentDateTime(_ dateTimeString: String) -> Date? {
-        let dateFormatter = DateFormatter()
-        dateFormatter.timeZone = TimeZone.current
+    /// Reservation date resolver. The returned Date carries both day and start time:
+    /// flexible activities are always pinned to 00:00; otherwise the time component
+    /// comes from the source datetime. Falls back to the timeline's currently
+    /// selected day at 00:00 when no source datetime is available.
+    ///
+    /// All parsing is done in UTC to match the rest of the SDK: server datetime
+    /// strings are wall-clock UTC, `getDayDates()` produces UTC days, and
+    /// `getDateWithZeroHour(forLocal: false)` zeroes the hour in UTC. Parsing as
+    /// local would shift the time by the device's UTC offset (e.g. "10:00" in
+    /// Istanbul +3 would become "07:00 UTC", which is what the host then sees).
+    internal func resolveReservationDate(preferred: String?, isFlexible: Bool = false) -> Date {
+        let parsedSource = preferred.flatMap(parseSegmentDateTime)
 
-        // Try format with seconds first (server format)
-        dateFormatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
-        if let date = dateFormatter.date(from: dateTimeString) {
-            return date
+        if !isFlexible, let parsed = parsedSource {
+            return parsed
         }
 
-        // Try format without seconds
-        dateFormatter.dateFormat = "yyyy-MM-dd HH:mm"
-        return dateFormatter.date(from: dateTimeString)
+        let baseDay: Date
+        if let parsed = parsedSource {
+            baseDay = parsed
+        } else {
+            let days = viewModel.getDayDates()
+            let index = viewModel.selectedDayIndex
+            if index >= 0, index < days.count {
+                baseDay = days[index]
+            } else {
+                baseDay = days.first ?? Date()
+            }
+        }
+        // Pin to 00:00 UTC of the resolved day (flexible path or no-source path).
+        return baseDay.getDateWithZeroHour(forLocal: false)
+    }
+
+    /// Parses segment/step datetime strings using the project's `String.toDate`
+    /// extension which defaults to UTC — server times are stored as wall-clock UTC,
+    /// so this preserves the literal hour the host expects. Supports formats with
+    /// and without seconds.
+    internal func parseSegmentDateTime(_ dateTimeString: String) -> Date? {
+        return dateTimeString.toDate(format: "yyyy-MM-dd HH:mm:ss")
+            ?? dateTimeString.toDate(format: "yyyy-MM-dd HH:mm")
     }
 
     func manualPoiCellDidTapRemove(_ cell: TRPTimelineManualPoiCell, segment: TRPTimelineSegment) {
@@ -324,9 +358,13 @@ extension TRPTimelineItineraryVC: TRPTimelineRecommendationsCellDelegate {
         // Create time selection VC in step edit mode
         let timeSelectionVC = AddPlanTimeSelectionVC(step: step, planData: planData)
 
-        // Set callback for step update
+        // Set callback for step update — sheet is already dismissed at this point,
+        // so show the bottom sheet loader on the timeline screen during refresh.
         timeSelectionVC.onStepUpdated = { [weak self] in
-            self?.refreshTimelineAfterSegmentCreation()
+            guard let self = self else { return }
+            let text = LoadingLocalizationKeys.localized(LoadingLocalizationKeys.changingTime)
+            self.viewModel(showLottie: .bottomSheet, textMode: .single(text))
+            self.viewModel.refreshTimeline()
         }
 
         // Present as bottom sheet
@@ -387,7 +425,8 @@ extension TRPTimelineItineraryVC: TRPTimelineRecommendationsCellDelegate {
         // Handle reservation tap for activity steps - open activity reservation
         guard let poi = step.poi else { return }
         let activityId = extractActivityId(from: poi)
-        TRPCoreKit.shared.delegate?.trpCoreKitDidRequestActivityReservation(activityId: activityId)
+        let reservationDate = resolveReservationDate(preferred: step.startDateTimes)
+        TRPCoreKit.shared.delegate?.trpCoreKitDidRequestActivityReservation(activityId: activityId, date: reservationDate)
     }
 
     func recommendationsCellNeedsRouteCalculation(_ cell: TRPTimelineRecommendationsCell, locations: [TRPLocation], cellIndexPath: IndexPath) {

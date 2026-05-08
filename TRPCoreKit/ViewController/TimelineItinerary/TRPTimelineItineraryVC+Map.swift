@@ -449,13 +449,13 @@ extension TRPTimelineItineraryVC {
     }
     
     internal func clearMapAnnotations() {
-        guard let map = map else { 
-            return 
+        guard let map = map else {
+            return
         }
-        
+
         // Clear all view annotations from the map
         map.clearViewAnnotation()
-        
+
         // Also clear segment-specific annotations
         for segmentIndex in 0..<10 {
             let segmentId = "timeline_segment_\(segmentIndex)_annotations"

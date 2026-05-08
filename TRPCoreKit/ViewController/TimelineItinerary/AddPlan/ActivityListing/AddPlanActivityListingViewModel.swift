@@ -27,9 +27,12 @@ public enum AddPlanLoadingStyle {
     case none
     /// Inline table skeleton — used for sort/filter local recompute and search-text refresh.
     case skeleton
-    /// Window-attached Lottie overlay — used for initial open and category chip changes,
-    /// where the user is waiting on a fresh server fetch and a heavier indicator is warranted.
+    /// Window-attached Lottie overlay — used for the initial open, where the user is
+    /// waiting on a fresh server fetch and a full-screen indicator is warranted.
     case lottie
+    /// Bottom-sheet Lottie loader — used for category chip changes, where a partial
+    /// indicator over the listing fits the UX better than a full-window blocker.
+    case bottomSheet
 }
 
 public class AddPlanActivityListingViewModel {
@@ -160,14 +163,16 @@ public class AddPlanActivityListingViewModel {
             selectedFacetCategoryIds.insert(id)
         }
         clearSearchTextOnCategoryChange()
-        performSearch(style: .lottie)
+        // Category change → bottom-sheet Lottie. Full-screen overlay is reserved for the
+        // initial open; subsequent refetches use a less intrusive indicator.
+        performSearch(style: .bottomSheet)
     }
 
     public func selectAllCategories() {
         guard !selectedFacetCategoryIds.isEmpty else { return }
         selectedFacetCategoryIds.removeAll()
         clearSearchTextOnCategoryChange()
-        performSearch(style: .lottie)
+        performSearch(style: .bottomSheet)
     }
 
     /// Reset the local search text whenever the user changes their category selection.

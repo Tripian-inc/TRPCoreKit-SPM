@@ -38,13 +38,15 @@ class SplashViewController: TRPBaseUIViewController {
     }
 
     private func showLottieLoader() {
-        // Splash flow only needs the animation — no text. Window-attached so it survives
-        // the splash → next-VC transition without modal-presentation conflicts.
-        TRPLottieLoadingVC.shared.showOnWindow(textMode: .none)
+        // Splash → first GetTimeline are part of the same "opening the app" moment,
+        // so use the same localized message as the timeline initial fetch — the
+        // window-attached loader carries through without a flicker between them.
+        let message = LoadingLocalizationKeys.localized(LoadingLocalizationKeys.gettingYourItineraryPlan)
+        viewModel(showLottie: .fullScreen, textMode: .single(message))
     }
 
     private func hideLottieLoader() {
-        TRPLottieLoadingVC.shared.hideFromWindow()
+        viewModel(hideLottie: .fullScreen)
     }
 
     func start() {

@@ -14,6 +14,15 @@ import TRPFoundationKit
 public protocol AddPlanPOIListingViewModelDelegate: ViewModelDelegate {
     func poisDidLoad()
     func segmentCreatedSuccessfully()
+    /// Fired whenever `loadingStyle` changes so the VC can swap between full-screen
+    /// Lottie / inline skeleton / no-loader UIs without a full reload pass.
+    func poiLoadingStateDidChange()
+}
+
+// Default implementation so existing conformers don't have to add the method until they
+// adopt the new loading-style UI.
+public extension AddPlanPOIListingViewModelDelegate {
+    func poiLoadingStateDidChange() {}
 }
 
 public class AddPlanPOIListingViewModel {
@@ -40,6 +49,20 @@ public class AddPlanPOIListingViewModel {
     private var totalPages: Int = 1
     private var totalPoiCount: Int = 0
     private var hasMorePages: Bool = false
+
+    /// Drives which loading UI the listing screen renders. Mirrors `AddPlanLoadingStyle`
+    /// in Activity Listing — `.lottie` for first open + heavy refetches (filter / search /
+    /// category change), `.skeleton` for short local-only recomputes (sort), `.none` when
+    /// idle. The VC observes this via `poiLoadingStateDidChange()`.
+    private(set) public var loadingStyle: AddPlanLoadingStyle = .none
+
+    /// Brief skeleton-flash duration for local-only recomputes (sort), so the user gets
+    /// a visible signal even though the recompute is instant.
+    private let localChangeAnimationDuration: TimeInterval = 0.7
+
+    /// Strong reference held during the post-add timeline-regeneration poll. Cleared once
+    /// `allSegmentGenerated` fires so it doesn't leak across adds.
+    private var checkAllPlanUseCase: TRPTimelineCheckAllPlanUseCases?
 
     // MARK: - Initialization
     public init(planData: AddPlanData, categoryType: POIListingCategoryType) {
@@ -116,8 +139,10 @@ public class AddPlanPOIListingViewModel {
 
     public func updateSortOption(_ option: SortOption) {
         selectedSortOption = option
-        filterAndSortPois()
-        delegate?.poisDidLoad()
+        // Sort is local-only: flash a brief skeleton for visual feedback, then recompute.
+        applyLocalChangeWithSkeletonFlash {
+            self.filterAndSortPois()
+        }
     }
 
     public func updateFilterData(_ newFilterData: POIFilterData) {
@@ -130,15 +155,35 @@ public class AddPlanPOIListingViewModel {
             categoryIds = Array(filterData.selectedCategoryIds)
         }
 
-        // Re-fetch POIs with new category filter
+        // Re-fetch POIs with new category filter — skeleton mode while fetch is in flight.
         currentPage = 1
         totalPages = 1
         totalPoiCount = 0
         hasMorePages = false
         allPois = []
+        filteredPois = []
 
-        delegate?.viewModel(showPreloader: true)
+        loadingStyle = .skeleton
+        delegate?.poiLoadingStateDidChange()
+        delegate?.poisDidLoad()
         fetchPois()
+    }
+
+    /// Brief skeleton flash for instant local recomputes (sort). The VC sees `.skeleton`
+    /// → reload table with skeleton rows; after `localChangeAnimationDuration` we flip
+    /// back to `.none` and reload with real data.
+    private func applyLocalChangeWithSkeletonFlash(_ work: @escaping () -> Void) {
+        loadingStyle = .skeleton
+        delegate?.poiLoadingStateDidChange()
+        delegate?.poisDidLoad()
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + localChangeAnimationDuration) { [weak self] in
+            guard let self = self else { return }
+            work()
+            self.loadingStyle = .none
+            self.delegate?.poiLoadingStateDidChange()
+            self.delegate?.poisDidLoad()
+        }
     }
 
     // MARK: - Data Fetching
@@ -153,7 +198,10 @@ public class AddPlanPOIListingViewModel {
         totalPoiCount = 0
         hasMorePages = false
 
-        delegate?.viewModel(showPreloader: true)
+        // Initial fetch → full-screen Lottie ("Getting Places"). The VC handles the
+        // window-attached overlay based on `loadingStyle == .lottie`.
+        loadingStyle = .lottie
+        delegate?.poiLoadingStateDidChange()
 
         // Use cached categories if available, otherwise fetch
         poiUseCases.fetchCategoryIdsIfNeeded(type: categoryType) { [weak self] ids in
@@ -166,7 +214,10 @@ public class AddPlanPOIListingViewModel {
 
     private func fetchPois(page: Int = 1) {
         guard let cityId = planData.selectedCity?.id else {
-            delegate?.viewModel(showPreloader: false)
+            // Tear down whatever loading style was set so we don't strand the UI in a
+            // skeleton/lottie state when there's no city to fetch for.
+            loadingStyle = .none
+            delegate?.poiLoadingStateDidChange()
             delegate?.viewModel(error: GeneralError.customMessage("City not selected"))
             return
         }
@@ -203,8 +254,12 @@ public class AddPlanPOIListingViewModel {
         totalPages = 1
         totalPoiCount = 0
         hasMorePages = false
+        filteredPois = []
 
-        delegate?.viewModel(showPreloader: true)
+        // Search debounce → skeleton mode while server roundtrips.
+        loadingStyle = .skeleton
+        delegate?.poiLoadingStateDidChange()
+        delegate?.poisDidLoad()
 
         poiUseCases.executeSearchPoi(
             text: searchText,
@@ -217,7 +272,10 @@ public class AddPlanPOIListingViewModel {
     }
 
     private func handleSearchResult(result: Result<[TRPPoi], Error>, pagination: TRPPagination?, isLoadMore: Bool = false, requestedPage: Int = 1) {
-        delegate?.viewModel(showPreloader: false)
+        // Drop the active loading style (lottie / skeleton) — load-more pagination keeps
+        // `.none` since it has its own footer indicator.
+        loadingStyle = .none
+        delegate?.poiLoadingStateDidChange()
         isLoadingMore = false
 
         switch result {
@@ -259,6 +317,9 @@ public class AddPlanPOIListingViewModel {
             filterPois()
             delegate?.poisDidLoad()
         case .failure(let error):
+            // Reload so the table flips out of skeleton mode (loadingStyle is already
+            // `.none` above) and renders the empty/previous state behind the alert.
+            delegate?.poisDidLoad()
             delegate?.viewModel(error: error)
         }
     }
@@ -328,7 +389,9 @@ public class AddPlanPOIListingViewModel {
             return
         }
 
-        delegate?.viewModel(showPreloader: true)
+        // Loader is owned by the VC (bottom-sheet Lottie shown before this call). VM no
+        // longer drives `showPreloader` — it just runs the create + polling cycle and
+        // signals completion via `segmentCreatedSuccessfully`.
 
         // Create segment profile
         let segment = TRPCreateEditTimelineSegmentProfile(tripHash: tripHash)
@@ -379,17 +442,53 @@ public class AddPlanPOIListingViewModel {
         segment.startDate = dateFormatter.string(from: combinedStartDate)
         segment.endDate = dateFormatter.string(from: combinedEndDate)
 
-        // Call repository to create segment
+        // Call repository to create segment, then wait for timeline regeneration before
+        // signaling success. VC keeps its bottom-sheet Lottie loader visible through both
+        // phases so the user sees one continuous "Adding…" state.
         timelineRepository.createEditTimelineSegment(profile: segment) { [weak self] result in
             guard let self = self else { return }
 
-            self.delegate?.viewModel(showPreloader: false)
+            DispatchQueue.main.async {
+                switch result {
+                case .success:
+                    self.waitForTimelineRefreshAfterCreation(tripHash: tripHash)
+                case .failure(let error):
+                    self.delegate?.viewModel(error: error)
+                }
+            }
+        }
+    }
 
-            switch result {
-            case .success:
+    /// Poll for segment-generation completion after a successful manual-POI create.
+    /// Mirrors `AddPlanTimeSelectionViewModel.waitForTimelineRefreshAfterCreation` so the
+    /// host's `TRPTimelineRefreshState` observer drives a silent timeline refresh.
+    private func waitForTimelineRefreshAfterCreation(tripHash: String) {
+        TRPTimelineRefreshState.shared.setRefreshing()
+
+        let timelineRepo = TRPTimelineRepository()
+        let modelRepo = TRPTimelineModelRepository()
+        checkAllPlanUseCase = TRPTimelineCheckAllPlanUseCases(
+            timelineRepository: timelineRepo,
+            timelineModelRepository: modelRepo
+        )
+
+        checkAllPlanUseCase?.allSegmentGenerated.addObserver(self) { [weak self] isGenerated in
+            guard let self = self, isGenerated else { return }
+            DispatchQueue.main.async {
+                TRPTimelineRefreshState.shared.setCompleted()
+                self.checkAllPlanUseCase = nil
                 self.delegate?.segmentCreatedSuccessfully()
-            case .failure(let error):
-                self.delegate?.viewModel(error: error)
+            }
+        }
+
+        checkAllPlanUseCase?.executeFetchTimelineCheckAllPlanGenerate(tripHash: tripHash) { [weak self] result in
+            guard let self = self else { return }
+            if case .failure(let error) = result {
+                DispatchQueue.main.async {
+                    TRPTimelineRefreshState.shared.setFailed(error)
+                    self.checkAllPlanUseCase = nil
+                    self.delegate?.viewModel(error: error)
+                }
             }
         }
     }

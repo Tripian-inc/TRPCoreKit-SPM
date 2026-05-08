@@ -25,6 +25,13 @@ public class TRPBaseUIViewController: UIViewController {
     private weak var activeLottieBottomSheet: TRPLottieLoadingVC?
     /// Active embedded (child VC) Lottie loader inside the current screen's view.
     private weak var activeEmbeddedLottie: TRPLottieLoadingVC?
+
+    /// Captured `isModalInPresentation` value from before an `.inView` Lottie was shown,
+    /// so we can restore the host sheet's swipe-to-dismiss state after the loader hides.
+    private var preEmbedIsModalInPresentation: Bool?
+    /// Captured grabber visibility from before an `.inView` Lottie was shown.
+    private var preEmbedPrefersGrabberVisible: Bool?
+
     private var isPopupOnView = false
     
     public var applyButton: UIButton = {
@@ -225,72 +232,82 @@ extension TRPBaseUIViewController:  ViewModelDelegate {
         }
     }
 
-    /// Show or hide the shared Lottie loading overlay. Marshals to the main thread
-    /// since callers are typically on a network completion. Pass a non-nil `text` for
-    /// a single static label (e.g. "Getting Activities"); pass `nil` for the default
-    /// rotating timeline texts. `completion` fires after the show is initiated or
-    /// after the hide fade-out finishes — sequence follow-up UI inside it.
-    public func viewModel(showLottieLoader: Bool, text: String?, completion: (() -> Void)?) {
-        DispatchQueue.main.async {
-            if showLottieLoader {
-                if let text = text {
-                    TRPLottieLoadingVC.shared.showOnWindow(textMode: .single(text))
-                } else {
-                    TRPLottieLoadingVC.shared.showOnWindow()
-                }
-                completion?()
-            } else {
-                TRPLottieLoadingVC.shared.hideFromWindow(completion: completion)
-            }
-        }
-    }
-
-    /// Show or hide a Lottie loading bottom sheet presented over the current VC.
-    /// Each show creates a fresh sheet via `TRPLottieLoadingVC.showAsSheet(...)`;
-    /// each hide dismisses the active sheet. Suitable for medium-length operations
-    /// where a partial-screen indicator (rather than the full-window Lottie) fits the
-    /// UX — e.g. fetching a tour's schedule inside a time selection screen.
-    public func viewModel(showLottieBottomSheet: Bool, text: String?, completion: (() -> Void)?) {
+    /// Show a Lottie loader at the requested `presentation` (full-screen window overlay,
+    /// modal bottom sheet, or embedded child VC). The `textMode` controls what (if
+    /// anything) is rendered next to the animation. Marshals to the main thread since
+    /// callers are typically on a network completion. `completion` fires after the show
+    /// animation begins.
+    public func viewModel(showLottie presentation: LottieLoaderPresentation,
+                          textMode: LottieLoadingTextMode,
+                          completion: (() -> Void)?) {
         DispatchQueue.main.async { [weak self] in
-            guard let self = self else {
+            guard let self = self else { completion?(); return }
+            switch presentation {
+            case .fullScreen:
+                TRPLottieLoadingVC.shared.showOnWindow(textMode: textMode)
                 completion?()
-                return
-            }
-            if showLottieBottomSheet {
-                let sheetText = text ?? ""
+            case .bottomSheet:
                 self.activeLottieBottomSheet = TRPLottieLoadingVC.showAsSheet(
                     over: self,
-                    text: sheetText
+                    textMode: textMode
                 )
                 completion?()
-            } else if let sheet = self.activeLottieBottomSheet {
-                self.activeLottieBottomSheet = nil
-                sheet.hide(completion: completion)
-            } else {
+            case .inView:
+                // Lock the host sheet (if any) while the embedded loader is up:
+                //   • disable swipe-to-dismiss (`isModalInPresentation = true`)
+                //   • hide the grabber so the sheet reads as non-interactive
+                // The previous values are captured here and restored in `hideLottie`.
+                self.preEmbedIsModalInPresentation = self.isModalInPresentation
+                self.isModalInPresentation = true
+                if #available(iOS 15.0, *), let sheet = self.sheetPresentationController {
+                    self.preEmbedPrefersGrabberVisible = sheet.prefersGrabberVisible
+                    sheet.prefersGrabberVisible = false
+                }
+                self.activeEmbeddedLottie = TRPLottieLoadingVC.embed(
+                    in: self,
+                    textMode: textMode
+                )
                 completion?()
             }
         }
     }
 
-    /// Show or hide a Lottie loader embedded directly in the current VC's view.
-    /// Adds the loader as a child VC pinned to `self.view`'s edges — covers the host's
-    /// content without presenting a new modal/sheet. Use when the host is itself a
-    /// bottom sheet (e.g. `AddPlanTimeSelectionVC`) so we don't stack sheets.
-    public func viewModel(showLottieInView: Bool, text: String?, completion: (() -> Void)?) {
+    /// Hide the active Lottie loader at the requested `presentation`. No-op if no loader
+    /// of that kind is currently showing — `completion` still fires.
+    public func viewModel(hideLottie presentation: LottieLoaderPresentation,
+                          completion: (() -> Void)?) {
         DispatchQueue.main.async { [weak self] in
-            guard let self = self else {
-                completion?()
-                return
-            }
-            if showLottieInView {
-                let textMode: LottieLoadingTextMode = text.map { .single($0) } ?? .defaultRotating
-                self.activeEmbeddedLottie = TRPLottieLoadingVC.embed(in: self, textMode: textMode)
-                completion?()
-            } else if let lottie = self.activeEmbeddedLottie {
-                self.activeEmbeddedLottie = nil
-                lottie.unembed(completion: completion)
-            } else {
-                completion?()
+            guard let self = self else { completion?(); return }
+            switch presentation {
+            case .fullScreen:
+                TRPLottieLoadingVC.shared.hideFromWindow(completion: completion)
+            case .bottomSheet:
+                if let sheet = self.activeLottieBottomSheet {
+                    self.activeLottieBottomSheet = nil
+                    sheet.hide(completion: completion)
+                } else {
+                    completion?()
+                }
+            case .inView:
+                // Restore the host sheet's interaction state captured by `showLottie`.
+                // No-op if the loader was never shown.
+                if let previous = self.preEmbedIsModalInPresentation {
+                    self.isModalInPresentation = previous
+                    self.preEmbedIsModalInPresentation = nil
+                }
+                if #available(iOS 15.0, *),
+                   let previous = self.preEmbedPrefersGrabberVisible,
+                   let sheet = self.sheetPresentationController {
+                    sheet.prefersGrabberVisible = previous
+                }
+                self.preEmbedPrefersGrabberVisible = nil
+
+                if let lottie = self.activeEmbeddedLottie {
+                    self.activeEmbeddedLottie = nil
+                    lottie.unembed(completion: completion)
+                } else {
+                    completion?()
+                }
             }
         }
     }

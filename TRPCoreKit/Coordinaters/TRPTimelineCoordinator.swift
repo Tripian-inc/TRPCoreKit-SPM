@@ -280,9 +280,9 @@ extension TRPTimelineCoordinator: TRPTimelineItineraryVCDelegate {
         // Example: removeStep(step: step)
     }
 
-    public func timelineItineraryDidRequestActivityReservation(_ viewController: TRPTimelineItineraryVC, activityId: String) {
+    public func timelineItineraryDidRequestActivityReservation(_ viewController: TRPTimelineItineraryVC, activityId: String, date: Date) {
         // Delegate to SDK delegate to handle activity reservation
-        TRPCoreKit.shared.delegate?.trpCoreKitDidRequestActivityReservation(activityId: activityId)
+        TRPCoreKit.shared.delegate?.trpCoreKitDidRequestActivityReservation(activityId: activityId, date: date)
     }
 }
 

@@ -501,8 +501,11 @@ extension TRPTimelineItineraryViewModel {
         let mergeProfile = pendingMergeProfile
         pendingMergeProfile = nil
 
-        // First GetTimeline on SDK open — animation only, no text (per UX policy).
-        delegate?.timelineItineraryViewModel(showLottieLoading: true, textMode: .none)
+        // First GetTimeline on SDK open — show the localized "Getting your itinerary
+        // plan" message alongside the animation so the user has explicit feedback
+        // about what's happening rather than a silent spinner.
+        let initialLoadText = LoadingLocalizationKeys.localized(LoadingLocalizationKeys.gettingYourItineraryPlan)
+        delegate?.timelineItineraryViewModel(showLottieLoading: true, textMode: .single(initialLoadText))
 
         let repository = TRPTimelineRepository()
         repository.fetchTimeline(tripHash: tripHash) { [weak self] result in

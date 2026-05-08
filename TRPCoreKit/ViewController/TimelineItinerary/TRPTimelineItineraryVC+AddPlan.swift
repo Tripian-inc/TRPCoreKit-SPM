@@ -123,11 +123,13 @@ extension TRPTimelineItineraryVC: AddPlanContainerVCDelegate {
         let poiListingVC = AddPlanPOIListingVC()
         poiListingVC.viewModel = poiListingViewModel
 
-        // Set segment creation callback with selected day for navigation
-        poiListingVC.onSegmentCreated = { [weak self, weak viewController] selectedDay in
-            guard let self = self, let viewController = viewController else { return }
-            // Trigger container delegate with selected day
-            self.addPlanContainerSegmentCreated(viewController, selectedDay: selectedDay)
+        // POI Listing now mirrors the Activity Listing flow: stay open after a successful
+        // add, show a success toast on the listing, and rely on `TRPTimelineRefreshState`
+        // to drive the underlying timeline refresh. Wire only the silent path; the legacy
+        // `onSegmentCreated` (dismiss-everything) path is intentionally NOT set so the
+        // user can keep adding more POIs without having to reopen the AddPlan flow.
+        poiListingVC.onSegmentCreatedSilent = { [weak self] selectedDay in
+            self?.refreshTimelineSilently(selectedDay: selectedDay)
         }
 
         // Create navigation controller for the POI listing
@@ -194,6 +196,9 @@ extension TRPTimelineItineraryVC: TRPTimelineItineraryViewModelDelegate {
 
     public func timelineItineraryViewModel(didUpdateTimeline: Bool) {
         guard didUpdateTimeline else { return }
+        // Dismiss any active bottom sheet loader (e.g. "Changing time", "Removing from plan")
+        // before reloading so the UI transitions cleanly.
+        viewModel(hideLottie: .bottomSheet)
         reload()
     }
 
@@ -218,9 +223,9 @@ extension TRPTimelineItineraryVC: TRPTimelineItineraryViewModelDelegate {
 
     public func timelineItineraryViewModel(showLottieLoading: Bool, textMode: LottieLoadingTextMode) {
         if showLottieLoading {
-            TRPLottieLoadingVC.shared.showOnWindow(textMode: textMode)
+            viewModel(showLottie: .fullScreen, textMode: textMode)
         } else {
-            TRPLottieLoadingVC.shared.hideFromWindow()
+            viewModel(hideLottie: .fullScreen)
         }
     }
 
@@ -303,10 +308,15 @@ extension TRPTimelineItineraryVC: UICollectionViewDataSource, UICollectionViewDe
                 navigationController?.pushViewController(detailVC, animated: true)
 
             case .activity(let segment):
-                // Booked/Reserved activity - call trpCoreKitDidRequestActivityDetail (same as list)
-                guard let activityId = segment.additionalData?.activityId else { return }
-                let cleanedId = activityId.cleanedAsActivityId()
-                TRPCoreKit.shared.delegate?.trpCoreKitDidRequestActivityDetail(activityId: cleanedId)
+                // Booked → bookingDetail with bookingId; Reserved → activityDetail with activityId
+                if segment.segmentType == .bookedActivity {
+                    guard let bookingId = segment.additionalData?.bookingId else { return }
+                    TRPCoreKit.shared.delegate?.trpCoreKitDidRequestBookingDetail(bookingId: bookingId)
+                } else {
+                    guard let activityId = segment.additionalData?.activityId else { return }
+                    let cleanedId = activityId.cleanedAsActivityId()
+                    TRPCoreKit.shared.delegate?.trpCoreKitDidRequestActivityDetail(activityId: cleanedId)
+                }
             }
         } else {
             // Normal selection flow

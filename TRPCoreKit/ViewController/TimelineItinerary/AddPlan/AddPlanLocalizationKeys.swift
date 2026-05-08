@@ -118,6 +118,16 @@ public struct AddPlanLocalizationKeys {
     // MARK: - Error Messages
     public static let errorMissingData = "trips.myTrips.timelineitinerary.addPlan.error.missingData"
     public static let errorCreateFailed = "trips.myTrips.timelineitinerary.addPlan.error.createFailed"
+    public static let errorTimelineNotFound = "addPlan.error.timelineNotFound"
+    public static let errorActivityLocationNotAvailable = "addPlan.error.activityLocationNotAvailable"
+    public static let errorSelectDate = "addPlan.error.selectDate"
+    public static let errorSelectTimeSlot = "addPlan.error.selectTimeSlot"
+    public static let errorCreateReservationFailed = "addPlan.error.createReservationFailed"
+    public static let errorSegmentNotFound = "addPlan.error.segmentNotFound"
+    public static let errorUpdateTimeFailed = "addPlan.error.updateTimeFailed"
+    public static let errorStepNotFound = "addPlan.error.stepNotFound"
+    public static let errorInvalidTimeFormat = "addPlan.error.invalidTimeFormat"
+    public static let errorNoDateSelected = "addPlan.error.noDateSelected"
     
     // MARK: - Default English Values
     private static let defaultValues: [String: String] = [
@@ -184,6 +194,16 @@ public struct AddPlanLocalizationKeys {
         savedPlans: "Saved Plans",
         errorMissingData: "Missing required information. Please complete all fields.",
         errorCreateFailed: "Failed to create smart recommendation. Please try again.",
+        errorTimelineNotFound: "Timeline not found. Please try again.",
+        errorActivityLocationNotAvailable: "Activity location not available.",
+        errorSelectDate: "Please select a date.",
+        errorSelectTimeSlot: "Please select a time slot.",
+        errorCreateReservationFailed: "Failed to create reservation. Please try again.",
+        errorSegmentNotFound: "Segment not found. Please try again.",
+        errorUpdateTimeFailed: "Failed to update time. Please try again.",
+        errorStepNotFound: "Step not found. Please try again.",
+        errorInvalidTimeFormat: "Invalid time format.",
+        errorNoDateSelected: "No date selected.",
         flexibleTimeInfo: "Valid at any time on the chosen day. Check the opening hours.",
         flexibleTimePinTopHint: "This plan will always appear at the top of your itinerary.",
         activityNotAvailableForTrip: "This activity is not available on the days of your trip.",

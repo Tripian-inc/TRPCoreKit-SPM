@@ -17,11 +17,32 @@ public class AddPlanPOIListingVC: TRPBaseUIViewController {
     private var isLoadingMore = false
     private var customNavigationBar: TRPTimelineCustomNavigationBar!
 
+    /// Mirrors the Activity Listing skeleton row count so the table reads as a busy
+    /// list while a fetch is in flight, instead of an empty / collapsed state.
+    private static let skeletonRowCount: Int = 6
+
+    /// One-shot guard so the window-attached Lottie is only presented once per
+    /// `.lottie` loading-style transition (the VM may emit the state twice during a
+    /// single fetch — once on entry, once on the categories-then-pois follow-up).
+    private var lottiePresented: Bool = false
+
+
     // Temporarily stores selected POI while time range is being selected
     private var pendingPoi: TRPPoi?
 
-    // Callback when segment is created successfully, passes selected day for navigation
+    /// Captured POI name held across the create + GetTimeline poll, used to populate
+    /// the success toast once the segment is fully generated. Cleared in
+    /// `segmentCreatedSuccessfully` and on add-path errors.
+    private var pendingPoiName: String?
+
+    /// Callback for the legacy "dismiss everything on success" path. Left for backward
+    /// compatibility — internal flow now uses `onSegmentCreatedSilent`.
     public var onSegmentCreated: ((Date?) -> Void)?
+
+    /// Callback fired AFTER a manual POI is added and the timeline regeneration poll
+    /// has completed. POI listing stays open; host VC is expected to refresh its
+    /// timeline silently. Mirrors `AddPlanActivityListingVC.onSegmentCreatedSilent`.
+    public var onSegmentCreatedSilent: ((Date?) -> Void)?
 
     // MARK: - Lifecycle
     public override func viewDidLoad() {
@@ -251,6 +272,9 @@ public class AddPlanPOIListingVC: TRPBaseUIViewController {
 extension AddPlanPOIListingVC: UITableViewDataSource, UITableViewDelegate {
 
     public func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
+        if viewModel.loadingStyle == .skeleton {
+            return Self.skeletonRowCount
+        }
         return viewModel.getPois().count
     }
 
@@ -261,7 +285,9 @@ extension AddPlanPOIListingVC: UITableViewDataSource, UITableViewDelegate {
 
         cell.delegate = self
 
-        if let poi = viewModel.getPoiAt(index: indexPath.row) {
+        if viewModel.loadingStyle == .skeleton {
+            cell.configureSkeleton()
+        } else if let poi = viewModel.getPoiAt(index: indexPath.row) {
             cell.configure(with: poi)
         }
 
@@ -269,6 +295,8 @@ extension AddPlanPOIListingVC: UITableViewDataSource, UITableViewDelegate {
     }
 
     public func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+        // Block detail navigation while skeleton rows are showing.
+        guard viewModel.loadingStyle != .skeleton else { return }
         tableView.deselectRow(at: indexPath, animated: true)
 
         // Navigate to POI detail
@@ -319,14 +347,65 @@ extension AddPlanPOIListingVC: AddPlanPOIListingViewModelDelegate {
     public func poisDidLoad() {
         isLoadingMore = false
         tableView.reloadData()
-        updatePoiCountLabel()
+        // POI count label is meaningless during skeleton mode (still rendering); show it
+        // again only once we're back to `.none`.
+        if viewModel.loadingStyle != .skeleton {
+            updatePoiCountLabel()
+        }
         updateTableFooter()
     }
 
-    public func segmentCreatedSuccessfully() {
-        dismiss(animated: true) { [weak self] in
-            self?.onSegmentCreated?(self?.viewModel.getSelectedDay())
+    public func poiLoadingStateDidChange() {
+        // Mirrors Activity Listing's `tourLoadingStateDidChange`
+        // (`AddPlanActivityListingVC.swift:394`). The base helper marshals to the main
+        // queue internally so the window-attached overlay attaches AFTER the modal
+        // presentation has started compositing — otherwise the loader z-orders beneath
+        // the still-presenting VC view.
+        switch viewModel.loadingStyle {
+        case .lottie:
+            // First-open / heavy refetch — show full-screen window-attached Lottie. Idempotent.
+            if !lottiePresented {
+                lottiePresented = true
+                let text = LoadingLocalizationKeys.localized(LoadingLocalizationKeys.gettingPlaces)
+                viewModel(showLottie: .fullScreen, textMode: .single(text))
+            }
+        case .skeleton, .bottomSheet, .none:
+            // POI Listing doesn't drive `.bottomSheet` itself (it's an Activity Listing
+            // category-change indicator), but the shared enum forces an exhaustive switch.
+            // Treat it the same as `.skeleton`/`.none` here: tear down the full-screen
+            // Lottie if it's still up. The table skeleton lives inside the cell so the
+            // surrounding UI stays interactive — except for the count label which we
+            // suppress in `poisDidLoad`.
+            if lottiePresented {
+                lottiePresented = false
+                viewModel(hideLottie: .fullScreen)
+            }
         }
+    }
+
+    public func segmentCreatedSuccessfully() {
+        // Hide the in-flight bottom-sheet "Adding…" loader. Show a success toast on the
+        // listing and stay open — the host VC refreshes its timeline silently via
+        // `onSegmentCreatedSilent`, so the user can keep adding more POIs.
+        let activityName = pendingPoiName ?? ""
+        let selectedDay = viewModel.getSelectedDay()
+        viewModel(hideLottie: .bottomSheet, completion: { [weak self] in
+            guard let self = self else { return }
+            let dayLabel = selectedDay?.weekdayWithDayMonth() ?? ""
+            let template = AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.activityAddedToast)
+            let message = String(format: template, activityName, dayLabel)
+            TRPSuccessToast.show(over: self, message: message)
+            self.pendingPoiName = nil
+            self.onSegmentCreatedSilent?(selectedDay)
+        })
+    }
+
+    public override func viewModel(error: Error) {
+        // If an add was in flight, tear down the bottom-sheet loader before surfacing
+        // the error alert so the two don't visually stack.
+        viewModel(hideLottie: .bottomSheet)
+        pendingPoiName = nil
+        super.viewModel(error: error)
     }
 }
 
@@ -360,8 +439,15 @@ extension AddPlanPOIListingVC: TRPTimeRangeSelectionDelegate {
     public func timeRangeSelected(fromDate: Date, toDate: Date) {
         guard let poi = pendingPoi else { return }
 
-        // Clear pending POI
+        // Clear pending POI; capture name for the eventual success toast.
         pendingPoi = nil
+        pendingPoiName = poi.name
+
+        // Show the bottom-sheet "Adding to your itinerary…" Lottie loader BEFORE the API
+        // call. The loader stays visible through the whole create + GetTimeline polling
+        // window — VM only fires `segmentCreatedSuccessfully` after polling completes.
+        let text = LoadingLocalizationKeys.localized(LoadingLocalizationKeys.addingToItinerary)
+        viewModel(showLottie: .bottomSheet, textMode: .single(text))
 
         // Create segment with selected times
         viewModel.createManualPoiSegment(poi: poi, startTime: fromDate, endTime: toDate)
@@ -372,6 +458,13 @@ extension AddPlanPOIListingVC: TRPTimeRangeSelectionDelegate {
 extension AddPlanPOIListingVC: TRPTimelineCustomNavigationBarDelegate {
 
     func customNavigationBarDidTapBack(_ navigationBar: TRPTimelineCustomNavigationBar) {
+        // If the user backs out while the initial-fetch Lottie is still up (slow network),
+        // make sure the window-attached overlay is torn down — otherwise it would orphan
+        // on top of the underlying screen.
+        if lottiePresented {
+            lottiePresented = false
+            viewModel(hideLottie: .fullScreen)
+        }
         dismiss(animated: true)
     }
 }

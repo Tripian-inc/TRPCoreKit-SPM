@@ -344,7 +344,7 @@ extension TRPTimelineItineraryViewModel {
         let tripHash = timeline.tripHash
 
         let removingText = LoadingLocalizationKeys.localized(LoadingLocalizationKeys.removingFromPlan)
-        delegate?.viewModel(showLottieBottomSheet: true, text: removingText)
+        delegate?.viewModel(showLottie: .bottomSheet, textMode: .single(removingText))
 
         // Delete segment via repository
         let repository = TRPTimelineRepository()
@@ -359,14 +359,14 @@ extension TRPTimelineItineraryViewModel {
                         // refresh; dismiss after the timeline data is reloaded so the
                         // loader covers the full operation.
                         self.fetchAndRefreshTimeline { _ in
-                            self.delegate?.viewModel(showLottieBottomSheet: false, text: nil)
+                            self.delegate?.viewModel(hideLottie: .bottomSheet)
                         }
                     } else {
-                        self.delegate?.viewModel(showLottieBottomSheet: false, text: nil)
+                        self.delegate?.viewModel(hideLottie: .bottomSheet)
                         self.delegate?.viewModel(error: NSError(domain: "Timeline", code: -1, userInfo: [NSLocalizedDescriptionKey: "Failed to remove segment"]))
                     }
                 case .failure(let error):
-                    self.delegate?.viewModel(showLottieBottomSheet: false, text: nil)
+                    self.delegate?.viewModel(hideLottie: .bottomSheet)
                     self.delegate?.viewModel(error: error)
                 }
             }

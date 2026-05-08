@@ -339,7 +339,7 @@ public class AddPlanTimeSelectionViewModel {
     /// day picker switches use the cached state — no further network requests.
     public func fetchTimeSlots() {
         guard !planData.availableDays.isEmpty else {
-            delegate?.viewModel(error: NSError(domain: "AddPlanTimeSelection", code: -1, userInfo: [NSLocalizedDescriptionKey: "No date selected"]))
+            delegate?.viewModel(error: makeLocalizedError(code: -1, key: AddPlanLocalizationKeys.errorNoDateSelected))
             return
         }
 
@@ -355,7 +355,7 @@ public class AddPlanTimeSelectionViewModel {
         // stacking a second bottom sheet on top — TimeSelectionVC is already presented
         // as a sheet, so the loader appears inline within the host's view.
         let loadingText = LoadingLocalizationKeys.localized(LoadingLocalizationKeys.loadingTimeSlots)
-        delegate?.viewModel(showLottieInView: true, text: loadingText)
+        delegate?.viewModel(showLottie: .inView, textMode: .single(loadingText))
 
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd"
@@ -376,7 +376,7 @@ public class AddPlanTimeSelectionViewModel {
             guard let self = self else { return }
 
             DispatchQueue.main.async {
-                self.delegate?.viewModel(showLottieInView: false, text: nil)
+                self.delegate?.viewModel(hideLottie: .inView)
 
                 switch result {
                 case .success(let schedule):
@@ -482,24 +482,24 @@ public class AddPlanTimeSelectionViewModel {
     public func createReservedActivitySegment() {
         // 1. Validate required data
         guard let tripHash = planData.tripHash else {
-            delegate?.viewModel(error: NSError(domain: "AddPlanTimeSelection", code: -1, userInfo: [NSLocalizedDescriptionKey: "Timeline not found. Please try again."]))
+            delegate?.viewModel(error: makeLocalizedError(code: -1, key: AddPlanLocalizationKeys.errorTimelineNotFound))
             return
         }
 
         guard let tourCoordinate = tour.coordinate else {
-            delegate?.viewModel(error: NSError(domain: "AddPlanTimeSelection", code: -2, userInfo: [NSLocalizedDescriptionKey: "Activity location not available."]))
+            delegate?.viewModel(error: makeLocalizedError(code: -2, key: AddPlanLocalizationKeys.errorActivityLocationNotAvailable))
             return
         }
 
         guard let selectedDate = selectedDate else {
-            delegate?.viewModel(error: NSError(domain: "AddPlanTimeSelection", code: -3, userInfo: [NSLocalizedDescriptionKey: "Please select a date."]))
+            delegate?.viewModel(error: makeLocalizedError(code: -3, key: AddPlanLocalizationKeys.errorSelectDate))
             return
         }
 
         let isFlexible = isSelectedDayFlexible()
         // Flexible day → no slot selection required; otherwise enforce slot pick.
         guard isFlexible || selectedTimeSlot != nil else {
-            delegate?.viewModel(error: NSError(domain: "AddPlanTimeSelection", code: -3, userInfo: [NSLocalizedDescriptionKey: "Please select a time slot."]))
+            delegate?.viewModel(error: makeLocalizedError(code: -3, key: AddPlanLocalizationKeys.errorSelectTimeSlot))
             return
         }
 
@@ -571,7 +571,7 @@ public class AddPlanTimeSelectionViewModel {
         // 5. Show in-view Lottie loader (TimeSelectionVC is itself a bottom sheet —
         //    we embed inside it rather than stacking another sheet on top).
         let loadingText = LoadingLocalizationKeys.localized(LoadingLocalizationKeys.addingToItinerary)
-        delegate?.viewModel(showLottieInView: true, text: loadingText)
+        delegate?.viewModel(showLottie: .inView, textMode: .single(loadingText))
 
         // 6. Create segment via repository — keep the loader on through both the
         //    creation API and the timeline-regeneration polling that follows on
@@ -586,13 +586,13 @@ public class AddPlanTimeSelectionViewModel {
                     if success {
                         self.waitForTimelineRefreshAfterCreation(tripHash: tripHash)
                     } else {
-                        self.delegate?.viewModel(showLottieInView: false, text: nil)
-                        let error = NSError(domain: "AddPlanTimeSelection", code: -4, userInfo: [NSLocalizedDescriptionKey: "Failed to create reservation. Please try again."])
+                        self.delegate?.viewModel(hideLottie: .inView)
+                        let error = self.makeLocalizedError(code: -4, key: AddPlanLocalizationKeys.errorCreateReservationFailed)
                         self.delegate?.viewModel(error: error)
                     }
 
                 case .failure(let error):
-                    self.delegate?.viewModel(showLottieInView: false, text: nil)
+                    self.delegate?.viewModel(hideLottie: .inView)
                     self.delegate?.viewModel(error: error)
                 }
             }
@@ -618,7 +618,7 @@ public class AddPlanTimeSelectionViewModel {
             DispatchQueue.main.async {
                 TRPTimelineRefreshState.shared.setCompleted()
                 self.checkAllPlanUseCase = nil
-                self.delegate?.viewModel(showLottieInView: false, text: nil)
+                self.delegate?.viewModel(hideLottie: .inView)
                 self.delegate?.segmentCreationDidSucceed()
             }
         }
@@ -629,7 +629,7 @@ public class AddPlanTimeSelectionViewModel {
                 DispatchQueue.main.async {
                     TRPTimelineRefreshState.shared.setFailed(error)
                     self.checkAllPlanUseCase = nil
-                    self.delegate?.viewModel(showLottieInView: false, text: nil)
+                    self.delegate?.viewModel(hideLottie: .inView)
                     self.delegate?.viewModel(error: error)
                 }
             }
@@ -640,24 +640,24 @@ public class AddPlanTimeSelectionViewModel {
     public func updateReservedActivitySegment() {
         // 1. Validate required data
         guard let tripHash = planData.tripHash else {
-            delegate?.viewModel(error: NSError(domain: "AddPlanTimeSelection", code: -1, userInfo: [NSLocalizedDescriptionKey: "Timeline not found. Please try again."]))
+            delegate?.viewModel(error: makeLocalizedError(code: -1, key: AddPlanLocalizationKeys.errorTimelineNotFound))
             return
         }
 
         guard let segmentIndex = planData.segmentIndex,
               let segment = segment else {
-            delegate?.viewModel(error: NSError(domain: "AddPlanTimeSelection", code: -2, userInfo: [NSLocalizedDescriptionKey: "Segment not found. Please try again."]))
+            delegate?.viewModel(error: makeLocalizedError(code: -2, key: AddPlanLocalizationKeys.errorSegmentNotFound))
             return
         }
 
         guard let selectedDate = selectedDate else {
-            delegate?.viewModel(error: NSError(domain: "AddPlanTimeSelection", code: -3, userInfo: [NSLocalizedDescriptionKey: "Please select a date."]))
+            delegate?.viewModel(error: makeLocalizedError(code: -3, key: AddPlanLocalizationKeys.errorSelectDate))
             return
         }
 
         let isFlexible = isSelectedDayFlexible()
         guard isFlexible || selectedTimeSlot != nil else {
-            delegate?.viewModel(error: NSError(domain: "AddPlanTimeSelection", code: -3, userInfo: [NSLocalizedDescriptionKey: "Please select a time slot."]))
+            delegate?.viewModel(error: makeLocalizedError(code: -3, key: AddPlanLocalizationKeys.errorSelectTimeSlot))
             return
         }
 
@@ -679,8 +679,8 @@ public class AddPlanTimeSelectionViewModel {
         profile.endDate = endDateString
         profile.additionalData = updatedAdditionalData
 
-        // 5. Show loading
-        delegate?.viewModel(showPreloader: true)
+        // 5. Show loading inline (sheet is already presenting — embed the loader in view)
+        delegate?.viewModel(showLottie: .inView, textMode: .defaultRotating)
 
         // 6. Update segment via repository
         let repository = TRPTimelineRepository()
@@ -688,14 +688,14 @@ public class AddPlanTimeSelectionViewModel {
             guard let self = self else { return }
 
             DispatchQueue.main.async {
-                self.delegate?.viewModel(showPreloader: false)
+                self.delegate?.viewModel(hideLottie: .inView)
 
                 switch result {
                 case .success(let success):
                     if success {
                         self.delegate?.segmentUpdateDidSucceed()
                     } else {
-                        let error = NSError(domain: "AddPlanTimeSelection", code: -4, userInfo: [NSLocalizedDescriptionKey: "Failed to update time. Please try again."])
+                        let error = self.makeLocalizedError(code: -4, key: AddPlanLocalizationKeys.errorUpdateTimeFailed)
                         self.delegate?.viewModel(error: error)
                     }
 
@@ -709,7 +709,7 @@ public class AddPlanTimeSelectionViewModel {
     /// Update activity step time (step edit mode)
     public func updateActivityStep() {
         guard let step = step else {
-            delegate?.viewModel(error: NSError(domain: "AddPlanTimeSelection", code: -1, userInfo: [NSLocalizedDescriptionKey: "Step not found. Please try again."]))
+            delegate?.viewModel(error: makeLocalizedError(code: -1, key: AddPlanLocalizationKeys.errorStepNotFound))
             return
         }
 
@@ -717,7 +717,7 @@ public class AddPlanTimeSelectionViewModel {
               let timeString = selectedTimeSlot.time else {
             // Step edit mode requires a specific time — flexible-time entries are not
             // editable here; the user must pick a concrete slot.
-            delegate?.viewModel(error: NSError(domain: "AddPlanTimeSelection", code: -2, userInfo: [NSLocalizedDescriptionKey: "Please select a time slot."]))
+            delegate?.viewModel(error: makeLocalizedError(code: -2, key: AddPlanLocalizationKeys.errorSelectTimeSlot))
             return
         }
 
@@ -725,7 +725,7 @@ public class AddPlanTimeSelectionViewModel {
         // Extract just the "HH:mm" part
         let startTimeComponents = timeString.split(separator: ":")
         guard startTimeComponents.count >= 2 else {
-            delegate?.viewModel(error: NSError(domain: "AddPlanTimeSelection", code: -3, userInfo: [NSLocalizedDescriptionKey: "Invalid time format."]))
+            delegate?.viewModel(error: makeLocalizedError(code: -3, key: AddPlanLocalizationKeys.errorInvalidTimeFormat))
             return
         }
         let startTime = "\(startTimeComponents[0]):\(startTimeComponents[1])"
@@ -741,8 +741,8 @@ public class AddPlanTimeSelectionViewModel {
             endTime: endTime
         )
 
-        // Show loading
-        delegate?.viewModel(showPreloader: true)
+        // Show loading inline (sheet is already presenting — embed the loader in view)
+        delegate?.viewModel(showLottie: .inView, textMode: .defaultRotating)
 
         // Update step via repository
         let repository = TRPTimelineStepRepository()
@@ -750,7 +750,7 @@ public class AddPlanTimeSelectionViewModel {
             guard let self = self else { return }
 
             DispatchQueue.main.async {
-                self.delegate?.viewModel(showPreloader: false)
+                self.delegate?.viewModel(hideLottie: .inView)
 
                 switch result {
                 case .success:
@@ -764,6 +764,11 @@ public class AddPlanTimeSelectionViewModel {
     }
 
     // MARK: - Private Methods
+
+    private func makeLocalizedError(code: Int, key: String) -> NSError {
+        let message = AddPlanLocalizationKeys.localized(key)
+        return NSError(domain: "AddPlanTimeSelection", code: code, userInfo: [NSLocalizedDescriptionKey: message])
+    }
 
     private func calculateSegmentTimes(
         selectedDate: Date,
