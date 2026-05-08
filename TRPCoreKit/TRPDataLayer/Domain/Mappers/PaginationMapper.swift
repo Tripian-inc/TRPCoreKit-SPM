@@ -15,8 +15,11 @@ final class PaginationMapper {
         switch restModel {
         case .completed:
             return TRPPagination.completed
-        case .continues(let url):
-            return TRPPagination.continues(url)
+        case .continues(let model):
+            if model.currentPage >= model.totalPages {
+                return TRPPagination.completed
+            }
+            return TRPPagination.continues("")
         }
     }
     

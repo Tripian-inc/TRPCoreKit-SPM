@@ -214,7 +214,7 @@ public class TRPSDKCoordinater {
         }
     }
     
-    public func startForNexus(bookingDetailUrl: String, startDate: String?, endDate: String?, meetingPoint: String?, numberOfAdults: Int?, numberOfChildren: Int?) {
+    public func startForNexus(bookingDetailUrl: String, startDate: String?, endDate: String?, meetingPoint: String?, numberOfAdults: Int?, numberOfChildren: Int?, bookingReferenceId: String? = nil, reservations: String? = nil) {
         checkAllApiKey()
         userProfile()
         let vc = myTrip

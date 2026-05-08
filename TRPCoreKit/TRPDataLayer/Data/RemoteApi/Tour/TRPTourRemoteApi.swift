@@ -55,15 +55,15 @@ public class TRPTourRemoteApi: TourRemoteApi {
         request.offset = parameters.offset ?? 0
 
         // Map price filters
-        request.minPrice = parameters.minPrice
-        request.maxPrice = parameters.maxPrice
+        request.minPrice = parameters.minPrice.map { Int($0) }
+        request.maxPrice = parameters.maxPrice.map { Int($0) }
 
         // Map rating filter
         request.minRating = parameters.minRating
 
         // Map duration filters
-        request.minDuration = parameters.minDuration
-        request.maxDuration = parameters.maxDuration
+        request.minDuration = parameters.minDuration.map { Int($0) }
+        request.maxDuration = parameters.maxDuration.map { Int($0) }
 
         // Map sorting (default to score descending)
         request.sortingBy = parameters.sortingBy ?? "score"
@@ -132,15 +132,15 @@ public class TRPTourRemoteApi: TourRemoteApi {
         request.offset = parameters.offset ?? 0
 
         // Map price filters
-        request.minPrice = parameters.minPrice
-        request.maxPrice = parameters.maxPrice
+        request.minPrice = parameters.minPrice.map { Int($0) }
+        request.maxPrice = parameters.maxPrice.map { Int($0) }
 
         // Map rating filter
         request.minRating = parameters.minRating
 
         // Map duration filters
-        request.minDuration = parameters.minDuration
-        request.maxDuration = parameters.maxDuration
+        request.minDuration = parameters.minDuration.map { Int($0) }
+        request.maxDuration = parameters.maxDuration.map { Int($0) }
 
         // Map sorting (default to score descending)
         request.sortingBy = parameters.sortingBy ?? "score"
