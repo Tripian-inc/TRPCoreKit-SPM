@@ -112,6 +112,11 @@ public struct AddPlanLocalizationKeys {
     /// strictly more slots than fit in the collapsed view (>8). Tap expands to all.
     public static let showMoreTimeSlots = "addPlan.time.showMore"
 
+    /// Cream-colored advisory banner shown below the time-slot grid clarifying that
+    /// adding an activity to the itinerary does NOT reserve a seat. Hidden when the
+    /// day is flexible or no slots are available for the trip.
+    public static let bookingAvailabilityNotice = "addPlan.time.bookingAvailabilityNotice"
+
     // MARK: - Toast / Success Notifications
     /// Format: takes activity name as %1$@ and day display string as %2$@.
     public static let activityAddedToast = "addPlan.toast.activityAdded"
@@ -212,6 +217,7 @@ public struct AddPlanLocalizationKeys {
         flexibleTimePinTopHint: "This plan will always appear at the top of your itinerary.",
         activityNotAvailableForTrip: "This activity is not available on the days of your trip.",
         showMoreTimeSlots: "More",
+        bookingAvailabilityNotice: "Adding an activity to your itinerary does not reserve availability. We don't notify if it sells out. Availability is confirmed at booking.",
         activityAddedToast: "%1$@ has been added to %2$@"
     ]
     

@@ -72,8 +72,15 @@ public class AddPlanTimeSelectionVC: TRPBaseUIViewController, DynamicHeightPrese
             let cellHeight: CGFloat = 40
             let lineSpacing: CGFloat = 12
             let gridHeight = CGFloat(rowCount) * cellHeight + CGFloat(max(0, rowCount - 1)) * lineSpacing
-            // 16 (collection top) + grid + 16 (collection bottom to button)
-            middle = 16 + gridHeight + 16
+
+            // Booking-availability banner (cream advisory). Same layout math as the
+            // unavailable banner — measure label height at the available width.
+            let bannerText = AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.bookingAvailabilityNotice)
+            let bannerLabelHeight = Self.textHeight(for: bannerText, font: labelFont, maxWidth: cardLabelMaxWidth)
+            let bannerHeight = 16 + max(20, bannerLabelHeight) + 16
+
+            // 16 (collection top) + grid + 16 (collection-to-banner gap) + banner + 16 (banner-to-button gap)
+            middle = 16 + gridHeight + 16 + bannerHeight + 16
         }
         return chrome + middle + bottom
     }
@@ -218,7 +225,7 @@ public class AddPlanTimeSelectionVC: TRPBaseUIViewController, DynamicHeightPrese
     private let unavailableBanner: UIView = {
         let view = UIView()
         view.translatesAutoresizingMaskIntoConstraints = false
-        view.backgroundColor = ColorSet.bgOrange.uiColor
+        view.backgroundColor = ColorSet.warningBg.uiColor
         view.layer.cornerRadius = 8
         view.isHidden = true
         return view
@@ -228,7 +235,7 @@ public class AddPlanTimeSelectionVC: TRPBaseUIViewController, DynamicHeightPrese
         let iv = UIImageView()
         iv.translatesAutoresizingMaskIntoConstraints = false
         iv.image = UIImage(systemName: "exclamationmark.triangle")
-        iv.tintColor = ColorSet.fgOrange.uiColor
+        iv.tintColor = ColorSet.warningIcon.uiColor
         iv.contentMode = .scaleAspectFit
         return iv
     }()
@@ -242,6 +249,46 @@ public class AddPlanTimeSelectionVC: TRPBaseUIViewController, DynamicHeightPrese
         label.numberOfLines = 0
         return label
     }()
+
+    // MARK: - Booking-availability advisory banner
+    /// Cream/orange advisory shown BELOW the time-slot grid clarifying that adding an
+    /// activity to the itinerary does not reserve a seat. Visible only when the timed
+    /// grid is showing (hidden on flexible days and when no day has slots at all).
+    private let bookingAvailabilityBanner: UIView = {
+        let view = UIView()
+        view.translatesAutoresizingMaskIntoConstraints = false
+        view.backgroundColor = ColorSet.warningBg.uiColor
+        view.layer.cornerRadius = 8
+        view.isHidden = true
+        return view
+    }()
+
+    private let bookingAvailabilityBannerIcon: UIImageView = {
+        let iv = UIImageView()
+        iv.translatesAutoresizingMaskIntoConstraints = false
+        iv.image = UIImage(systemName: "exclamationmark.triangle")
+        iv.tintColor = ColorSet.warningIcon.uiColor
+        iv.contentMode = .scaleAspectFit
+        return iv
+    }()
+
+    private let bookingAvailabilityBannerLabel: UILabel = {
+        let label = UILabel()
+        label.translatesAutoresizingMaskIntoConstraints = false
+        label.text = AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.bookingAvailabilityNotice)
+        label.font = FontSet.montserratMedium.font(14)
+        label.textColor = ColorSet.fg.uiColor
+        label.numberOfLines = 0
+        return label
+    }()
+
+    /// Bottom constraint pinning the collection view directly above the continue
+    /// button (used when the booking-availability banner is hidden — flexible days
+    /// or all-days-unavailable).
+    private var collectionViewBottomToContinue: NSLayoutConstraint!
+    /// Bottom constraint pinning the collection view to the booking-availability
+    /// banner (used when the timed grid is showing).
+    private var collectionViewBottomToBookingBanner: NSLayoutConstraint!
 
     // MARK: - Initialization
     public init(tour: TRPTourProduct, planData: AddPlanData) {
@@ -303,6 +350,9 @@ public class AddPlanTimeSelectionVC: TRPBaseUIViewController, DynamicHeightPrese
         view.addSubview(unavailableBanner)
         unavailableBanner.addSubview(unavailableBannerIcon)
         unavailableBanner.addSubview(unavailableBannerLabel)
+        view.addSubview(bookingAvailabilityBanner)
+        bookingAvailabilityBanner.addSubview(bookingAvailabilityBannerIcon)
+        bookingAvailabilityBanner.addSubview(bookingAvailabilityBannerLabel)
         view.addSubview(continueButton)
         view.addSubview(loadingIndicator)
 
@@ -318,13 +368,14 @@ public class AddPlanTimeSelectionVC: TRPBaseUIViewController, DynamicHeightPrese
             titleLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
             titleLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
 
-            // Collection View — bottom pinned directly to the continue button. The
-            // "Show more" link is rendered as the 8th cell inside the grid, not as a
-            // separate subview, so no extra layout slot is needed.
+            // Collection View — bottom anchor is wired to one of two constraints
+            // (toggled in `updateBookingAvailabilityBanner`): directly to the continue
+            // button when the banner is hidden, or to the banner top when visible.
+            // The "Show more" link is rendered as the 8th cell inside the grid (not a
+            // separate subview).
             collectionView.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 16),
             collectionView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
             collectionView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
-            collectionView.bottomAnchor.constraint(equalTo: continueButton.topAnchor, constant: -16),
 
             // Continue Button
             continueButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
@@ -382,7 +433,35 @@ public class AddPlanTimeSelectionVC: TRPBaseUIViewController, DynamicHeightPrese
             unavailableBannerLabel.bottomAnchor.constraint(equalTo: unavailableBanner.bottomAnchor, constant: -16),
             unavailableBannerLabel.leadingAnchor.constraint(equalTo: unavailableBannerIcon.trailingAnchor, constant: 8),
             unavailableBannerLabel.trailingAnchor.constraint(equalTo: unavailableBanner.trailingAnchor, constant: -16),
+
+            // Booking-availability banner — sits between the time-slot grid and the
+            // continue button. Same horizontal alignment as the unavailable banner.
+            bookingAvailabilityBanner.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
+            bookingAvailabilityBanner.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
+            bookingAvailabilityBanner.bottomAnchor.constraint(equalTo: continueButton.topAnchor, constant: -16),
+
+            bookingAvailabilityBannerIcon.leadingAnchor.constraint(equalTo: bookingAvailabilityBanner.leadingAnchor, constant: 16),
+            bookingAvailabilityBannerIcon.topAnchor.constraint(equalTo: bookingAvailabilityBanner.topAnchor, constant: 16),
+            bookingAvailabilityBannerIcon.widthAnchor.constraint(equalToConstant: 20),
+            bookingAvailabilityBannerIcon.heightAnchor.constraint(equalToConstant: 20),
+
+            bookingAvailabilityBannerLabel.topAnchor.constraint(equalTo: bookingAvailabilityBanner.topAnchor, constant: 16),
+            bookingAvailabilityBannerLabel.bottomAnchor.constraint(equalTo: bookingAvailabilityBanner.bottomAnchor, constant: -16),
+            bookingAvailabilityBannerLabel.leadingAnchor.constraint(equalTo: bookingAvailabilityBannerIcon.trailingAnchor, constant: 8),
+            bookingAvailabilityBannerLabel.trailingAnchor.constraint(equalTo: bookingAvailabilityBanner.trailingAnchor, constant: -16),
         ])
+
+        // Two mutually-exclusive bottom constraints for the collection view, toggled
+        // by `updateBookingAvailabilityBanner(visible:)` based on whether the banner
+        // is showing.
+        collectionViewBottomToContinue = collectionView.bottomAnchor.constraint(
+            equalTo: continueButton.topAnchor, constant: -16
+        )
+        collectionViewBottomToBookingBanner = collectionView.bottomAnchor.constraint(
+            equalTo: bookingAvailabilityBanner.topAnchor, constant: -16
+        )
+        // Default: banner hidden, collection view extends to the continue button.
+        collectionViewBottomToContinue.isActive = true
     }
 
     private func setupDayFilter() {
@@ -438,6 +517,15 @@ public class AddPlanTimeSelectionVC: TRPBaseUIViewController, DynamicHeightPrese
     private func updateContinueButton() {
         let canContinue = viewModel.canContinue()
         continueButton.setEnabled(canContinue)
+    }
+
+    /// Toggle the booking-availability banner and swap the collection view's bottom
+    /// constraint so the grid sits flush against the banner top when shown, or pinned
+    /// to the continue button when hidden (flexible / unavailable days).
+    private func updateBookingAvailabilityBanner(visible: Bool) {
+        bookingAvailabilityBanner.isHidden = !visible
+        collectionViewBottomToContinue.isActive = !visible
+        collectionViewBottomToBookingBanner.isActive = visible
     }
 }
 
@@ -529,6 +617,11 @@ extension AddPlanTimeSelectionVC: AddPlanTimeSelectionViewModelDelegate {
         flexibleSubtitleLabel.isHidden = allDaysUnavailable || !isFlexible
         collectionView.isHidden = allDaysUnavailable || isFlexible
         emptyStateLabel.isHidden = allDaysUnavailable || isFlexible || hasTimeSlots
+
+        // Booking-availability advisory only makes sense when the timed grid is
+        // showing (not on flexible days or when no day has slots).
+        let shouldShowBookingBanner = !allDaysUnavailable && !isFlexible && hasTimeSlots
+        updateBookingAvailabilityBanner(visible: shouldShowBookingBanner)
 
         // The "Show more" cell is rendered inline by the data source as the 8th item
         // when the grid is collapsed and there are >8 slots — no separate visibility

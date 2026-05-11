@@ -298,6 +298,8 @@ public enum ColorSet {
     case errorBg
     case infoBg
     case infoIcon
+    case warningBg
+    case warningIcon
 
     public var uiColor: UIColor {
         switch self {
@@ -355,6 +357,10 @@ public enum ColorSet {
             return UIColor(red: 242, green: 250, blue: 253)
         case .infoIcon:
             return UIColor(red: 9, green: 138, blue: 195)
+        case .warningBg:
+            return UIColor(red: 255, green: 249, blue: 225)
+        case .warningIcon:
+            return UIColor(red: 214, green: 119, blue: 26)
         }
     }
     

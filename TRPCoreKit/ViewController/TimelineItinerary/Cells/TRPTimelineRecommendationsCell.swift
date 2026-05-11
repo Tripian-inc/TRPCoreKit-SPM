@@ -70,14 +70,13 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
         return label
     }()
     
-    private let chevronButton: UIButton = {
-        let button = UIButton(type: .system)
-        button.translatesAutoresizingMaskIntoConstraints = false
-        button.setImage(TRPImageController().getImage(inFramework: "ic_recom_arrow", inApp: nil), for: .normal)
-        button.tintColor = ColorSet.fg.uiColor
-        // Button size 24x24 with 4px padding to keep icon visually 16x16
-        button.contentEdgeInsets = UIEdgeInsets(top: 4, left: 4, bottom: 4, right: 4)
-        return button
+    private let chevronImageView: UIImageView = {
+        let imageView = UIImageView()
+        imageView.translatesAutoresizingMaskIntoConstraints = false
+        imageView.image = TRPImageController().getImage(inFramework: "ic_recom_arrow", inApp: nil)?.withRenderingMode(.alwaysTemplate)
+        imageView.tintColor = ColorSet.fg.uiColor
+        imageView.contentMode = .scaleAspectFit
+        return imageView
     }()
 
     private let closeButton: UIButton = {
@@ -137,7 +136,7 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
         containerView.addArrangedSubview(recommendationsStackView)
 
         headerView.addSubview(titleLabel)
-        headerView.addSubview(chevronButton)
+        headerView.addSubview(chevronImageView)
         headerView.addSubview(closeButton)
 
         NSLayoutConstraint.activate([
@@ -154,11 +153,13 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
             titleLabel.leadingAnchor.constraint(equalTo: headerView.leadingAnchor),
             titleLabel.centerYAnchor.constraint(equalTo: headerView.centerYAnchor),
 
-            // Chevron Button - 24x24 with padding for larger tap area, icon remains visually 16x16
-            chevronButton.leadingAnchor.constraint(equalTo: titleLabel.trailingAnchor, constant: 6),
-            chevronButton.centerYAnchor.constraint(equalTo: headerView.centerYAnchor),
-            chevronButton.widthAnchor.constraint(equalToConstant: 24),
-            chevronButton.heightAnchor.constraint(equalToConstant: 24),
+            // Chevron - 16x16 to match the previous button's visible icon size
+            // (button was 24x24 with 4pt insets). Not user-interactive; taps land
+            // on `headerView`'s gesture recognizer.
+            chevronImageView.leadingAnchor.constraint(equalTo: titleLabel.trailingAnchor, constant: 10),
+            chevronImageView.centerYAnchor.constraint(equalTo: headerView.centerYAnchor),
+            chevronImageView.widthAnchor.constraint(equalToConstant: 16),
+            chevronImageView.heightAnchor.constraint(equalToConstant: 16),
 
             // Close Button - 44x44 for Apple HIG tap target
             closeButton.trailingAnchor.constraint(equalTo: headerView.trailingAnchor),
@@ -231,10 +232,10 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
 
         if animated {
             UIView.animate(withDuration: 0.3, delay: 0, usingSpringWithDamping: 0.8, initialSpringVelocity: 0.5) {
-                self.chevronButton.transform = CGAffineTransform(rotationAngle: rotation)
+                self.chevronImageView.transform = CGAffineTransform(rotationAngle: rotation)
             }
         } else {
-            chevronButton.transform = CGAffineTransform(rotationAngle: rotation)
+            chevronImageView.transform = CGAffineTransform(rotationAngle: rotation)
         }
     }
     
