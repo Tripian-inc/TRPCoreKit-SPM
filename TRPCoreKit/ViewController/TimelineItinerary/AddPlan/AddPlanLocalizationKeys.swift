@@ -117,6 +117,12 @@ public struct AddPlanLocalizationKeys {
     /// day is flexible or no slots are available for the trip.
     public static let bookingAvailabilityNotice = "addPlan.time.bookingAvailabilityNotice"
 
+    /// Red-tinted error banner shown above `bookingAvailabilityNotice` during
+    /// activity change-time when the activity's currently-saved time is no longer
+    /// in the schedule response (sold out or already in the past). Paired with a
+    /// disabled placeholder cell in the time grid at that slot.
+    public static let soldOutWarning = "addPlan.time.soldOutWarning"
+
     // MARK: - Toast / Success Notifications
     /// Format: takes activity name as %1$@ and day display string as %2$@.
     public static let activityAddedToast = "addPlan.toast.activityAdded"
@@ -218,6 +224,7 @@ public struct AddPlanLocalizationKeys {
         activityNotAvailableForTrip: "This activity is not available on the days of your trip.",
         showMoreTimeSlots: "More",
         bookingAvailabilityNotice: "Adding an activity to your itinerary does not reserve availability. We don't notify if it sells out. Availability is confirmed at booking.",
+        soldOutWarning: "Your selected time is sold out. Choose a new time for accurate availability, or keep this as a placeholder.",
         activityAddedToast: "%1$@ has been added to %2$@"
     ]
     

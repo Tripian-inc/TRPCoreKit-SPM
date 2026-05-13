@@ -27,6 +27,7 @@ public struct PoiParameters {
     var limit: Int? = nil
     var autoPagination: Bool = false
     var page: Int? = nil
+    var sort: String? = nil
 
     var url: String?
     
@@ -52,7 +53,8 @@ extension PoiParameters: Hashable {
                     lhs.limit == rhs.limit &&
                     lhs.autoPagination == rhs.autoPagination &&
                     lhs.mustTryIds == rhs.mustTryIds &&
-                    lhs.page == rhs.page
+                    lhs.page == rhs.page &&
+                    lhs.sort == rhs.sort
         }
         
         

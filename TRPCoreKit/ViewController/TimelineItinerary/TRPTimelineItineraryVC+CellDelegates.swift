@@ -110,13 +110,18 @@ extension TRPTimelineItineraryVC: TRPTimelineReservedActivityCellDelegate {
         // Create time selection VC in edit mode
         let timeSelectionVC = AddPlanTimeSelectionVC(segment: segment, planData: planData)
 
-        // Set callback for segment update — sheet is already dismissed at this point,
-        // so show the bottom sheet loader on the timeline screen during refresh.
-        timeSelectionVC.onSegmentUpdated = { [weak self] in
+        // Sheet stays open with its in-view "Changing time" loader through both the
+        // update API and the host's timeline refresh. We don't show a second
+        // bottom-sheet loader here — that would create a visible loader → loader jump.
+        // Once the refresh completes, dismiss the time-selection sheet, which tears
+        // down the inline loader with it.
+        timeSelectionVC.onSegmentUpdated = { [weak self, weak timeSelectionVC] in
             guard let self = self else { return }
-            let text = LoadingLocalizationKeys.localized(LoadingLocalizationKeys.changingTime)
-            self.viewModel(showLottie: .bottomSheet, textMode: .single(text))
-            self.viewModel.refreshTimeline()
+            self.viewModel.fetchAndRefreshTimeline { _ in
+                DispatchQueue.main.async {
+                    timeSelectionVC?.dismiss(animated: true)
+                }
+            }
         }
 
         // Present as bottom sheet
@@ -363,13 +368,16 @@ extension TRPTimelineItineraryVC: TRPTimelineRecommendationsCellDelegate {
         // Create time selection VC in step edit mode
         let timeSelectionVC = AddPlanTimeSelectionVC(step: step, planData: planData)
 
-        // Set callback for step update — sheet is already dismissed at this point,
-        // so show the bottom sheet loader on the timeline screen during refresh.
-        timeSelectionVC.onStepUpdated = { [weak self] in
+        // Same pattern as segment edit: keep the time-selection sheet open with its
+        // in-view "Changing time" loader through the host refresh; dismiss after.
+        // No second bottom-sheet loader.
+        timeSelectionVC.onStepUpdated = { [weak self, weak timeSelectionVC] in
             guard let self = self else { return }
-            let text = LoadingLocalizationKeys.localized(LoadingLocalizationKeys.changingTime)
-            self.viewModel(showLottie: .bottomSheet, textMode: .single(text))
-            self.viewModel.refreshTimeline()
+            self.viewModel.fetchAndRefreshTimeline { _ in
+                DispatchQueue.main.async {
+                    timeSelectionVC?.dismiss(animated: true)
+                }
+            }
         }
 
         // Present as bottom sheet

@@ -52,6 +52,21 @@ public enum SortOption: Int, CaseIterable {
             return ("duration", "desc")
         }
     }
+
+    /// Single `sort` query param value for the POI listing endpoint.
+    /// `popularity` returns `nil` so we omit the param and let the server use its default.
+    var poiSortQuery: String? {
+        switch self {
+        case .popularity:
+            return nil
+        case .rating:
+            return "rating"
+        case .priceLowToHigh:
+            return "price"
+        case .durationShortToLong, .durationLongToShort:
+            return "duration"
+        }
+    }
 }
 
 // MARK: - AddPlanSortByVC

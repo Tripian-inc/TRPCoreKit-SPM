@@ -87,57 +87,37 @@ extension TRPTimelineItineraryVC: AddPlanContainerVCDelegate {
     }
 
     public func addPlanContainerShouldShowActivityListing(_ viewController: AddPlanContainerVC, data: AddPlanData) {
-        // Don't dismiss the add plan container - present activity listing on top of it
-        // This allows user to go back to add plan screen
-
-        // Create activity listing ViewModel with the plan data
         let activityListingViewModel = AddPlanActivityListingViewModel(planData: data)
         let activityListingVC = AddPlanActivityListingVC()
         activityListingVC.viewModel = activityListingViewModel
 
-        // Manual activity flow now stays on the listing on success and shows a toast
-        // there — only the underlying timeline needs a silent refresh, no modal
-        // dismiss. `onSegmentCreated` is intentionally not wired so the legacy
-        // dismiss-everything path doesn't fire.
         activityListingVC.onSegmentCreatedSilent = { [weak self] selectedDay in
             self?.refreshTimelineSilently(selectedDay: selectedDay)
         }
 
-        // Create navigation controller for the activity listing
         let navController = UINavigationController(rootViewController: activityListingVC)
         navController.modalPresentationStyle = .fullScreen
 
-        // Set title
-        activityListingVC.title = AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.categoryActivities)
-
-        // Present from the AddPlanContainerVC instead of dismissing it first
-        viewController.present(navController, animated: true)
+        viewController.dismiss(animated: false) { [weak self] in
+            self?.present(navController, animated: true)
+        }
     }
 
     public func addPlanContainerShouldShowPOIListing(_ viewController: AddPlanContainerVC, data: AddPlanData, categoryType: POIListingCategoryType) {
-        // Don't dismiss the add plan container - present POI listing on top of it
-        // This allows user to go back to add plan screen
-
-        // Create POI listing ViewModel with the plan data and category type
         let poiListingViewModel = AddPlanPOIListingViewModel(planData: data, categoryType: categoryType)
         let poiListingVC = AddPlanPOIListingVC()
         poiListingVC.viewModel = poiListingViewModel
 
-        // POI Listing now mirrors the Activity Listing flow: stay open after a successful
-        // add, show a success toast on the listing, and rely on `TRPTimelineRefreshState`
-        // to drive the underlying timeline refresh. Wire only the silent path; the legacy
-        // `onSegmentCreated` (dismiss-everything) path is intentionally NOT set so the
-        // user can keep adding more POIs without having to reopen the AddPlan flow.
         poiListingVC.onSegmentCreatedSilent = { [weak self] selectedDay in
             self?.refreshTimelineSilently(selectedDay: selectedDay)
         }
 
-        // Create navigation controller for the POI listing
         let navController = UINavigationController(rootViewController: poiListingVC)
         navController.modalPresentationStyle = .fullScreen
 
-        // Present from the AddPlanContainerVC instead of dismissing it first
-        viewController.present(navController, animated: true)
+        viewController.dismiss(animated: false) { [weak self] in
+            self?.present(navController, animated: true)
+        }
     }
 
     public func addPlanContainerSegmentCreated(_ viewController: AddPlanContainerVC, selectedDay: Date?) {

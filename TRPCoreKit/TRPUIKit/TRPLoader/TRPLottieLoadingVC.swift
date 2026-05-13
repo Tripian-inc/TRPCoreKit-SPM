@@ -238,6 +238,12 @@ public class TRPLottieLoadingVC: UIViewController {
 
     private func startTextRotation() {
         guard rotatingTexts.count > 1 else { return }
+        // Idempotency guard — if a timer is already running, don't kick off a second
+        // one in parallel. Otherwise `showOnWindow` followed by `viewWillAppear`
+        // (or any other path that calls `startTextRotation`) would leave two
+        // timers racing on the same `currentTextIndex`, making the first message
+        // visibly skip to the second within a fraction of a second.
+        guard textRotationTimer == nil else { return }
 
         textRotationTimer = Timer.scheduledTimer(
             withTimeInterval: textRotationInterval,
@@ -353,18 +359,31 @@ public class TRPLottieLoadingVC: UIViewController {
     public static let shared = TRPLottieLoadingVC()
 
     /// Show as a full-screen overlay attached to the key window. Idempotent: calling
-    /// while already visible just refreshes the text mode and brings the view forward.
+    /// while already visible with the SAME `textMode` is a no-op for the rotation
+    /// state — the in-flight rotation keeps its timing instead of restarting at
+    /// index 0 every time the caller re-shows the loader. The text state is only
+    /// reset when the loader is freshly attached or the text mode actually changes.
     public func showOnWindow(textMode: LottieLoadingTextMode = .defaultRotating) {
         guard let window = UIApplication.currentUIWindow() else { return }
         loadViewIfNeeded()
 
-        // Refresh text content for this presentation
-        self.textMode = textMode
-        applyInitialTextContent()
-        currentTextIndex = 0
-        stopTextRotation()
+        let wasAlreadyAttached = (view.superview === window)
+        let textModeChanged = !Self.textModesEqual(self.textMode, textMode)
 
-        if view.superview !== window {
+        // Only reset the rotation cursor when we actually need to — either the loader
+        // is being shown for the first time, or the caller wants a different text
+        // mode. Re-shows with the same `textMode` (which happens when a VM emits
+        // multiple show signals in quick succession) preserve the running timer so
+        // the user sees the full ~3.5s per message instead of getting yanked back
+        // to message #1 mid-rotation.
+        if !wasAlreadyAttached || textModeChanged {
+            self.textMode = textMode
+            applyInitialTextContent()
+            currentTextIndex = 0
+            stopTextRotation()
+        }
+
+        if !wasAlreadyAttached {
             view.removeFromSuperview()
             view.alpha = 1
             view.frame = window.bounds
@@ -374,8 +393,24 @@ public class TRPLottieLoadingVC: UIViewController {
         window.bringSubviewToFront(view)
 
         startAnimation()
-        if case .rotating(let texts) = textMode, texts.count > 1 {
+        if !wasAlreadyAttached || textModeChanged,
+           case .rotating(let texts) = textMode, texts.count > 1 {
             startTextRotation()
+        }
+    }
+
+    /// Value-equality between two text modes — used by `showOnWindow` to detect when
+    /// a re-show carries the same content and the rotation cursor should be left alone.
+    private static func textModesEqual(_ lhs: LottieLoadingTextMode, _ rhs: LottieLoadingTextMode) -> Bool {
+        switch (lhs, rhs) {
+        case (.none, .none):
+            return true
+        case (.single(let a), .single(let b)):
+            return a == b
+        case (.rotating(let a), .rotating(let b)):
+            return a == b
+        default:
+            return false
         }
     }
 

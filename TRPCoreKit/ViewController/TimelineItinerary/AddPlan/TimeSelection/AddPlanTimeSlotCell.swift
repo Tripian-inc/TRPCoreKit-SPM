@@ -60,15 +60,21 @@ class AddPlanTimeSlotCell: UICollectionViewCell {
     }
 
     // MARK: - Configuration
-    func configure(with timeSlot: TimeSlot, isSelected: Bool) {
+    func configure(with timeSlot: DisplayTimeSlot, isSelected: Bool) {
         timeLabel.text = timeSlot.time
+
+        // Disabled placeholder: the activity's previously-saved time when it's no
+        // longer in the schedule response (sold out / past). Gray fill, white text,
+        // no border — visually distinct from selectable cells and unselectable.
+        if timeSlot.isDisabled {
+            containerView.backgroundColor = ColorSet.bgDisabled.uiColor
+            containerView.layer.borderColor = UIColor.clear.cgColor
+            timeLabel.textColor = .white
+            return
+        }
+
         containerView.backgroundColor = .white
         timeLabel.textColor = ColorSet.fg.uiColor
-
-        if isSelected {
-            containerView.layer.borderColor = ColorSet.fg.uiColor.cgColor
-        } else {
-            containerView.layer.borderColor = ColorSet.neutral200.uiColor.cgColor
-        }
+        containerView.layer.borderColor = (isSelected ? ColorSet.fg.uiColor : ColorSet.neutral200.uiColor).cgColor
     }
 }

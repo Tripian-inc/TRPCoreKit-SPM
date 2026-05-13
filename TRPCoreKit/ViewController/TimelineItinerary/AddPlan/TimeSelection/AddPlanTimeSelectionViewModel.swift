@@ -12,6 +12,23 @@ import TRPRestKit
 
 public typealias TimeSlot = TRPTourScheduleSlot
 
+/// UI-level slot model used by the time-grid cells. Wraps the underlying schedule
+/// slot so the view layer can carry a `isDisabled` placeholder for the activity's
+/// previously-saved time during change-time (when that time is no longer in the
+/// schedule response — sold out or in the past). The data model
+/// `TRPTourScheduleSlot` stays a pure Codable; this struct lives outside it.
+public struct DisplayTimeSlot: Equatable {
+    public let time: String
+    public let price: Double?
+    public let isDisabled: Bool
+
+    public init(time: String, price: Double?, isDisabled: Bool) {
+        self.time = time
+        self.price = price
+        self.isDisabled = isDisabled
+    }
+}
+
 public protocol AddPlanTimeSelectionViewModelDelegate: ViewModelDelegate {
     func timeSlotsDidLoad()
     func segmentCreationDidSucceed()
@@ -59,6 +76,12 @@ public class AddPlanTimeSelectionViewModel {
     public var isEditMode: Bool { segment != nil || step != nil }
     public var isStepEditMode: Bool { step != nil }
 
+    /// "HH:mm" of the activity being edited. Only populated in segment/step edit
+    /// initializers. When the schedule response for the activity's day does NOT
+    /// contain this time, the grid injects a disabled placeholder cell at this
+    /// time and the VC shows the sold-out warning banner.
+    private var editingTimeString: String?
+
     // MARK: - Initialization
     public init(tour: TRPTourProduct, planData: AddPlanData, tourRepository: TourRepository = TRPTourRepository()) {
         self.tour = tour
@@ -83,6 +106,7 @@ public class AddPlanTimeSelectionViewModel {
         self.planData = planData
         self.tourRepository = tourRepository
         self.selectedDate = planData.selectedDay
+        self.editingTimeString = Self.extractHHmm(from: segment.startDate)
 
         // Extract tour info from segment's additionalData
         guard let additionalData = segment.additionalData else {
@@ -138,6 +162,7 @@ public class AddPlanTimeSelectionViewModel {
         self.planData = planData
         self.tourRepository = tourRepository
         self.selectedDate = planData.selectedDay
+        self.editingTimeString = Self.extractHHmm(from: step.startDateTimes)
 
         // Extract product info from step's POI
         guard let poi = step.poi else {
@@ -236,19 +261,55 @@ public class AddPlanTimeSelectionViewModel {
         return deduplicateSlotsByTime(slots)
     }
 
+    /// Full merged display list for the selected day — schedule slots mapped to
+    /// `DisplayTimeSlot`, plus (in edit mode, on the activity's own day, when the
+    /// editing time is missing from the schedule response) a disabled placeholder
+    /// inserted in chronological order. Used as the source of truth for both the
+    /// collapsed view and the show-more affordance.
+    private func getAllDisplayTimeSlots() -> [DisplayTimeSlot] {
+        let baseSlots = getTimeSlots()
+        let base = baseSlots.map {
+            DisplayTimeSlot(time: $0.time ?? "", price: $0.price, isDisabled: false)
+        }
+
+        guard isEditMode,
+              let editingTime = editingTimeString,
+              let originalDay = planData.selectedDay,
+              let currentDay = selectedDate,
+              Calendar.current.isDate(currentDay, inSameDayAs: originalDay),
+              !base.contains(where: { $0.time == editingTime })
+        else {
+            return base
+        }
+
+        var merged = base
+        merged.append(DisplayTimeSlot(time: editingTime, price: nil, isDisabled: true))
+        // "HH:mm" sorts lexicographically == chronologically.
+        merged.sort { $0.time < $1.time }
+        return merged
+    }
+
     /// Slots actually shown in the grid right now. Honours the collapsed/expanded state
     /// so the "Show more" link can hide the tail. When the total count is at or below
     /// `collapsedSlotThreshold`, returns everything regardless of expansion state.
-    public func getDisplayedTimeSlots() -> [TimeSlot] {
-        let all = getTimeSlots()
+    public func getDisplayedTimeSlots() -> [DisplayTimeSlot] {
+        let all = getAllDisplayTimeSlots()
         guard !isTimeSlotsExpanded, all.count > collapsedSlotThreshold else { return all }
         return Array(all.prefix(collapsedSlotCount))
     }
 
     /// True when there are strictly more slots than `collapsedSlotThreshold` AND the grid
-    /// is still collapsed — drives whether the "Show more" link is visible.
+    /// is still collapsed — drives whether the "Show more" link is visible. Counts the
+    /// disabled placeholder (if any) as a normal slot for collapse purposes.
     public func hasMoreTimeSlotsToShow() -> Bool {
-        return !isTimeSlotsExpanded && getTimeSlots().count > collapsedSlotThreshold
+        return !isTimeSlotsExpanded && getAllDisplayTimeSlots().count > collapsedSlotThreshold
+    }
+
+    /// True when the merged display list contains a disabled placeholder for the
+    /// activity's previously-saved time — i.e. the time is sold out or in the past
+    /// and isn't in the schedule response. Drives the sold-out warning banner.
+    public var shouldShowSoldOutWarning: Bool {
+        return getAllDisplayTimeSlots().contains { $0.isDisabled }
     }
 
     /// Expand the slot grid to show every available slot. No-op if already expanded.
@@ -309,9 +370,11 @@ public class AddPlanTimeSelectionViewModel {
         }
     }
 
-    /// Select a time slot
-    public func selectTimeSlot(_ timeSlot: TimeSlot) {
-        selectedTimeSlot = timeSlot
+    /// Select a time slot. No-op for disabled placeholder slots — defense in depth
+    /// against any path that might bypass `collectionView(_:shouldSelectItemAt:)`.
+    public func selectTimeSlot(_ displaySlot: DisplayTimeSlot) {
+        guard !displaySlot.isDisabled else { return }
+        selectedTimeSlot = TimeSlot(time: displaySlot.time, price: displaySlot.price)
     }
 
     /// Get selected time slot
@@ -714,27 +777,35 @@ public class AddPlanTimeSelectionViewModel {
         profile.endDate = endDateString
         profile.additionalData = updatedAdditionalData
 
-        // 5. Show loading inline (sheet is already presenting — embed the loader in view)
-        delegate?.viewModel(showLottie: .inView, textMode: .defaultRotating)
+        // 5. Show inline "Changing time" loader (the sheet is already presenting — embed
+        //    the loader in view). Stays visible through both the create-edit API call
+        //    AND the host-driven timeline refresh; the host dismisses the sheet (which
+        //    tears down the loader) once the refresh completes. No second bottom-sheet
+        //    loader is shown afterward.
+        let changingTimeText = LoadingLocalizationKeys.localized(LoadingLocalizationKeys.changingTime)
+        delegate?.viewModel(showLottie: .inView, textMode: .single(changingTimeText))
 
-        // 6. Update segment via repository
+        // 6. Update segment via repository — on success, signal the host without hiding
+        //    the loader and without dismissing the sheet.
         let repository = TRPTimelineRepository()
         repository.createEditTimelineSegment(profile: profile) { [weak self] result in
             guard let self = self else { return }
 
             DispatchQueue.main.async {
-                self.delegate?.viewModel(hideLottie: .inView)
-
                 switch result {
                 case .success(let success):
                     if success {
+                        // Loader intentionally stays on; host VC dismisses the sheet
+                        // when the refresh completes.
                         self.delegate?.segmentUpdateDidSucceed()
                     } else {
+                        self.delegate?.viewModel(hideLottie: .inView)
                         let error = self.makeLocalizedError(code: -4, key: AddPlanLocalizationKeys.errorUpdateTimeFailed)
                         self.delegate?.viewModel(error: error)
                     }
 
                 case .failure(let error):
+                    self.delegate?.viewModel(hideLottie: .inView)
                     self.delegate?.viewModel(error: error)
                 }
             }
@@ -776,22 +847,26 @@ public class AddPlanTimeSelectionViewModel {
             endTime: endTime
         )
 
-        // Show loading inline (sheet is already presenting — embed the loader in view)
-        delegate?.viewModel(showLottie: .inView, textMode: .defaultRotating)
+        // Show inline "Changing time" loader. Same pattern as segment edit: stays on
+        // through both the step-edit API and the host's timeline refresh; host
+        // dismisses the sheet (which tears down the loader) once refresh completes.
+        let changingTimeText = LoadingLocalizationKeys.localized(LoadingLocalizationKeys.changingTime)
+        delegate?.viewModel(showLottie: .inView, textMode: .single(changingTimeText))
 
-        // Update step via repository
+        // Update step via repository — on success, signal the host without hiding the
+        // loader and without dismissing the sheet.
         let repository = TRPTimelineStepRepository()
         repository.editStep(step: stepEdit) { [weak self] result in
             guard let self = self else { return }
 
             DispatchQueue.main.async {
-                self.delegate?.viewModel(hideLottie: .inView)
-
                 switch result {
                 case .success:
+                    // Loader intentionally stays on.
                     self.delegate?.stepUpdateDidSucceed()
 
                 case .failure(let error):
+                    self.delegate?.viewModel(hideLottie: .inView)
                     self.delegate?.viewModel(error: error)
                 }
             }
@@ -799,6 +874,22 @@ public class AddPlanTimeSelectionViewModel {
     }
 
     // MARK: - Private Methods
+
+    /// Extract "HH:mm" from either "yyyy-MM-dd HH:mm[:ss]" or "HH:mm[:ss]". Returns
+    /// nil for empty/unparseable input. Used to capture the editing activity's time
+    /// from `segment.startDate` / `step.startDateTimes` in the edit-mode initializers.
+    private static func extractHHmm(from raw: String?) -> String? {
+        guard let raw = raw, !raw.isEmpty else { return nil }
+        let timePart: String
+        if let spaceIndex = raw.firstIndex(of: " ") {
+            timePart = String(raw[raw.index(after: spaceIndex)...])
+        } else {
+            timePart = raw
+        }
+        let parts = timePart.split(separator: ":")
+        guard parts.count >= 2 else { return nil }
+        return "\(parts[0]):\(parts[1])"
+    }
 
     private func makeLocalizedError(code: Int, key: String) -> NSError {
         let message = AddPlanLocalizationKeys.localized(key)

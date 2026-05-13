@@ -52,13 +52,9 @@ public class AddPlanPOIListingViewModel {
 
     /// Drives which loading UI the listing screen renders. Mirrors `AddPlanLoadingStyle`
     /// in Activity Listing — `.lottie` for first open + heavy refetches (filter / search /
-    /// category change), `.skeleton` for short local-only recomputes (sort), `.none` when
-    /// idle. The VC observes this via `poiLoadingStateDidChange()`.
+    /// sort / category change), `.skeleton` for inline refetches, `.none` when idle. The
+    /// VC observes this via `poiLoadingStateDidChange()`.
     private(set) public var loadingStyle: AddPlanLoadingStyle = .none
-
-    /// Brief skeleton-flash duration for local-only recomputes (sort), so the user gets
-    /// a visible signal even though the recompute is instant.
-    private let localChangeAnimationDuration: TimeInterval = 0.7
 
     /// Strong reference held during the post-add timeline-regeneration poll. Cleared once
     /// `allSegmentGenerated` fires so it doesn't leak across adds.
@@ -139,10 +135,20 @@ public class AddPlanPOIListingViewModel {
 
     public func updateSortOption(_ option: SortOption) {
         selectedSortOption = option
-        // Sort is local-only: flash a brief skeleton for visual feedback, then recompute.
-        applyLocalChangeWithSkeletonFlash {
-            self.filterAndSortPois()
-        }
+
+        // Sort is server-side — pagination breaks if we only re-sort the loaded subset,
+        // so reset pagination and refetch from page 1 with the new sort.
+        currentPage = 1
+        totalPages = 1
+        totalPoiCount = 0
+        hasMorePages = false
+        allPois = []
+        filteredPois = []
+
+        loadingStyle = .skeleton
+        delegate?.poiLoadingStateDidChange()
+        delegate?.poisDidLoad()
+        fetchPois()
     }
 
     public func updateFilterData(_ newFilterData: POIFilterData) {
@@ -167,23 +173,6 @@ public class AddPlanPOIListingViewModel {
         delegate?.poiLoadingStateDidChange()
         delegate?.poisDidLoad()
         fetchPois()
-    }
-
-    /// Brief skeleton flash for instant local recomputes (sort). The VC sees `.skeleton`
-    /// → reload table with skeleton rows; after `localChangeAnimationDuration` we flip
-    /// back to `.none` and reload with real data.
-    private func applyLocalChangeWithSkeletonFlash(_ work: @escaping () -> Void) {
-        loadingStyle = .skeleton
-        delegate?.poiLoadingStateDidChange()
-        delegate?.poisDidLoad()
-
-        DispatchQueue.main.asyncAfter(deadline: .now() + localChangeAnimationDuration) { [weak self] in
-            guard let self = self else { return }
-            work()
-            self.loadingStyle = .none
-            self.delegate?.poiLoadingStateDidChange()
-            self.delegate?.poisDidLoad()
-        }
     }
 
     // MARK: - Data Fetching
@@ -226,7 +215,8 @@ public class AddPlanPOIListingViewModel {
             text: searchText,
             categories: categoryIds,
             cityId: cityId,
-            page: page
+            page: page,
+            sort: selectedSortOption.poiSortQuery
         ) { [weak self] result, pagination in
             self?.handleSearchResult(result: result, pagination: pagination, isLoadMore: page > 1, requestedPage: page)
         }
@@ -265,7 +255,8 @@ public class AddPlanPOIListingViewModel {
             text: searchText,
             categories: categoryIds,
             cityId: cityId,
-            page: 1
+            page: 1,
+            sort: selectedSortOption.poiSortQuery
         ) { [weak self] result, pagination in
             self?.handleSearchResult(result: result, pagination: pagination, isLoadMore: false, requestedPage: 1)
         }
@@ -339,42 +330,14 @@ public class AddPlanPOIListingViewModel {
     }
 
     private func filterPois() {
-        filterAndSortPois()
-    }
-
-    private func filterAndSortPois() {
-        // First filter
-        var result: [TRPPoi]
+        // Server returns POIs already in the requested sort order — we only apply the
+        // local search-text filter on top of the loaded page set.
         if searchText.isEmpty {
-            result = allPois
+            filteredPois = allPois
         } else {
-            result = allPois.filter { poi in
+            filteredPois = allPois.filter { poi in
                 poi.name.localizedCaseInsensitiveContains(searchText)
             }
-        }
-
-        // Then sort
-        result = sortPois(result)
-        filteredPois = result
-    }
-
-    private func sortPois(_ pois: [TRPPoi]) -> [TRPPoi] {
-        switch selectedSortOption {
-        case .popularity:
-            // Keep original order from API (API returns by popularity)
-            return pois
-        case .rating:
-            // Sort by rating descending
-            return pois.sorted { ($0.rating ?? 0) > ($1.rating ?? 0) }
-        case .priceLowToHigh:
-            // Sort by price ascending (price is Int level 0-4)
-            return pois.sorted { ($0.price ?? 0) < ($1.price ?? 0) }
-        case .durationShortToLong:
-            // Sort by duration ascending
-            return pois.sorted { ($0.duration ?? 0) < ($1.duration ?? 0) }
-        case .durationLongToShort:
-            // Sort by duration descending
-            return pois.sorted { ($0.duration ?? 0) > ($1.duration ?? 0) }
         }
     }
 

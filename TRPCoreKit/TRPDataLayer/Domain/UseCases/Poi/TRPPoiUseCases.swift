@@ -225,13 +225,22 @@ extension TRPPoiUseCases: SearchPoiUseCase {
                                  categories: [Int],
                                  cityId: Int,
                                  completion: ((Result<[TRPPoi], Error>, TRPPagination?) -> Void)?) {
-        executeSearchPoi(text: text, categories: categories, cityId: cityId, page: nil, completion: completion)
+        executeSearchPoi(text: text, categories: categories, cityId: cityId, page: nil, sort: nil, completion: completion)
     }
 
     public func executeSearchPoi(text: String,
                                  categories: [Int],
                                  cityId: Int,
                                  page: Int?,
+                                 completion: ((Result<[TRPPoi], Error>, TRPPagination?) -> Void)?) {
+        executeSearchPoi(text: text, categories: categories, cityId: cityId, page: page, sort: nil, completion: completion)
+    }
+
+    public func executeSearchPoi(text: String,
+                                 categories: [Int],
+                                 cityId: Int,
+                                 page: Int?,
+                                 sort: String?,
                                  completion: ((Result<[TRPPoi], Error>, TRPPagination?) -> Void)?) {
 
         let onComplete = completion ?? { result, pagination in }
@@ -241,6 +250,7 @@ extension TRPPoiUseCases: SearchPoiUseCase {
             params.cityId = cityId
             params.poiCategoies = categories
             params.page = page
+            params.sort = sort
 
             poiRepository.fetchPoi(cityId: cityId, parameters: params) { result, pagination in
                 switch result {
