@@ -44,6 +44,11 @@ public class AddPlanPOIListingVC: TRPBaseUIViewController {
     /// timeline silently. Mirrors `AddPlanActivityListingVC.onSegmentCreatedSilent`.
     public var onSegmentCreatedSilent: ((Date?) -> Void)?
 
+    // Collapsible filter/sort header on scroll
+    private var countLabelTopExpandedConstraint: NSLayoutConstraint?
+    private var countLabelTopCollapsedConstraint: NSLayoutConstraint?
+    private var isHeaderCollapsed = false
+
     // MARK: - Lifecycle
     public override func viewDidLoad() {
         super.viewDidLoad()
@@ -183,8 +188,7 @@ public class AddPlanPOIListingVC: TRPBaseUIViewController {
             filterSortStackView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
             filterSortStackView.heightAnchor.constraint(equalToConstant: 40),
 
-            // POI Count Label
-            poiCountLabel.topAnchor.constraint(equalTo: filterSortStackView.bottomAnchor, constant: 16),
+            // POI Count Label (top constraint set dynamically below for collapsible header)
             poiCountLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
             poiCountLabel.heightAnchor.constraint(equalToConstant: 28),
 
@@ -201,6 +205,12 @@ public class AddPlanPOIListingVC: TRPBaseUIViewController {
             tableView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor)
         ])
 
+        // Collapsible header: count label rides under filter/sort when expanded,
+        // jumps directly under the search bar when collapsed (filter/sort fades out).
+        countLabelTopExpandedConstraint = poiCountLabel.topAnchor.constraint(equalTo: filterSortStackView.bottomAnchor, constant: 16)
+        countLabelTopCollapsedConstraint = poiCountLabel.topAnchor.constraint(equalTo: searchBar.bottomAnchor, constant: 16)
+        countLabelTopExpandedConstraint?.isActive = true
+
         // Add button actions
         filterButton.addTarget(self, action: #selector(filterButtonTapped), for: .touchUpInside)
         sortButton.addTarget(self, action: #selector(sortButtonTapped), for: .touchUpInside)
@@ -208,6 +218,17 @@ public class AddPlanPOIListingVC: TRPBaseUIViewController {
         // Add info icon tap gesture
         let infoTapGesture = UITapGestureRecognizer(target: self, action: #selector(infoIconTapped))
         infoImageView.addGestureRecognizer(infoTapGesture)
+    }
+
+    private func setHeaderCollapsed(_ collapsed: Bool) {
+        guard collapsed != isHeaderCollapsed else { return }
+        isHeaderCollapsed = collapsed
+        countLabelTopExpandedConstraint?.isActive = !collapsed
+        countLabelTopCollapsedConstraint?.isActive = collapsed
+        UIView.animate(withDuration: 0.25) {
+            self.filterSortStackView.alpha = collapsed ? 0 : 1
+            self.view.layoutIfNeeded()
+        }
     }
 
     // MARK: - Actions
@@ -307,13 +328,19 @@ extension AddPlanPOIListingVC: UITableViewDataSource, UITableViewDelegate {
 
     public func scrollViewDidScroll(_ scrollView: UIScrollView) {
         let offsetY = scrollView.contentOffset.y
+
+        // Collapsible filter/sort header — hysteresis avoids flicker.
+        let headerThreshold: CGFloat = isHeaderCollapsed ? 20 : 60
+        setHeaderCollapsed(offsetY > headerThreshold)
+
+        // Infinite scroll pagination
         let contentHeight = scrollView.contentSize.height
         let frameHeight = scrollView.frame.size.height
 
         guard contentHeight > frameHeight else { return }
 
-        let threshold: CGFloat = 100
-        if offsetY + frameHeight >= contentHeight - threshold {
+        let paginationThreshold: CGFloat = 100
+        if offsetY + frameHeight >= contentHeight - paginationThreshold {
             if viewModel.hasMorePois() && !isLoadingMore {
                 isLoadingMore = true
                 tableView.tableFooterView = loadingFooterView
@@ -334,6 +361,16 @@ extension AddPlanPOIListingVC: TRPSearchBarDelegate {
 
     public func searchBar(_ searchBar: TRPSearchBar, textDidChange text: String) {
         viewModel.updateSearchText(text)
+
+        // Bring the user back to the top so filter/sort is visible with the new
+        // results. With rows present the scroll animation naturally expands the
+        // header via scrollViewDidScroll; with no rows there's nothing to scroll,
+        // so expand explicitly.
+        if tableView.numberOfRows(inSection: 0) > 0 {
+            tableView.setContentOffset(.zero, animated: true)
+        } else {
+            setHeaderCollapsed(false)
+        }
     }
 
     public func searchBarSearchButtonClicked(_ searchBar: TRPSearchBar) {

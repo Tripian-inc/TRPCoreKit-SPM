@@ -2,10 +2,10 @@
 //  TRPTimelineConflictWarningView.swift
 //  TRPCoreKit
 //
-//  Pink banner shown when the selected day has time conflicts. Installed as
+//  Warning banner shown when the selected day has time conflicts. Installed as
 //  `tableView.tableHeaderView` by the host VC so it scrolls together with the
 //  list contents. Colours match the conflict styling on `TRPTimelineTimeBadgeView`
-//  (errorBg + errorIcon) for visual consistency.
+//  (warningBg + warningBorder) for visual consistency.
 //
 
 import UIKit
@@ -21,10 +21,10 @@ final class TRPTimelineConflictWarningView: UIView {
     private let containerView: UIView = {
         let view = UIView()
         view.translatesAutoresizingMaskIntoConstraints = false
-        view.backgroundColor = ColorSet.errorBg.uiColor
+        view.backgroundColor = ColorSet.warningBg.uiColor
         view.layer.cornerRadius = 12
         view.layer.borderWidth = 1
-        view.layer.borderColor = ColorSet.errorIcon.uiColor.cgColor
+        view.layer.borderColor = ColorSet.warningBorder.uiColor.cgColor
         view.layer.masksToBounds = true
         return view
     }()
@@ -33,7 +33,7 @@ final class TRPTimelineConflictWarningView: UIView {
         let imageView = UIImageView()
         imageView.translatesAutoresizingMaskIntoConstraints = false
         imageView.contentMode = .scaleAspectFit
-        imageView.tintColor = ColorSet.errorIcon.uiColor
+        imageView.tintColor = ColorSet.warningBorder.uiColor
         imageView.image = TRPImageController()
             .getImage(inFramework: "ic_time", inApp: nil)?
             .withRenderingMode(.alwaysTemplate)

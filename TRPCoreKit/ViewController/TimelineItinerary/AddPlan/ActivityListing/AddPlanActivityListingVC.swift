@@ -32,6 +32,11 @@ public class AddPlanActivityListingVC: TRPBaseUIViewController {
     /// silently — the listing handles its own success toast locally.
     public var onSegmentCreatedSilent: ((Date?) -> Void)?
 
+    // Collapsible filter/category header on scroll
+    private var countLabelTopExpandedConstraint: NSLayoutConstraint?
+    private var countLabelTopCollapsedConstraint: NSLayoutConstraint?
+    private var isHeaderCollapsed = false
+
     // MARK: - Lifecycle
     public override func viewDidLoad() {
         super.viewDidLoad()
@@ -176,8 +181,7 @@ public class AddPlanActivityListingVC: TRPBaseUIViewController {
             categoryCollectionView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             categoryCollectionView.heightAnchor.constraint(equalToConstant: 88),
 
-            // Activity Count Label
-            activityCountLabel.topAnchor.constraint(equalTo: categoryCollectionView.bottomAnchor, constant: 22),
+            // Activity Count Label (top constraint set dynamically below for collapsible header)
             activityCountLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
 
             // Info ImageView
@@ -193,6 +197,12 @@ public class AddPlanActivityListingVC: TRPBaseUIViewController {
             tableView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor)
         ])
 
+        // Collapsible header: count label rides under category when expanded,
+        // jumps directly under search bar when collapsed (filter/sort + category fade out).
+        countLabelTopExpandedConstraint = activityCountLabel.topAnchor.constraint(equalTo: categoryCollectionView.bottomAnchor, constant: 22)
+        countLabelTopCollapsedConstraint = activityCountLabel.topAnchor.constraint(equalTo: searchBar.bottomAnchor, constant: 16)
+        countLabelTopExpandedConstraint?.isActive = true
+
         // Add button actions
         filterButtonView.onTap = { [weak self] in
             self?.filterButtonTapped()
@@ -202,6 +212,18 @@ public class AddPlanActivityListingVC: TRPBaseUIViewController {
         // Add info icon tap gesture
         let infoTapGesture = UITapGestureRecognizer(target: self, action: #selector(infoIconTapped))
         infoImageView.addGestureRecognizer(infoTapGesture)
+    }
+
+    private func setHeaderCollapsed(_ collapsed: Bool) {
+        guard collapsed != isHeaderCollapsed else { return }
+        isHeaderCollapsed = collapsed
+        countLabelTopExpandedConstraint?.isActive = !collapsed
+        countLabelTopCollapsedConstraint?.isActive = collapsed
+        UIView.animate(withDuration: 0.25) {
+            self.filterSortStackView.alpha = collapsed ? 0 : 1
+            self.categoryCollectionView.alpha = collapsed ? 0 : 1
+            self.view.layoutIfNeeded()
+        }
     }
 
     @objc private func infoIconTapped() {
@@ -342,6 +364,13 @@ extension AddPlanActivityListingVC: UITableViewDataSource, UITableViewDelegate {
             TRPCoreKit.shared.delegate?.trpCoreKitDidRequestActivityDetail(activityId: tour.productId)
         }
     }
+
+    public func scrollViewDidScroll(_ scrollView: UIScrollView) {
+        let offset = scrollView.contentOffset.y
+        // Hysteresis avoids flicker: need to pass 60 to collapse, drop below 20 to expand.
+        let threshold: CGFloat = isHeaderCollapsed ? 20 : 60
+        setHeaderCollapsed(offset > threshold)
+    }
 }
 
 // MARK: - TRPSearchBarDelegate
@@ -349,6 +378,17 @@ extension AddPlanActivityListingVC: TRPSearchBarDelegate {
 
     public func searchBar(_ searchBar: TRPSearchBar, textDidChange text: String) {
         viewModel.updateSearchText(text)
+
+        // Bring the user back to the top so filter/sort + categories are visible
+        // with the new results. When rows exist, the scroll animation naturally
+        // expands the header as offset crosses the threshold inside
+        // scrollViewDidScroll. With no rows there's nothing to scroll, so
+        // expand explicitly.
+        if tableView.numberOfRows(inSection: 0) > 0 {
+            tableView.setContentOffset(.zero, animated: true)
+        } else {
+            setHeaderCollapsed(false)
+        }
     }
 
     public func searchBarSearchButtonClicked(_ searchBar: TRPSearchBar) {
