@@ -19,7 +19,7 @@ class TRPTimelineMapPOIPreviewCell: UICollectionViewCell {
         let view = UIView()
         view.translatesAutoresizingMaskIntoConstraints = false
         view.backgroundColor = .white
-        view.layer.cornerRadius = 12
+        view.layer.cornerRadius = 16
         view.layer.shadowColor = UIColor.black.cgColor
         view.layer.shadowOffset = CGSize(width: 0, height: 2)
         view.layer.shadowRadius = 8
@@ -90,6 +90,39 @@ class TRPTimelineMapPOIPreviewCell: UICollectionViewCell {
         label.textColor = ColorSet.fg.uiColor
         return label
     }()
+
+    private lazy var noLocationBadge: TRPPaddingLabel = {
+        let label = TRPPaddingLabel(4, 4, 8, 8)
+        label.translatesAutoresizingMaskIntoConstraints = false
+        label.font = FontSet.montserratMedium.font(10)
+        label.textColor = ColorSet.infoIcon.uiColor
+        label.backgroundColor = ColorSet.bgBlue.uiColor
+        label.textAlignment = .center
+        label.layer.cornerRadius = 4
+        label.clipsToBounds = true
+        label.text = TimelineLocalizationKeys.localized(TimelineLocalizationKeys.noExactLocation)
+        label.isHidden = true
+        return label
+    }()
+
+    private lazy var timeRow: UIStackView = {
+        let stack = UIStackView()
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        stack.axis = .horizontal
+        stack.spacing = 6
+        stack.alignment = .center
+        stack.isHidden = true
+        return stack
+    }()
+
+    private lazy var mainTextStack: UIStackView = {
+        let stack = UIStackView()
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        stack.axis = .vertical
+        stack.spacing = 4
+        stack.alignment = .leading
+        return stack
+    }()
     
     // MARK: - Initialization
     override init(frame: CGRect) {
@@ -107,10 +140,19 @@ class TRPTimelineMapPOIPreviewCell: UICollectionViewCell {
         containerView.addSubview(thumbnailImageView)
         containerView.addSubview(numberBadge)  // Add badge after image so it's on top
         numberBadge.addSubview(numberLabel)
-        containerView.addSubview(titleLabel)
-        containerView.addSubview(cityLabel)
-        containerView.addSubview(timeIcon)
-        containerView.addSubview(timeLabel)
+        containerView.addSubview(mainTextStack)
+
+        // Time row: icon + label
+        timeRow.addArrangedSubview(timeIcon)
+        timeRow.addArrangedSubview(timeLabel)
+
+        // Main vertical stack (city → title → noLocationBadge → time).
+        // Each child collapses cleanly when hidden, so layout is correct whether
+        // the badge or the time row is present.
+        mainTextStack.addArrangedSubview(cityLabel)
+        mainTextStack.addArrangedSubview(titleLabel)
+        mainTextStack.addArrangedSubview(noLocationBadge)
+        mainTextStack.addArrangedSubview(timeRow)
 
         NSLayoutConstraint.activate([
             // Container
@@ -119,11 +161,11 @@ class TRPTimelineMapPOIPreviewCell: UICollectionViewCell {
             containerView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: 0),
             containerView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: 0),
 
-            // Thumbnail (80x80, corner radius 4, left/top/bottom 12)
+            // Thumbnail (102x102, corner radius 4, top/leading/bottom 12)
             thumbnailImageView.topAnchor.constraint(equalTo: containerView.topAnchor, constant: 12),
             thumbnailImageView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 12),
-            thumbnailImageView.widthAnchor.constraint(equalToConstant: 80),
-            thumbnailImageView.heightAnchor.constraint(equalToConstant: 80),
+            thumbnailImageView.widthAnchor.constraint(equalToConstant: 102),
+            thumbnailImageView.heightAnchor.constraint(equalToConstant: 102),
 
             // Number Badge (24x24, positioned relative to contentView)
             numberBadge.topAnchor.constraint(equalTo: containerView.topAnchor, constant: 6),
@@ -135,26 +177,15 @@ class TRPTimelineMapPOIPreviewCell: UICollectionViewCell {
             numberLabel.centerXAnchor.constraint(equalTo: numberBadge.centerXAnchor),
             numberLabel.centerYAnchor.constraint(equalTo: numberBadge.centerYAnchor),
 
-            // City Label (top — Montserrat medium 12, fgWeak)
-            cityLabel.topAnchor.constraint(equalTo: containerView.topAnchor, constant: 12),
-            cityLabel.leadingAnchor.constraint(equalTo: thumbnailImageView.trailingAnchor, constant: 16),
-            cityLabel.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -12),
+            // Main text stack (city/title/badge/time)
+            mainTextStack.topAnchor.constraint(equalTo: containerView.topAnchor, constant: 12),
+            mainTextStack.leadingAnchor.constraint(equalTo: thumbnailImageView.trailingAnchor, constant: 16),
+            mainTextStack.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -12),
+            mainTextStack.bottomAnchor.constraint(lessThanOrEqualTo: containerView.bottomAnchor, constant: -12),
 
-            // Title (below city — Montserrat semibold 14, fg)
-            titleLabel.topAnchor.constraint(equalTo: cityLabel.bottomAnchor, constant: 2),
-            titleLabel.leadingAnchor.constraint(equalTo: cityLabel.leadingAnchor),
-            titleLabel.trailingAnchor.constraint(equalTo: cityLabel.trailingAnchor),
-
-            // Time Icon (below title)
-            timeIcon.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 4),
-            timeIcon.leadingAnchor.constraint(equalTo: cityLabel.leadingAnchor),
+            // Time row icon size
             timeIcon.widthAnchor.constraint(equalToConstant: 16),
-            timeIcon.heightAnchor.constraint(equalToConstant: 16),
-            timeIcon.bottomAnchor.constraint(lessThanOrEqualTo: containerView.bottomAnchor, constant: -12),
-
-            // Time Label
-            timeLabel.centerYAnchor.constraint(equalTo: timeIcon.centerYAnchor),
-            timeLabel.leadingAnchor.constraint(equalTo: timeIcon.trailingAnchor, constant: 6)
+            timeIcon.heightAnchor.constraint(equalToConstant: 16)
         ])
     }
     
@@ -172,17 +203,15 @@ class TRPTimelineMapPOIPreviewCell: UICollectionViewCell {
         }
         
         // For POIs, we don't have specific date/time, so hide them
-        timeIcon.isHidden = true
-        timeLabel.isHidden = true
+        timeRow.isHidden = true
     }
-    
+
     func configure(with segment: TRPTimelineSegment, orderNumber: Int) {
         numberLabel.text = "\(orderNumber)"
 
         guard let additionalData = segment.additionalData else {
             titleLabel.text = segment.title ?? ""
-            timeIcon.isHidden = true
-            timeLabel.isHidden = true
+            timeRow.isHidden = true
             return
         }
 
@@ -199,11 +228,9 @@ class TRPTimelineMapPOIPreviewCell: UICollectionViewCell {
         // Configure date and time (same style as TRPTimelineBookedActivityCell)
         if let startDatetime = additionalData.startDatetime {
             timeLabel.text = formatTime(from: startDatetime)
-            timeIcon.isHidden = false
-            timeLabel.isHidden = false
+            timeRow.isHidden = false
         } else {
-            timeIcon.isHidden = true
-            timeLabel.isHidden = true
+            timeRow.isHidden = true
         }
     }
 
@@ -220,6 +247,9 @@ class TRPTimelineMapPOIPreviewCell: UICollectionViewCell {
         // Update badge style based on selection state
         updateBadgeStyle(isSelected: isSelected)
 
+        // No-exact-location tag (between title and time row)
+        noLocationBadge.isHidden = !item.isNoLocation
+
         // Load image
         if let imageUrl = item.imageUrl, let url = URL(string: imageUrl) {
             thumbnailImageView.sd_setImage(with: url, placeholderImage: nil)
@@ -231,15 +261,12 @@ class TRPTimelineMapPOIPreviewCell: UICollectionViewCell {
         // Flexible-time activities show "Flexible" instead of a clock time.
         if item.isFlexibleActivity {
             timeLabel.text = TimelineLocalizationKeys.localized(TimelineLocalizationKeys.flexibleShort)
-            timeIcon.isHidden = false
-            timeLabel.isHidden = false
+            timeRow.isHidden = false
         } else if let startTime = item.startTime {
             timeLabel.text = startTime
-            timeIcon.isHidden = false
-            timeLabel.isHidden = false
+            timeRow.isHidden = false
         } else {
-            timeIcon.isHidden = true
-            timeLabel.isHidden = true
+            timeRow.isHidden = true
         }
     }
 
@@ -281,8 +308,8 @@ class TRPTimelineMapPOIPreviewCell: UICollectionViewCell {
         cityLabel.isHidden = true
         numberLabel.text = nil
         timeLabel.text = nil
-        timeIcon.isHidden = true
-        timeLabel.isHidden = true
+        timeRow.isHidden = true
+        noLocationBadge.isHidden = true
         // Reset badge to default (unselected) style
         updateBadgeStyle(isSelected: false)
     }

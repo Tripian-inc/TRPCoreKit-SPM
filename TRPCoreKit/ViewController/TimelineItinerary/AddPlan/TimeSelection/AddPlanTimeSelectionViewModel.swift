@@ -584,7 +584,19 @@ public class AddPlanTimeSelectionViewModel {
             return
         }
 
-        guard let tourCoordinate = tour.coordinate else {
+        // Coordinate resolution: prefer the tour's own coordinate. When the source
+        // activity has none, fall back to the selected city's coordinate and flag
+        // the segment with `isNoLocation = true` so the UI/map can react. If
+        // neither is available, the segment can't be placed at all.
+        let resolvedCoordinate: TRPLocation
+        let isNoLocationActivity: Bool
+        if let tourCoordinate = tour.coordinate {
+            resolvedCoordinate = tourCoordinate
+            isNoLocationActivity = false
+        } else if let cityCoordinate = planData.selectedCity?.coordinate {
+            resolvedCoordinate = cityCoordinate
+            isNoLocationActivity = true
+        } else {
             delegate?.viewModel(error: makeLocalizedError(code: -2, key: AddPlanLocalizationKeys.errorActivityLocationNotAvailable))
             return
         }
@@ -639,7 +651,7 @@ public class AddPlanTimeSelectionViewModel {
             description: tour.description,
             startDatetime: startDatetimeString,
             endDatetime: endDatetimeString,
-            coordinate: tourCoordinate,
+            coordinate: resolvedCoordinate,
             cancellation: nil,  // Not sent for reserved activities
             adultCount: planData.travelers,
             childCount: 0,
@@ -647,7 +659,8 @@ public class AddPlanTimeSelectionViewModel {
             price: activityPrice,
             isFlexible: isFlexible ? true : nil,
             rating: tour.rating,
-            ratingCount: tour.ratingCount
+            ratingCount: tour.ratingCount,
+            isNoLocation: isNoLocationActivity
         )
 
         // 4. Create TRPCreateEditTimelineSegmentProfile
@@ -659,7 +672,7 @@ public class AddPlanTimeSelectionViewModel {
         profile.description = tour.description
         profile.startDate = startDateString
         profile.endDate = endDateString
-        profile.coordinate = tourCoordinate
+        profile.coordinate = resolvedCoordinate
         profile.city = planData.selectedCity
         profile.adults = planData.travelers
         profile.children = 0

@@ -105,6 +105,16 @@ public enum TRPMapDisplayItem {
         }
     }
 
+    /// `true` when this is an activity whose source had no precise coordinate
+    /// (segment uses the city's coordinate as a fallback). Annotations should
+    /// skip these; the preview cell surfaces a "No exact location" tag instead.
+    public var isNoLocation: Bool {
+        switch self {
+        case .poi: return false
+        case .activity(let segment): return segment.additionalData?.isNoLocation ?? false
+        }
+    }
+
     /// Check if this map item is a flexible-time reserved activity.
     /// Detection: activity segment + additionalData.duration == -1 + start/end times in {00:00, 23:59}.
     public var isFlexibleActivity: Bool {

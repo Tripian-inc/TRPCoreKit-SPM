@@ -119,7 +119,9 @@ class TRPTimelineTimeBadgeView: UIView {
         if hasConflict {
             // Warning styling — yellow border + light yellow background to
             // match the day-level conflict banner (warningBg + warningBorder).
-            orderLabel.backgroundColor = ColorSet.warningBorder.uiColor
+            // Order chip stays in the orange family (civiOrange) for contrast
+            // against the pale yellow background.
+            orderLabel.backgroundColor = ColorSet.civiOrange.uiColor
             containerView.backgroundColor = ColorSet.warningBg.uiColor
             containerView.layer.borderColor = ColorSet.warningBorder.uiColor.cgColor
             timeLabel.textColor = ColorSet.primaryText.uiColor

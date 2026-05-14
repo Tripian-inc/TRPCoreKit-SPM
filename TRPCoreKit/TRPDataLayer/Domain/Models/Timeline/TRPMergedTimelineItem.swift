@@ -206,6 +206,23 @@ public class TRPMergedTimelineItem {
         return segment.additionalData?.price
     }
 
+    /// Average rating (from additionalData)
+    public var rating: Float? {
+        return segment.additionalData?.rating
+    }
+
+    /// Number of ratings backing `rating` (from additionalData)
+    public var ratingCount: Int? {
+        return segment.additionalData?.ratingCount
+    }
+
+    /// `true` when the activity was created without a precise coordinate and
+    /// uses the city's coordinate as a fallback. Drives the "no exact location"
+    /// tag in the cell and excludes the item from map annotations.
+    public var isNoLocation: Bool {
+        return segment.additionalData?.isNoLocation ?? false
+    }
+
     /// Cancellation policy text (from additionalData)
     public var cancellation: String? {
         return segment.additionalData?.cancellation

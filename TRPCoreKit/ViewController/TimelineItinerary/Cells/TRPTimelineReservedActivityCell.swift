@@ -64,6 +64,16 @@ class TRPTimelineReservedActivityCell: UITableViewCell {
         return label
     }()
 
+    private let ratingStack: UIStackView = {
+        let stack = UIStackView()
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        stack.axis = .horizontal
+        stack.spacing = 0
+        stack.alignment = .center
+        stack.isHidden = true
+        return stack
+    }()
+
     private let activityBadge: TRPPaddingLabel = {
         let label = TRPPaddingLabel(4, 4, 8, 8)
         label.translatesAutoresizingMaskIntoConstraints = false
@@ -75,6 +85,29 @@ class TRPTimelineReservedActivityCell: UITableViewCell {
         label.clipsToBounds = true
         label.text = TimelineLocalizationKeys.localized(TimelineLocalizationKeys.activityBadge)
         return label
+    }()
+
+    private let noLocationBadge: TRPPaddingLabel = {
+        let label = TRPPaddingLabel(4, 4, 8, 8)
+        label.translatesAutoresizingMaskIntoConstraints = false
+        label.font = FontSet.montserratMedium.font(10)
+        label.textColor = ColorSet.infoIcon.uiColor
+        label.backgroundColor = ColorSet.bgBlue.uiColor
+        label.textAlignment = .center
+        label.layer.cornerRadius = 4
+        label.clipsToBounds = true
+        label.text = TimelineLocalizationKeys.localized(TimelineLocalizationKeys.noExactLocation)
+        label.isHidden = true
+        return label
+    }()
+
+    private let badgeStackView: UIStackView = {
+        let stack = UIStackView()
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        stack.axis = .horizontal
+        stack.spacing = 4
+        stack.alignment = .center
+        return stack
     }()
 
     private let durationIcon: UIImageView = {
@@ -197,8 +230,13 @@ class TRPTimelineReservedActivityCell: UITableViewCell {
         durationStackView.addArrangedSubview(durationIcon)
         durationStackView.addArrangedSubview(durationLabel)
 
+        // Build badges row (activity + optional "no exact location")
+        badgeStackView.addArrangedSubview(activityBadge)
+        badgeStackView.addArrangedSubview(noLocationBadge)
+
         // Build right content vertical stack (below title)
-        rightContentStackView.addArrangedSubview(activityBadge)
+        rightContentStackView.addArrangedSubview(ratingStack)
+        rightContentStackView.addArrangedSubview(badgeStackView)
         rightContentStackView.addArrangedSubview(durationStackView)
         rightContentStackView.addArrangedSubview(cancellationLabel)
         rightContentStackView.addArrangedSubview(priceRowContainer)
@@ -268,6 +306,9 @@ class TRPTimelineReservedActivityCell: UITableViewCell {
         super.prepareForReuse()
         resetTextAndBorderDefaults()
         resetPastDayState()
+        ratingStack.arrangedSubviews.forEach { $0.removeFromSuperview() }
+        ratingStack.isHidden = true
+        noLocationBadge.isHidden = true
     }
 
     private func resetTextAndBorderDefaults() {
@@ -340,8 +381,61 @@ class TRPTimelineReservedActivityCell: UITableViewCell {
             durationStackView.isHidden = true
         }
 
+        // Configure rating
+        configureRating(rating: cellData.rating, ratingCount: cellData.ratingCount)
+
+        // Configure no-location badge
+        noLocationBadge.isHidden = !cellData.isNoLocation
+
         // Configure price
         configurePriceRow(with: cellData.price)
+    }
+
+    private func configureRating(rating: Float?, ratingCount: Int?) {
+        ratingStack.arrangedSubviews.forEach { $0.removeFromSuperview() }
+
+        guard let rating = rating else {
+            ratingStack.isHidden = true
+            return
+        }
+
+        let ratingLabel = UILabel()
+        ratingLabel.font = FontSet.montserratBold.font(14)
+        ratingLabel.textColor = ColorSet.primaryText.uiColor
+        ratingLabel.text = String(format: "%.1f", rating).replacingOccurrences(of: ".", with: ",")
+
+        let spacer1 = UIView()
+        spacer1.translatesAutoresizingMaskIntoConstraints = false
+        spacer1.widthAnchor.constraint(equalToConstant: 2).isActive = true
+
+        let starIcon = UIImageView()
+        starIcon.image = TRPImageController().getImage(inFramework: "ic_rating_star", inApp: nil)
+        starIcon.tintColor = ColorSet.ratingStar.uiColor
+        starIcon.translatesAutoresizingMaskIntoConstraints = false
+        starIcon.contentMode = .scaleAspectFit
+        starIcon.widthAnchor.constraint(equalToConstant: 14).isActive = true
+        starIcon.heightAnchor.constraint(equalToConstant: 14).isActive = true
+
+        ratingStack.addArrangedSubview(ratingLabel)
+        ratingStack.addArrangedSubview(spacer1)
+        ratingStack.addArrangedSubview(starIcon)
+
+        if let ratingCount = ratingCount {
+            let spacer2 = UIView()
+            spacer2.translatesAutoresizingMaskIntoConstraints = false
+            spacer2.widthAnchor.constraint(equalToConstant: 4).isActive = true
+
+            let reviewLabel = UILabel()
+            reviewLabel.font = FontSet.montserratRegular.font(14)
+            reviewLabel.textColor = ColorSet.fgWeak.uiColor
+            let opinionsText = AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.opinions)
+            reviewLabel.text = "\(ratingCount.formattedWithSeparator) \(opinionsText)"
+
+            ratingStack.addArrangedSubview(spacer2)
+            ratingStack.addArrangedSubview(reviewLabel)
+        }
+
+        ratingStack.isHidden = false
     }
 
     private func formatDuration(_ minutes: Double) -> String {

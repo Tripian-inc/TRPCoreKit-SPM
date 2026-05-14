@@ -98,9 +98,12 @@ extension TRPTimelineItineraryVC: AddPlanContainerVCDelegate {
         let navController = UINavigationController(rootViewController: activityListingVC)
         navController.modalPresentationStyle = .fullScreen
 
-        viewController.dismiss(animated: false) { [weak self] in
-            self?.present(navController, animated: true)
-        }
+        // Present the listing FROM the AddPlan sheet so the animation starts on
+        // the Continue tap with no visible gap. AddPlan stays underneath, fully
+        // covered by the fullscreen listing — effectively "in the background".
+        // The listing's back handler dismisses the whole stack so the user
+        // returns to the timeline, not back to AddPlan.
+        viewController.present(navController, animated: true)
     }
 
     public func addPlanContainerShouldShowPOIListing(_ viewController: AddPlanContainerVC, data: AddPlanData, categoryType: POIListingCategoryType) {
@@ -115,9 +118,9 @@ extension TRPTimelineItineraryVC: AddPlanContainerVCDelegate {
         let navController = UINavigationController(rootViewController: poiListingVC)
         navController.modalPresentationStyle = .fullScreen
 
-        viewController.dismiss(animated: false) { [weak self] in
-            self?.present(navController, animated: true)
-        }
+        // Same pattern as activity listing — present on top of AddPlan so the
+        // transition is smooth; the back handler tears down the whole chain.
+        viewController.present(navController, animated: true)
     }
 
     public func addPlanContainerSegmentCreated(_ viewController: AddPlanContainerVC, selectedDay: Date?) {
@@ -265,7 +268,7 @@ extension TRPTimelineItineraryVC: UICollectionViewDataSource, UICollectionViewDe
     }
 
     public func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAt indexPath: IndexPath) -> CGSize {
-        return CGSize(width: 300, height: 104)
+        return CGSize(width: 300, height: 126)
     }
 
     public func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
@@ -322,7 +325,10 @@ extension TRPTimelineItineraryVC: UICollectionViewDataSource, UICollectionViewDe
                 updateSelectedMarker(poiId: item.itemId)
             }
 
-            if let coordinate = item.coordinate, let mapView = map {
+            // No-exact-location items have no precise coordinate (segment uses
+            // the city center as a fallback). Don't recenter the map — keep it
+            // wherever it was so the last meaningful selection stays in view.
+            if !item.isNoLocation, let coordinate = item.coordinate, let mapView = map {
                 mapView.setCenter(coordinate, zoomLevel: 15)
                 isMarkerFocused = true
                 updateMainViewButtonVisibility()
@@ -383,8 +389,9 @@ extension TRPTimelineItineraryVC: UICollectionViewDataSource, UICollectionViewDe
         // Update selected marker on map
         updateSelectedMarker(poiId: item.itemId)
 
-        // Center map on selected item's coordinate
-        if let coordinate = item.coordinate {
+        // Center map on selected item's coordinate. Skip for no-exact-location
+        // items so the map stays at the previously focused coordinate.
+        if !item.isNoLocation, let coordinate = item.coordinate {
             map?.setCenter(coordinate, zoomLevel: 15)
         }
 

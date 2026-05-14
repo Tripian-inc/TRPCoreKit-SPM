@@ -167,6 +167,9 @@ extension TRPTimelineItineraryVC {
         var annotations = [TRPPointAnnotation]()
 
         for (order, _, cityIndex, item) in orderedItems {
+            // Skip activities created without a precise coordinate — their coordinate
+            // is a city-center fallback and a pin there would be misleading.
+            if item.isNoLocation { continue }
             guard let coordinate = item.coordinate else { continue }
 
             var annotation = TRPPointAnnotation()
@@ -211,6 +214,10 @@ extension TRPTimelineItineraryVC {
 
         // Find the selected item
         guard let selectedItem = orderedItems.first(where: { $0.item.itemId == selectedId }) else { return }
+        // No-location activities never get a pin (their coordinate is the city
+        // fallback). Selecting one in the preview collection should be a no-op
+        // on the map.
+        if selectedItem.item.isNoLocation { return }
         guard let coordinate = selectedItem.item.coordinate else { return }
 
         // Create annotation for selected step

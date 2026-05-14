@@ -45,6 +45,15 @@ public struct BookedActivityCellData: TimelineCellData {
     public let price: TRPSegmentActivityPrice?
     public let cancellation: String?
 
+    // MARK: - Rating
+    public let rating: Float?
+    public let ratingCount: Int?
+
+    // MARK: - Location
+    /// `true` when the source activity has no precise coordinate (segment uses
+    /// the city's coordinate as a fallback). Drives the "No exact location" tag.
+    public let isNoLocation: Bool
+
     // MARK: - Raw Data (for delegate callbacks)
     public let segment: TRPTimelineSegment
 
@@ -69,6 +78,9 @@ public struct BookedActivityCellData: TimelineCellData {
         duration: Double?,
         price: TRPSegmentActivityPrice?,
         cancellation: String?,
+        rating: Float? = nil,
+        ratingCount: Int? = nil,
+        isNoLocation: Bool = false,
         segment: TRPTimelineSegment,
         hasConflict: Bool = false,
         showTimeOverlapText: Bool = false
@@ -84,6 +96,9 @@ public struct BookedActivityCellData: TimelineCellData {
         self.duration = duration
         self.price = price
         self.cancellation = cancellation
+        self.rating = rating
+        self.ratingCount = ratingCount
+        self.isNoLocation = isNoLocation
         self.segment = segment
         self.hasConflict = hasConflict
         self.showTimeOverlapText = showTimeOverlapText
@@ -102,6 +117,9 @@ public struct BookedActivityCellData: TimelineCellData {
         self.duration = item.duration
         self.price = item.price
         self.cancellation = item.cancellation
+        self.rating = item.rating
+        self.ratingCount = item.ratingCount
+        self.isNoLocation = item.isNoLocation
         self.segment = item.segment
         self.hasConflict = item.hasConflict
         self.showTimeOverlapText = item.showTimeOverlapText

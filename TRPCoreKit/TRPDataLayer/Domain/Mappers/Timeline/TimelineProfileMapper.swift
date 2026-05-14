@@ -158,6 +158,9 @@ final class TimelineProfileMapper {
             additionalData.price = price.value
             additionalData.currency = price.currency
         }
+        additionalData.rating = data.rating
+        additionalData.ratingCount = data.ratingCount
+        additionalData.isNoLocation = data.isNoLocation
         // Note: TRPRestKit model doesn't have adultCount/childCount
         // These are stored in the segment itself, not in additionalData
         return additionalData

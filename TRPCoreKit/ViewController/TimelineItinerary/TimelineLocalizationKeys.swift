@@ -52,6 +52,7 @@ public struct TimelineLocalizationKeys {
     // MARK: - Segment/Cell Labels
     public static let recommendations = "timeline.label.recommendations"
     public static let activityBadge = "timeline.label.activityBadge"
+    public static let noExactLocation = "timeline.label.noExactLocation"
     public static let pointOfInterest = "timeline.label.pointOfInterest"
     public static let unknown = "timeline.label.unknown"
     public static let unknownLocation = "timeline.label.unknownLocation"
@@ -106,6 +107,7 @@ public struct TimelineLocalizationKeys {
         partialUnavailableButton: "Understood",
         recommendations: "Recommendations",
         activityBadge: "Activity",
+        noExactLocation: "No exact location",
         pointOfInterest: "Point of interest",
         unknown: "Unknown",
         unknownLocation: "Unknown Location",

@@ -502,6 +502,11 @@ extension AddPlanPOIListingVC: TRPTimelineCustomNavigationBarDelegate {
             lottiePresented = false
             viewModel(hideLottie: .fullScreen)
         }
-        dismiss(animated: true)
+        // Listing is presented on top of the AddPlan sheet (so the open animation
+        // is smooth). On back, dismiss the entire modal chain so the user returns
+        // to the screen that originated the flow (timeline), not to AddPlan.
+        // Falls back to a plain self-dismiss if there's only one level of chain.
+        let presenter = presentingViewController?.presentingViewController ?? presentingViewController
+        presenter?.dismiss(animated: true)
     }
 }

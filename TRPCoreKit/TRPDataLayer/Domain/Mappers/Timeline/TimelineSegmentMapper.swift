@@ -84,7 +84,10 @@ final class TimelineSegmentMapper {
             adultCount: 1, // Default value - actual count is in segment.adults
             childCount: 0, // Default value - actual count is in segment.children
             duration: data.duration,
-            price: price
+            price: price,
+            rating: data.rating,
+            ratingCount: data.ratingCount,
+            isNoLocation: data.isNoLocation
         )
     }
 

@@ -151,8 +151,13 @@ public struct TRPSegmentActivityItem: Codable {
     public var rating: Float?
     /// Number of ratings backing `rating`.
     public var ratingCount: Int?
+    /// `true` when the source activity has no precise coordinate and the segment
+    /// was created using the city's coordinate as a fallback. UI uses this to
+    /// surface a "no exact location" tag and to skip rendering the activity on
+    /// the map. Defaults to `false` for legacy / coordinate-bearing activities.
+    public var isNoLocation: Bool = false
 
-    public init(activityId: String?, bookingId: String?, title: String?, imageUrl: String?, description: String?, startDatetime: String?, endDatetime: String?, coordinate: TRPLocation, cancellation: String?, adultCount: Int, childCount: Int, bookingUrl: String? = nil, duration: Double? = nil, price: TRPSegmentActivityPrice? = nil, cityId: Int? = nil, isFlexible: Bool? = nil, rating: Float? = nil, ratingCount: Int? = nil) {
+    public init(activityId: String?, bookingId: String?, title: String?, imageUrl: String?, description: String?, startDatetime: String?, endDatetime: String?, coordinate: TRPLocation, cancellation: String?, adultCount: Int, childCount: Int, bookingUrl: String? = nil, duration: Double? = nil, price: TRPSegmentActivityPrice? = nil, cityId: Int? = nil, isFlexible: Bool? = nil, rating: Float? = nil, ratingCount: Int? = nil, isNoLocation: Bool = false) {
         self.activityId = activityId
         self.bookingId = bookingId
         self.title = title
@@ -171,6 +176,7 @@ public struct TRPSegmentActivityItem: Codable {
         self.isFlexible = isFlexible
         self.rating = rating
         self.ratingCount = ratingCount
+        self.isNoLocation = isNoLocation
     }
 
     enum CodingKeys: String, CodingKey {
@@ -192,6 +198,7 @@ public struct TRPSegmentActivityItem: Codable {
         case isFlexible
         case rating
         case ratingCount
+        case isNoLocation
     }
 
 }

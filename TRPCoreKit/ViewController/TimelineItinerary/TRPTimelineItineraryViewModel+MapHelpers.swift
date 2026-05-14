@@ -31,7 +31,9 @@ extension TRPTimelineItineraryViewModel {
 
                 switch item.segmentType {
                 case .bookedActivity, .reservedActivity:
-                    // Single activity item
+                    // isNoLocation activities are kept in the result so the bottom
+                    // preview collection can still surface them (with a "no exact
+                    // location" tag). Map annotations skip them separately.
                     result.append((order: startingOrder, section: sectionIndex, cityIndex: cityIndex, item: .activity(item.segment)))
 
                 case .manualPoi:
