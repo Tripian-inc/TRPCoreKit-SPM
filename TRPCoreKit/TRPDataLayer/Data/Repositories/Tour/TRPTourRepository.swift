@@ -104,6 +104,14 @@ final public class TRPTourRepository: TourRepository {
                                  lang: lang,
                                  completion: completion)
     }
+
+    public func lookupTourProduct(providerId: Int,
+                                  productId: String,
+                                  completion: @escaping (TourResultValue) -> Void) {
+        remoteApi.lookupTourProduct(providerId: providerId,
+                                    productId: productId,
+                                    completion: completion)
+    }
 }
 
 

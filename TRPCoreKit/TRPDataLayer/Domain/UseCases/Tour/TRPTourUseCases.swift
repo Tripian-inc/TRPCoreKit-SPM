@@ -80,6 +80,40 @@ extension TRPTourUseCases: SearchTourUseCase {
 
 }
 
+extension TRPTourUseCases: LookupTourProductUseCase {
+
+    public func executeLookupTourProduct(providerId: Int,
+                                         productId: String,
+                                         completion: @escaping (TourResultValue) -> Void) {
+
+        guard ReachabilityUseCases.shared.isOnline else {
+            completion(.failure(GeneralError.customMessage("Tours require online connection")))
+            return
+        }
+
+        tourRepository.lookupTourProduct(providerId: providerId,
+                                         productId: productId,
+                                         completion: completion)
+    }
+
+    /// Convenience overload for callers that already have a `TRPAdditionalData`
+    /// (e.g. `step.additionalData` for activity-type timeline steps, or
+    /// `segment.additionalData` for booked/reserved activities).
+    public func executeLookupTourProduct(additionalData: TRPAdditionalData?,
+                                         completion: @escaping (TourResultValue) -> Void) {
+
+        guard let providerId = additionalData?.providerId,
+              let productId = additionalData?.productId, !productId.isEmpty else {
+            completion(.failure(GeneralError.customMessage("Missing providerId/productId")))
+            return
+        }
+
+        executeLookupTourProduct(providerId: providerId,
+                                 productId: productId,
+                                 completion: completion)
+    }
+}
+
 extension TRPTourUseCases: FetchTourUseCase {
 
     public func executeFetchTours(completion: ((Result<[TRPTourProduct], Error>, TRPTourPagination?) -> Void)?) {

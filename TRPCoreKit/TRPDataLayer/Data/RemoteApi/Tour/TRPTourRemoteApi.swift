@@ -210,4 +210,26 @@ public class TRPTourRemoteApi: TourRemoteApi {
             }
         }
     }
+
+
+    public func lookupTourProduct(providerId: Int,
+                                  productId: String,
+                                  completion: @escaping (TourResultValue) -> Void) {
+
+        let request = TRPTourProductLookupRequestModel(providerId: providerId, productId: productId)
+
+        TRPRestKit().lookupTourProduct(request: request) { (result, error) in
+            if let error = error {
+                completion(.failure(error))
+                return
+            }
+
+            if let info = result as? TRPTourProductInfoModel,
+               let product = TourMapper().map(info) {
+                completion(.success(product))
+            } else {
+                completion(.failure(GeneralError.customMessage("Couldn't convert tour product data")))
+            }
+        }
+    }
 }

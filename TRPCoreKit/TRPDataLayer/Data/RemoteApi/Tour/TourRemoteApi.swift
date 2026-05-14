@@ -27,4 +27,8 @@ public protocol TourRemoteApi {
                         currency: String,
                         lang: String,
                         completion: @escaping (Result<TRPTourSchedule, Error>) -> Void)
+
+    func lookupTourProduct(providerId: Int,
+                           productId: String,
+                           completion: @escaping (TourResultValue) -> Void)
 }

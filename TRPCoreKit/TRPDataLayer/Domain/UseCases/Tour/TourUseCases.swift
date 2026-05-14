@@ -37,3 +37,14 @@ public protocol FetchTourNextUrlUseCase {
                           completion: ((Result<[TRPTourProduct], Error>, TRPTourPagination?)-> Void)?
                          )
 }
+
+
+public protocol LookupTourProductUseCase {
+
+    /// Fetches a single tour product by provider + product id (tour-api/product-lookup).
+    /// Use this when you have a `providerId` + `productId` (e.g. from a timeline step's
+    /// `additionalData`) and need full product details without paging through search.
+    func executeLookupTourProduct(providerId: Int,
+                                  productId: String,
+                                  completion: @escaping (TourResultValue) -> Void)
+}
