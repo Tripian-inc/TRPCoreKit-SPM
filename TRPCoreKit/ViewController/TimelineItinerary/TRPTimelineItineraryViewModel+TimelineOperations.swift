@@ -237,7 +237,10 @@ extension TRPTimelineItineraryViewModel {
 
     // MARK: - CityId Resolution
 
-    /// Resolves cityIds for tripItems using cities/resolve API
+    /// Resolves cityIds for tripItems. Items with a real coordinate go through
+    /// cities/resolve (existing path). Items missing a coordinate are resolved via
+    /// tour-api/product-lookup using their `activityId` so we can still place them
+    /// in the right city section instead of dropping to `cityId = 0`.
     /// - Parameters:
     ///   - tripItems: Array of tripItems to resolve
     ///   - completion: Called with updated tripItems (cityId fields populated)
@@ -245,50 +248,127 @@ extension TRPTimelineItineraryViewModel {
         tripItems: [TRPSegmentActivityItem],
         completion: @escaping ([TRPSegmentActivityItem]) -> Void
     ) {
-        // If no tripItems, return immediately
         guard !tripItems.isEmpty else {
             completion(tripItems)
             return
         }
 
-        // Extract coordinates from tripItems
-        let coordinates = tripItems.map { $0.coordinate }
+        let indexed = tripItems.enumerated().map { (index: $0.offset, item: $0.element) }
+        let withLocation = indexed.filter { !$0.item.lacksLocation }
+        let noLocation = indexed.filter { $0.item.lacksLocation }
 
-        // Call cities/resolve API
-        let cityRemoteApi = TRPCityRemoteApi()
-        cityRemoteApi.resolveCities(coordinates: coordinates) { [weak self] result in
-            guard let self = self else { return }
+        let group = DispatchGroup()
+        let resultsQueue = DispatchQueue(label: "com.tripian.timeline.tripItems.cityResolve")
+        var resolved: [Int: Int] = [:]  // index -> cityId
 
-            var updatedTripItems = tripItems
-
-            switch result {
-            case .success(let cityIds):
-                // Update tripItems with resolved cityIds
-                for (index, cityId) in cityIds.enumerated() {
-                    guard index < updatedTripItems.count else { break }
-
-                    if cityId > 0 {
-                        updatedTripItems[index].cityId = cityId
-                    } else {
-                        // City not supported
-                        updatedTripItems[index].cityId = 0
+        // With-location branch: cities-resolve + cache fallback (unchanged semantics).
+        if !withLocation.isEmpty {
+            group.enter()
+            let coordinates = withLocation.map { $0.item.coordinate }
+            TRPCityRemoteApi().resolveCities(coordinates: coordinates) { result in
+                switch result {
+                case .success(let cityIds):
+                    resultsQueue.async {
+                        for (i, entry) in withLocation.enumerated() where i < cityIds.count {
+                            resolved[entry.index] = cityIds[i] > 0 ? cityIds[i] : 0
+                        }
+                        group.leave()
+                    }
+                case .failure:
+                    resultsQueue.async {
+                        for entry in withLocation {
+                            let coord = entry.item.coordinate
+                            if let city = TRPCityCache.shared.getCityByCoordinate(coord) {
+                                resolved[entry.index] = city.id
+                            } else {
+                                resolved[entry.index] = 0
+                            }
+                        }
+                        group.leave()
                     }
                 }
+            }
+        }
 
-                completion(updatedTripItems)
+        // No-location branch: lookup-by-product per item.
+        var lookupTriples: [(index: Int, productId: String, providerId: Int)] = []
+        var unlookableIndices: [Int] = []
+        for entry in noLocation {
+            if let keys = entry.item.tourLookupKeys {
+                lookupTriples.append((entry.index, keys.productId, keys.providerId))
+            } else {
+                unlookableIndices.append(entry.index)
+            }
+        }
 
-            case .failure(_):
-                // Fallback: Try resolving from local cache
-                for (index, tripItem) in tripItems.enumerated() {
-                    let coordinate = tripItem.coordinate
-                    if let city = TRPCityCache.shared.getCityByCoordinate(coordinate) {
-                        updatedTripItems[index].cityId = city.id
-                    } else {
-                        updatedTripItems[index].cityId = 0
+        if !unlookableIndices.isEmpty {
+            group.enter()
+            resultsQueue.async {
+                for idx in unlookableIndices { resolved[idx] = 0 }
+                group.leave()
+            }
+        }
+
+        if !lookupTriples.isEmpty {
+            group.enter()
+            lookupCityIds(for: lookupTriples) { lookupResults in
+                resultsQueue.async {
+                    for triple in lookupTriples {
+                        resolved[triple.index] = lookupResults[triple.index] ?? 0
                     }
+                    group.leave()
                 }
+            }
+        }
 
-                completion(updatedTripItems)
+        group.notify(queue: .main) {
+            var updated = tripItems
+            resultsQueue.sync {
+                for (index, cityId) in resolved where index < updated.count {
+                    updated[index].cityId = cityId
+                }
+            }
+            completion(updated)
+        }
+    }
+
+    /// Fans out `lookupTourProduct` calls for the given items and returns the
+    /// resolved cityIds keyed by input index. Missing keys mean the lookup failed
+    /// or returned `cityId == 0` — callers should default those to `0`.
+    internal func lookupCityIds(
+        for items: [(index: Int, productId: String, providerId: Int)],
+        completion: @escaping ([Int: Int]) -> Void
+    ) {
+        guard !items.isEmpty else { completion([:]); return }
+
+        let group = DispatchGroup()
+        let resultsQueue = DispatchQueue(label: "com.tripian.timeline.lookupCity.results")
+        var resolved: [Int: Int] = [:]
+
+        for triple in items {
+            group.enter()
+            TRPTourUseCases().executeLookupTourProduct(
+                providerId: triple.providerId,
+                productId: triple.productId
+            ) { result in
+                resultsQueue.async {
+                    switch result {
+                    case .success(let product) where product.cityId > 0:
+                        resolved[triple.index] = product.cityId
+                    case .success:
+                        Log.i("lookupCityIds: cityId=0 for product \(triple.productId)")
+                    case .failure(let error):
+                        Log.e("lookupCityIds: failed for product \(triple.productId) — \(error.localizedDescription)")
+                    }
+                    group.leave()
+                }
+            }
+        }
+
+        group.notify(queue: .main) {
+            resultsQueue.sync {
+                Log.i("lookupCityIds: resolved \(resolved.count)/\(items.count) items")
+                completion(resolved)
             }
         }
     }

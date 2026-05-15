@@ -222,4 +222,13 @@ extension String {
         }
         return self
     }
+
+    /// Parses the providerId out of a `C_{productId}_{providerId}[_{cityId}]` activity id.
+    /// Returns nil for plain ids (no `C_` prefix) or when the second segment isn't a valid Int.
+    func trp_parsedProviderId() -> Int? {
+        guard self.hasPrefix("C_") else { return nil }
+        let components = self.dropFirst(2).split(separator: "_")
+        guard components.count >= 2 else { return nil }
+        return Int(components[1])
+    }
 }

@@ -191,4 +191,14 @@ final class TourMapper {
         let day = TRPTourScheduleDay(date: scheduleModel.date, slots: slots)
         return TRPTourSchedule(title: title, dates: [day])
     }
+
+    /// Map the batch `tour-api/schedule-availability` response. Missing or empty
+    /// schedules are preserved as `TRPTourScheduleAvailability(schedule: nil)` so
+    /// callers can distinguish "sold out / unavailable" from "not requested".
+    func mapAvailability(_ dataModel: TRPTourScheduleAvailabilityDataModel) -> [TRPTourScheduleAvailability] {
+        return (dataModel.schedules ?? []).map { itemModel in
+            let schedule: TRPTourSchedule? = itemModel.schedule.map { mapSchedule($0) }
+            return TRPTourScheduleAvailability(activityId: itemModel.id, schedule: schedule)
+        }
+    }
 }

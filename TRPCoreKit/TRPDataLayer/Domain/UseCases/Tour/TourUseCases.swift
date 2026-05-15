@@ -48,3 +48,17 @@ public protocol LookupTourProductUseCase {
                                   productId: String,
                                   completion: @escaping (TourResultValue) -> Void)
 }
+
+
+public protocol TourScheduleAvailabilityUseCase {
+
+    /// Batch availability check (tour-api/schedule-availability). Pass a list of
+    /// activity ids (`C_{productId}_{providerId}[_{cityId}]`) and a target date;
+    /// the response carries one `TRPTourScheduleAvailability` per requested id with
+    /// the day's slots (or `schedule == nil` when sold out / unavailable).
+    func executeGetTourScheduleAvailability(items: [String],
+                                            date: String,
+                                            currency: String?,
+                                            lang: String?,
+                                            completion: @escaping (Result<[TRPTourScheduleAvailability], Error>) -> Void)
+}

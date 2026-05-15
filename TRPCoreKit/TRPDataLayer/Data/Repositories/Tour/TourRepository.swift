@@ -42,6 +42,12 @@ public protocol TourRepository {
     func lookupTourProduct(providerId: Int,
                            productId: String,
                            completion: @escaping (TourResultValue) -> Void)
+
+    func getTourScheduleAvailability(items: [String],
+                                     date: String,
+                                     currency: String?,
+                                     lang: String?,
+                                     completion: @escaping (Result<[TRPTourScheduleAvailability], Error>) -> Void)
 }
 
 

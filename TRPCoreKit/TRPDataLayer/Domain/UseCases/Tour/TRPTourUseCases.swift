@@ -114,6 +114,32 @@ extension TRPTourUseCases: LookupTourProductUseCase {
     }
 }
 
+extension TRPTourUseCases: TourScheduleAvailabilityUseCase {
+
+    public func executeGetTourScheduleAvailability(items: [String],
+                                                   date: String,
+                                                   currency: String? = nil,
+                                                   lang: String? = nil,
+                                                   completion: @escaping (Result<[TRPTourScheduleAvailability], Error>) -> Void) {
+
+        guard ReachabilityUseCases.shared.isOnline else {
+            completion(.failure(GeneralError.customMessage("Tours require online connection")))
+            return
+        }
+
+        guard !items.isEmpty else {
+            completion(.success([]))
+            return
+        }
+
+        tourRepository.getTourScheduleAvailability(items: items,
+                                                   date: date,
+                                                   currency: currency,
+                                                   lang: lang,
+                                                   completion: completion)
+    }
+}
+
 extension TRPTourUseCases: FetchTourUseCase {
 
     public func executeFetchTours(completion: ((Result<[TRPTourProduct], Error>, TRPTourPagination?) -> Void)?) {

@@ -112,6 +112,18 @@ final public class TRPTourRepository: TourRepository {
                                     productId: productId,
                                     completion: completion)
     }
+
+    public func getTourScheduleAvailability(items: [String],
+                                            date: String,
+                                            currency: String?,
+                                            lang: String?,
+                                            completion: @escaping (Result<[TRPTourScheduleAvailability], Error>) -> Void) {
+        remoteApi.getTourScheduleAvailability(items: items,
+                                              date: date,
+                                              currency: currency,
+                                              lang: lang,
+                                              completion: completion)
+    }
 }
 
 

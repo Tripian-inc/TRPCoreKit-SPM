@@ -604,49 +604,85 @@ extension TRPTimelineItineraryViewModel {
 
     // MARK: - Favourite Items City Resolution
 
-    /// Resolves cityIds for favourite items that don't have a valid one using the resolveCities API.
-    /// Items with cityId nil or <= 0 will be resolved. Results are written back to item.cityId.
+    /// Resolves cityIds for favourite items that don't have a valid one.
+    /// Items with a coordinate go through cities/resolve; items without (coordinate
+    /// `(0, 0)`) fall through to tour-api/product-lookup using their `activityId`.
+    /// Results are written back to `item.cityId`.
     /// - Parameter completion: Called when resolution is complete (regardless of success/failure)
     internal func resolveFavouriteItemCities(completion: @escaping () -> Void) {
-        guard var favouriteItems = timeline?.favouriteItems,
-              !favouriteItems.isEmpty else {
+        guard let initial = timeline?.favouriteItems, !initial.isEmpty else {
             completion()
             return
         }
 
         // Collect items that need city resolution (cityId is nil or invalid <= 0)
-        let itemsNeedingResolution = favouriteItems.enumerated().filter { ($0.element.cityId ?? 0) <= 0 }
+        let itemsNeedingResolution = initial.enumerated().filter { ($0.element.cityId ?? 0) <= 0 }
 
         guard !itemsNeedingResolution.isEmpty else {
             completion()
             return
         }
 
-        let coordinates = itemsNeedingResolution.map { $0.element.coordinate }
+        let withLocation = itemsNeedingResolution.filter { !$0.element.lacksLocation }
+        let noLocation = itemsNeedingResolution.filter { $0.element.lacksLocation }
 
-        let cityRemoteApi = TRPCityRemoteApi()
-        cityRemoteApi.resolveCities(coordinates: coordinates) { [weak self] result in
+        let group = DispatchGroup()
+        let resultsQueue = DispatchQueue(label: "com.tripian.timeline.favourites.cityResolve")
+        var resolved: [Int: Int] = [:]  // index -> cityId
+
+        // With-location branch: cities/resolve (no cache fallback historically).
+        if !withLocation.isEmpty {
+            group.enter()
+            let coordinates = withLocation.map { $0.element.coordinate }
+            TRPCityRemoteApi().resolveCities(coordinates: coordinates) { result in
+                switch result {
+                case .success(let cityIds):
+                    resultsQueue.async {
+                        for (i, entry) in withLocation.enumerated() where i < cityIds.count {
+                            resolved[entry.offset] = cityIds[i]
+                        }
+                        Log.i("resolveFavouriteItemCities: Resolved \(cityIds.count) city IDs via cities/resolve")
+                        group.leave()
+                    }
+                case .failure(let error):
+                    resultsQueue.async {
+                        Log.e("resolveFavouriteItemCities: cities/resolve failed - \(error.localizedDescription)")
+                        group.leave()
+                    }
+                }
+            }
+        }
+
+        // No-location branch: lookup by product id.
+        let lookupTriples: [(index: Int, productId: String, providerId: Int)] = noLocation.compactMap { entry in
+            guard let keys = entry.element.tourLookupKeys else { return nil }
+            return (index: entry.offset, productId: keys.productId, providerId: keys.providerId)
+        }
+
+        if !lookupTriples.isEmpty {
+            group.enter()
+            lookupCityIds(for: lookupTriples) { lookupResults in
+                resultsQueue.async {
+                    for (idx, cityId) in lookupResults {
+                        resolved[idx] = cityId
+                    }
+                    group.leave()
+                }
+            }
+        }
+
+        group.notify(queue: .main) { [weak self] in
             guard let self = self else {
                 completion()
                 return
             }
-
-            switch result {
-            case .success(let cityIds):
-                // cityIds order matches coordinates order
-                let originalIndices = itemsNeedingResolution.map { $0.offset }
-                for (arrayIndex, originalIndex) in originalIndices.enumerated() {
-                    if arrayIndex < cityIds.count {
-                        favouriteItems[originalIndex].cityId = cityIds[arrayIndex]
-                    }
+            var favouriteItems = self.timeline?.favouriteItems ?? initial
+            resultsQueue.sync {
+                for (index, cityId) in resolved where index < favouriteItems.count {
+                    favouriteItems[index].cityId = cityId
                 }
-                self.timeline?.favouriteItems = favouriteItems
-                Log.i("resolveFavouriteItemCities: Resolved \(cityIds.count) city IDs for favourite items")
-
-            case .failure(let error):
-                Log.e("resolveFavouriteItemCities: Failed - \(error.localizedDescription)")
             }
-
+            self.timeline?.favouriteItems = favouriteItems
             completion()
         }
     }

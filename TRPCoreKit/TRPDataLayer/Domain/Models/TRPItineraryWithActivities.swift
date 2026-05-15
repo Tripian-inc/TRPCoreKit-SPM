@@ -203,6 +203,42 @@ public struct TRPSegmentActivityItem: Codable {
 
 }
 
+// MARK: - Tour Product Lookup Helpers
+
+/// Default providerId used when an activity id doesn't encode one. `15` is Civitatis,
+/// which is the only host-app provider for this branch. Lives in one place so a future
+/// non-Civitatis integration only has to change this constant (or move it to config).
+private let trpDefaultLookupProviderId = 15
+
+extension TRPSegmentActivityItem {
+    /// True when the activity arrived without a real coordinate — either the host
+    /// marked it explicitly via `isNoLocation`, or the lat/lon are `(0, 0)`.
+    public var lacksLocation: Bool {
+        return isNoLocation || (coordinate.lat == 0 && coordinate.lon == 0)
+    }
+
+    /// `(productId, providerId)` pair suitable for `lookupTourProduct`. Falls back to
+    /// `15` (Civitatis) when the id isn't in `C_{productId}_{providerId}` shape — the
+    /// raw `activityId` is then treated as the productId directly.
+    public var tourLookupKeys: (productId: String, providerId: Int)? {
+        guard let raw = activityId, !raw.isEmpty else { return nil }
+        return (raw.cleanedAsActivityId(), raw.trp_parsedProviderId() ?? trpDefaultLookupProviderId)
+    }
+}
+
+extension TRPSegmentFavoriteItem {
+    /// True when the favourite arrived without a real coordinate.
+    public var lacksLocation: Bool {
+        return coordinate.lat == 0 && coordinate.lon == 0
+    }
+
+    /// `(productId, providerId)` pair suitable for `lookupTourProduct`.
+    public var tourLookupKeys: (productId: String, providerId: Int)? {
+        guard let raw = activityId, !raw.isEmpty else { return nil }
+        return (raw.cleanedAsActivityId(), raw.trp_parsedProviderId() ?? trpDefaultLookupProviderId)
+    }
+}
+
 public struct TRPSegmentActivityPrice: Codable {
 
     public var currency: String

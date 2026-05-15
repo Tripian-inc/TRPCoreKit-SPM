@@ -232,4 +232,33 @@ public class TRPTourRemoteApi: TourRemoteApi {
             }
         }
     }
+
+
+    public func getTourScheduleAvailability(items: [String],
+                                            date: String,
+                                            currency: String?,
+                                            lang: String?,
+                                            completion: @escaping (Result<[TRPTourScheduleAvailability], Error>) -> Void) {
+
+        let request = TRPTourScheduleAvailabilityRequestModel(
+            items: items,
+            date: date,
+            currency: currency,
+            lang: lang
+        )
+
+        TRPRestKit().getTourScheduleAvailability(request: request) { (result, error) in
+            if let error = error {
+                completion(.failure(error))
+                return
+            }
+
+            if let data = result as? TRPTourScheduleAvailabilityDataModel {
+                let mapped = TourMapper().mapAvailability(data)
+                completion(.success(mapped))
+            } else {
+                completion(.failure(GeneralError.customMessage("Couldn't convert tour schedule availability data")))
+            }
+        }
+    }
 }
