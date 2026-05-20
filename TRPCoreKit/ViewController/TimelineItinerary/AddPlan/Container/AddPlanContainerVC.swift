@@ -68,6 +68,8 @@ public class AddPlanContainerVC: TRPBaseUIViewController, DynamicHeightPresentab
         button.translatesAutoresizingMaskIntoConstraints = false
         button.setImage(TRPImageController().getImage(inFramework: "ic_close", inApp: nil), for: .normal)
         button.tintColor = ColorSet.fg.uiColor
+        button.imageView?.contentMode = .scaleAspectFit
+        button.contentEdgeInsets = UIEdgeInsets(top: 3, left: 3, bottom: 3, right: 3)
         return button
     }()
     
@@ -171,8 +173,8 @@ public class AddPlanContainerVC: TRPBaseUIViewController, DynamicHeightPresentab
             // Close Button
             closeButton.trailingAnchor.constraint(equalTo: headerView.trailingAnchor),
             closeButton.centerYAnchor.constraint(equalTo: headerView.centerYAnchor),
-            closeButton.widthAnchor.constraint(equalToConstant: 18),
-            closeButton.heightAnchor.constraint(equalToConstant: 18)
+            closeButton.widthAnchor.constraint(equalToConstant: 24),
+            closeButton.heightAnchor.constraint(equalToConstant: 24)
         ])
     }
     

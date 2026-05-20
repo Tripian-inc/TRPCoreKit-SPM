@@ -82,28 +82,22 @@ public class AddPlanTimeSelectionVC: TRPBaseUIViewController, DynamicHeightPrese
             let lineSpacing: CGFloat = 12
             let gridHeight = CGFloat(rowCount) * cellHeight + CGFloat(max(0, rowCount - 1)) * lineSpacing
 
-            // Booking-availability banner (cream advisory). Same layout math as the
-            // unavailable banner — measure label height at the available width.
-            let bannerText = AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.bookingAvailabilityNotice)
-            let bannerLabelHeight = Self.textHeight(for: bannerText, font: labelFont, maxWidth: cardLabelMaxWidth)
-            let bannerHeight = 16 + max(20, bannerLabelHeight) + 16
-
-            // Sold-out warning banner — same layout math, present only in edit mode
-            // when the saved time is missing from the schedule response. Adds itself
-            // above the cream banner with a 12pt vertical gap.
+            // Sold-out warning banner — present only in edit mode when the saved time
+            // is missing from the schedule response. Sits directly above the continue
+            // button with a 16pt gap on either side.
             let showSoldOut = viewModel?.shouldShowSoldOutWarning == true
             let soldOutContribution: CGFloat
             if showSoldOut {
                 let soldOutText = AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.soldOutWarning)
                 let soldOutLabelHeight = Self.textHeight(for: soldOutText, font: labelFont, maxWidth: cardLabelMaxWidth)
                 let soldOutHeight = 16 + max(20, soldOutLabelHeight) + 16
-                soldOutContribution = soldOutHeight + 12  // banner + gap above cream banner
+                soldOutContribution = soldOutHeight + 16  // banner + gap to button
             } else {
                 soldOutContribution = 0
             }
 
-            // 16 (collection top) + grid + 16 (collection-to-banner gap) + [soldOut + 12]? + banner + 16 (banner-to-button gap)
-            middle = 16 + gridHeight + 16 + soldOutContribution + bannerHeight + 16
+            // 16 (collection top) + grid + 16 (grid bottom gap) + [soldOut + 16]?
+            middle = 16 + gridHeight + 16 + soldOutContribution
         }
         return chrome + middle + bottom
     }
@@ -274,10 +268,10 @@ public class AddPlanTimeSelectionVC: TRPBaseUIViewController, DynamicHeightPrese
     }()
 
     // MARK: - Sold-out warning banner
-    /// Red-tinted warning shown ABOVE `bookingAvailabilityBanner` during change-time
-    /// when the activity's previously-saved time is no longer in the schedule
-    /// response (sold out or in the past). Paired with a disabled placeholder cell
-    /// in the time grid at that slot. Visible only in edit mode.
+    /// Red-tinted warning shown above the continue button during change-time when the
+    /// activity's previously-saved time is no longer in the schedule response (sold
+    /// out or in the past). Paired with a disabled placeholder cell in the time grid
+    /// at that slot. Visible only in edit mode.
     private let soldOutBanner: UIView = {
         let view = UIView()
         view.translatesAutoresizingMaskIntoConstraints = false
@@ -305,48 +299,11 @@ public class AddPlanTimeSelectionVC: TRPBaseUIViewController, DynamicHeightPrese
         return label
     }()
 
-    // MARK: - Booking-availability advisory banner
-    /// Cream/orange advisory shown BELOW the time-slot grid clarifying that adding an
-    /// activity to the itinerary does not reserve a seat. Visible only when the timed
-    /// grid is showing (hidden on flexible days and when no day has slots at all).
-    private let bookingAvailabilityBanner: UIView = {
-        let view = UIView()
-        view.translatesAutoresizingMaskIntoConstraints = false
-        view.backgroundColor = ColorSet.warningBg.uiColor
-        view.layer.cornerRadius = 8
-        view.isHidden = true
-        return view
-    }()
-
-    private let bookingAvailabilityBannerIcon: UIImageView = {
-        let iv = UIImageView()
-        iv.translatesAutoresizingMaskIntoConstraints = false
-        iv.image = UIImage(systemName: "exclamationmark.triangle")
-        iv.tintColor = ColorSet.warningIcon.uiColor
-        iv.contentMode = .scaleAspectFit
-        return iv
-    }()
-
-    private let bookingAvailabilityBannerLabel: UILabel = {
-        let label = UILabel()
-        label.translatesAutoresizingMaskIntoConstraints = false
-        label.text = AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.bookingAvailabilityNotice)
-        label.font = FontSet.montserratMedium.font(14)
-        label.textColor = ColorSet.fg.uiColor
-        label.numberOfLines = 0
-        return label
-    }()
-
     /// Bottom constraint pinning the collection view directly above the continue
-    /// button (used when the booking-availability banner is hidden — flexible days
-    /// or all-days-unavailable).
+    /// button (used when the sold-out banner is hidden).
     private var collectionViewBottomToContinue: NSLayoutConstraint!
-    /// Bottom constraint pinning the collection view to the booking-availability
-    /// banner (used when the timed grid is showing and the sold-out banner is NOT).
-    private var collectionViewBottomToBookingBanner: NSLayoutConstraint!
     /// Bottom constraint pinning the collection view to the sold-out banner (used in
-    /// edit mode when the activity's saved time is missing from the schedule). The
-    /// sold-out banner sits above `bookingAvailabilityBanner`, which is also visible.
+    /// edit mode when the activity's saved time is missing from the schedule).
     private var collectionViewBottomToSoldOutBanner: NSLayoutConstraint!
 
     // MARK: - Initialization
@@ -409,9 +366,6 @@ public class AddPlanTimeSelectionVC: TRPBaseUIViewController, DynamicHeightPrese
         view.addSubview(unavailableBanner)
         unavailableBanner.addSubview(unavailableBannerIcon)
         unavailableBanner.addSubview(unavailableBannerLabel)
-        view.addSubview(bookingAvailabilityBanner)
-        bookingAvailabilityBanner.addSubview(bookingAvailabilityBannerIcon)
-        bookingAvailabilityBanner.addSubview(bookingAvailabilityBannerLabel)
         view.addSubview(soldOutBanner)
         soldOutBanner.addSubview(soldOutBannerIcon)
         soldOutBanner.addSubview(soldOutBannerLabel)
@@ -511,27 +465,10 @@ public class AddPlanTimeSelectionVC: TRPBaseUIViewController, DynamicHeightPrese
             unavailableBannerLabel.leadingAnchor.constraint(equalTo: unavailableBannerIcon.trailingAnchor, constant: 8),
             unavailableBannerLabel.trailingAnchor.constraint(equalTo: unavailableBanner.trailingAnchor, constant: -16),
 
-            // Booking-availability banner — sits between the time-slot grid and the
-            // continue button. Same horizontal alignment as the unavailable banner.
-            bookingAvailabilityBanner.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
-            bookingAvailabilityBanner.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
-            bookingAvailabilityBanner.bottomAnchor.constraint(equalTo: continueButton.topAnchor, constant: -16),
-
-            bookingAvailabilityBannerIcon.leadingAnchor.constraint(equalTo: bookingAvailabilityBanner.leadingAnchor, constant: 16),
-            bookingAvailabilityBannerIcon.topAnchor.constraint(equalTo: bookingAvailabilityBanner.topAnchor, constant: 16),
-            bookingAvailabilityBannerIcon.widthAnchor.constraint(equalToConstant: 20),
-            bookingAvailabilityBannerIcon.heightAnchor.constraint(equalToConstant: 20),
-
-            bookingAvailabilityBannerLabel.topAnchor.constraint(equalTo: bookingAvailabilityBanner.topAnchor, constant: 16),
-            bookingAvailabilityBannerLabel.bottomAnchor.constraint(equalTo: bookingAvailabilityBanner.bottomAnchor, constant: -16),
-            bookingAvailabilityBannerLabel.leadingAnchor.constraint(equalTo: bookingAvailabilityBannerIcon.trailingAnchor, constant: 8),
-            bookingAvailabilityBannerLabel.trailingAnchor.constraint(equalTo: bookingAvailabilityBanner.trailingAnchor, constant: -16),
-
-            // Sold-out warning — sits 12pt above the booking-availability banner.
-            // Same horizontal alignment / internal layout as the booking banner.
+            // Sold-out warning — sits directly above the continue button.
             soldOutBanner.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
             soldOutBanner.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
-            soldOutBanner.bottomAnchor.constraint(equalTo: bookingAvailabilityBanner.topAnchor, constant: -12),
+            soldOutBanner.bottomAnchor.constraint(equalTo: continueButton.topAnchor, constant: -16),
 
             soldOutBannerIcon.leadingAnchor.constraint(equalTo: soldOutBanner.leadingAnchor, constant: 16),
             soldOutBannerIcon.topAnchor.constraint(equalTo: soldOutBanner.topAnchor, constant: 16),
@@ -544,22 +481,17 @@ public class AddPlanTimeSelectionVC: TRPBaseUIViewController, DynamicHeightPrese
             soldOutBannerLabel.trailingAnchor.constraint(equalTo: soldOutBanner.trailingAnchor, constant: -16),
         ])
 
-        // Three mutually-exclusive bottom constraints for the collection view, toggled
-        // by `updateBanners(showBooking:showSoldOut:)`:
-        //   - neither banner visible → pinned to the continue button
-        //   - booking only          → pinned to the booking banner top
-        //   - sold-out + booking    → pinned to the sold-out banner top (the soldOut
-        //                              banner itself is anchored above booking)
+        // Two mutually-exclusive bottom constraints for the collection view, toggled
+        // by `updateSoldOutBanner(_:)`:
+        //   - sold-out hidden  → pinned to the continue button
+        //   - sold-out visible → pinned to the sold-out banner top
         collectionViewBottomToContinue = collectionView.bottomAnchor.constraint(
             equalTo: continueButton.topAnchor, constant: -16
-        )
-        collectionViewBottomToBookingBanner = collectionView.bottomAnchor.constraint(
-            equalTo: bookingAvailabilityBanner.topAnchor, constant: -16
         )
         collectionViewBottomToSoldOutBanner = collectionView.bottomAnchor.constraint(
             equalTo: soldOutBanner.topAnchor, constant: -16
         )
-        // Default: banners hidden, collection view extends to the continue button.
+        // Default: banner hidden, collection view extends to the continue button.
         collectionViewBottomToContinue.isActive = true
     }
 
@@ -618,26 +550,17 @@ public class AddPlanTimeSelectionVC: TRPBaseUIViewController, DynamicHeightPrese
         continueButton.setEnabled(canContinue)
     }
 
-    /// Toggle the two below-grid banners (cream booking advisory and red sold-out
-    /// warning) and swap the collection view's bottom anchor to whichever element
-    /// directly follows the grid. Three states:
-    ///   - neither visible (flexible / unavailable days)              → pin to continue button
-    ///   - booking only (normal timed-grid day)                       → pin to booking banner
-    ///   - both visible (edit mode with the saved time sold out/past) → pin to sold-out banner
-    /// In practice `showSoldOut` implies `showBooking` (sold-out only makes sense
-    /// when there's a timed grid above it), but the method tolerates any combo.
-    private func updateBanners(showBooking: Bool, showSoldOut: Bool) {
-        bookingAvailabilityBanner.isHidden = !showBooking
+    /// Toggle the red sold-out warning and swap the collection view's bottom anchor
+    /// to whichever element directly follows the grid (the banner when visible,
+    /// otherwise the continue button).
+    private func updateSoldOutBanner(_ showSoldOut: Bool) {
         soldOutBanner.isHidden = !showSoldOut
 
         collectionViewBottomToContinue.isActive = false
-        collectionViewBottomToBookingBanner.isActive = false
         collectionViewBottomToSoldOutBanner.isActive = false
 
         if showSoldOut {
             collectionViewBottomToSoldOutBanner.isActive = true
-        } else if showBooking {
-            collectionViewBottomToBookingBanner.isActive = true
         } else {
             collectionViewBottomToContinue.isActive = true
         }
@@ -742,13 +665,11 @@ extension AddPlanTimeSelectionVC: AddPlanTimeSelectionViewModelDelegate {
         collectionView.isHidden = allDaysUnavailable || isFlexible
         emptyStateLabel.isHidden = allDaysUnavailable || isFlexible || hasTimeSlots
 
-        // Booking-availability advisory only makes sense when the timed grid is
-        // showing (not on flexible days or when no day has slots). The sold-out
-        // warning is layered on top of that — only in edit mode when the saved
-        // time is missing from the schedule for the activity's own day.
-        let shouldShowBookingBanner = !allDaysUnavailable && !isFlexible && hasTimeSlots
-        let shouldShowSoldOutBanner = shouldShowBookingBanner && viewModel.shouldShowSoldOutWarning
-        updateBanners(showBooking: shouldShowBookingBanner, showSoldOut: shouldShowSoldOutBanner)
+        // Sold-out warning shows only in edit mode when the saved time is missing
+        // from the schedule for the activity's own day, and only when the timed grid
+        // itself is visible (so flexible / fully-unavailable states skip it).
+        let shouldShowSoldOutBanner = !allDaysUnavailable && !isFlexible && hasTimeSlots && viewModel.shouldShowSoldOutWarning
+        updateSoldOutBanner(shouldShowSoldOutBanner)
 
         // The "Show more" cell is rendered inline by the data source as the 8th item
         // when the grid is collapsed and there are >8 slots — no separate visibility

@@ -86,6 +86,8 @@ public class TRPSearchBar: UIView {
         button.setImage(TRPImageController().getImage(inFramework: "ic_close", inApp: nil), for: .normal)
         button.tintColor = ColorSet.fgWeak.uiColor
         button.isHidden = true
+        button.imageView?.contentMode = .scaleAspectFit
+        button.contentEdgeInsets = UIEdgeInsets(top: 2, left: 2, bottom: 2, right: 2)
         button.addTarget(self, action: #selector(clearButtonTapped), for: .touchUpInside)
         return button
     }()
@@ -140,8 +142,8 @@ public class TRPSearchBar: UIView {
             // Clear Button
             clearButton.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -16),
             clearButton.centerYAnchor.constraint(equalTo: containerView.centerYAnchor),
-            clearButton.widthAnchor.constraint(equalToConstant: 20),
-            clearButton.heightAnchor.constraint(equalToConstant: 20)
+            clearButton.widthAnchor.constraint(equalToConstant: 24),
+            clearButton.heightAnchor.constraint(equalToConstant: 24)
         ])
     }
 

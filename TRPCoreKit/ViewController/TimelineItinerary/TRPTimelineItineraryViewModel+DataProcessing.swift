@@ -415,6 +415,11 @@ extension TRPTimelineItineraryViewModel {
 
         // Mark data as loaded
         hasLoadedData = true
+
+        // Kick off the post-load availability sweep once. The method itself
+        // guards on `hasRunInitialAvailabilityCheck`, so subsequent refreshes
+        // (segment edits, add/remove flows) re-enter this funnel as no-ops.
+        runInitialAvailabilityCheck()
     }
 
     // MARK: - Date Calculations

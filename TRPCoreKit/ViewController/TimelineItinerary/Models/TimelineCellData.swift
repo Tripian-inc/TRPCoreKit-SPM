@@ -64,6 +64,12 @@ public struct BookedActivityCellData: TimelineCellData {
     /// Booked-activity cells hard-code this to false; reserved-activity cells honour it.
     public var showTimeOverlapText: Bool = false
 
+    // MARK: - Availability
+    /// Set by the post-load availability sweep when the provider no longer offers
+    /// this activity's scheduled time slot. Reserved-activity cells render a red
+    /// "Not available" badge and a grayscale image when this is `true`.
+    public var isAvailabilityExpired: Bool = false
+
     // MARK: - Initialization
 
     public init(
@@ -83,7 +89,8 @@ public struct BookedActivityCellData: TimelineCellData {
         isNoLocation: Bool = false,
         segment: TRPTimelineSegment,
         hasConflict: Bool = false,
-        showTimeOverlapText: Bool = false
+        showTimeOverlapText: Bool = false,
+        isAvailabilityExpired: Bool = false
     ) {
         self.segmentIndex = segmentIndex
         self.order = order
@@ -102,6 +109,7 @@ public struct BookedActivityCellData: TimelineCellData {
         self.segment = segment
         self.hasConflict = hasConflict
         self.showTimeOverlapText = showTimeOverlapText
+        self.isAvailabilityExpired = isAvailabilityExpired
     }
 
     /// Create from TRPMergedTimelineItem with unified order
@@ -123,6 +131,7 @@ public struct BookedActivityCellData: TimelineCellData {
         self.segment = item.segment
         self.hasConflict = item.hasConflict
         self.showTimeOverlapText = item.showTimeOverlapText
+        self.isAvailabilityExpired = item.isAvailabilityExpired
     }
 }
 

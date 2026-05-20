@@ -101,22 +101,37 @@ class TRPTimelineTimeBadgeView: UIView {
     ///   - order: The order number to display in the badge
     ///   - startTime: Start time string (e.g., "09:00")
     ///   - endTime: End time string (e.g., "12:00")
-    ///   - hasConflict: Whether this time slot has a conflict (applies error styling)
+    ///   - hasConflict: Whether this time slot has a conflict (applies warning styling)
     ///   - showTimeOverlapText: Whether to show "Time Overlap" text after the time range
+    ///   - isAvailabilityExpired: Whether the provider no longer offers this activity's
+    ///     time slot. When `true`, this overrides the conflict styling — the badge uses
+    ///     the legacy red (errorBg / errorIcon) palette and the suffix becomes
+    ///     "Not available" instead of "Time Overlap".
     func configure(order: Int, startTime: String, endTime: String,
-                   hasConflict: Bool = false, showTimeOverlapText: Bool = false) {
+                   hasConflict: Bool = false, showTimeOverlapText: Bool = false,
+                   isAvailabilityExpired: Bool = false) {
         orderLabel.text = "\(order)"
 
-        // Build time text with optional overlap indicator
+        // Build time text. "Not available" wins over "Time Overlap" when both apply.
         var timeText = "\(startTime) - \(endTime)"
-        if showTimeOverlapText {
+        if isAvailabilityExpired {
+            let notAvailableText = TimelineLocalizationKeys.localized(TimelineLocalizationKeys.notAvailable)
+            timeText += " \(notAvailableText)"
+        } else if showTimeOverlapText {
             let overlapText = TimelineLocalizationKeys.localized(TimelineLocalizationKeys.timeOverlap)
             timeText += " \(overlapText)"
         }
         timeLabel.text = timeText
 
-        // Apply conflict styling if needed
-        if hasConflict {
+        // Apply styling. Availability-expired (red) wins over conflict (yellow).
+        if isAvailabilityExpired {
+            // Legacy "Time Overlap" red palette — solid red border + light red
+            // background, white-on-red order chip.
+            orderLabel.backgroundColor = ColorSet.errorIcon.uiColor
+            containerView.backgroundColor = ColorSet.errorBg.uiColor
+            containerView.layer.borderColor = ColorSet.errorIcon.uiColor.cgColor
+            timeLabel.textColor = ColorSet.primaryText.uiColor
+        } else if hasConflict {
             // Warning styling — yellow border + light yellow background to
             // match the day-level conflict banner (warningBg + warningBorder).
             // Order chip stays in the orange family (civiOrange) for contrast
@@ -132,6 +147,6 @@ class TRPTimelineTimeBadgeView: UIView {
             containerView.layer.borderColor = ColorSet.lineWeak.uiColor.cgColor
             timeLabel.textColor = ColorSet.fg.uiColor
         }
-        // Note: verticalLineView color stays unchanged (lineWeak) regardless of conflict state
+        // Note: verticalLineView color stays unchanged (lineWeak) regardless of state
     }
 }

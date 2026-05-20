@@ -186,21 +186,30 @@ public class SavedPlansViewModel {
 
     // MARK: - Private Methods
 
-    /// Group favourite items by their city name
+    /// Group favourite items by city. The canonical name comes from the cached
+    /// `TRPCity` looked up via `item.cityId`, so favourites with the same `cityId`
+    /// always land in the same section even when backend `cityName` values vary
+    /// (different spellings, locales, etc). If a cityId is missing or not in the
+    /// cache, the item's own `cityName` is used as the fallback key so it still
+    /// appears in the list.
     private func groupItemsByCity() {
-        // Create a dictionary to group items by city name
         var cityGroups: [String: [TRPSegmentFavoriteItem]] = [:]
         var cityOrder: [String] = [] // Maintain insertion order
 
         for item in favouriteItems {
-            // Use cityName field for grouping
-            let cityName = item.cityName
-
-            if cityGroups[cityName] == nil {
-                cityGroups[cityName] = []
-                cityOrder.append(cityName)
+            let resolvedCityName: String
+            if let cityId = item.cityId,
+               let cachedCity = availableCities.first(where: { $0.id == cityId }) {
+                resolvedCityName = cachedCity.name
+            } else {
+                resolvedCityName = item.cityName
             }
-            cityGroups[cityName]?.append(item)
+
+            if cityGroups[resolvedCityName] == nil {
+                cityGroups[resolvedCityName] = []
+                cityOrder.append(resolvedCityName)
+            }
+            cityGroups[resolvedCityName]?.append(item)
         }
 
         // Convert to sections maintaining order

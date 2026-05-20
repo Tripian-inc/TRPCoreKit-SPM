@@ -448,6 +448,10 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
         let timeBadgeView = TRPTimelineTimeBadgeView()
         timeBadgeView.translatesAutoresizingMaskIntoConstraints = false
 
+        // Only activity-type steps participate in the availability sweep, so the
+        // expired flag is always false for POI steps — passing it unconditionally
+        // is safe and keeps the call sites uniform.
+        let isExpired = step.isAvailabilityExpired
         if let startTime = step.getStartTime(), let endTime = step.getEndTime() {
             // Use unified order (startingOrder + index) instead of step.order
             timeBadgeView.configure(
@@ -455,7 +459,8 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
                 startTime: startTime,
                 endTime: endTime,
                 hasConflict: step.hasConflict,
-                showTimeOverlapText: step.showTimeOverlapText
+                showTimeOverlapText: step.showTimeOverlapText,
+                isAvailabilityExpired: isExpired
             )
         }
 
@@ -463,7 +468,7 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
         let contentContainer = UIView()
         contentContainer.translatesAutoresizingMaskIntoConstraints = false
 
-        // POI Image - 80x80
+        // POI Image - 80x80. Desaturate to grayscale for expired activity steps.
         let poiImageView = UIImageView()
         poiImageView.translatesAutoresizingMaskIntoConstraints = false
         poiImageView.contentMode = .scaleAspectFill
@@ -471,8 +476,13 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
         poiImageView.layer.cornerRadius = 8
         poiImageView.backgroundColor = ColorSet.bgDisabled.uiColor
 
-        if let poi = step.poi, let imageUrl = poi.image?.url {
-            poiImageView.sd_setImage(with: URL(string: imageUrl), placeholderImage: nil)
+        if let poi = step.poi, let imageUrl = poi.image?.url, let url = URL(string: imageUrl) {
+            poiImageView.sd_setImage(with: url, placeholderImage: nil) { [weak poiImageView] image, _, _, _ in
+                guard let poiImageView = poiImageView, let image = image else { return }
+                poiImageView.image = isExpired
+                    ? (image.convertToGrayScale() ?? image)
+                    : image
+            }
         }
 
         // Right side info container - using stack view for auto height adjustment

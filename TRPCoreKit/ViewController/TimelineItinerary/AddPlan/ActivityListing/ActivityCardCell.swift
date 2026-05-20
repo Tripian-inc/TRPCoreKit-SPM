@@ -280,10 +280,12 @@ class ActivityCardCell: UITableViewCell {
         tapBlockerButton.addTarget(self, action: #selector(tapBlockerTapped), for: .touchUpInside)
 
         NSLayoutConstraint.activate([
-            // Card container
+            // Card container — 16pt horizontal inset is applied inside the cell so that
+            // the parent table view can be edge-to-edge (full width). This lets the
+            // header's category collection extend to the screen edges as before.
             cardContainerView.topAnchor.constraint(equalTo: contentView.topAnchor),
-            cardContainerView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
-            cardContainerView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
+            cardContainerView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
+            cardContainerView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
             cardContainerView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
 
             // Activity image (fixed size, top-left aligned with 24px top padding)

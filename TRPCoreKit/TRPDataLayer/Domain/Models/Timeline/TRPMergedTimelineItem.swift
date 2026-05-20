@@ -44,6 +44,16 @@ public class TRPMergedTimelineItem {
     /// Whether to show "Time Overlap" text (false for BookedActivity)
     public var showTimeOverlapText: Bool = false
 
+    // MARK: - Availability
+
+    /// Mirror of `segment.additionalData?.isAvailabilityExpired` for reserved-activity
+    /// items, so cells can read it through the merged item without dereferencing the
+    /// segment's optional additional data. Always `false` for booked-activity items
+    /// and segments without additional data — the post-load sweep doesn't touch those.
+    public var isAvailabilityExpired: Bool {
+        return segment.additionalData?.isAvailabilityExpired ?? false
+    }
+
     // MARK: - Initialization
 
     public init(segment: TRPTimelineSegment, plan: TRPTimelinePlan?, originalSegmentIndex: Int) {

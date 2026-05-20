@@ -32,11 +32,6 @@ public class AddPlanActivityListingVC: TRPBaseUIViewController {
     /// silently — the listing handles its own success toast locally.
     public var onSegmentCreatedSilent: ((Date?) -> Void)?
 
-    // Collapsible filter/category header on scroll
-    private var countLabelTopExpandedConstraint: NSLayoutConstraint?
-    private var countLabelTopCollapsedConstraint: NSLayoutConstraint?
-    private var isHeaderCollapsed = false
-
     // MARK: - Lifecycle
     public override func viewDidLoad() {
         super.viewDidLoad()
@@ -145,6 +140,16 @@ public class AddPlanActivityListingVC: TRPBaseUIViewController {
         return tableView
     }()
 
+    /// Container for filter buttons, category chips and the activity count.
+    /// Lives as the table view's `tableHeaderView` so it scrolls naturally with
+    /// the content — disappearing under the search bar (clipped by the table's
+    /// own bounds) instead of using a separate hide/show animation.
+    private lazy var headerContainerView: UIView = {
+        let view = UIView()
+        view.backgroundColor = .white
+        return view
+    }()
+
     // MARK: - Lifecycle
     public override func setupViews() {
         super.setupViews()
@@ -157,11 +162,12 @@ public class AddPlanActivityListingVC: TRPBaseUIViewController {
         customNavigationBar.delegate = self
 
         view.addSubview(searchBar)
-        view.addSubview(filterSortStackView)
-        view.addSubview(categoryCollectionView)
-        view.addSubview(activityCountLabel)
-        view.addSubview(infoImageView)
         view.addSubview(tableView)
+
+        headerContainerView.addSubview(filterSortStackView)
+        headerContainerView.addSubview(categoryCollectionView)
+        headerContainerView.addSubview(activityCountLabel)
+        headerContainerView.addSubview(infoImageView)
 
         NSLayoutConstraint.activate([
             // Search Bar
@@ -169,39 +175,42 @@ public class AddPlanActivityListingVC: TRPBaseUIViewController {
             searchBar.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
             searchBar.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
 
-            // Filter and Sort Stack View
-            filterSortStackView.topAnchor.constraint(equalTo: searchBar.bottomAnchor, constant: 24),
-            filterSortStackView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
-            filterSortStackView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
+            // Table View — pinned edge-to-edge directly under the search bar. The 16pt
+            // horizontal inset that the activity rows need is applied inside the cell
+            // (`ActivityCardCell.cardContainerView`) so the header's category collection
+            // can still extend to the screen edges.
+            tableView.topAnchor.constraint(equalTo: searchBar.bottomAnchor, constant: 16),
+            tableView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            tableView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            tableView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor),
+
+            // Filter and Sort Stack View — 16pt inset matches the search bar above.
+            filterSortStackView.topAnchor.constraint(equalTo: headerContainerView.topAnchor, constant: 8),
+            filterSortStackView.leadingAnchor.constraint(equalTo: headerContainerView.leadingAnchor, constant: 16),
+            filterSortStackView.trailingAnchor.constraint(equalTo: headerContainerView.trailingAnchor, constant: -16),
             filterSortStackView.heightAnchor.constraint(equalToConstant: 40),
 
-            // Category Collection View
+            // Category Collection View — flush with the screen edges; the cell's own
+            // sectionInset handles the visual side padding.
             categoryCollectionView.topAnchor.constraint(equalTo: filterSortStackView.bottomAnchor, constant: 16),
-            categoryCollectionView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            categoryCollectionView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            categoryCollectionView.leadingAnchor.constraint(equalTo: headerContainerView.leadingAnchor),
+            categoryCollectionView.trailingAnchor.constraint(equalTo: headerContainerView.trailingAnchor),
             categoryCollectionView.heightAnchor.constraint(equalToConstant: 88),
 
-            // Activity Count Label (top constraint set dynamically below for collapsible header)
-            activityCountLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
+            // Activity Count Label — 16pt inset, aligned with the filter row.
+            activityCountLabel.topAnchor.constraint(equalTo: categoryCollectionView.bottomAnchor, constant: 22),
+            activityCountLabel.leadingAnchor.constraint(equalTo: headerContainerView.leadingAnchor, constant: 16),
+            activityCountLabel.heightAnchor.constraint(equalToConstant: 16),
+            activityCountLabel.bottomAnchor.constraint(equalTo: headerContainerView.bottomAnchor, constant: -8),
 
             // Info ImageView
             infoImageView.centerYAnchor.constraint(equalTo: activityCountLabel.centerYAnchor),
             infoImageView.leadingAnchor.constraint(equalTo: activityCountLabel.trailingAnchor, constant: 4),
             infoImageView.heightAnchor.constraint(equalToConstant: 16),
             infoImageView.widthAnchor.constraint(equalToConstant: 16),
-
-            // Table View
-            tableView.topAnchor.constraint(equalTo: activityCountLabel.bottomAnchor, constant: 8),
-            tableView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
-            tableView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
-            tableView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor)
         ])
 
-        // Collapsible header: count label rides under category when expanded,
-        // jumps directly under search bar when collapsed (filter/sort + category fade out).
-        countLabelTopExpandedConstraint = activityCountLabel.topAnchor.constraint(equalTo: categoryCollectionView.bottomAnchor, constant: 22)
-        countLabelTopCollapsedConstraint = activityCountLabel.topAnchor.constraint(equalTo: searchBar.bottomAnchor, constant: 16)
-        countLabelTopExpandedConstraint?.isActive = true
+        tableView.tableHeaderView = headerContainerView
 
         // Add button actions
         filterButtonView.onTap = { [weak self] in
@@ -214,15 +223,26 @@ public class AddPlanActivityListingVC: TRPBaseUIViewController {
         infoImageView.addGestureRecognizer(infoTapGesture)
     }
 
-    private func setHeaderCollapsed(_ collapsed: Bool) {
-        guard collapsed != isHeaderCollapsed else { return }
-        isHeaderCollapsed = collapsed
-        countLabelTopExpandedConstraint?.isActive = !collapsed
-        countLabelTopCollapsedConstraint?.isActive = collapsed
-        UIView.animate(withDuration: 0.25) {
-            self.filterSortStackView.alpha = collapsed ? 0 : 1
-            self.categoryCollectionView.alpha = collapsed ? 0 : 1
-            self.view.layoutIfNeeded()
+    public override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+        sizeTableHeaderToFit()
+    }
+
+    /// `UITableView.tableHeaderView` is frame-driven, so its Auto Layout intrinsic
+    /// size has to be measured manually and applied via `.frame` (then re-assigned
+    /// to commit). The height check guards against an infinite layout loop.
+    private func sizeTableHeaderToFit() {
+        guard let header = tableView.tableHeaderView else { return }
+        let width = tableView.bounds.width
+        guard width > 0 else { return }
+        let target = header.systemLayoutSizeFitting(
+            CGSize(width: width, height: UIView.layoutFittingCompressedSize.height),
+            withHorizontalFittingPriority: .required,
+            verticalFittingPriority: .fittingSizeLevel
+        )
+        if header.frame.size.width != width || header.frame.size.height != target.height {
+            header.frame = CGRect(x: 0, y: 0, width: width, height: target.height)
+            tableView.tableHeaderView = header
         }
     }
 
@@ -365,12 +385,6 @@ extension AddPlanActivityListingVC: UITableViewDataSource, UITableViewDelegate {
         }
     }
 
-    public func scrollViewDidScroll(_ scrollView: UIScrollView) {
-        let offset = scrollView.contentOffset.y
-        // Hysteresis avoids flicker: need to pass 60 to collapse, drop below 20 to expand.
-        let threshold: CGFloat = isHeaderCollapsed ? 20 : 60
-        setHeaderCollapsed(offset > threshold)
-    }
 }
 
 // MARK: - TRPSearchBarDelegate
@@ -378,17 +392,7 @@ extension AddPlanActivityListingVC: TRPSearchBarDelegate {
 
     public func searchBar(_ searchBar: TRPSearchBar, textDidChange text: String) {
         viewModel.updateSearchText(text)
-
-        // Bring the user back to the top so filter/sort + categories are visible
-        // with the new results. When rows exist, the scroll animation naturally
-        // expands the header as offset crosses the threshold inside
-        // scrollViewDidScroll. With no rows there's nothing to scroll, so
-        // expand explicitly.
-        if tableView.numberOfRows(inSection: 0) > 0 {
-            tableView.setContentOffset(.zero, animated: true)
-        } else {
-            setHeaderCollapsed(false)
-        }
+        tableView.setContentOffset(.zero, animated: true)
     }
 
     public func searchBarSearchButtonClicked(_ searchBar: TRPSearchBar) {
@@ -515,6 +519,9 @@ private class CategoryFilterCell: UICollectionViewCell {
         label.translatesAutoresizingMaskIntoConstraints = false
         label.textAlignment = .center
         label.numberOfLines = 2
+        label.adjustsFontSizeToFitWidth = true
+        label.minimumScaleFactor = 0.6
+        label.lineBreakMode = .byTruncatingTail
         return label
     }()
 

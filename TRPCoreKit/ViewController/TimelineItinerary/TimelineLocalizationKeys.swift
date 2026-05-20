@@ -66,6 +66,9 @@ public struct TimelineLocalizationKeys {
     public static let timeOverlap = "timeline.timeOverlap"
     public static let conflictWarning = "timeline.conflictWarning"
 
+    // MARK: - Availability
+    public static let notAvailable = "timeline.notAvailable"
+
     // MARK: - Flexible Activity
     public static let flexibleEntryTitle = "timeline.flexibleActivity.entryTitle"
     public static let flexibleEntrySubtitle = "timeline.flexibleActivity.entrySubtitle"
@@ -123,6 +126,7 @@ public struct TimelineLocalizationKeys {
         mapMainView: "Main View",
         timeOverlap: "Time Overlap",
         conflictWarning: "Some of your planned activities overlap. Please review the timing to resolve any conflicts.",
+        notAvailable: "Not available",
         flexibleEntryTitle: "Flexible entry",
         flexibleEntrySubtitle: "Check the timetable",
         flexibleShort: "Flexible"

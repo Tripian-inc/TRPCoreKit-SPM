@@ -157,6 +157,12 @@ public struct TRPSegmentActivityItem: Codable {
     /// the map. Defaults to `false` for legacy / coordinate-bearing activities.
     public var isNoLocation: Bool = false
 
+    /// Transient runtime flag set by the post-load availability sweep when the
+    /// provider's schedule for this activity's date no longer contains its
+    /// `startDatetime` slot (or the schedule is empty for a flexible activity).
+    /// Not encoded — rebuilt on each cold load by the availability check.
+    public var isAvailabilityExpired: Bool = false
+
     public init(activityId: String?, bookingId: String?, title: String?, imageUrl: String?, description: String?, startDatetime: String?, endDatetime: String?, coordinate: TRPLocation, cancellation: String?, adultCount: Int, childCount: Int, bookingUrl: String? = nil, duration: Double? = nil, price: TRPSegmentActivityPrice? = nil, cityId: Int? = nil, isFlexible: Bool? = nil, rating: Float? = nil, ratingCount: Int? = nil, isNoLocation: Bool = false) {
         self.activityId = activityId
         self.bookingId = bookingId

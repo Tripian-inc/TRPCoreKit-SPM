@@ -61,6 +61,8 @@ final class TRPTimelineConflictWarningView: UIView {
             .getImage(inFramework: "ic_close", inApp: nil)?
             .withRenderingMode(.alwaysTemplate)
         button.setImage(icon, for: .normal)
+        button.imageView?.contentMode = .scaleAspectFit
+        button.contentEdgeInsets = UIEdgeInsets(top: 2, left: 2, bottom: 2, right: 2)
         button.addTarget(self, action: #selector(closeTapped), for: .touchUpInside)
         button.setContentHuggingPriority(.required, for: .horizontal)
         button.setContentCompressionResistancePriority(.required, for: .horizontal)
@@ -118,8 +120,8 @@ final class TRPTimelineConflictWarningView: UIView {
             // Close: top:16, right:16 from container.
             closeButton.topAnchor.constraint(equalTo: containerView.topAnchor, constant: 16),
             closeButton.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -16),
-            closeButton.widthAnchor.constraint(equalToConstant: 20),
-            closeButton.heightAnchor.constraint(equalToConstant: 20)
+            closeButton.widthAnchor.constraint(equalToConstant: 24),
+            closeButton.heightAnchor.constraint(equalToConstant: 24)
         ])
     }
 

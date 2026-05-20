@@ -99,6 +99,14 @@ public class TRPTimelineItineraryViewModel {
     // Flag to show no city state immediately on VC load
     public var showNoCityStateOnLoad: Bool = false
 
+    // MARK: - Availability Check (post-load sweep)
+    /// One-shot gate. The availability sweep runs once after the first successful
+    /// timeline processing; subsequent refreshes / segment edits don't re-trigger.
+    internal var hasRunInitialAvailabilityCheck: Bool = false
+    /// Monotonic cancellation token. Every new sweep bumps this; in-flight per-day
+    /// responses bail before mutating models if the token has moved on.
+    internal var availabilityCheckGeneration: Int = 0
+
     // MARK: - Public Methods
 
     /// Get the trip hash from timeline

@@ -354,12 +354,21 @@ class TRPTimelineReservedActivityCell: UITableViewCell {
             startTime: startTime,
             endTime: endTime,
             hasConflict: cellData.hasConflict,
-            showTimeOverlapText: cellData.showTimeOverlapText
+            showTimeOverlapText: cellData.showTimeOverlapText,
+            isAvailabilityExpired: cellData.isAvailabilityExpired
         )
 
-        // Image
-        if let imageUrl = cellData.imageUrl {
-            activityImageView.sd_setImage(with: URL(string: imageUrl), placeholderImage: nil)
+        // Image — desaturate to grayscale when the activity is no longer available
+        // for its scheduled time slot. SDWebImage cancels in-flight loads on reuse
+        // so the completion below won't fire for a stale cell configuration.
+        let shouldDesaturate = cellData.isAvailabilityExpired
+        if let imageUrlString = cellData.imageUrl, let url = URL(string: imageUrlString) {
+            activityImageView.sd_setImage(with: url, placeholderImage: nil) { [weak self] image, _, _, _ in
+                guard let self = self, let image = image else { return }
+                self.activityImageView.image = shouldDesaturate
+                    ? (image.convertToGrayScale() ?? image)
+                    : image
+            }
         } else {
             activityImageView.image = nil
         }
