@@ -60,7 +60,7 @@ class TRPTimelineManualPoiCell: UITableViewCell {
         let stack = UIStackView()
         stack.translatesAutoresizingMaskIntoConstraints = false
         stack.axis = .vertical
-        stack.spacing = 4
+        stack.spacing = 8
         stack.alignment = .leading
         stack.distribution = .fill
         return stack
@@ -291,10 +291,12 @@ class TRPTimelineManualPoiCell: UITableViewCell {
         // Minimum height constraint (80px for imageView)
         contentContainer.heightAnchor.constraint(greaterThanOrEqualToConstant: 80).isActive = true
 
-        // Info stack bottom constraint - when info is taller than 80px, it defines the height
-        let infoBottomConstraint = infoStackView.bottomAnchor.constraint(equalTo: contentContainer.bottomAnchor)
-        infoBottomConstraint.priority = UILayoutPriority(999)
-        infoBottomConstraint.isActive = true
+        // Container grows to fit the info stack when it's taller than the image,
+        // but doesn't pull the stack down when it's shorter. Combined with the
+        // top pin, infoStackView hugs its intrinsic height at the top so the
+        // title always aligns with the image's top; trailing views (rating,
+        // category badge) sit directly under it with no forced stretch.
+        contentContainer.bottomAnchor.constraint(greaterThanOrEqualTo: infoStackView.bottomAnchor).isActive = true
     }
 
     private func setupTapGesture() {

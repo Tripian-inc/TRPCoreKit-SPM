@@ -236,8 +236,10 @@ class TRPTimelineMapPOIPreviewCell: UICollectionViewCell {
 
     /// Configure cell with MapDisplayItem, unified order, and selection state
     func configure(with item: MapDisplayItem, order: Int, isSelected: Bool = false) {
-        // Non-positive orders (e.g. flexible-time activities) render as "-" instead of a number.
-        numberLabel.text = order > 0 ? "\(order)" : "-"
+        // Non-positive orders (e.g. flexible-time activities) render as a centered
+        // minus sign (U+2212, math-axis aligned) instead of ASCII hyphen so it
+        // optically centers in the digit-sized chip.
+        numberLabel.text = order > 0 ? "\(order)" : "\u{2212}"
         titleLabel.text = item.title
 
         // Set city name

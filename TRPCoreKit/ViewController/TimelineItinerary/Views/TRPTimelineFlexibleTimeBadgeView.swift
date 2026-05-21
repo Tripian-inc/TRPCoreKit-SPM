@@ -37,7 +37,10 @@ class TRPTimelineFlexibleTimeBadgeView: UIView {
         label.textAlignment = .center
         label.layer.cornerRadius = 10
         label.clipsToBounds = true
-        label.text = "-"
+        // U+2212 MINUS SIGN sits at the math axis (same height as the bar of "+"),
+        // which visually centers in the 20pt chip designed for digit glyphs. The
+        // ASCII hyphen-minus sits at x-height and looked dropped.
+        label.text = "\u{2212}"
         return label
     }()
 

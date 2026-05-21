@@ -196,7 +196,7 @@ class TRPTimelineFlexibleActivityCell: UITableViewCell {
         NSLayoutConstraint.activate([
             timeBadgeView.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 16),
             timeBadgeView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
-            timeBadgeView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
+            timeBadgeView.trailingAnchor.constraint(lessThanOrEqualTo: contentView.trailingAnchor, constant: -16),
 
             containerView.topAnchor.constraint(equalTo: timeBadgeView.bottomAnchor),
             containerView.leadingAnchor.constraint(equalTo: timeBadgeView.leadingAnchor),
