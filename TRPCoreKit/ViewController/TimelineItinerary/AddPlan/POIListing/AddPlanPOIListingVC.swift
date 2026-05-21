@@ -256,10 +256,10 @@ public class AddPlanPOIListingVC: TRPBaseUIViewController {
             self?.viewModel.updateFilterData(filterData)
             self?.updateFilterButtonAppearance()
 
-            // Scroll table to top when filter changes
-            if self?.tableView.numberOfRows(inSection: 0) ?? 0 > 0 {
-                self?.tableView.scrollToRow(at: IndexPath(row: 0, section: 0), at: .top, animated: true)
-            }
+            // Reset scroll so the filter / sort / count header is visible again.
+            // `scrollToRow(.top)` would park the first cell at the top and push the
+            // header off-screen — `setContentOffset(.zero)` returns to the true top.
+            self?.tableView.setContentOffset(.zero, animated: true)
         }
         presentVCWithDynamicHeight(filterVC, prefersGrabberVisible: false, isDimmed: false)
     }
@@ -271,10 +271,8 @@ public class AddPlanPOIListingVC: TRPBaseUIViewController {
         sortVC.onSortOptionSelected = { [weak self] option in
             self?.viewModel.updateSortOption(option)
 
-            // Scroll table to top when sort changes
-            if self?.tableView.numberOfRows(inSection: 0) ?? 0 > 0 {
-                self?.tableView.scrollToRow(at: IndexPath(row: 0, section: 0), at: .top, animated: true)
-            }
+            // Reset to true top so the header (filter / sort / count) is back in view.
+            self?.tableView.setContentOffset(.zero, animated: true)
         }
         presentVCWithDynamicHeight(sortVC, prefersGrabberVisible: false, isDimmed: false)
     }

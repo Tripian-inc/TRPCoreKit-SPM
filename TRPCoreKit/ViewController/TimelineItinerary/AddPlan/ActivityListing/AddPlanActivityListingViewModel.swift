@@ -263,14 +263,15 @@ public class AddPlanActivityListingViewModel {
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd"
 
-        let sortedDays = planData.availableDays.sorted()
-        let dateFromString = sortedDays.first.map { formatter.string(from: $0) }
-        let dateToString = sortedDays.last.map { formatter.string(from: $0) }
+        // Scope the request to the day picked in AddPlan — both bounds collapse
+        // to that single day so the server returns only what's bookable then,
+        // instead of the full trip span.
+        let selectedDayString = planData.selectedDay.map { formatter.string(from: $0) }
 
         // Search text is filtered locally — never sent to the server.
         var params = TourParameters()
-        params.date = dateFromString
-        params.dateTo = dateToString
+        params.date = selectedDayString
+        params.dateTo = selectedDayString
 
         if !selectedFacetCategoryIds.isEmpty {
             params.categoryIds = Array(selectedFacetCategoryIds)

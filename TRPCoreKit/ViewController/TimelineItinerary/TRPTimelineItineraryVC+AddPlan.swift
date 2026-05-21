@@ -152,13 +152,22 @@ extension TRPTimelineItineraryVC: AddPlanContainerVCDelegate {
         viewModel.waitForSegmentGeneration(tripHash: tripHash)
     }
 
-    /// Set up the pending day navigation hint for screens that initiate their
-    /// own silent refresh (e.g. `AddPlanTimeSelectionViewModel` polls + emits
-    /// `TRPTimelineRefreshState.completed` directly). The VM's state observer
-    /// applies the pending day and runs `refreshTimeline()` when completion
-    /// fires, so there's no need to start a parallel polling cycle here.
+    /// Switch to the day the new activity/POI landed on for screens that initiate
+    /// their own silent refresh (`AddPlanTimeSelectionViewModel` /
+    /// `AddPlanPOIListingViewModel` poll then emit
+    /// `TRPTimelineRefreshState.completed`). Those VMs fire `setCompleted` BEFORE
+    /// their delegate callback bubbles up here, so by the time this method is
+    /// invoked the shared refresh observer has already read a still-nil
+    /// `pendingNavigationDayIndex`. Apply the day directly and reload — the in-flight
+    /// data refresh will re-render at the same (new) day when it lands.
     internal func refreshTimelineSilently(selectedDay: Date?) {
-        setPendingDayNavigation(selectedDay: selectedDay)
+        guard let selectedDay = selectedDay else { return }
+        let availableDays = viewModel.getAvailableDates()
+        guard let index = availableDays.firstIndex(where: {
+            Calendar.current.isDate($0, inSameDayAs: selectedDay)
+        }) else { return }
+        viewModel.selectDay(at: index)
+        reload()
     }
 
     // MARK: - Smart Recommendations Segment Creation
