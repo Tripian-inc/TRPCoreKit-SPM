@@ -289,17 +289,20 @@ extension TRPTimelineItineraryVC: UICollectionViewDataSource, UICollectionViewDe
         if isAlreadySelected {
             // Navigate to detail - use same logic as list (RecommendationsCell)
             switch item {
-            case .poi(_, _, let step):
-                guard let step = step, let poi = step.poi else { return }
+            case .poi(let manualPoi, _, let step):
+                // Recommendation step: poi comes from the step; manual-POI segment:
+                // step is nil and the poi is the segment's own manualPoi captured in
+                // `getOrderedItemsForMap`. Resolve in that order.
+                let poi = step?.poi ?? manualPoi
 
                 // Activity step - call trpCoreKitDidRequestActivityDetail (same as list)
-                if step.stepType == "activity" {
+                if step?.stepType == "activity" {
                     let activityId = extractActivityId(from: poi)
                     TRPCoreKit.shared.delegate?.trpCoreKitDidRequestActivityDetail(activityId: activityId)
                     return
                 }
 
-                // Normal POI step - open POI detail view controller (same as list)
+                // Normal POI step or manual POI - open POI detail (same as list)
                 let detailVM = TimelinePoiDetailViewModel(poi: poi)
                 let detailVC = TimelinePoiDetailViewController(viewModel: detailVM)
                 navigationController?.pushViewController(detailVC, animated: true)
