@@ -57,7 +57,7 @@ public class TimelinePoiDetailViewController: TRPBaseUIViewController {
     lazy var scrollView: UIScrollView = {
         let scroll = UIScrollView()
         scroll.translatesAutoresizingMaskIntoConstraints = false
-        scroll.showsVerticalScrollIndicator = true
+        scroll.showsVerticalScrollIndicator = false
         scroll.backgroundColor = .white
         scroll.contentInsetAdjustmentBehavior = .never
         scroll.contentInset = UIEdgeInsets(top: 0, left: 0, bottom: 80, right: 0)

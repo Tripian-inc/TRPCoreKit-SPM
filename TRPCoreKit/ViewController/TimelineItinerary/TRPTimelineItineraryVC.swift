@@ -89,7 +89,7 @@ public class TRPTimelineItineraryVC: TRPBaseUIViewController {
         table.translatesAutoresizingMaskIntoConstraints = false
         table.separatorStyle = .none
         table.backgroundColor = .white
-        table.showsVerticalScrollIndicator = true
+        table.showsVerticalScrollIndicator = false
         table.delegate = self
         table.dataSource = self
         table.estimatedRowHeight = 200

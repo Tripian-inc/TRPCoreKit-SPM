@@ -68,9 +68,11 @@ class TRPRotaAnnotationView: UIView {
         }
 
         // Order label - centered using Auto Layout
-        // Non-positive orders (e.g. flexible-time activities) render as "-" instead of a number.
+        // Non-positive orders (e.g. flexible-time activities) render as a centered
+        // minus sign (U+2212, math-axis aligned) instead of the ASCII hyphen so it
+        // optically centers in the digit-sized chip and matches the preview cell.
         orderLabel.translatesAutoresizingMaskIntoConstraints = false
-        orderLabel.text = order > 0 ? "\(order)" : "-"
+        orderLabel.text = order > 0 ? "\(order)" : "\u{2212}"
         orderLabel.textColor = isSelected ? .white : badgeColor
         orderLabel.font = FontSet.montserratSemiBold.font(18)
         orderLabel.textAlignment = .center

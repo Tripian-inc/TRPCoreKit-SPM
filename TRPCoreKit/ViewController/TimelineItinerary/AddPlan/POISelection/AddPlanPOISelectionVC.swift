@@ -76,6 +76,7 @@ public class AddPlanPOISelectionVC: TRPBaseUIViewController {
         tableView.register(POISelectionCell.self, forCellReuseIdentifier: "POISelectionCell")
         tableView.separatorStyle = .none
         tableView.backgroundColor = .white
+        tableView.showsVerticalScrollIndicator = false
         return tableView
     }()
 
@@ -89,6 +90,7 @@ public class AddPlanPOISelectionVC: TRPBaseUIViewController {
         tableView.register(POISelectionCell.self, forCellReuseIdentifier: "POISelectionCell")
         tableView.separatorStyle = .none
         tableView.backgroundColor = .white
+        tableView.showsVerticalScrollIndicator = false
         tableView.isHidden = true
         return tableView
     }()
