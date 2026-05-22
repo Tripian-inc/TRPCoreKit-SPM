@@ -564,7 +564,11 @@ private class CategoryFilterCell: UICollectionViewCell {
             titleLabel.topAnchor.constraint(equalTo: iconImageView.bottomAnchor, constant: 8),
             titleLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
             titleLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
-            titleLabel.bottomAnchor.constraint(greaterThanOrEqualTo: contentView.bottomAnchor),
+            // Bounded by the cell, but allowed to hug its intrinsic height so the
+            // text always starts at the pinned top (y=icon.bottom+8). With a forced
+            // min-height equal to the cell, UILabel vertically centers single-line
+            // text and titles across cells stop lining up at the top.
+            titleLabel.bottomAnchor.constraint(lessThanOrEqualTo: contentView.bottomAnchor),
 
             iconSkeletonView.centerXAnchor.constraint(equalTo: iconImageView.centerXAnchor),
             iconSkeletonView.centerYAnchor.constraint(equalTo: iconImageView.centerYAnchor),

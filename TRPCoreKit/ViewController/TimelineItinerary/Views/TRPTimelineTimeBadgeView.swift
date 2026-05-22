@@ -37,11 +37,56 @@ class TRPTimelineTimeBadgeView: UIView {
         let label = UILabel()
         label.translatesAutoresizingMaskIntoConstraints = false
         label.font = FontSet.montserratMedium.font(14)
-        label.textAlignment = .right
         label.textColor = ColorSet.fg.uiColor
         return label
     }()
-    
+
+    /// Middle-dot separator between the time range and the status row. Same
+    /// font/color as `timeLabel`; hidden in normal state.
+    private let dotLabel: UILabel = {
+        let label = UILabel()
+        label.translatesAutoresizingMaskIntoConstraints = false
+        label.font = FontSet.montserratMedium.font(14)
+        label.text = "·"
+        label.textColor = ColorSet.fg.uiColor
+        label.isHidden = true
+        return label
+    }()
+
+    /// 16pt warning icon shown between the dot and the status text in conflict
+    /// (`civiOrange` tint) or availability-expired (`errorIcon` tint) states.
+    private let warningIconView: UIImageView = {
+        let iv = UIImageView()
+        iv.translatesAutoresizingMaskIntoConstraints = false
+        iv.image = TRPImageController().getImage(inFramework: "ic_warning", inApp: nil)?.withRenderingMode(.alwaysTemplate)
+        iv.contentMode = .scaleAspectFit
+        iv.isHidden = true
+        return iv
+    }()
+
+    /// "Time Overlap" / "Not available" text shown after the warning icon. Hidden
+    /// in normal state.
+    private let statusLabel: UILabel = {
+        let label = UILabel()
+        label.translatesAutoresizingMaskIntoConstraints = false
+        label.font = FontSet.montserratMedium.font(14)
+        label.textColor = ColorSet.fg.uiColor
+        label.isHidden = true
+        return label
+    }()
+
+    /// Horizontal stack hosting [time, dot, icon, status]. Custom spacings:
+    /// 8pt after time, 8pt after dot, 2pt after icon. Hidden trailing items are
+    /// excluded automatically by UIStackView so the badge shrinks to just the
+    /// time label when no status is shown.
+    private let textStack: UIStackView = {
+        let stack = UIStackView()
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        stack.axis = .horizontal
+        stack.alignment = .center
+        return stack
+    }()
+
     // Vertical line between time badge and content
     private let verticalLineView: UIView = {
         let lineView = UIView()
@@ -66,7 +111,15 @@ class TRPTimelineTimeBadgeView: UIView {
         addSubview(containerView)
         addSubview(verticalLineView)
         containerView.addSubview(orderLabel)
-        containerView.addSubview(timeLabel)
+        containerView.addSubview(textStack)
+
+        textStack.addArrangedSubview(timeLabel)
+        textStack.addArrangedSubview(dotLabel)
+        textStack.addArrangedSubview(warningIconView)
+        textStack.addArrangedSubview(statusLabel)
+        textStack.setCustomSpacing(8, after: timeLabel)
+        textStack.setCustomSpacing(8, after: dotLabel)
+        textStack.setCustomSpacing(2, after: warningIconView)
 
         NSLayoutConstraint.activate([
             // Container View
@@ -81,11 +134,15 @@ class TRPTimelineTimeBadgeView: UIView {
             orderLabel.widthAnchor.constraint(equalToConstant: 20),
             orderLabel.heightAnchor.constraint(equalToConstant: 20),
 
-            // Time Label
-            timeLabel.leadingAnchor.constraint(equalTo: orderLabel.trailingAnchor, constant: 10),
-            timeLabel.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -10),
-            timeLabel.centerYAnchor.constraint(equalTo: containerView.centerYAnchor),
-            
+            // Text stack — sizes to its content (time + optional status row).
+            textStack.leadingAnchor.constraint(equalTo: orderLabel.trailingAnchor, constant: 10),
+            textStack.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -10),
+            textStack.centerYAnchor.constraint(equalTo: containerView.centerYAnchor),
+
+            // Warning icon — fixed 16x16, vertically centered by the stack.
+            warningIconView.widthAnchor.constraint(equalToConstant: 16),
+            warningIconView.heightAnchor.constraint(equalToConstant: 16),
+
             verticalLineView.topAnchor.constraint(equalTo: containerView.bottomAnchor),
             verticalLineView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 16),
             verticalLineView.widthAnchor.constraint(equalToConstant: 0.5),
@@ -111,26 +168,41 @@ class TRPTimelineTimeBadgeView: UIView {
                    hasConflict: Bool = false, showTimeOverlapText: Bool = false,
                    isAvailabilityExpired: Bool = false) {
         orderLabel.text = "\(order)"
+        timeLabel.text = "\(startTime) - \(endTime)"
 
-        // Build time text. "Not available" wins over "Time Overlap" when both apply.
-        var timeText = "\(startTime) - \(endTime)"
+        // Status row (dot + warning icon + text). "Not available" wins over
+        // "Time Overlap" when both apply.
+        let statusText: String?
         if isAvailabilityExpired {
-            let notAvailableText = TimelineLocalizationKeys.localized(TimelineLocalizationKeys.notAvailable)
-            timeText += " \(notAvailableText)"
+            statusText = TimelineLocalizationKeys.localized(TimelineLocalizationKeys.notAvailable)
         } else if showTimeOverlapText {
-            let overlapText = TimelineLocalizationKeys.localized(TimelineLocalizationKeys.timeOverlap)
-            timeText += " \(overlapText)"
+            statusText = TimelineLocalizationKeys.localized(TimelineLocalizationKeys.timeOverlap)
+        } else {
+            statusText = nil
         }
-        timeLabel.text = timeText
+        let showStatus = statusText != nil
+        dotLabel.isHidden = !showStatus
+        warningIconView.isHidden = !showStatus
+        statusLabel.isHidden = !showStatus
+        statusLabel.text = statusText
 
-        // Apply styling. Availability-expired (red) wins over conflict (yellow).
+        // Text color: status states (expired / conflict) use primaryText for
+        // contrast against their tinted background; normal state uses fg.
+        let textColor: UIColor = showStatus ? ColorSet.primaryText.uiColor : ColorSet.fg.uiColor
+        timeLabel.textColor = textColor
+        dotLabel.textColor = textColor
+        statusLabel.textColor = textColor
+
+        // State-specific styling: chip background, container background/border,
+        // and warning icon tint. Availability-expired (red) wins over conflict
+        // (yellow).
         if isAvailabilityExpired {
             // Legacy "Time Overlap" red palette — solid red border + light red
             // background, white-on-red order chip.
             orderLabel.backgroundColor = ColorSet.errorIcon.uiColor
             containerView.backgroundColor = ColorSet.errorBg.uiColor
             containerView.layer.borderColor = ColorSet.errorIcon.uiColor.cgColor
-            timeLabel.textColor = ColorSet.primaryText.uiColor
+            warningIconView.tintColor = ColorSet.errorIcon.uiColor
         } else if hasConflict {
             // Warning styling — yellow border + light yellow background to
             // match the day-level conflict banner (warningBg + warningBorder).
@@ -139,13 +211,12 @@ class TRPTimelineTimeBadgeView: UIView {
             orderLabel.backgroundColor = ColorSet.civiOrange.uiColor
             containerView.backgroundColor = ColorSet.warningBg.uiColor
             containerView.layer.borderColor = ColorSet.warningBorder.uiColor.cgColor
-            timeLabel.textColor = ColorSet.primaryText.uiColor
+            warningIconView.tintColor = ColorSet.civiOrange.uiColor
         } else {
             // Normal styling
             orderLabel.backgroundColor = ColorSet.fg.uiColor
             containerView.backgroundColor = .clear
             containerView.layer.borderColor = ColorSet.lineWeak.uiColor.cgColor
-            timeLabel.textColor = ColorSet.fg.uiColor
         }
         // Note: verticalLineView color stays unchanged (lineWeak) regardless of state
     }
