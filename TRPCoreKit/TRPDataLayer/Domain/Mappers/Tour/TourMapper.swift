@@ -43,12 +43,13 @@ final class TourMapper {
         // Convert duration from Double (minutes) to Int
         let duration = restModel.duration != nil ? Int(restModel.duration!) : nil
 
-        // Convert price: prefer currentPrice over price, convert to Int
-        let price: Int?
+        // Prefer currentPrice over price; preserve decimal precision so the
+        // UI can show the exact fractional value the API returned.
+        let price: Double?
         if let currentPrice = restModel.currentPrice {
-            price = Int(currentPrice)
+            price = Double(currentPrice)
         } else if let regularPrice = restModel.price {
-            price = Int(regularPrice)
+            price = Double(regularPrice)
         } else {
             price = nil
         }

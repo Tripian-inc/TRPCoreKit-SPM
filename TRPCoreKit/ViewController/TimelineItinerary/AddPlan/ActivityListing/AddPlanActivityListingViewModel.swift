@@ -283,8 +283,13 @@ public class AddPlanActivityListingViewModel {
         params.sortingBy = "score"
         params.sortingType = "desc"
 
-        // Price and duration filters are applied locally — do NOT send them to the server.
-        // (Leaving them nil so server returns the unfiltered baseline.)
+        // Exclude free tours from the listing. The server treats `minPrice = 1` as
+        // "at least 1 unit of currency", which filters out anything priced at 0.
+        // The local price-range filter still runs on top of this baseline.
+        params.minPrice = 1
+
+        // Max-price and duration filters are applied locally — do NOT send them to
+        // the server. (Leaving them nil so server returns the unfiltered baseline.)
 
         // Set currency and adults
         params.currency = TRPClient.getCurrency()
@@ -356,8 +361,8 @@ public class AddPlanActivityListingViewModel {
             let currency = products.first(where: { $0.currency != nil })?.currency
                 ?? TRPClient.getCurrency()
             priceRange = TRPTourPriceRangeFacet(
-                minAmount: Double(minPrice),
-                maxAmount: Double(maxPrice),
+                minAmount: minPrice,
+                maxAmount: maxPrice,
                 currency: currency
             )
         }
@@ -416,7 +421,9 @@ public class AddPlanActivityListingViewModel {
         case .rating:
             working.sort { (Double($0.rating ?? -.greatestFiniteMagnitude)) > (Double($1.rating ?? -.greatestFiniteMagnitude)) }
         case .priceLowToHigh:
-            working.sort { ($0.price ?? .max) < ($1.price ?? .max) }
+            // Push price-less tours to the end with `.greatestFiniteMagnitude`
+            // (Double has no `.max`).
+            working.sort { ($0.price ?? .greatestFiniteMagnitude) < ($1.price ?? .greatestFiniteMagnitude) }
         case .durationShortToLong:
             working.sort { ($0.duration ?? .max) < ($1.duration ?? .max) }
         case .durationLongToShort:

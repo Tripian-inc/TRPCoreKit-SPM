@@ -11,12 +11,12 @@ import TRPFoundationKit
 
 // MARK: - Filter Data Model
 public struct FilterData {
-    public var minPrice: Int?
-    public var maxPrice: Int?
+    public var minPrice: Double?
+    public var maxPrice: Double?
     public var minDuration: Int?  // in minutes
     public var maxDuration: Int?  // in minutes
 
-    public init(minPrice: Int? = nil, maxPrice: Int? = nil, minDuration: Int? = nil, maxDuration: Int? = nil) {
+    public init(minPrice: Double? = nil, maxPrice: Double? = nil, minDuration: Int? = nil, maxDuration: Int? = nil) {
         self.minPrice = minPrice
         self.maxPrice = maxPrice
         self.minDuration = minDuration
@@ -296,8 +296,8 @@ public class AddPlanFilterVC: TRPBaseUIViewController, DynamicHeightPresentable 
         // Price slider — clamp persisted filter values into resolved bounds.
         priceSlider.minimumValue = priceMinValue
         priceSlider.maximumValue = priceMaxValue
-        let persistedMinPrice = Double(filterData.minPrice ?? Int(priceMinValue))
-        let persistedMaxPrice = Double(filterData.maxPrice ?? Int(priceMaxValue))
+        let persistedMinPrice = filterData.minPrice ?? priceMinValue
+        let persistedMaxPrice = filterData.maxPrice ?? priceMaxValue
         priceSlider.lowerValue = min(max(persistedMinPrice, priceMinValue), priceMaxValue)
         priceSlider.upperValue = min(max(persistedMaxPrice, priceMinValue), priceMaxValue)
         priceSlider.valueLabelFormatter = { value in
@@ -339,10 +339,10 @@ public class AddPlanFilterVC: TRPBaseUIViewController, DynamicHeightPresentable 
 
         // Only set price filter if not at full range
         if priceSlider.lowerValue > priceMinValue {
-            newFilterData.minPrice = Int(priceSlider.lowerValue)
+            newFilterData.minPrice = priceSlider.lowerValue
         }
         if priceSlider.upperValue < priceMaxValue {
-            newFilterData.maxPrice = Int(priceSlider.upperValue)
+            newFilterData.maxPrice = priceSlider.upperValue
         }
 
         // Only set duration filter if not at full range

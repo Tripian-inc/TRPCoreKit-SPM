@@ -14,10 +14,25 @@ public class AddPlanTimeAndTravelersVC: TRPBaseUIViewController, AddPlanChildVie
 
     // MARK: - Height Constants
     private let baseContentHeight: CGFloat = 488 // Height without city selection
+    /// Extra vertical space taken when the "end time before start" warning is
+    /// visible: 8pt above the warning + warning row + 16pt below, minus the 32pt
+    /// gap travelersLabel normally claims above it. Computed dynamically from the
+    /// warning row's intrinsic height so 1- vs 2-line translations both fit.
+    private var endTimeWarningExtraHeight: CGFloat {
+        guard !warningStackView.isHidden else { return 0 }
+        let warningHeight = warningStackView
+            .systemLayoutSizeFitting(
+                CGSize(width: view.bounds.width - 32, height: UIView.layoutFittingCompressedSize.height),
+                withHorizontalFittingPriority: .required,
+                verticalFittingPriority: .fittingSizeLevel
+            ).height
+        // (8 above warning + warningHeight + 16 below) − 32 baseline travelers gap
+        return max(0, warningHeight - 8)
+    }
 
     // MARK: - AddPlanChildViewController
     public var preferredContentHeight: CGFloat {
-        return baseContentHeight
+        return baseContentHeight + endTimeWarningExtraHeight
     }
 
     // MARK: - Properties
@@ -25,6 +40,13 @@ public class AddPlanTimeAndTravelersVC: TRPBaseUIViewController, AddPlanChildVie
     public weak var containerVC: AddPlanContainerVC?
     private var selectedDayIndex: Int = 0
     private var editingStartTime = false  // Track which time is being edited
+
+    /// True when the user picked midnight (00:00 / 12:00 AM) for end time. We
+    /// snap the stored value to 23:59 of the selected day so `endTime > startTime`
+    /// holds and the API sees end-of-day, but the field keeps displaying "00:00"
+    /// — matching what the user actually picked. Reset whenever end-time changes
+    /// to a non-midnight value, gets auto-cleared, or the whole form is cleared.
+    private var endTimeShownAsMidnight = false
     
     // MARK: - UI Components
 
@@ -93,6 +115,44 @@ public class AddPlanTimeAndTravelersVC: TRPBaseUIViewController, AddPlanChildVie
         view.backgroundColor = ColorSet.neutral200.uiColor
         return view
     }()
+
+    // MARK: - End-time warning row (shown when end <= start)
+
+    private lazy var warningIconView: UIImageView = {
+        let iv = UIImageView()
+        iv.translatesAutoresizingMaskIntoConstraints = false
+        iv.image = TRPImageController().getImage(inFramework: "ic_warning", inApp: nil)?.withRenderingMode(.alwaysTemplate)
+        iv.tintColor = ColorSet.primary.uiColor
+        iv.contentMode = .scaleAspectFit
+        return iv
+    }()
+
+    private lazy var warningLabel: UILabel = {
+        let label = UILabel()
+        label.translatesAutoresizingMaskIntoConstraints = false
+        label.font = FontSet.montserratMedium.font(12)
+        label.textColor = ColorSet.primary.uiColor
+        label.numberOfLines = 2
+        label.text = AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.endTimeBeforeStartWarning)
+        return label
+    }()
+
+    private lazy var warningStackView: UIStackView = {
+        let stack = UIStackView(arrangedSubviews: [warningIconView, warningLabel])
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        stack.axis = .horizontal
+        stack.alignment = .top
+        stack.spacing = 6
+        stack.isHidden = true
+        return stack
+    }()
+
+    /// Travelers label top constraint when the warning is hidden — 32pt below the
+    /// start-time field (existing baseline layout). Active by default.
+    private var travelersLabelTopWithoutWarning: NSLayoutConstraint!
+    /// Travelers label top constraint when the warning is visible — 16pt below
+    /// the warning row, which itself sits 8pt below the end-time field.
+    private var travelersLabelTopWithWarning: NSLayoutConstraint!
     
     private lazy var travelersLabel: UILabel = {
         let label = UILabel()
@@ -175,6 +235,7 @@ public class AddPlanTimeAndTravelersVC: TRPBaseUIViewController, AddPlanChildVie
         view.addSubview(timeLabel)
         view.addSubview(startTimeField)
         view.addSubview(endTimeField)
+        view.addSubview(warningStackView)
 
         // Travelers
         view.addSubview(travelersLabel)
@@ -233,8 +294,18 @@ public class AddPlanTimeAndTravelersVC: TRPBaseUIViewController, AddPlanChildVie
             endTimeField.leadingAnchor.constraint(equalTo: view.centerXAnchor, constant: 8),
             endTimeField.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
 
+            // Warning row — sits 8pt below the end-time field, leading-aligned to
+            // the end-time field, trailing to view edge. Hidden by default; shown
+            // when `updateEndTimeValidationUI` flips its visibility.
+            warningStackView.topAnchor.constraint(equalTo: endTimeField.bottomAnchor, constant: 8),
+            warningStackView.leadingAnchor.constraint(equalTo: endTimeField.leadingAnchor),
+            warningStackView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
+
+            // Icon — fixed 16x16 inside the warning stack.
+            warningIconView.widthAnchor.constraint(equalToConstant: 16),
+            warningIconView.heightAnchor.constraint(equalToConstant: 16),
+
             // Travelers Label
-            travelersLabel.topAnchor.constraint(equalTo: startTimeField.bottomAnchor, constant: 32),
             travelersLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
             travelersLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
 
@@ -267,6 +338,17 @@ public class AddPlanTimeAndTravelersVC: TRPBaseUIViewController, AddPlanChildVie
             bottomSeparator.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             bottomSeparator.heightAnchor.constraint(equalToConstant: 0.5),
         ])
+
+        // Two mutually-exclusive top constraints for travelersLabel — swapped by
+        // `updateEndTimeValidationUI` so the warning row pushes travelers down
+        // when shown, then snaps back when end >= start.
+        travelersLabelTopWithoutWarning = travelersLabel.topAnchor.constraint(
+            equalTo: startTimeField.bottomAnchor, constant: 32
+        )
+        travelersLabelTopWithWarning = travelersLabel.topAnchor.constraint(
+            equalTo: warningStackView.bottomAnchor, constant: 16
+        )
+        travelersLabelTopWithoutWarning.isActive = true
     }
     
     private func setupActions() {
@@ -311,9 +393,13 @@ public class AddPlanTimeAndTravelersVC: TRPBaseUIViewController, AddPlanChildVie
         }
 
         if let endTime = viewModel.getEndTime() {
-            endTimeField.setValue(formatter.string(from: endTime))
+            // Midnight-picks display as "00:00" even though stored as 23:59 — see
+            // `endTimeShownAsMidnight`.
+            let displayText = endTimeShownAsMidnight ? "00:00" : formatter.string(from: endTime)
+            endTimeField.setValue(displayText)
         } else {
             endTimeField.clear()
+            endTimeShownAsMidnight = false
         }
 
         // Update traveler count
@@ -327,6 +413,36 @@ public class AddPlanTimeAndTravelersVC: TRPBaseUIViewController, AddPlanChildVie
         } else {
             decrementButton.isEnabled = true
             decrementButton.tintColor = ColorSet.fgWeak.uiColor
+        }
+
+        // End time vs start time validation visual feedback.
+        updateEndTimeValidationUI()
+    }
+
+    /// Reflect end-time vs start-time validity in the UI. When both times are
+    /// set AND end is not strictly after start, switch the end-time field to
+    /// its error styling, reveal the warning row, and let it push travelers
+    /// down. Otherwise restore the baseline layout. Sheet height is refreshed
+    /// via `containerVC.notifyContentHeightChanged()` so the bottom sheet grows
+    /// when the warning appears and shrinks back when it clears.
+    private func updateEndTimeValidationUI() {
+        let startTime = viewModel.getStartTime()
+        let endTime = viewModel.getEndTime()
+        let hasError: Bool
+        if let start = startTime, let end = endTime {
+            hasError = end <= start
+        } else {
+            hasError = false
+        }
+
+        let wasHidden = warningStackView.isHidden
+        endTimeField.setErrorState(hasError)
+        warningStackView.isHidden = !hasError
+        travelersLabelTopWithoutWarning.isActive = !hasError
+        travelersLabelTopWithWarning.isActive = hasError
+
+        if wasHidden != !hasError {
+            containerVC?.notifyContentHeightChanged()
         }
     }
     
@@ -448,6 +564,7 @@ public class AddPlanTimeAndTravelersVC: TRPBaseUIViewController, AddPlanChildVie
         startingPointField.clear()
         startTimeField.clear()
         endTimeField.clear()
+        endTimeShownAsMidnight = false
         selectedDayIndex = 0
         configureDayFilterView()
         updateUI()
@@ -467,9 +584,23 @@ extension AddPlanTimeAndTravelersVC: TRPSingleTimePickerDelegate {
             // Clear end time if it's now invalid (before new start time)
             if let endTime = viewModel.getEndTime(), endTime <= combinedTime {
                 viewModel.setEndTime(nil)
+                endTimeShownAsMidnight = false
             }
         } else {  // End time
-            viewModel.setEndTime(combinedTime)
+            let calendar = Calendar.current
+            let components = calendar.dateComponents([.hour, .minute], from: combinedTime)
+            if components.hour == 0, components.minute == 0,
+               let snapped = calendar.date(bySettingHour: 23, minute: 59, second: 0, of: combinedTime) {
+                // Midnight picked → snap stored value to 23:59 of the same day so
+                // validation (endTime > startTime) and downstream API both see a
+                // sane end-of-day timestamp. The field text stays "00:00" via
+                // `endTimeShownAsMidnight`.
+                viewModel.setEndTime(snapped)
+                endTimeShownAsMidnight = true
+            } else {
+                viewModel.setEndTime(combinedTime)
+                endTimeShownAsMidnight = false
+            }
         }
 
         updateUI()

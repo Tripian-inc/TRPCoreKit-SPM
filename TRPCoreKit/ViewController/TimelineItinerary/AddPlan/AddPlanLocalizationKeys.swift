@@ -118,6 +118,11 @@ public struct AddPlanLocalizationKeys {
     /// placeholder cell in the time grid at that slot.
     public static let soldOutWarning = "addPlan.time.soldOutWarning"
 
+    /// Inline warning shown below the end-time field in Smart Recommendations
+    /// time selection when the chosen end time is not strictly after the start
+    /// time. The end-time field's title + border also switch to primary tint.
+    public static let endTimeBeforeStartWarning = "addPlan.time.endTimeBeforeStart"
+
     // MARK: - Toast / Success Notifications
     /// Format: takes activity name as %1$@ and day display string as %2$@.
     public static let activityAddedToast = "addPlan.toast.activityAdded"
@@ -219,6 +224,7 @@ public struct AddPlanLocalizationKeys {
         activityNotAvailableForTrip: "This activity is not available on the days of your trip.",
         showMoreTimeSlots: "More",
         soldOutWarning: "Your selected time is sold out. Choose a new time for accurate availability, or keep this as a placeholder.",
+        endTimeBeforeStartWarning: "Choose an end time within today",
         activityAddedToast: "%1$@ has been added to %2$@"
     ]
     

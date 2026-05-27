@@ -114,6 +114,8 @@ public class TRPCoreKit {
         let baseUrl = environment.baseUrlCreater
         TRPClient.start(baseUrl: baseUrl, apiKey: apiKey, language: language, currency: currency)
 
+        TRPUserAgentURLProtocol.register(host: baseUrl.baseUrl)
+
         // Prefetch languages - async, non-blocking
         TRPLanguagesController.shared.prefetchLanguagesIfNeeded()
     }
@@ -140,6 +142,8 @@ public class TRPCoreKit {
         // Initialize TRPClient (RestKit)
         let url = BaseUrlCreater(baseUrl: baseUrl, basePath: basePath)
         TRPClient.start(baseUrl: url, apiKey: apiKey, language: language, currency: currency)
+
+        TRPUserAgentURLProtocol.register(host: url.baseUrl)
 
         // Prefetch languages - async, non-blocking
         TRPLanguagesController.shared.prefetchLanguagesIfNeeded()

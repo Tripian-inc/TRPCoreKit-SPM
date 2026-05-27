@@ -134,12 +134,6 @@ public class SavedPlansViewModel {
             image = TRPImage(url: photoUrl, imageOwner: nil, width: nil, height: nil)
         }
 
-        // Convert price to Int
-        var priceInt: Int?
-        if let priceValue = item.price?.value {
-            priceInt = Int(priceValue)
-        }
-
         return TRPTourProduct(
             id: formattedActivityId,
             productId: formattedActivityId,
@@ -148,7 +142,7 @@ public class SavedPlansViewModel {
             image: image,
             gallery: nil,
             duration: nil, // Not available in TRPSegmentFavoriteItem
-            price: priceInt,
+            price: item.price?.value,
             rating: item.rating,
             ratingCount: item.ratingCount,
             description: item.description,

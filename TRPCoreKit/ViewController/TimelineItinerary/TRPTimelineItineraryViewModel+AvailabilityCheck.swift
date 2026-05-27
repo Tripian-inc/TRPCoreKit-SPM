@@ -95,6 +95,15 @@ extension TRPTimelineItineraryViewModel {
                 switch result {
                 case .success(let response):
                     self.applyResults(response, targets: targets)
+                    // displayItems / cellData capture `isAvailabilityExpired` at build
+                    // time (segments hold class refs but reads still snapshot, and plans
+                    // are structs so the merged item also snapshots them). Rebuild via
+                    // the standard mutation pattern (see `syncRemovedCitySegments` at
+                    // L869, TimelineDate updates at L770) so the next `reload()` sees
+                    // the new flags. The sweep itself is gated by
+                    // `hasRunInitialAvailabilityCheck`, so re-entering processTimelineData
+                    // here is a no-op for the availability path.
+                    self.processTimelineData()
                     self.delegate?.timelineItineraryViewModel(didUpdateTimeline: true)
                 case .failure(let error):
                     Log.e("AvailabilityCheck: \(dateString) failed - \(error.localizedDescription)")
@@ -111,8 +120,10 @@ extension TRPTimelineItineraryViewModel {
         let dateString = AvailabilityCheckDateFormat.shared.string(from: date)
         var targets: [AvailabilityTarget] = []
 
-        // Reserved-activity segments on this date.
-        if let segments = timeline.segments {
+        // Reserved-activity segments on this date. `tripProfile.segments` is the
+        // single source of truth (see `mergeTimelineData` / `populateCitiesInSegments`);
+        // `timeline.segments` has a different order and isn't what the UI reads from.
+        if let segments = timeline.tripProfile?.segments {
             for (segIndex, segment) in segments.enumerated() {
                 guard segment.segmentType == .reservedActivity else { continue }
                 guard let additional = segment.additionalData else { continue }
@@ -206,9 +217,10 @@ extension TRPTimelineItineraryViewModel {
             }
         }
 
-        // Mutate reserved segments. `TRPTimelineSegment` is a class so additionalData
+        // Mutate reserved segments via the same `tripProfile.segments` array we
+        // collected targets from. `TRPTimelineSegment` is a class so additionalData
         // is mutated via the two-step copy-and-write pattern (struct value semantics).
-        if !segmentExpires.isEmpty, let segments = timeline?.segments {
+        if !segmentExpires.isEmpty, let segments = timeline?.tripProfile?.segments {
             for (index, _) in segmentExpires where index < segments.count {
                 if var data = segments[index].additionalData {
                     data.isAvailabilityExpired = true

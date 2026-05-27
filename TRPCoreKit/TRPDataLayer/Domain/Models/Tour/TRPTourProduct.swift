@@ -19,7 +19,7 @@ public struct TRPTourProduct: Codable {
     public let image: TRPImage?
     public var gallery: [TRPImage?]? = []
     public var duration: Int?
-    public var price: Int?
+    public var price: Double?
     public var currency: String?
     public var rating: Float?
     public var ratingCount: Int?

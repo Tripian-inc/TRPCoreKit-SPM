@@ -480,7 +480,7 @@ class ActivityCardCell: UITableViewCell {
         updateDuration(minutes: tour.duration)
         hideLanguageLabels()
         updateCancellation(isCancellable: tour.isCancellable)
-        updatePrice(value: tour.price.map { Double($0) }, currency: tour.currency ?? "EUR")
+        updatePrice(value: tour.price, currency: tour.currency ?? "EUR")
         updateImage(urlString: tour.image?.url)
     }
 

@@ -155,6 +155,19 @@ public class TRPSelectionField: UIView {
         updateDisplay()
     }
 
+    /// Toggle the field's error styling: title color and button border swap to
+    /// `primary` when `hasError` is true, back to defaults otherwise. Independent
+    /// of selection value — `setValue` / `clear` won't touch these properties.
+    public func setErrorState(_ hasError: Bool) {
+        if hasError {
+            titleLabel.textColor = ColorSet.primary.uiColor
+            selectionButton.layer.borderColor = ColorSet.primary.uiColor.cgColor
+        } else {
+            titleLabel.textColor = ColorSet.primaryText.uiColor
+            selectionButton.layer.borderColor = ColorSet.line.uiColor.cgColor
+        }
+    }
+
     /// Get the intrinsic content size based on title visibility
     public override var intrinsicContentSize: CGSize {
         let height: CGFloat

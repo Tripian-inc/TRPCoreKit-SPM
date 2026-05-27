@@ -105,7 +105,12 @@ public class AddPlanTimeSelectionViewModel {
         self.segment = segment
         self.planData = planData
         self.tourRepository = tourRepository
-        self.selectedDate = planData.selectedDay
+        // Seed selectedDate from the segment's own saved date (timezone-robust),
+        // falling back to planData.selectedDay if no match (defensive — caller
+        // already attempts to set it via parseSegmentDateTime).
+        let savedYMD = Self.extractYMD(from: segment.startDate)
+        self.selectedDate = Self.findAvailableDay(matching: savedYMD, in: planData.availableDays)
+            ?? planData.selectedDay
         self.editingTimeString = Self.extractHHmm(from: segment.startDate)
 
         // Extract tour info from segment's additionalData
@@ -137,7 +142,7 @@ public class AddPlanTimeSelectionViewModel {
             image: tourImage,
             gallery: nil,
             duration: additionalData.duration != nil ? Int(additionalData.duration!) : nil,
-            price: additionalData.price != nil ? Int(additionalData.price!.value) : nil,
+            price: additionalData.price?.value,
             rating: nil,
             ratingCount: nil,
             description: additionalData.description,
@@ -161,7 +166,11 @@ public class AddPlanTimeSelectionViewModel {
         self.step = step
         self.planData = planData
         self.tourRepository = tourRepository
-        self.selectedDate = planData.selectedDay
+        // Seed selectedDate from the step's own saved date (timezone-robust),
+        // falling back to planData.selectedDay if no match.
+        let savedYMD = Self.extractYMD(from: step.startDateTimes)
+        self.selectedDate = Self.findAvailableDay(matching: savedYMD, in: planData.availableDays)
+            ?? planData.selectedDay
         self.editingTimeString = Self.extractHHmm(from: step.startDateTimes)
 
         // Extract product info from step's POI
@@ -198,7 +207,9 @@ public class AddPlanTimeSelectionViewModel {
             image: poi.image,
             gallery: poi.gallery,
             duration: poi.duration,
-            price: poi.price,
+            // `poi.price` is a dollar-sign tier (1-4), NOT a monetary value —
+            // the real activity price lives in `additionalData.price`.
+            price: poi.additionalData?.price,
             rating: poi.rating,
             ratingCount: poi.ratingCount,
             description: poi.description,
@@ -444,6 +455,7 @@ public class AddPlanTimeSelectionViewModel {
         // Preload path: search response already populated cache for all trip days; skip API.
         if hasPreloadedSlots {
             DispatchQueue.main.async { [weak self] in
+                self?.applyEditingTimeSlotIfNeeded()
                 self?.delegate?.timeSlotsDidLoad()
             }
             return
@@ -479,6 +491,7 @@ public class AddPlanTimeSelectionViewModel {
                 switch result {
                 case .success(let schedule):
                     self.applyScheduleResponse(schedule)
+                    self.applyEditingTimeSlotIfNeeded()
                     self.delegate?.timeSlotsDidLoad()
 
                 case .failure(let error):
@@ -640,7 +653,7 @@ public class AddPlanTimeSelectionViewModel {
         } else if let priceValue = tour.price, priceValue > 0 {
             // Fallback to tour price
             let currency = tour.offers.first?.currency.rawValue ?? "EUR"
-            activityPrice = TRPSegmentActivityPrice(currency: currency, value: Double(priceValue))
+            activityPrice = TRPSegmentActivityPrice(currency: currency, value: priceValue)
         }
 
         let activityItem = TRPSegmentActivityItem(
@@ -902,6 +915,59 @@ public class AddPlanTimeSelectionViewModel {
         let parts = timePart.split(separator: ":")
         guard parts.count >= 2 else { return nil }
         return "\(parts[0]):\(parts[1])"
+    }
+
+    /// Extract "yyyy-MM-dd" from "yyyy-MM-dd HH:mm[:ss]" (or pass-through if the
+    /// input is already date-only). Returns nil for empty input or malformed
+    /// prefixes. Used by the edit-mode initializers to find the activity's own
+    /// trip day in `planData.availableDays`.
+    private static func extractYMD(from raw: String?) -> String? {
+        guard let raw = raw, !raw.isEmpty else { return nil }
+        let datePart: String
+        if let spaceIndex = raw.firstIndex(of: " ") {
+            datePart = String(raw[..<spaceIndex])
+        } else {
+            datePart = raw
+        }
+        // Basic shape check: "yyyy-MM-dd" is 10 chars with two dashes at fixed offsets.
+        let chars = Array(datePart)
+        guard chars.count == 10, chars[4] == "-", chars[7] == "-" else { return nil }
+        return datePart
+    }
+
+    /// Find the `Date` in `days` whose calendar-day matches `ymd` ("yyyy-MM-dd").
+    /// Tries UTC first, then local TZ — `getDayDates()` is UTC-anchored but cell
+    /// delegates parse segment/step strings inconsistently (segment via UTC, step
+    /// via local). Trying both timezones sidesteps that fragility without changing
+    /// the existing producers.
+    private static func findAvailableDay(matching ymd: String?, in days: [Date]) -> Date? {
+        guard let ymd = ymd else { return nil }
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        for tz in [TimeZone(identifier: "UTC"), TimeZone.current].compactMap({ $0 }) {
+            formatter.timeZone = tz
+            if let match = days.first(where: { formatter.string(from: $0) == ymd }) {
+                return match
+            }
+        }
+        return nil
+    }
+
+    /// In edit mode, pre-select the time slot matching `editingTimeString` once the
+    /// schedule for the activity's day has loaded. No-op when the user has already
+    /// tapped a slot (selectedTimeSlot != nil), when no editing time exists, or
+    /// when the saved time is missing from the schedule (the sold-out placeholder
+    /// is `isDisabled` and excluded here so Continue stays gated until the user
+    /// picks a fresh slot).
+    private func applyEditingTimeSlotIfNeeded() {
+        guard isEditMode,
+              selectedTimeSlot == nil,
+              let editingTime = editingTimeString,
+              let displaySlot = getAllDisplayTimeSlots().first(where: {
+                  $0.time == editingTime && !$0.isDisabled
+              })
+        else { return }
+        selectedTimeSlot = TimeSlot(time: displaySlot.time, price: displaySlot.price)
     }
 
     private func makeLocalizedError(code: Int, key: String) -> NSError {
