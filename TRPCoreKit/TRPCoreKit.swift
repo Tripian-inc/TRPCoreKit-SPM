@@ -74,6 +74,7 @@ public protocol TRPCoreKitDelegate: AnyObject {
 // MARK: - TRPCoreKitDelegate Default Implementations
 public extension TRPCoreKitDelegate {
     func trpCoreKitDidFailWithAuthError() {}
+    func trpCoreKitDidAddActivity(activityId: String) {}
 }
 
 public class TRPCoreKit {
