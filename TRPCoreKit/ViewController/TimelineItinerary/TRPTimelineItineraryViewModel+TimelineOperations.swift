@@ -482,26 +482,47 @@ extension TRPTimelineItineraryViewModel {
         profile.startDate = tripItem.startDatetime
         profile.endDate = tripItem.endDatetime
 
-        // Set coordinate
-        profile.coordinate = tripItem.coordinate
-
-        // Set city from resolved cityId
+        // Resolve city first so we can fall back to its coordinate when the trip item
+        // arrives without a usable one (isNoLocation or (0, 0)).
+        var resolvedCity: TRPCity? = nil
         if let cityId = tripItem.cityId, cityId > 0 {
-            // Try to get city from cache by ID first
             if let city = TRPCityCache.shared.getCity(byId: cityId) {
-                profile.city = city
-            } else if let cityByCoordinate = TRPCityCache.shared.getCityByCoordinate(tripItem.coordinate) {
+                resolvedCity = city
+            } else if !tripItem.coordinate.isMissingOrZero,
+                      let cityByCoordinate = TRPCityCache.shared.getCityByCoordinate(tripItem.coordinate) {
                 // Fallback: Try to find city by coordinate to get the name
                 // Use the resolved cityId but take the name from coordinate lookup
                 var city = cityByCoordinate
                 city.id = cityId  // Use the resolved cityId from API
-                profile.city = city
+                resolvedCity = city
             } else {
                 // Last resort: Create minimal city object with just ID and coordinate
                 // API will have full city data on server side
                 let city = TRPCity(id: cityId, name: "", coordinate: tripItem.coordinate)
-                profile.city = city
+                resolvedCity = city
             }
+        }
+        profile.city = resolvedCity
+
+        // Set coordinate — if the trip item has no usable position, fall back to the
+        // resolved city's coordinate. Without this, segments for no-location booked
+        // activities would be POSTed with `(0, 0)` and break map/route rendering.
+        // When we do fall back we also stamp `isNoLocation = true` and overwrite the
+        // additionalData's coordinate, so the UI's no-location badge and the segment
+        // body stay consistent (additionalData is the cell's source of truth for the
+        // flag — `TRPMergedTimelineItem.isNoLocation` reads `additionalData.isNoLocation`).
+        var enrichedTripItem = tripItem
+        if !tripItem.coordinate.isMissingOrZero {
+            profile.coordinate = tripItem.coordinate
+        } else if let cityCoordinate = resolvedCity?.coordinate, !cityCoordinate.isMissingOrZero {
+            profile.coordinate = cityCoordinate
+            enrichedTripItem.coordinate = cityCoordinate
+            enrichedTripItem.isNoLocation = true
+        } else {
+            profile.coordinate = tripItem.coordinate
+            // No usable coordinate anywhere — still flag the item so the UI doesn't
+            // try to pin it on the map at `(0, 0)`.
+            enrichedTripItem.isNoLocation = true
         }
 
         // Set traveler counts
@@ -510,7 +531,7 @@ extension TRPTimelineItineraryViewModel {
         profile.pets = 0
 
         // Set additional data (this is CRITICAL for booked activities)
-        profile.additionalData = tripItem
+        profile.additionalData = enrichedTripItem
 
         // Don't generate recommendations for booked activities
         profile.doNotGenerate = 1

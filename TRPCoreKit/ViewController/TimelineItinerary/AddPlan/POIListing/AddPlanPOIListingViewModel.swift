@@ -363,7 +363,19 @@ public class AddPlanPOIListingViewModel {
         segment.title = poi.name
         segment.poiId = poi.id
         segment.city = selectedCity
-        segment.coordinate = poi.coordinate
+
+        // Coordinate resolution: prefer the POI's own coordinate. If it's missing or
+        // (0, 0), fall back to the selected city's coordinate so the segment never
+        // hits the server with an unusable position. The city's in-memory coordinate
+        // can itself be a `(0, 0)` placeholder (booked-activity merge path), so go
+        // through `resolvedCoordinate()` which consults `TRPCityCache` by id.
+        if let poiCoordinate = poi.coordinate, !poiCoordinate.isMissingOrZero {
+            segment.coordinate = poiCoordinate
+        } else if let cityCoordinate = selectedCity.resolvedCoordinate() {
+            segment.coordinate = cityCoordinate
+        } else {
+            segment.coordinate = poi.coordinate
+        }
 
         // Add POI id to includePoiIds
         segment.includePoiIds = [poi.id]

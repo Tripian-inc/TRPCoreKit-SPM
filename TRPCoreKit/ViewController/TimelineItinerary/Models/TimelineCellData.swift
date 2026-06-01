@@ -148,6 +148,10 @@ public struct FlexibleActivityCellData: TimelineCellData {
     public let duration: Double?
     public let price: TRPSegmentActivityPrice?
     public let cancellation: String?
+    /// Mirrors `TRPTimelineItineraryCellData.isNoLocation`. The flexible cell renders
+    /// the same "no exact location" tag as the standard reserved cell when the
+    /// activity was placed with a city-fallback coordinate.
+    public let isNoLocation: Bool
     public let segment: TRPTimelineSegment
 
     public init(from item: TRPMergedTimelineItem) {
@@ -159,6 +163,7 @@ public struct FlexibleActivityCellData: TimelineCellData {
         self.duration = item.duration
         self.price = item.price
         self.cancellation = item.cancellation
+        self.isNoLocation = item.isNoLocation
         self.segment = item.segment
     }
 }

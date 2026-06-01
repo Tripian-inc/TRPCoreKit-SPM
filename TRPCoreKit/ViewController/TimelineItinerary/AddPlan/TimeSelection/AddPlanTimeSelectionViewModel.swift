@@ -601,12 +601,19 @@ public class AddPlanTimeSelectionViewModel {
         // activity has none, fall back to the selected city's coordinate and flag
         // the segment with `isNoLocation = true` so the UI/map can react. If
         // neither is available, the segment can't be placed at all.
+        //
+        // Both the tour and the selected city can carry `(0, 0)` — the city in
+        // particular leaks from the booked-activity merge path when the host trip
+        // item arrives without a coordinate, since the merge synthesizes a
+        // placeholder `TRPCity`. `TRPCity.resolvedCoordinate()` re-fetches the real
+        // coordinate from `TRPCityCache` by id so we don't reject a perfectly valid
+        // selection just because the in-memory city object was a stub.
         let resolvedCoordinate: TRPLocation
         let isNoLocationActivity: Bool
-        if let tourCoordinate = tour.coordinate {
+        if let tourCoordinate = tour.coordinate, !tourCoordinate.isMissingOrZero {
             resolvedCoordinate = tourCoordinate
             isNoLocationActivity = false
-        } else if let cityCoordinate = planData.selectedCity?.coordinate {
+        } else if let cityCoordinate = planData.selectedCity?.resolvedCoordinate() {
             resolvedCoordinate = cityCoordinate
             isNoLocationActivity = true
         } else {

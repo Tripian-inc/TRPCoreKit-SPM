@@ -75,6 +75,29 @@ class TRPTimelineFlexibleActivityCell: UITableViewCell {
         return label
     }()
 
+    private let noLocationBadge: TRPPaddingLabel = {
+        let label = TRPPaddingLabel(4, 4, 8, 8)
+        label.translatesAutoresizingMaskIntoConstraints = false
+        label.font = FontSet.montserratMedium.font(10)
+        label.textColor = ColorSet.infoIcon.uiColor
+        label.backgroundColor = ColorSet.bgBlue.uiColor
+        label.textAlignment = .center
+        label.layer.cornerRadius = 4
+        label.clipsToBounds = true
+        label.text = TimelineLocalizationKeys.localized(TimelineLocalizationKeys.noExactLocation)
+        label.isHidden = true
+        return label
+    }()
+
+    private let badgeStackView: UIStackView = {
+        let stack = UIStackView()
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        stack.axis = .horizontal
+        stack.spacing = 4
+        stack.alignment = .center
+        return stack
+    }()
+
     private let durationIcon: UIImageView = {
         let imageView = UIImageView()
         imageView.translatesAutoresizingMaskIntoConstraints = false
@@ -179,7 +202,10 @@ class TRPTimelineFlexibleActivityCell: UITableViewCell {
         durationStackView.addArrangedSubview(durationIcon)
         durationStackView.addArrangedSubview(durationLabel)
 
-        rightContentStackView.addArrangedSubview(activityBadge)
+        badgeStackView.addArrangedSubview(activityBadge)
+        badgeStackView.addArrangedSubview(noLocationBadge)
+
+        rightContentStackView.addArrangedSubview(badgeStackView)
         rightContentStackView.addArrangedSubview(durationStackView)
         rightContentStackView.addArrangedSubview(cancellationLabel)
         rightContentStackView.addArrangedSubview(priceRowContainer)
@@ -237,6 +263,7 @@ class TRPTimelineFlexibleActivityCell: UITableViewCell {
         super.prepareForReuse()
         resetTextAndBorderDefaults()
         resetPastDayState()
+        noLocationBadge.isHidden = true
     }
 
     private func resetTextAndBorderDefaults() {
@@ -296,6 +323,10 @@ class TRPTimelineFlexibleActivityCell: UITableViewCell {
         } else {
             durationStackView.isHidden = true
         }
+
+        // Surface the "no exact location" tag for flexible activities the same way
+        // the standard reserved cell does.
+        noLocationBadge.isHidden = !cellData.isNoLocation
 
         configurePriceRow(with: cellData.price)
     }

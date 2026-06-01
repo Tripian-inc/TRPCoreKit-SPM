@@ -169,8 +169,10 @@ extension TRPTimelineItineraryViewModel {
         // Check if starting point is city center
         let isCityCenter = isCityCenterLocation(startingPointLocation, city: city)
 
-        // Only set coordinate and accommodation if NOT city center
-        if !isCityCenter {
+        // Only set coordinate and accommodation if NOT city center AND the starting
+        // point has a usable coordinate. A missing/zero starting point falls through
+        // to the city-center path so the server can use the city's own coordinate.
+        if !isCityCenter && !startingPointLocation.isMissingOrZero {
             profile.coordinate = startingPointLocation
 
             // Accommodation from starting point
@@ -184,7 +186,8 @@ extension TRPTimelineItineraryViewModel {
                 profile.accommodation = accommodation
             }
         }
-        // If city center: only cityId is sent (via profile.city), no coordinate or accommodation
+        // If city center or missing/zero starting point: only cityId is sent
+        // (via profile.city), no coordinate or accommodation
 
         // Date formatting
         let dateFormatter = DateFormatter()
