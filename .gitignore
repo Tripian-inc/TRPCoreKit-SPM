@@ -70,3 +70,10 @@ tmp.xcconfig
 
 # Archive files (if source exists)
 *.xcassets.zip
+
+# Claude
+.claude/
+CLAUDE.md
+claude.md
+**/claude.md
+**/CLAUDE.md
