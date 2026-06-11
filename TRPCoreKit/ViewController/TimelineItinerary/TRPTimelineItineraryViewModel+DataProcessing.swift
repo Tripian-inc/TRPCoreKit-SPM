@@ -568,42 +568,43 @@ extension TRPTimelineItineraryViewModel {
 
     // MARK: - Favorite Items
 
-    /// Filters favorite items to exclude those that are already booked or reserved
+    /// Filters favorite items to exclude those that are already booked or reserved.
+    ///
+    /// Comparison is done on the bare product id (`cleanedAsActivityId()`) so that a
+    /// favourite stored as `"12345"` still matches a segment carrying the
+    /// `"C_12345_15"` encoding (and vice versa). Without that normalization a
+    /// just-added favourite reappears in Saved Plans the next time the screen opens.
     internal func filterFavoriteItems() {
         guard let favouriteItems = timeline?.favouriteItems else {
             filteredFavoriteItems = []
             return
         }
 
-        // Collect all activityIds from booked and reserved segments
         var bookedOrReservedActivityIds = Set<String>()
 
-        // Check timeline.segments
         if let segments = timeline?.segments {
             for segment in segments {
                 if segment.segmentType == .bookedActivity || segment.segmentType == .reservedActivity {
                     if let activityId = segment.additionalData?.activityId {
-                        bookedOrReservedActivityIds.insert(activityId)
+                        bookedOrReservedActivityIds.insert(activityId.cleanedAsActivityId())
                     }
                 }
             }
         }
 
-        // Check timeline.tripProfile.segments
         if let profileSegments = timeline?.tripProfile?.segments {
             for segment in profileSegments {
                 if segment.segmentType == .bookedActivity || segment.segmentType == .reservedActivity {
                     if let activityId = segment.additionalData?.activityId {
-                        bookedOrReservedActivityIds.insert(activityId)
+                        bookedOrReservedActivityIds.insert(activityId.cleanedAsActivityId())
                     }
                 }
             }
         }
 
-        // Filter out favorite items whose activityId exists in booked/reserved segments
         filteredFavoriteItems = favouriteItems.filter { item in
             guard let activityId = item.activityId else { return true }
-            return !bookedOrReservedActivityIds.contains(activityId)
+            return !bookedOrReservedActivityIds.contains(activityId.cleanedAsActivityId())
         }
     }
 

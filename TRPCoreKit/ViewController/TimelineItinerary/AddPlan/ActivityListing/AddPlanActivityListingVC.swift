@@ -375,9 +375,11 @@ extension AddPlanActivityListingVC: UITableViewDataSource, UITableViewDelegate {
         tableView.deselectRow(at: indexPath, animated: true)
         guard !viewModel.isLoadingTours else { return }
 
-        // Notify delegate about activity detail request
+        // Notify delegate about activity detail request. `tour.productId` comes from
+        // the search mapper as `C_{id}_{provider}` — strip to the bare product id so
+        // the host always receives the same shape it gets from every other tap path.
         if let tour = viewModel.getTourAt(index: indexPath.row) {
-            TRPCoreKit.shared.delegate?.trpCoreKitDidRequestActivityDetail(activityId: tour.productId)
+            TRPCoreKit.shared.delegate?.trpCoreKitDidRequestActivityDetail(activityId: tour.productId.cleanedAsActivityId())
         }
     }
 

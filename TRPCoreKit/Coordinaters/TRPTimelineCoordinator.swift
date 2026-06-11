@@ -263,7 +263,9 @@ extension TRPTimelineCoordinator: TRPTimelineItineraryVCDelegate {
         guard let activityId = segment.additionalData?.activityId else {
             return
         }
-        TRPCoreKit.shared.delegate?.trpCoreKitDidRequestActivityDetail(activityId: activityId)
+        // Normalize to the bare product id so the host receives the same shape
+        // it gets from the cell-delegate paths in TRPTimelineItineraryVC.
+        TRPCoreKit.shared.delegate?.trpCoreKitDidRequestActivityDetail(activityId: activityId.cleanedAsActivityId())
     }
 
     public func timelineItineraryAddButtonPressed(_ viewController: TRPTimelineItineraryVC, atSectionIndex: Int) {

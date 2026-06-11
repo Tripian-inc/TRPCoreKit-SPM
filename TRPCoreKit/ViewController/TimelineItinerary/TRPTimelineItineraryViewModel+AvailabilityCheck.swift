@@ -98,9 +98,9 @@ extension TRPTimelineItineraryViewModel {
                     // displayItems / cellData capture `isAvailabilityExpired` at build
                     // time (segments hold class refs but reads still snapshot, and plans
                     // are structs so the merged item also snapshots them). Rebuild via
-                    // the standard mutation pattern (see `syncRemovedCitySegments` at
-                    // L869, TimelineDate updates at L770) so the next `reload()` sees
-                    // the new flags. The sweep itself is gated by
+                    // the standard mutation pattern (see `reconcileSegmentsWithItinerary`
+                    // and TimelineDate updates in +TimelineOperations) so the next
+                    // `reload()` sees the new flags. The sweep itself is gated by
                     // `hasRunInitialAvailabilityCheck`, so re-entering processTimelineData
                     // here is a no-op for the availability path.
                     self.processTimelineData()

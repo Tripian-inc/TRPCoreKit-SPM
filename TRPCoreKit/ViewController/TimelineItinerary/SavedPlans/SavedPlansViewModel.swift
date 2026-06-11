@@ -134,6 +134,15 @@ public class SavedPlansViewModel {
             image = TRPImage(url: photoUrl, imageOwner: nil, width: nil, height: nil)
         }
 
+        // Favourite items store prices in minor units (cents) — confirmed by
+        // `ActivityCardCell.configure(with favoriteItem:)` which displays them with
+        // `convertFromCents: true`. `TRPTourProduct.price` and the downstream
+        // `TRPSegmentActivityPrice.value` are in major units (search-mapper-built
+        // tours are rendered with the default `convertFromCents: false`). Divide
+        // here so the unit contract holds end-to-end: without this, a 1457¢
+        // favourite ends up stored as `1457.00` in the segment instead of `14.57`.
+        let majorUnitPrice = item.price.map { $0.value / 100.0 }
+
         return TRPTourProduct(
             id: formattedActivityId,
             productId: formattedActivityId,
@@ -142,7 +151,8 @@ public class SavedPlansViewModel {
             image: image,
             gallery: nil,
             duration: nil, // Not available in TRPSegmentFavoriteItem
-            price: item.price?.value,
+            price: majorUnitPrice,
+            currency: item.price?.currency,
             rating: item.rating,
             ratingCount: item.ratingCount,
             description: item.description,

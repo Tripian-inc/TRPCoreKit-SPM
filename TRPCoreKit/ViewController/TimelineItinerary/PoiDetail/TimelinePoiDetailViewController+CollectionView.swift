@@ -67,7 +67,9 @@ extension TimelinePoiDetailViewController: UICollectionViewDelegateFlowLayout {
     public func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         if collectionView == productsCollectionView {
             let product = viewModel.getProducts()[indexPath.item]
-            TRPCoreKit.shared.delegate?.trpCoreKitDidRequestActivityDetail(activityId: product.id)
+            // `product.id` is the `C_{id}_{provider}` form from the search mapper —
+            // strip to the bare product id to match every other delegate callsite.
+            TRPCoreKit.shared.delegate?.trpCoreKitDidRequestActivityDetail(activityId: product.id.cleanedAsActivityId())
         }
     }
 }

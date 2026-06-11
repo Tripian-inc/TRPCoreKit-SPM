@@ -194,20 +194,21 @@ extension TRPTimelineItineraryViewModel {
                     DispatchQueue.main.async {
                         self.processTimelineData()
 
-                        // Sync TimelineDate range
+                        // Edit-only sync: updates the TimelineDate segment's date range.
+                        // No DELETE side-effects, no index conflict with the cascade below.
                         self.syncTimelineDateRange()
 
-                        // Sync reserved activities (wait for completion before adding booked)
-                        self.syncReservedActivitiesWithTripItems { [weak self] in
+                        // Unified removal cascade. Collects every reason a segment may
+                        // need to be deleted (reserved→booked, city removed, day out of
+                        // range) into a single descending-index list, applies one
+                        // optimistic local remove + one delegate refresh, then runs a
+                        // single sequential DELETE cascade. On completion we add any
+                        // host-app booked activities not yet on the timeline.
+                        self.reconcileSegmentsWithItinerary { [weak self] in
                             guard let self = self else { return }
-
-                            // After reserved deletion completes, add missing booked activities
-                            print("🔄 [Sync] Reserved deletion completed, now adding missing booked activities")
+                            print("🔁 [Reconcile] Cascade completed, adding missing booked activities")
                             self.addMissingBookedActivities(from: itineraryModel)
                         }
-
-                        // Sync removed city segments (parallel with reserved sync)
-                        self.syncRemovedCitySegments()
 
                         // Notify delegate - UI is ready
                         self.delegate?.timelineItineraryViewModel(showLottieLoading: false)
@@ -809,285 +810,210 @@ extension TRPTimelineItineraryViewModel {
         }
     }
 
-    /// Removes reserved_activity segments that are now booked (exist in tripItems)
-    /// - Optimistic update: removes from local timeline first, then deletes via API in background
-    /// - Parameter completion: Called when all deletions are complete (or immediately if nothing to delete)
-    internal func syncReservedActivitiesWithTripItems(completion: @escaping () -> Void) {
-        print("🔄 [Reserved Sync] syncReservedActivitiesWithTripItems() called")
+    // MARK: - Unified segment-removal cascade
 
-        guard let itineraryModel = itineraryModel else {
-            print("🔄 [Reserved Sync] Early return: itineraryModel is nil")
-            completion()
-            return
+    /// A single segment slated for removal on SDK init. Reason is informational
+    /// (drives the log line) — the cascade treats every entry the same way.
+    internal struct SegmentRemovalCandidate {
+        let index: Int
+        let segment: TRPTimelineSegment
+        let reason: Reason
+
+        enum Reason {
+            case reservedNowBooked   // reserved activity that host now reports as booked
+            case cityRemoved         // segment's city is not in the incoming destinations
+            case outOfDateRange      // segment's day falls outside the new trip range
         }
+    }
 
-        guard let tripItems = itineraryModel.tripItems, !tripItems.isEmpty else {
-            print("🔄 [Reserved Sync] Early return: no tripItems")
-            completion()
-            return
-        }
+    /// Predicate filter shared by every collector: TimelineDate is never a
+    /// removal candidate (its date range is EDITed by `syncTimelineDateRange`,
+    /// not deleted), and only the segment types that actually carry user content
+    /// are deletable.
+    private func isSegmentEligibleForRemoval(_ segment: TRPTimelineSegment) -> Bool {
+        if segment.title == "TimelineDate" && segment.available == false { return false }
+        let deletable: [TRPTimelineSegmentType] = [.bookedActivity, .reservedActivity, .manualPoi, .itinerary]
+        return deletable.contains(segment.segmentType)
+    }
 
-        guard var mutableTimeline = timeline else {
-            print("🔄 [Reserved Sync] Early return: timeline is nil")
-            completion()
-            return
-        }
-
-        guard var segments = mutableTimeline.tripProfile?.segments else {
-            print("🔄 [Reserved Sync] Early return: segments is nil")
-            completion()
-            return
-        }
-
-        print("🔄 [Reserved Sync] Total segments: \(segments.count), tripItems: \(tripItems.count)")
-
-        // Extract activityIds from tripItems
+    /// Reserved activities that the host app now reports as booked in `tripItems`.
+    /// Pure: no mutation, no I/O.
+    internal func collectReservedNowBookedSegments(
+        in segments: [TRPTimelineSegment],
+        itinerary: TRPItineraryWithActivities
+    ) -> [SegmentRemovalCandidate] {
+        guard let tripItems = itinerary.tripItems, !tripItems.isEmpty else { return [] }
         let bookedActivityIds = Set(tripItems.compactMap { $0.activityId })
-        print("🔄 [Reserved Sync] Booked activity IDs: \(bookedActivityIds.sorted())")
 
-        // Find reserved_activity segments that are now booked
-        var segmentsToRemove: [(index: Int, segment: TRPTimelineSegment)] = []
-
+        var out: [SegmentRemovalCandidate] = []
         for (index, segment) in segments.enumerated() {
-            // Only check reserved_activity type
             guard segment.segmentType == .reservedActivity else { continue }
+            guard let activityId = segment.additionalData?.activityId else { continue }
+            if bookedActivityIds.contains(activityId) {
+                out.append(.init(index: index, segment: segment, reason: .reservedNowBooked))
+            }
+        }
+        return out
+    }
 
-            let segmentInfo = "[\(index)] \(segment.title ?? "nil") - activityId: \(segment.additionalData?.activityId ?? "nil")"
+    /// Segments whose city is not in the host app's incoming destinations
+    /// (or whose city is missing / has an invalid id). Pure: no mutation, no I/O.
+    internal func collectSegmentsForRemovedCities(
+        in segments: [TRPTimelineSegment],
+        itinerary: TRPItineraryWithActivities
+    ) -> [SegmentRemovalCandidate] {
+        let itineraryCityIds = Set(itinerary.destinationItems.compactMap { item -> Int? in
+            guard let cityId = item.cityId, cityId > 0 else { return nil }
+            return cityId
+        })
 
-            // Check if this reserved activity is now booked
-            guard let activityId = segment.additionalData?.activityId else {
-                print("🔄 [Reserved Sync] Skipping (no activityId): \(segmentInfo)")
+        var out: [SegmentRemovalCandidate] = []
+        for (index, segment) in segments.enumerated() {
+            guard isSegmentEligibleForRemoval(segment) else { continue }
+
+            // Match the pre-unification behaviour: an eligible segment with no
+            // valid city is also removed (city removed implicitly).
+            guard let city = segment.city, city.id > 0 else {
+                out.append(.init(index: index, segment: segment, reason: .cityRemoved))
                 continue
             }
-
-            if bookedActivityIds.contains(activityId) {
-                print("🔄 [Reserved Sync] Will remove (now booked): \(segmentInfo)")
-                segmentsToRemove.append((index, segment))
-            } else {
-                print("🔄 [Reserved Sync] Keeping (still reserved): \(segmentInfo)")
+            if !itineraryCityIds.contains(city.id) {
+                out.append(.init(index: index, segment: segment, reason: .cityRemoved))
             }
         }
+        return out
+    }
 
-        guard !segmentsToRemove.isEmpty else {
-            print("🔄 [Reserved Sync] No reserved activities to remove")
+    /// Segments whose day falls outside the incoming `[startDatetime, endDatetime]`
+    /// range — e.g. trip shrunk from 24-27 June to 24-26 June and a segment was
+    /// pinned to the 27th. Compares the `yyyy-MM-dd` prefix lex-wise (server-side
+    /// format `"yyyy-MM-dd HH:mm"` sorts correctly under string compare). A
+    /// segment with no parseable `startDate` is left alone (conservative).
+    /// Pure: no mutation, no I/O.
+    internal func collectSegmentsOutOfDateRange(
+        in segments: [TRPTimelineSegment],
+        itinerary: TRPItineraryWithActivities
+    ) -> [SegmentRemovalCandidate] {
+        let allowedStartDay = String(itinerary.startDatetime.prefix(10))
+        let allowedEndDay   = String(itinerary.endDatetime.prefix(10))
+
+        var out: [SegmentRemovalCandidate] = []
+        for (index, segment) in segments.enumerated() {
+            guard isSegmentEligibleForRemoval(segment) else { continue }
+            guard let raw = segment.startDate, raw.count >= 10 else { continue }
+            let day = String(raw.prefix(10))
+            if day < allowedStartDay || day > allowedEndDay {
+                out.append(.init(index: index, segment: segment, reason: .outOfDateRange))
+            }
+        }
+        return out
+    }
+
+    /// Single-pass reconciliation: collect every reason a segment may need to be
+    /// deleted (reserved→booked, city removed, day out of range), union by index,
+    /// apply ONE optimistic local remove + ONE delegate refresh, then run ONE
+    /// sequential DELETE cascade. This is the only segment-deletion entry point
+    /// in the SDK-init flow — running multiple cascades in parallel would race
+    /// on the backend's `segmentIndex` and corrupt the descending-delete invariant.
+    /// - Parameter completion: Called after every DELETE finishes (or immediately
+    ///   if there's nothing to delete / no tripHash).
+    internal func reconcileSegmentsWithItinerary(completion: @escaping () -> Void) {
+        print("🔁 [Reconcile] reconcileSegmentsWithItinerary() called")
+
+        guard let itinerary = itineraryModel else {
+            print("🔁 [Reconcile] Early return: itineraryModel is nil")
+            completion()
+            return
+        }
+        guard var mutableTimeline = timeline,
+              var segments = mutableTimeline.tripProfile?.segments else {
+            print("🔁 [Reconcile] Early return: timeline or segments is nil")
+            completion()
+            return
+        }
+        guard let tripHash = getTripHash() else {
+            print("🔁 [Reconcile] Early return: tripHash is nil")
             completion()
             return
         }
 
-        print("🔄 [Reserved Sync] Found \(segmentsToRemove.count) reserved activities to remove")
+        // STEP A: collect from all three sources
+        let reserved = collectReservedNowBookedSegments(in: segments, itinerary: itinerary)
+        let cities   = collectSegmentsForRemovedCities(in: segments, itinerary: itinerary)
+        let dates    = collectSegmentsOutOfDateRange(in: segments, itinerary: itinerary)
+        print("🔁 [Reconcile] candidates — reserved→booked: \(reserved.count), cityRemoved: \(cities.count), outOfDateRange: \(dates.count)")
 
-        // STEP 1: Remove from LOCAL timeline (reverse order to preserve indices)
-        let sortedIndices = segmentsToRemove.map { $0.index }.sorted(by: >)
-        for index in sortedIndices {
-            segments.remove(at: index)
+        // STEP B: union by segment index. A single segment may match more than one
+        // reason (e.g. on a removed day AND a removed city); we only want one
+        // DELETE per index. First-wins ordering matches the source priority above.
+        var byIndex: [Int: SegmentRemovalCandidate] = [:]
+        for candidate in (reserved + cities + dates) where byIndex[candidate.index] == nil {
+            byIndex[candidate.index] = candidate
         }
+        let unified = byIndex.values.sorted { $0.index > $1.index }   // highest index first
 
-        // Update local timeline
+        guard !unified.isEmpty else {
+            print("🔁 [Reconcile] No segments to remove, exiting")
+            completion()
+            return
+        }
+        print("🔁 [Reconcile] Found \(unified.count) unique segments to remove")
+
+        // STEP C: single local remove (descending indices stay valid as we shrink)
+        for candidate in unified {
+            segments.remove(at: candidate.index)
+        }
         mutableTimeline.tripProfile?.segments = segments
         self.timeline = mutableTimeline
 
-        // STEP 2: Update UI immediately (optimistic update)
+        // STEP D: single UI refresh — date filter, list, map all snap to the new
+        // state in one frame.
         processTimelineData()
         delegate?.timelineItineraryViewModel(didUpdateTimeline: true)
-        print("🔄 [Reserved Sync] Local timeline updated, UI refreshed")
+        print("🔁 [Reconcile] Local removal applied, UI refreshed")
 
-        // STEP 3: Delete via API in background, call completion when done
-        guard let tripHash = getTripHash() else {
-            completion()
-            return
-        }
-        deleteReservedActivitiesInBackground(segmentsToRemove: segmentsToRemove, tripHash: tripHash, completion: completion)
+        // STEP E: single sequential DELETE cascade (highest index first)
+        deleteSegmentsSequentially(unified, tripHash: tripHash, currentIndex: 0, completion: completion)
     }
 
-    /// Deletes reserved activities via API sequentially (highest index first)
-    /// - Parameters:
-    ///   - segmentsToRemove: Array of segments to delete (already sorted by index descending)
-    ///   - tripHash: Trip hash
-    ///   - completion: Called when all deletions are complete
-    private func deleteReservedActivitiesInBackground(
-        segmentsToRemove: [(index: Int, segment: TRPTimelineSegment)],
-        tripHash: String,
-        completion: @escaping () -> Void
-    ) {
-        // Delete in reverse order to preserve indices (highest index first)
-        let sorted = segmentsToRemove.sorted { $0.index > $1.index }
-        deleteReservedActivitiesSequentially(sorted: sorted, tripHash: tripHash, currentIndex: 0, completion: completion)
-    }
-
-    /// Recursively deletes reserved activities one by one, waiting for each to complete
-    /// - Parameters:
-    ///   - sorted: Sorted array of segments (highest index first)
-    ///   - tripHash: Trip hash
-    ///   - currentIndex: Current position in the array
-    ///   - completion: Called when all deletions are complete
-    private func deleteReservedActivitiesSequentially(
-        sorted: [(index: Int, segment: TRPTimelineSegment)],
+    /// Recursively DELETEs segments one by one, waiting for each backend response
+    /// before issuing the next. Highest-index-first ordering is the caller's
+    /// responsibility (see `reconcileSegmentsWithItinerary` STEP E).
+    private func deleteSegmentsSequentially(
+        _ sorted: [SegmentRemovalCandidate],
         tripHash: String,
         currentIndex: Int,
         completion: @escaping () -> Void
     ) {
-        // Base case: all deletions completed
         guard currentIndex < sorted.count else {
-            print("🔄 [Background Delete] All reserved activity deletions completed")
+            print("🔁 [Background Delete] All segment deletions completed (\(sorted.count) total)")
             completion()
             return
         }
 
-        let (segmentIndex, segment) = sorted[currentIndex]
-        let activityId = segment.additionalData?.activityId ?? "nil"
-        print("🔄 [Background Delete] [\(currentIndex + 1)/\(sorted.count)] Deleting reserved_activity: \(segment.title ?? "Unknown") (activityId: \(activityId), index: \(segmentIndex))")
+        let candidate = sorted[currentIndex]
+        let reasonTag: String
+        switch candidate.reason {
+        case .reservedNowBooked: reasonTag = "reservedNowBooked"
+        case .cityRemoved:       reasonTag = "cityRemoved"
+        case .outOfDateRange:    reasonTag = "outOfDateRange"
+        }
+        print("🔁 [Background Delete] [\(currentIndex + 1)/\(sorted.count)] reason=\(reasonTag) index=\(candidate.index) title=\(candidate.segment.title ?? "nil")")
 
         let repository = TRPTimelineRepository()
-        repository.deleteTimelineSegment(tripHash: tripHash, segmentIndex: segmentIndex) { [weak self] result in
+        repository.deleteTimelineSegment(tripHash: tripHash, segmentIndex: candidate.index) { [weak self] result in
             guard let self = self else { return }
 
             switch result {
             case .success:
-                print("🔄 [Background Delete] Success: index \(segmentIndex)")
+                print("🔁 [Background Delete] Success: index \(candidate.index)")
             case .failure(let error):
-                print("🔄 [Background Delete] Failed: index \(segmentIndex), error: \(error)")
+                print("🔁 [Background Delete] Failed: index \(candidate.index), error: \(error)")
             }
 
-            // Continue to next deletion regardless of success/failure
-            self.deleteReservedActivitiesSequentially(sorted: sorted, tripHash: tripHash, currentIndex: currentIndex + 1, completion: completion)
-        }
-    }
-
-    /// Syncs destinations by removing segments for cities no longer in itinerary
-    /// - Optimistic update: removes from local timeline first, then deletes via API in background
-    internal func syncRemovedCitySegments() {
-        print("🗑️ [Sync] syncRemovedCitySegments() called")
-
-        guard let itineraryModel = itineraryModel else {
-            print("🗑️ [Sync] Early return: itineraryModel is nil")
-            return
-        }
-        print("🗑️ [Sync] itineraryModel exists, destinationItems count: \(itineraryModel.destinationItems.count)")
-
-        guard var mutableTimeline = timeline else {
-            print("🗑️ [Sync] Early return: timeline is nil")
-            return
-        }
-
-        guard var segments = mutableTimeline.tripProfile?.segments else {
-            print("🗑️ [Sync] Early return: tripProfile.segments is nil")
-            return
-        }
-        print("🗑️ [Sync] Total segments count: \(segments.count)")
-
-        // Extract valid city IDs from itinerary
-        let itineraryCityIds = Set(itineraryModel.destinationItems.compactMap { item -> Int? in
-            guard let cityId = item.cityId, cityId > 0 else { return nil }
-            return cityId
-        })
-        print("🗑️ [Sync] Itinerary city IDs: \(itineraryCityIds.sorted())")
-
-        // Find segments to remove (by cityId)
-        var segmentsToRemove: [(index: Int, segment: TRPTimelineSegment)] = []
-
-        for (index, segment) in segments.enumerated() {
-            let segmentInfo = "[\(index)] \(segment.title ?? "nil") - type: \(segment.segmentType.rawValue) - cityId: \(segment.city?.id ?? -1) - cityName: \(segment.city?.name ?? "nil")"
-
-            // Skip TimelineDate (trip-level, not city-specific)
-            if segment.title == "TimelineDate" && segment.available == false {
-                print("🗑️ [Sync] Skipping TimelineDate: \(segmentInfo)")
-                continue
-            }
-
-            // Only process deletable types
-            let isDeletable = [.bookedActivity, .reservedActivity, .manualPoi, .itinerary].contains(segment.segmentType)
-            guard isDeletable else {
-                print("🗑️ [Sync] Skipping non-deletable type: \(segmentInfo)")
-                continue
-            }
-
-            // Check if city should be removed
-            guard let city = segment.city, city.id > 0 else {
-                print("🗑️ [Sync] Will remove (no valid city): \(segmentInfo)")
-                segmentsToRemove.append((index, segment))
-                continue
-            }
-
-            if !itineraryCityIds.contains(city.id) {
-                print("🗑️ [Sync] Will remove (city not in itinerary): \(segmentInfo)")
-                segmentsToRemove.append((index, segment))
-            } else {
-                print("🗑️ [Sync] Keeping (city in itinerary): \(segmentInfo)")
-            }
-        }
-
-        guard !segmentsToRemove.isEmpty else {
-            print("🗑️ [Sync] No segments to remove, exiting")
-            return
-        }
-
-        print("🗑️ [Sync] Found \(segmentsToRemove.count) segments to remove")
-
-        // STEP 1: Remove from LOCAL timeline (reverse order to preserve indices)
-        let sortedIndices = segmentsToRemove.map { $0.index }.sorted(by: >)
-        for index in sortedIndices {
-            segments.remove(at: index)
-        }
-
-        // Update local timeline
-        mutableTimeline.tripProfile?.segments = segments
-        self.timeline = mutableTimeline
-
-        // STEP 2: Update UI immediately (optimistic update)
-        processTimelineData()
-        delegate?.timelineItineraryViewModel(didUpdateTimeline: true)
-
-        // STEP 3: Delete via API in background (async, non-blocking)
-        guard let tripHash = getTripHash() else { return }
-        deleteRemovedCitySegmentsInBackground(segmentsToRemove: segmentsToRemove, tripHash: tripHash)
-    }
-
-    /// Deletes segments via API sequentially (highest index first)
-    /// - Parameters:
-    ///   - segmentsToRemove: Array of segments to delete (already sorted by index descending)
-    ///   - tripHash: Trip hash
-    private func deleteRemovedCitySegmentsInBackground(
-        segmentsToRemove: [(index: Int, segment: TRPTimelineSegment)],
-        tripHash: String
-    ) {
-        // Delete in reverse order to preserve indices (highest index first)
-        let sorted = segmentsToRemove.sorted { $0.index > $1.index }
-        deleteRemovedCitySegmentsSequentially(sorted: sorted, tripHash: tripHash, currentIndex: 0)
-    }
-
-    /// Recursively deletes segments one by one, waiting for each to complete
-    /// - Parameters:
-    ///   - sorted: Sorted array of segments (highest index first)
-    ///   - tripHash: Trip hash
-    ///   - currentIndex: Current position in the array
-    private func deleteRemovedCitySegmentsSequentially(
-        sorted: [(index: Int, segment: TRPTimelineSegment)],
-        tripHash: String,
-        currentIndex: Int
-    ) {
-        // Base case: all deletions completed
-        guard currentIndex < sorted.count else {
-            print("🗑️ [Background Delete] All city segment deletions completed")
-            return
-        }
-
-        let (segmentIndex, segment) = sorted[currentIndex]
-        let cityName = segment.city?.name ?? "Unknown"
-        print("🗑️ [Background Delete] [\(currentIndex + 1)/\(sorted.count)] Deleting segment: \(segment.title ?? "Unknown") (city: \(cityName), index: \(segmentIndex))")
-
-        let repository = TRPTimelineRepository()
-        repository.deleteTimelineSegment(tripHash: tripHash, segmentIndex: segmentIndex) { [weak self] result in
-            guard let self = self else { return }
-
-            switch result {
-            case .success:
-                print("🗑️ [Background Delete] Success: index \(segmentIndex)")
-            case .failure(let error):
-                print("🗑️ [Background Delete] Failed: index \(segmentIndex), error: \(error)")
-            }
-
-            // Continue to next deletion regardless of success/failure
-            self.deleteRemovedCitySegmentsSequentially(sorted: sorted, tripHash: tripHash, currentIndex: currentIndex + 1)
+            // Continue regardless of success/failure — partial progress is still
+            // better than aborting on a transient failure.
+            self.deleteSegmentsSequentially(sorted, tripHash: tripHash, currentIndex: currentIndex + 1, completion: completion)
         }
     }
 }

@@ -127,10 +127,12 @@ extension SavedPlansVC: UITableViewDelegate {
     public func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         tableView.deselectRow(at: indexPath, animated: true)
 
-        // Open activity detail
+        // Open activity detail. Favourite items can carry either the raw id
+        // (`"12345"`) or the `C_{id}_{provider}` form depending on where they
+        // came from — normalize so the host always sees the bare product id.
         if let item = viewModel.getItem(at: indexPath),
            let activityId = item.activityId {
-            TRPCoreKit.shared.delegate?.trpCoreKitDidRequestActivityDetail(activityId: activityId)
+            TRPCoreKit.shared.delegate?.trpCoreKitDidRequestActivityDetail(activityId: activityId.cleanedAsActivityId())
         }
     }
 

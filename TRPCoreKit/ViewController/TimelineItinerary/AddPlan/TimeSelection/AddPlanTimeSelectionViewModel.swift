@@ -658,8 +658,18 @@ public class AddPlanTimeSelectionViewModel {
             let currency = TRPClient.getCurrency()
             activityPrice = TRPSegmentActivityPrice(currency: currency, value: slotPrice)
         } else if let priceValue = tour.price, priceValue > 0 {
-            // Fallback to tour price
-            let currency = tour.offers.first?.currency.rawValue ?? "EUR"
+            // Fallback to tour price. `tour.offers` is empty for every TRPTourProduct
+            // we construct today (search mapper, saved-plans converter, time-selection
+            // stubs all pass `offers: []`), so the offer-derived currency was
+            // effectively dead code. `tour.currency` carries the API/source currency
+            // (search mapper sets it from `restModel.currency`; saved-plans converter
+            // sets it from `item.price?.currency`). When neither is set, fall back to
+            // the SDK-configured currency from `TRPClient.getCurrency()` rather than
+            // hard-coding "EUR" — the host app's selected currency is the correct
+            // last resort.
+            let currency = tour.offers.first?.currency.rawValue
+                ?? tour.currency
+                ?? TRPClient.getCurrency()
             activityPrice = TRPSegmentActivityPrice(currency: currency, value: priceValue)
         }
 

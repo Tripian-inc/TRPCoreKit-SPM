@@ -29,6 +29,13 @@ class TRPSingleTimePickerViewController: TRPBaseUIViewController, DynamicHeightP
     private var maximumTime: Date?       // Max selectable time
     private let pickerTitle: String
     private let showBackButton: Bool     // Show back button instead of close (X)
+    /// When `true`, the confirm button stays disabled while the picker is sitting
+    /// exactly on `minimumTime` — i.e. the minimum is shown on the wheel but is
+    /// not itself a valid selection. Use this for end-time pickers where the
+    /// minimum is the *start* time: the user can scroll to it but must move past
+    /// it before confirming. Default `false` preserves the original behaviour
+    /// (minimum value is selectable like any other).
+    private let strictMinimum: Bool
 
     // MARK: - UI Components
     private let headerView: UIView = {
@@ -99,13 +106,15 @@ class TRPSingleTimePickerViewController: TRPBaseUIViewController, DynamicHeightP
          minimumTime: Date? = nil,
          maximumTime: Date? = nil,
          initialTime: Date? = nil,
-         showBackButton: Bool = false) {
+         showBackButton: Bool = false,
+         strictMinimum: Bool = false) {
         self.pickerTitle = title
         self.selectedDate = selectedDate
         self.minimumTime = minimumTime
         self.maximumTime = maximumTime
         self.selectedTime = initialTime
         self.showBackButton = showBackButton
+        self.strictMinimum = strictMinimum
         super.init(nibName: nil, bundle: nil)
     }
 
@@ -327,7 +336,28 @@ class TRPSingleTimePickerViewController: TRPBaseUIViewController, DynamicHeightP
 
     // MARK: - UI Updates
     private func updateConfirmButtonState() {
-        confirmButton.setEnabled(selectedTime != nil)
+        guard let selectedTime = selectedTime else {
+            confirmButton.setEnabled(false)
+            return
+        }
+
+        // Strict-minimum mode: confirm stays disabled while the user is sitting
+        // on the minimum value. We compare HH:mm only — `selectedTime` and
+        // `minimumTime` can carry different date components (initialTime is on
+        // the planned day, `applyTimeRestrictions` builds `minimumDate` on
+        // today), so a full Date comparison would behave inconsistently for
+        // future-day pickers. HH:mm is the only meaningful axis for `.time` mode.
+        if strictMinimum, let minTime = minimumTime {
+            let calendar = Calendar.current
+            let selectedComps = calendar.dateComponents([.hour, .minute], from: selectedTime)
+            let minComps = calendar.dateComponents([.hour, .minute], from: minTime)
+            let selectedMinutes = (selectedComps.hour ?? 0) * 60 + (selectedComps.minute ?? 0)
+            let minMinutes = (minComps.hour ?? 0) * 60 + (minComps.minute ?? 0)
+            confirmButton.setEnabled(selectedMinutes > minMinutes)
+            return
+        }
+
+        confirmButton.setEnabled(true)
     }
 
     // MARK: - Public Methods

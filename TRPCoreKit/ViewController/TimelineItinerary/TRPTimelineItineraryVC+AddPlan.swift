@@ -308,14 +308,15 @@ extension TRPTimelineItineraryVC: UICollectionViewDataSource, UICollectionViewDe
                 navigationController?.pushViewController(detailVC, animated: true)
 
             case .activity(let segment):
-                // Booked → bookingDetail with bookingId; Reserved → activityDetail with activityId
+                // Booked → bookingDetail with bookingId; Reserved → activityDetail with activityId.
+                // Both ids are normalized via `cleanedAsActivityId()` so the host always
+                // sees the bare product id regardless of the `C_*` encoding.
                 if segment.segmentType == .bookedActivity {
                     guard let bookingId = segment.additionalData?.bookingId else { return }
-                    TRPCoreKit.shared.delegate?.trpCoreKitDidRequestBookingDetail(bookingId: bookingId)
+                    TRPCoreKit.shared.delegate?.trpCoreKitDidRequestBookingDetail(bookingId: bookingId.cleanedAsActivityId())
                 } else {
                     guard let activityId = segment.additionalData?.activityId else { return }
-                    let cleanedId = activityId.cleanedAsActivityId()
-                    TRPCoreKit.shared.delegate?.trpCoreKitDidRequestActivityDetail(activityId: cleanedId)
+                    TRPCoreKit.shared.delegate?.trpCoreKitDidRequestActivityDetail(activityId: activityId.cleanedAsActivityId())
                 }
             }
         } else {

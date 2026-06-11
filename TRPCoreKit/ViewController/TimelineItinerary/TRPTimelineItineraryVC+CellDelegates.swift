@@ -58,9 +58,12 @@ extension TRPTimelineItineraryVC: TRPTimelineDayFilterViewDelegate {
 extension TRPTimelineItineraryVC: TRPTimelineBookedActivityCellDelegate {
 
     func bookedActivityCellDidTapCell(_ cell: TRPTimelineBookedActivityCell, segment: TRPTimelineSegment) {
-        // Booked activity → host opens booking detail (not activity detail)
+        // Booked activity → host opens booking detail (not activity detail).
+        // Normalize through `cleanedAsActivityId()` so the host receives the bare
+        // id even if the booking id happens to arrive in `C_{id}_{provider}` form.
+        // For plain ids (`"2113"`, `"BOOKING-RENFE-789"`) the helper is a no-op.
         guard let bookingId = segment.additionalData?.bookingId else { return }
-        TRPCoreKit.shared.delegate?.trpCoreKitDidRequestBookingDetail(bookingId: bookingId)
+        TRPCoreKit.shared.delegate?.trpCoreKitDidRequestBookingDetail(bookingId: bookingId.cleanedAsActivityId())
     }
 }
 
@@ -197,11 +200,17 @@ extension TRPTimelineItineraryVC: TRPTimelineManualPoiCellDelegate {
         let timeRangeVC = TRPTimeRangeSelectionViewController()
         timeRangeVC.delegate = self
 
-        // Parse segment times and set as initial values
+        // Parse segment times in LOCAL timezone for display. `TRPTimeRangeSelectionViewController`
+        // formats `fromDate`/`toDate` via a plain `DateFormatter` (no timezone set → device-local),
+        // so a UTC-parsed Date would show shifted by the UTC offset (e.g. server "14:00" →
+        // displayed "5:00 PM" in Istanbul +3). The POI-step change-time path solved this with
+        // `parseStepDateTime` already; reuse it here so the manual-POI change-time field shows
+        // the literal stored HH:mm. `parseSegmentDateTime` stays UTC because it also feeds
+        // `resolveReservationDate`, where the host expects UTC HH:mm in the delivered Date.
         if let startDateStr = segment.startDate,
            let endDateStr = segment.endDate,
-           let startDate = parseSegmentDateTime(startDateStr),
-           let endDate = parseSegmentDateTime(endDateStr) {
+           let startDate = parseStepDateTime(startDateStr),
+           let endDate = parseStepDateTime(endDateStr) {
             timeRangeVC.setInitialTimes(from: startDate, to: endDate)
         }
 

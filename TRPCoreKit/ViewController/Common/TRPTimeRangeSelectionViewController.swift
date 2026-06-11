@@ -204,13 +204,21 @@ class TRPTimeRangeSelectionViewController: TRPBaseUIViewController, DynamicHeigh
 
     private func endTimeFieldTapped() {
         editingStartTime = false
+        // Strict-minimum only when an actual start time exists. In that case the
+        // picker minimum IS the start time and must NOT itself be confirmable
+        // (end > start). Without a start time, the minimum is the earliest
+        // sensible moment (today+30m, or unrestricted on future days) and is a
+        // valid pick on its own. Mirrors the smart-recommendation screen
+        // (`AddPlanTimeAndTravelersVC.endTimeButtonTapped`).
+        let hasStartTime = fromDate != nil
         let picker = TRPSingleTimePickerViewController(
             title: AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.endTime),
             selectedDate: selectedDate,
             minimumTime: getMinimumEndTime(),
             maximumTime: nil,
             initialTime: toDate,
-            showBackButton: true
+            showBackButton: true,
+            strictMinimum: hasStartTime
         )
         picker.delegate = self
         presentVCWithDynamicHeight(picker)

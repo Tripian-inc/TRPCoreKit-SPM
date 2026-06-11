@@ -210,9 +210,16 @@ public class TRPTimelineItineraryViewModel {
 
         processTimelineData()
 
-        print("🔵 [ViewModel Init] About to call syncRemovedCitySegments()")
-        // Sync removed city segments (optimistic update)
-        syncRemovedCitySegments()
+        // Unified removal cascade. Same single-pass DELETE cascade used by the
+        // fetchTimeline path: collects reserved→booked, city-removed, and
+        // day-out-of-range candidates into one descending-index list and runs a
+        // single optimistic local remove + one sequential DELETE pipeline.
+        // `addMissingBookedActivities` runs once the cascade settles so any new
+        // booked segments aren't inserted while indices are still shifting.
+        reconcileSegmentsWithItinerary { [weak self] in
+            guard let self = self else { return }
+            self.addMissingBookedActivities(from: itineraryModel)
+        }
 
         // Resolve favourite item city IDs asynchronously, then notify UI
         resolveFavouriteItemCities { [weak self] in
@@ -220,9 +227,6 @@ public class TRPTimelineItineraryViewModel {
             DispatchQueue.main.async {
                 self.filterFavoriteItems()
                 self.delegate?.timelineItineraryViewModel(didUpdateTimeline: true)
-
-                // Check for missing booked activities and add via API if needed
-                self.addMissingBookedActivities(from: itineraryModel)
             }
         }
     }
