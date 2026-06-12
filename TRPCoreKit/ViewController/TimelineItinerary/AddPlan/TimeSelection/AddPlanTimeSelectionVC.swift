@@ -12,26 +12,17 @@ public class AddPlanTimeSelectionVC: TRPBaseUIViewController, DynamicHeightPrese
 
     // MARK: - DynamicHeightPresentable
     public var preferredContentHeight: CGFloat {
-        // Top chrome: nav bar + (day filter chrome) + title chrome. Step edit mode
-        // hides the day filter (the step is locked to its own day) so the chrome
-        // shrinks by the filter band + its top gap.
+        // Step edit mode hides the day filter (step locked to its own day), so its chrome is shorter.
         let chrome: CGFloat
         if viewModel?.isStepEditMode == true {
-            // nav bar + gap-to-title + title chrome
             chrome = 56 + 24 + 24
         } else {
-            // nav bar + gap-to-day + day filter + gap-to-title + title chrome
             chrome = 56 + 16 + 48 + 24 + 24
         }
-        // Bottom: 16pt gap above button + button (52) + home-indicator inset.
-        // `safeAreaInsets` is 0 before the view is in a window, so fall back to 34pt
-        // (typical home-indicator height) — close enough for the initial sheet sizing
-        // and refined after `updateSheetHeight` runs post-layout.
+        // `safeAreaInsets` is 0 before the view is in a window; fall back to 34pt and refine post-layout.
         let safeAreaBottom = view.safeAreaInsets.bottom > 0 ? view.safeAreaInsets.bottom : 34
         let bottom: CGFloat = 16 + 52 + safeAreaBottom
 
-        // viewModel may be force-unwrapped post-init, but guard defensively in case
-        // this is queried before the model is ready.
         let allDaysUnavailable = viewModel?.allDaysUnavailable() == true
         let isFlexible = !allDaysUnavailable && viewModel?.isSelectedDayFlexible() == true
 
@@ -39,7 +30,6 @@ public class AddPlanTimeSelectionVC: TRPBaseUIViewController, DynamicHeightPrese
             ? view.bounds.width
             : UIScreen.main.bounds.width
         let labelFont = FontSet.montserratMedium.font(14)
-        // Card label width = view width − (16+16 outer h-margin) − (16 icon left + 20 icon + 8 gap + 16 label right)
         let cardLabelMaxWidth = max(0, availableWidth - 92)
 
         let middle: CGFloat
@@ -47,13 +37,9 @@ public class AddPlanTimeSelectionVC: TRPBaseUIViewController, DynamicHeightPrese
             let bannerText = AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.activityNotAvailableForTrip)
             let bannerLabelHeight = Self.textHeight(for: bannerText, font: labelFont, maxWidth: cardLabelMaxWidth)
             let bannerHeight = 16 + max(20, bannerLabelHeight) + 16
-            // 16 (banner top from title) + bannerHeight + 16 (banner bottom to button)
             middle = 16 + bannerHeight + 16
         } else if isFlexible {
-            // Measure the live label texts at the available width so the sheet adapts
-            // to translations and screen sizes — wrap-induced extra lines grow the
-            // sheet just enough, no clipping.
-            // Subtitle width = view width − (16+16 h-margin)
+            // Measure live label heights so the sheet adapts to translation-induced wrapping without clipping.
             let subtitleMaxWidth = max(0, availableWidth - 32)
 
             let cardLabelText = AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.flexibleTimeInfo)
@@ -62,18 +48,11 @@ public class AddPlanTimeSelectionVC: TRPBaseUIViewController, DynamicHeightPrese
             let cardLabelHeight = Self.textHeight(for: cardLabelText, font: labelFont, maxWidth: cardLabelMaxWidth)
             let subtitleHeight = Self.textHeight(for: subtitleText, font: labelFont, maxWidth: subtitleMaxWidth)
 
-            // Card: 16pt top padding + max(icon, label) + 16pt bottom padding.
             let cardHeight = 16 + max(20, cardLabelHeight) + 16
 
-            // 16 (card top from title) + cardHeight + 8 (subtitle top from card)
-            // + subtitleHeight + 32 (subtitle bottom to button)
             middle = 16 + cardHeight + 8 + subtitleHeight + 32
         } else {
-            // Timed grid — height grows with the number of visible cells so the sheet
-            // shrinks for short lists (1 row) and expands for long ones (≥3 rows).
-            // The "Show more" affordance is rendered as the 8th cell, so it just
-            // counts as one more slot in the grid for sizing purposes.
-            // Cell: 40pt tall, 12pt line spacing, 4 columns.
+            // Timed grid grows with visible cell count; the "Show more" affordance counts as one extra slot.
             let displayedCount = viewModel?.getDisplayedTimeSlots().count ?? 0
             let extraForShowMore = (viewModel?.hasMoreTimeSlotsToShow() == true) ? 1 : 0
             let cellCount = displayedCount + extraForShowMore
@@ -82,28 +61,24 @@ public class AddPlanTimeSelectionVC: TRPBaseUIViewController, DynamicHeightPrese
             let lineSpacing: CGFloat = 12
             let gridHeight = CGFloat(rowCount) * cellHeight + CGFloat(max(0, rowCount - 1)) * lineSpacing
 
-            // Sold-out warning banner — present only in edit mode when the saved time
-            // is missing from the schedule response. Sits directly above the continue
-            // button with a 16pt gap on either side.
+            // Sold-out banner present only in edit mode when the saved time is missing from the schedule.
             let showSoldOut = viewModel?.shouldShowSoldOutWarning == true
             let soldOutContribution: CGFloat
             if showSoldOut {
                 let soldOutText = AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.soldOutWarning)
                 let soldOutLabelHeight = Self.textHeight(for: soldOutText, font: labelFont, maxWidth: cardLabelMaxWidth)
                 let soldOutHeight = 16 + max(20, soldOutLabelHeight) + 16
-                soldOutContribution = soldOutHeight + 16  // banner + gap to button
+                soldOutContribution = soldOutHeight + 16
             } else {
                 soldOutContribution = 0
             }
 
-            // 16 (collection top) + grid + 16 (grid bottom gap) + [soldOut + 16]?
             middle = 16 + gridHeight + 16 + soldOutContribution
         }
         return chrome + middle + bottom
     }
 
-    /// Measure the rendered height of `text` at the given font and width — used to
-    /// size the dynamic-height sheet around translation-dependent label content.
+    /// Measure the rendered height of `text` at the given font and width.
     private static func textHeight(for text: String, font: UIFont, maxWidth: CGFloat) -> CGFloat {
         guard maxWidth > 0 else { return 0 }
         let constrainedSize = CGSize(width: maxWidth, height: .greatestFiniteMagnitude)
@@ -119,16 +94,13 @@ public class AddPlanTimeSelectionVC: TRPBaseUIViewController, DynamicHeightPrese
     // MARK: - Properties
     private var viewModel: AddPlanTimeSelectionViewModel!
 
-    // Callback when time selection is completed
     public var onTimeSelected: ((Date, TimeSlot) -> Void)?
 
-    // Callback when segment creation completes successfully, passes selected day for navigation
+    /// Passes the selected day for navigation.
     public var onSegmentCreated: ((Date?) -> Void)?
 
-    // Callback when segment update completes successfully (edit mode)
     public var onSegmentUpdated: (() -> Void)?
 
-    // Callback when step update completes successfully (step edit mode)
     public var onStepUpdated: (() -> Void)?
 
     // MARK: - UI Components
@@ -194,8 +166,7 @@ public class AddPlanTimeSelectionVC: TRPBaseUIViewController, DynamicHeightPrese
     }()
 
     // MARK: - Flexible-time UI
-    /// Container for flexible-time activities — info icon + descriptive text rendered
-    /// in place of the time grid when the selected day has no specific slots.
+    /// Shown in place of the time grid when the selected day has no specific slots.
     private let flexibleInfoCard: UIView = {
         let view = UIView()
         view.translatesAutoresizingMaskIntoConstraints = false
@@ -208,7 +179,6 @@ public class AddPlanTimeSelectionVC: TRPBaseUIViewController, DynamicHeightPrese
     private let flexibleInfoIcon: UIImageView = {
         let iv = UIImageView()
         iv.translatesAutoresizingMaskIntoConstraints = false
-        // Same icon family used by the listing screen's info button.
         iv.image = UIImage(systemName: "info.circle")
         iv.tintColor = ColorSet.infoIcon.uiColor
         iv.contentMode = .scaleAspectFit
@@ -237,8 +207,7 @@ public class AddPlanTimeSelectionVC: TRPBaseUIViewController, DynamicHeightPrese
     }()
 
     // MARK: - All-days-unavailable banner
-    /// Cream/orange warning card shown in place of the time grid when the activity
-    /// has no availability on any day of the trip.
+    /// Shown in place of the time grid when the activity has no availability on any trip day.
     private let unavailableBanner: UIView = {
         let view = UIView()
         view.translatesAutoresizingMaskIntoConstraints = false
@@ -268,10 +237,7 @@ public class AddPlanTimeSelectionVC: TRPBaseUIViewController, DynamicHeightPrese
     }()
 
     // MARK: - Sold-out warning banner
-    /// Red-tinted warning shown above the continue button during change-time when the
-    /// activity's previously-saved time is no longer in the schedule response (sold
-    /// out or in the past). Paired with a disabled placeholder cell in the time grid
-    /// at that slot. Visible only in edit mode.
+    /// Edit-mode warning when the activity's saved time is no longer in the schedule (sold out / past).
     private let soldOutBanner: UIView = {
         let view = UIView()
         view.translatesAutoresizingMaskIntoConstraints = false
@@ -299,11 +265,9 @@ public class AddPlanTimeSelectionVC: TRPBaseUIViewController, DynamicHeightPrese
         return label
     }()
 
-    /// Bottom constraint pinning the collection view directly above the continue
-    /// button (used when the sold-out banner is hidden).
+    /// Pins the collection view above the continue button (sold-out banner hidden).
     private var collectionViewBottomToContinue: NSLayoutConstraint!
-    /// Bottom constraint pinning the collection view to the sold-out banner (used in
-    /// edit mode when the activity's saved time is missing from the schedule).
+    /// Pins the collection view above the sold-out banner (banner visible).
     private var collectionViewBottomToSoldOutBanner: NSLayoutConstraint!
 
     // MARK: - Initialization
@@ -313,14 +277,14 @@ public class AddPlanTimeSelectionVC: TRPBaseUIViewController, DynamicHeightPrese
         self.viewModel.delegate = self
     }
 
-    /// Edit mode - for changing time of existing reserved activity
+    /// Edit mode — change time of an existing reserved activity.
     public init(segment: TRPTimelineSegment, planData: AddPlanData) {
         super.init(nibName: nil, bundle: nil)
         self.viewModel = AddPlanTimeSelectionViewModel(segment: segment, planData: planData)
         self.viewModel.delegate = self
     }
 
-    /// Step edit mode - for changing time of activity steps in recommendations
+    /// Step edit mode — change time of an activity step in recommendations.
     public init(step: TRPTimelineStep, planData: AddPlanData) {
         super.init(nibName: nil, bundle: nil)
         self.viewModel = AddPlanTimeSelectionViewModel(step: step, planData: planData)
@@ -338,7 +302,6 @@ public class AddPlanTimeSelectionVC: TRPBaseUIViewController, DynamicHeightPrese
         setupDayFilter()
         setupActions()
 
-        // Fetch time slots
         viewModel.fetchTimeSlots()
     }
 
@@ -346,8 +309,6 @@ public class AddPlanTimeSelectionVC: TRPBaseUIViewController, DynamicHeightPrese
     private func setupUI() {
         view.backgroundColor = .white
 
-        // Setup navigation bar using base class method
-        // Use different title for edit mode
         let navTitle = viewModel.isEditMode
             ? TimelineLocalizationKeys.localized(TimelineLocalizationKeys.changeTime)
             : AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.addPlan)
@@ -372,10 +333,7 @@ public class AddPlanTimeSelectionVC: TRPBaseUIViewController, DynamicHeightPrese
         view.addSubview(continueButton)
         view.addSubview(loadingIndicator)
 
-        // Step edit mode (change-time for an itinerary activity step) is locked to
-        // the step's own day — the user can't move an activity step to another
-        // day from here. Hide the day filter and anchor the title directly under
-        // the nav bar so the sheet doesn't reserve unused vertical chrome.
+        // Step edit mode is locked to the step's own day: hide the day filter and pin the title under the nav bar.
         let hideDayFilter = viewModel.isStepEditMode
         dayFilterView.isHidden = hideDayFilter
 
@@ -399,58 +357,41 @@ public class AddPlanTimeSelectionVC: TRPBaseUIViewController, DynamicHeightPrese
         }
 
         NSLayoutConstraint.activate([
-            // Collection View — bottom anchor is wired to one of two constraints
-            // (toggled in `updateBookingAvailabilityBanner`): directly to the continue
-            // button when the banner is hidden, or to the banner top when visible.
-            // The "Show more" link is rendered as the 8th cell inside the grid (not a
-            // separate subview).
             collectionView.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 16),
             collectionView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
             collectionView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
 
-            // Continue Button
             continueButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
             continueButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
             continueButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -16),
 
-            // Loading Indicator
             loadingIndicator.centerXAnchor.constraint(equalTo: view.centerXAnchor),
             loadingIndicator.centerYAnchor.constraint(equalTo: view.centerYAnchor),
 
-            // Empty State Label
             emptyStateLabel.centerXAnchor.constraint(equalTo: collectionView.centerXAnchor),
             emptyStateLabel.centerYAnchor.constraint(equalTo: collectionView.centerYAnchor),
             emptyStateLabel.leadingAnchor.constraint(equalTo: collectionView.leadingAnchor, constant: 16),
             emptyStateLabel.trailingAnchor.constraint(equalTo: collectionView.trailingAnchor, constant: -16),
 
-            // Flexible-time card — same top/leading/trailing as the collection view so it
-            // takes the time grid's slot. Hidden by default; toggled in `timeSlotsDidLoad`.
             flexibleInfoCard.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 16),
             flexibleInfoCard.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
             flexibleInfoCard.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
 
-            // 20×20 info icon, 16pt from the card's top/left edges.
             flexibleInfoIcon.leadingAnchor.constraint(equalTo: flexibleInfoCard.leadingAnchor, constant: 16),
             flexibleInfoIcon.topAnchor.constraint(equalTo: flexibleInfoCard.topAnchor, constant: 16),
             flexibleInfoIcon.widthAnchor.constraint(equalToConstant: 20),
             flexibleInfoIcon.heightAnchor.constraint(equalToConstant: 20),
 
-            // Message label — 16pt top/right/bottom margins; 8pt gap from icon.
             flexibleInfoLabel.topAnchor.constraint(equalTo: flexibleInfoCard.topAnchor, constant: 16),
             flexibleInfoLabel.bottomAnchor.constraint(equalTo: flexibleInfoCard.bottomAnchor, constant: -16),
             flexibleInfoLabel.leadingAnchor.constraint(equalTo: flexibleInfoIcon.trailingAnchor, constant: 8),
             flexibleInfoLabel.trailingAnchor.constraint(equalTo: flexibleInfoCard.trailingAnchor, constant: -16),
 
-            // Subtitle hint — 8pt from the card; 16pt horizontal; pinned 16pt above the
-            // continue button so it sits flush at the bottom when the flexible UI is shown
-            // (the dynamic-height sheet then sizes the screen to fit just this content).
             flexibleSubtitleLabel.topAnchor.constraint(equalTo: flexibleInfoCard.bottomAnchor, constant: 8),
             flexibleSubtitleLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
             flexibleSubtitleLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
             flexibleSubtitleLabel.bottomAnchor.constraint(lessThanOrEqualTo: continueButton.topAnchor, constant: -32),
 
-            // Unavailable banner — same horizontal alignment as the flexible card; takes
-            // the time grid's slot when shown. Hidden by default.
             unavailableBanner.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 16),
             unavailableBanner.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
             unavailableBanner.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
@@ -465,7 +406,6 @@ public class AddPlanTimeSelectionVC: TRPBaseUIViewController, DynamicHeightPrese
             unavailableBannerLabel.leadingAnchor.constraint(equalTo: unavailableBannerIcon.trailingAnchor, constant: 8),
             unavailableBannerLabel.trailingAnchor.constraint(equalTo: unavailableBanner.trailingAnchor, constant: -16),
 
-            // Sold-out warning — sits directly above the continue button.
             soldOutBanner.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
             soldOutBanner.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
             soldOutBanner.bottomAnchor.constraint(equalTo: continueButton.topAnchor, constant: -16),
@@ -481,17 +421,13 @@ public class AddPlanTimeSelectionVC: TRPBaseUIViewController, DynamicHeightPrese
             soldOutBannerLabel.trailingAnchor.constraint(equalTo: soldOutBanner.trailingAnchor, constant: -16),
         ])
 
-        // Two mutually-exclusive bottom constraints for the collection view, toggled
-        // by `updateSoldOutBanner(_:)`:
-        //   - sold-out hidden  → pinned to the continue button
-        //   - sold-out visible → pinned to the sold-out banner top
+        // Two mutually-exclusive bottom constraints toggled by `updateSoldOutBanner(_:)`.
         collectionViewBottomToContinue = collectionView.bottomAnchor.constraint(
             equalTo: continueButton.topAnchor, constant: -16
         )
         collectionViewBottomToSoldOutBanner = collectionView.bottomAnchor.constraint(
             equalTo: soldOutBanner.topAnchor, constant: -16
         )
-        // Default: banner hidden, collection view extends to the continue button.
         collectionViewBottomToContinue.isActive = true
     }
 
@@ -517,27 +453,20 @@ public class AddPlanTimeSelectionVC: TRPBaseUIViewController, DynamicHeightPrese
         let selectedTimeSlot = viewModel.getSelectedTimeSlot()
         guard selectedTimeSlot != nil || viewModel.isSelectedDayFlexible() else { return }
 
-        // Call existing callback (for compatibility) only when an actual slot is picked.
         if let selectedTimeSlot = selectedTimeSlot {
             onTimeSelected?(selectedDate, selectedTimeSlot)
         }
 
-        // Create or update based on mode
         if viewModel.isStepEditMode {
-            // Step edit mode - update activity step time
             viewModel.updateActivityStep()
         } else if viewModel.isEditMode {
-            // Segment edit mode - update reserved activity segment time
             viewModel.updateReservedActivitySegment()
         } else {
-            // Create mode - create new reserved activity segment
             viewModel.createReservedActivitySegment()
         }
     }
 
-    /// Expand the slot grid in response to a tap on the "Show more" cell. Reloads the
-    /// collection view so the previously-clipped slots animate in, and refreshes the
-    /// sheet detent because the grid now has more rows.
+    /// Expand the slot grid on a "Show more" tap and refresh the sheet detent for the new rows.
     private func handleShowMoreTapped() {
         viewModel.expandTimeSlots()
         collectionView.reloadData()
@@ -550,9 +479,7 @@ public class AddPlanTimeSelectionVC: TRPBaseUIViewController, DynamicHeightPrese
         continueButton.setEnabled(canContinue)
     }
 
-    /// Toggle the red sold-out warning and swap the collection view's bottom anchor
-    /// to whichever element directly follows the grid (the banner when visible,
-    /// otherwise the continue button).
+    /// Toggle the sold-out warning and swap the collection view's bottom anchor accordingly.
     private func updateSoldOutBanner(_ showSoldOut: Bool) {
         soldOutBanner.isHidden = !showSoldOut
 
@@ -571,8 +498,7 @@ public class AddPlanTimeSelectionVC: TRPBaseUIViewController, DynamicHeightPrese
 extension AddPlanTimeSelectionVC: UICollectionViewDataSource {
 
     public func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
-        // Slot cells + one trailing "Show more" cell when the grid is collapsed and
-        // the day has hidden slots. Renders as the 8th item in the 4-column grid.
+        // Slot cells plus a trailing "Show more" cell when the grid is collapsed with hidden slots.
         let displayedCount = viewModel.getDisplayedTimeSlots().count
         let extraForShowMore = viewModel.hasMoreTimeSlotsToShow() ? 1 : 0
         return displayedCount + extraForShowMore
@@ -608,9 +534,7 @@ extension AddPlanTimeSelectionVC: UICollectionViewDataSource {
 // MARK: - UICollectionViewDelegate
 extension AddPlanTimeSelectionVC: UICollectionViewDelegate {
 
-    /// Disabled placeholder cells (the activity's saved time when sold out / past)
-    /// are not selectable. The trailing "Show more" affordance is selectable so the
-    /// tap handler can expand the grid.
+    /// Disabled placeholder cells (sold-out/past saved time) aren't selectable; "Show more" is.
     public func collectionView(_ collectionView: UICollectionView, shouldSelectItemAt indexPath: IndexPath) -> Bool {
         let timeSlots = viewModel.getDisplayedTimeSlots()
         guard indexPath.item < timeSlots.count else { return true }
@@ -620,7 +544,7 @@ extension AddPlanTimeSelectionVC: UICollectionViewDelegate {
     public func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         let displayedCount = viewModel.getDisplayedTimeSlots().count
 
-        // Trailing "Show more" cell — expand the grid instead of selecting a slot.
+        // Trailing "Show more" cell expands the grid instead of selecting a slot.
         if viewModel.hasMoreTimeSlotsToShow() && indexPath.item == displayedCount {
             handleShowMoreTapped()
             return
@@ -654,43 +578,31 @@ extension AddPlanTimeSelectionVC: AddPlanTimeSelectionViewModelDelegate {
     public func timeSlotsDidLoad() {
         let allDaysUnavailable = viewModel.allDaysUnavailable()
         let isFlexible = !allDaysUnavailable && viewModel.isSelectedDayFlexible()
-        let hasTimeSlots = !allDaysUnavailable && !viewModel.getTimeSlots().isEmpty
+        // Use *displayed* slots (incl. the edit-mode disabled placeholder) so the saved time shows as disabled rather than empty.
+        let hasTimeSlots = !allDaysUnavailable && !viewModel.getDisplayedTimeSlots().isEmpty
 
-        // No availability anywhere on the trip → swap every other state for the warning banner.
         unavailableBanner.isHidden = !allDaysUnavailable
 
-        // Flexible day → info card replaces the grid; subtitle hint visible.
         flexibleInfoCard.isHidden = allDaysUnavailable || !isFlexible
         flexibleSubtitleLabel.isHidden = allDaysUnavailable || !isFlexible
         collectionView.isHidden = allDaysUnavailable || isFlexible
         emptyStateLabel.isHidden = allDaysUnavailable || isFlexible || hasTimeSlots
 
-        // Sold-out warning shows only in edit mode when the saved time is missing
-        // from the schedule for the activity's own day, and only when the timed grid
-        // itself is visible (so flexible / fully-unavailable states skip it).
+        // Sold-out warning only in edit mode, on the activity's own day, when the timed grid is visible.
         let shouldShowSoldOutBanner = !allDaysUnavailable && !isFlexible && hasTimeSlots && viewModel.shouldShowSoldOutWarning
         updateSoldOutBanner(shouldShowSoldOutBanner)
-
-        // The "Show more" cell is rendered inline by the data source as the 8th item
-        // when the grid is collapsed and there are >8 slots — no separate visibility
-        // toggle needed here.
 
         collectionView.reloadData()
         updateContinueButton()
 
-        // Days the activity has no availability for render disabled in the day
-        // filter, same as past dates. The VM also auto-shifts `selectedDate` if the
-        // user landed on an unavailable day, so re-sync the visual selection here.
+        // Unavailable days render disabled in the filter; re-sync the visual selection here.
         dayFilterView.setUnavailableDayIndices(viewModel.unavailableDayIndices())
         dayFilterView.updateSelectedDay(viewModel.getSelectedDayIndex())
 
-        // The bottom-sheet detent depends on which UI is showing — refresh so the
-        // sheet shrinks for flexible (no grid) and grows back for timed days.
         updateSheetHeight()
     }
 
     public func timeSlotsDidFail(error: Error) {
-        // Show error alert
         let errorTitle = TimelineLocalizationKeys.localized(TimelineLocalizationKeys.error)
         let okTitle = TRPLanguagesController.shared.getLanguageValue(for: "ok")
         let alert = UIAlertController(title: errorTitle, message: error.localizedDescription, preferredStyle: .alert)
@@ -711,28 +623,22 @@ extension AddPlanTimeSelectionVC: AddPlanTimeSelectionViewModelDelegate {
     }
 
     public func segmentCreationDidSucceed() {
-        // Get cleaned activity ID from the tour's productId
         let activityId = viewModel.tour.productId.cleanedAsActivityId()
 
-        // Notify host app about activity addition
         TRPCoreKit.shared.delegate?.trpCoreKitDidAddActivity(activityId: activityId)
 
-        // Dismiss and trigger timeline refresh with selected day for navigation
         dismiss(animated: true) { [weak self] in
             self?.onSegmentCreated?(self?.viewModel.getSelectedDate())
         }
     }
 
     public func segmentUpdateDidSucceed() {
-        // DON'T dismiss here — the inline "Changing time" loader stays visible while
-        // the host runs its timeline refresh. The host dismisses this sheet once the
-        // refresh completes, which removes the loader along with the sheet. Avoids a
-        // visual jump from inView loader → second bottom-sheet loader.
+        // Don't dismiss — the inline "Changing time" loader must stay until the host dismisses post-refresh.
         onSegmentUpdated?()
     }
 
     public func stepUpdateDidSucceed() {
-        // Same as `segmentUpdateDidSucceed` — host dismisses post-refresh.
+        // Host dismisses post-refresh, same as `segmentUpdateDidSucceed`.
         onStepUpdated?()
     }
 }

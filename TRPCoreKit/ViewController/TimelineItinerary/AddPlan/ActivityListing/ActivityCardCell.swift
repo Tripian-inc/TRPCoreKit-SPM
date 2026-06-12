@@ -41,8 +41,6 @@ class ActivityCardCell: UITableViewCell {
         return imageView
     }()
 
-    // MARK: - Content Stack View (Vertical)
-
     private let contentStackView: UIStackView = {
         let stackView = UIStackView()
         stackView.axis = .vertical
@@ -60,8 +58,6 @@ class ActivityCardCell: UITableViewCell {
         label.numberOfLines = 2
         return label
     }()
-
-    // MARK: - Rating Stack View (Horizontal)
 
     private let ratingStackView: UIStackView = {
         let stackView = UIStackView()
@@ -93,8 +89,6 @@ class ActivityCardCell: UITableViewCell {
         label.textColor = ColorSet.fgWeak.uiColor
         return label
     }()
-
-    // MARK: - Duration Stack View (Horizontal)
 
     private let durationStackView: UIStackView = {
         let stackView = UIStackView()
@@ -158,17 +152,13 @@ class ActivityCardCell: UITableViewCell {
         button.setImage(image, for: .normal)
         button.tintColor = ColorSet.primary.uiColor
         button.imageView?.contentMode = .scaleAspectFit
-        // Visual icon stays 20×20 anchored at the trailing 6pt of a 40×32 hit area.
-        // The extra 8pt of width on the leading side enlarges the tap target without
-        // shifting the icon — the title/content stack now butts up directly against it.
+        // Extra leading width enlarges the tap target without shifting the 20×20 icon.
         button.imageEdgeInsets = UIEdgeInsets(top: 6, left: 14, bottom: 6, right: 6)
         button.translatesAutoresizingMaskIntoConstraints = false
         return button
     }()
 
-    /// Transparent button that fills the empty gap between `addButton` and `priceLabel` on
-    /// the trailing edge. Absorbs taps in that region so the cell's `didSelectRowAt`
-    /// (activity detail navigation) does not fire when the user taps near the add button.
+    /// Absorbs taps in the gap near the add button so the cell's didSelectRowAt doesn't fire.
     private let tapBlockerButton: UIButton = {
         let button = UIButton(type: .custom)
         button.translatesAutoresizingMaskIntoConstraints = false
@@ -238,39 +228,31 @@ class ActivityCardCell: UITableViewCell {
         contentView.backgroundColor = .white
         selectionStyle = .none
 
-        // Add main container
         contentView.addSubview(cardContainerView)
 
-        // Add image view
         cardContainerView.addSubview(activityImageView)
 
-        // Setup rating stack view
         ratingStackView.addArrangedSubview(ratingLabel)
         ratingStackView.addArrangedSubview(starImageView)
         ratingStackView.addArrangedSubview(reviewCountLabel)
 
-        // Setup duration stack view
         durationStackView.addArrangedSubview(durationIconImageView)
         durationStackView.addArrangedSubview(durationLabel)
         durationStackView.addArrangedSubview(languageIconImageView)
         durationStackView.addArrangedSubview(languageLabel)
 
-        // Setup content stack view
         contentStackView.addArrangedSubview(titleLabel)
         contentStackView.addArrangedSubview(ratingStackView)
         contentStackView.addArrangedSubview(durationStackView)
         contentStackView.addArrangedSubview(freeCancellationLabel)
 
-        // Add content stack view
         cardContainerView.addSubview(contentStackView)
 
-        // Add button and price (outside stack view)
         cardContainerView.addSubview(addButton)
         cardContainerView.addSubview(priceLabel)
         cardContainerView.addSubview(separatorView)
         cardContainerView.addSubview(tapBlockerButton)
 
-        // Skeleton placeholders (overlay; hidden by default)
         cardContainerView.addSubview(imageSkeletonView)
         cardContainerView.addSubview(titleSkeletonView)
         cardContainerView.addSubview(subtitleSkeletonView)
@@ -280,36 +262,27 @@ class ActivityCardCell: UITableViewCell {
         tapBlockerButton.addTarget(self, action: #selector(tapBlockerTapped), for: .touchUpInside)
 
         NSLayoutConstraint.activate([
-            // Card container — 16pt horizontal inset is applied inside the cell so that
-            // the parent table view can be edge-to-edge (full width). This lets the
-            // header's category collection extend to the screen edges as before.
+            // 16pt inset is inside the cell so the table view stays edge-to-edge.
             cardContainerView.topAnchor.constraint(equalTo: contentView.topAnchor),
             cardContainerView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
             cardContainerView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
             cardContainerView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
 
-            // Activity image (fixed size, top-left aligned with 24px top padding)
             activityImageView.topAnchor.constraint(equalTo: cardContainerView.topAnchor, constant: 24),
             activityImageView.leadingAnchor.constraint(equalTo: cardContainerView.leadingAnchor),
             activityImageView.widthAnchor.constraint(equalToConstant: 80),
             activityImageView.heightAnchor.constraint(equalToConstant: 80),
 
-            // Add button (top-right with 24px top padding). Hit area is 40×32: the icon
-            // visually occupies the right 32×32 (matching the original look) but the extra
-            // 8pt to the left enlarges the tap target.
+            // 40×32 hit area; icon sits in the right 32×32, extra 8pt left enlarges the tap target.
             addButton.topAnchor.constraint(equalTo: cardContainerView.topAnchor, constant: 24),
             addButton.trailingAnchor.constraint(equalTo: cardContainerView.trailingAnchor),
             addButton.widthAnchor.constraint(equalToConstant: 40),
             addButton.heightAnchor.constraint(equalToConstant: 32),
 
-            // Content stack view (between image and add button, with 24px top padding).
-            // Butts up against the add button's leading edge — the previous 8pt gap is now
-            // absorbed into the add button's tap area.
             contentStackView.topAnchor.constraint(equalTo: cardContainerView.topAnchor, constant: 24),
             contentStackView.leadingAnchor.constraint(equalTo: activityImageView.trailingAnchor, constant: 16),
             contentStackView.trailingAnchor.constraint(equalTo: addButton.leadingAnchor),
 
-            // Star and duration icons size
             starImageView.widthAnchor.constraint(equalToConstant: 12),
             starImageView.heightAnchor.constraint(equalToConstant: 12),
             durationIconImageView.widthAnchor.constraint(equalToConstant: 16),
@@ -317,55 +290,42 @@ class ActivityCardCell: UITableViewCell {
             languageIconImageView.widthAnchor.constraint(equalToConstant: 16),
             languageIconImageView.heightAnchor.constraint(equalToConstant: 16),
 
-            // Price label (bottom-right, above separator)
             priceLabel.topAnchor.constraint(equalTo: contentStackView.bottomAnchor, constant: 4),
             priceLabel.trailingAnchor.constraint(equalTo: cardContainerView.trailingAnchor),
 
-            // Separator (16px padding from left and right). Bottom is upper-bounded by
-            // the card container so that — in skeleton mode where real content collapses —
-            // the skeleton-driven greaterThanOrEqualTo constraints below can grow the card
-            // without conflicting with the separator chain.
+            // Bottom is upper-bounded so skeleton-mode greaterThanOrEqualTo constraints can grow the card.
             separatorView.topAnchor.constraint(equalTo: priceLabel.bottomAnchor, constant: 14),
             separatorView.leadingAnchor.constraint(equalTo: cardContainerView.leadingAnchor),
             separatorView.trailingAnchor.constraint(equalTo: cardContainerView.trailingAnchor),
             separatorView.bottomAnchor.constraint(lessThanOrEqualTo: cardContainerView.bottomAnchor),
             separatorView.heightAnchor.constraint(equalToConstant: 0.5),
 
-            // Tap blocker — fills the gap between the add button and the price label on the
-            // trailing column. Width is aligned to addButton so the rest of the cell still
-            // routes taps to the cell's didSelectRowAt for the detail navigation.
             tapBlockerButton.topAnchor.constraint(equalTo: addButton.bottomAnchor),
             tapBlockerButton.bottomAnchor.constraint(equalTo: priceLabel.topAnchor),
             tapBlockerButton.leadingAnchor.constraint(equalTo: addButton.leadingAnchor),
             tapBlockerButton.trailingAnchor.constraint(equalTo: cardContainerView.trailingAnchor),
 
-            // Skeleton: image placeholder over real image
             imageSkeletonView.topAnchor.constraint(equalTo: activityImageView.topAnchor),
             imageSkeletonView.leadingAnchor.constraint(equalTo: activityImageView.leadingAnchor),
             imageSkeletonView.widthAnchor.constraint(equalTo: activityImageView.widthAnchor),
             imageSkeletonView.heightAnchor.constraint(equalTo: activityImageView.heightAnchor),
 
-            // Skeleton: title bar — full width next to image
             titleSkeletonView.topAnchor.constraint(equalTo: cardContainerView.topAnchor, constant: 28),
             titleSkeletonView.leadingAnchor.constraint(equalTo: activityImageView.trailingAnchor, constant: 16),
             titleSkeletonView.trailingAnchor.constraint(equalTo: addButton.leadingAnchor, constant: -8),
             titleSkeletonView.heightAnchor.constraint(equalToConstant: 14),
 
-            // Skeleton: subtitle bar — half width
             subtitleSkeletonView.topAnchor.constraint(equalTo: titleSkeletonView.bottomAnchor, constant: 10),
             subtitleSkeletonView.leadingAnchor.constraint(equalTo: activityImageView.trailingAnchor, constant: 16),
             subtitleSkeletonView.widthAnchor.constraint(equalToConstant: 120),
             subtitleSkeletonView.heightAnchor.constraint(equalToConstant: 10),
 
-            // Skeleton: price bar — bottom right
             priceSkeletonView.topAnchor.constraint(equalTo: subtitleSkeletonView.bottomAnchor, constant: 18),
             priceSkeletonView.trailingAnchor.constraint(equalTo: cardContainerView.trailingAnchor),
             priceSkeletonView.widthAnchor.constraint(equalToConstant: 60),
             priceSkeletonView.heightAnchor.constraint(equalToConstant: 10),
 
-            // Force the card to stay tall enough to contain skeleton overlays even when
-            // the real content (which normally drives cell height via the separator chain)
-            // is hidden and collapses to 0.
+            // Keep the card tall enough for skeleton overlays when real content collapses to 0.
             cardContainerView.bottomAnchor.constraint(greaterThanOrEqualTo: imageSkeletonView.bottomAnchor, constant: 16),
             cardContainerView.bottomAnchor.constraint(greaterThanOrEqualTo: priceSkeletonView.bottomAnchor, constant: 16)
         ])
@@ -379,9 +339,7 @@ class ActivityCardCell: UITableViewCell {
     }
 
     @objc private func tapBlockerTapped() {
-        // Intentional no-op: this button exists only to absorb taps in the gap between
-        // the add button and the price label so they don't propagate to the cell's
-        // didSelectRowAt and trigger activity detail navigation.
+        // Intentional no-op: absorbs taps near the add button so they don't reach didSelectRowAt.
     }
 
     // MARK: - Private Helpers
@@ -421,7 +379,6 @@ class ActivityCardCell: UITableViewCell {
 
         let displayValue = convertFromCents ? value / 100.0 : value
 
-        // Show "FREE" for zero price
         if displayValue == 0 {
             priceLabel.attributedText = NSAttributedString(
                 string: CommonLocalizationKeys.localized(CommonLocalizationKeys.free),
@@ -484,12 +441,11 @@ class ActivityCardCell: UITableViewCell {
         updateImage(urlString: tour.image?.url)
     }
 
-    /// Render the cell as a shimmering skeleton — used while a search is in flight.
+    /// Render the cell as a shimmering skeleton while a search is in flight.
     func configureSkeleton() {
         self.tour = nil
         isUserInteractionEnabled = false
 
-        // Hide real content
         activityImageView.isHidden = true
         titleLabel.isHidden = true
         ratingStackView.isHidden = true
@@ -499,7 +455,6 @@ class ActivityCardCell: UITableViewCell {
         addButton.isHidden = true
         separatorView.isHidden = true
 
-        // Show skeletons
         imageSkeletonView.isHidden = false
         titleSkeletonView.isHidden = false
         subtitleSkeletonView.isHidden = false
@@ -522,8 +477,7 @@ class ActivityCardCell: UITableViewCell {
         priceLabel.isHidden = false
         addButton.isHidden = false
         separatorView.isHidden = false
-        // ratingStackView / durationStackView / freeCancellationLabel visibility is content-driven
-        // and re-set inside updateRating / updateDuration / updateCancellation below.
+        // rating/duration/freeCancellation visibility is content-driven, re-set by the update* helpers.
     }
 
     private func startSkeletonAnimation() {
@@ -549,7 +503,6 @@ class ActivityCardCell: UITableViewCell {
         stopSkeletonAnimation()
     }
 
-    /// Configure cell with TRPSegmentFavoriteItem (for saved plans)
     func configure(with favoriteItem: TRPSegmentFavoriteItem, tourProduct: TRPTourProduct) {
         self.tour = tourProduct
         titleLabel.text = favoriteItem.title
@@ -558,7 +511,6 @@ class ActivityCardCell: UITableViewCell {
         updateDuration(minutes: favoriteItem.duration.map { Int($0) })
         hideLanguageLabels()
 
-        // Cancellation logic for favorite items
         let isCancellable: Bool
         if let cancellation = favoriteItem.cancellation, !cancellation.isEmpty {
             isCancellable = cancellation.lowercased() != "non_refundable"
@@ -567,7 +519,6 @@ class ActivityCardCell: UITableViewCell {
         }
         updateCancellation(isCancellable: isCancellable)
 
-        // Price from cents (convertFromCents: true)
         updatePrice(
             value: favoriteItem.price?.value,
             currency: favoriteItem.price?.currency ?? "EUR",
@@ -578,7 +529,6 @@ class ActivityCardCell: UITableViewCell {
         separatorView.isHidden = true
     }
 
-    /// Configure separator visibility (hide for last cell)
     func setSeparatorHidden(_ hidden: Bool) {
         separatorView.isHidden = hidden
     }

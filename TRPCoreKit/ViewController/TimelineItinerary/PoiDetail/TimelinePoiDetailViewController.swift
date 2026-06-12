@@ -5,23 +5,6 @@
 //  Created by Cem Çaygöz on 29.12.2024.
 //  Copyright © 2024 Tripian Inc. All rights reserved.
 //
-//  SOLID: SRP - Split into extensions and separate files:
-//  Extensions:
-//  - TimelinePoiDetailViewController+Setup.swift (Setup methods, content configuration, map setup)
-//  - TimelinePoiDetailViewController+CollectionView.swift (UICollectionViewDataSource, Delegate, ScrollView)
-//  Cells (in Cells/):
-//  - PoiImageCell.swift
-//  - ProductCardCell.swift
-//  - TagCell.swift
-//  Views (in Views/):
-//  - CustomPageControl.swift
-//  - BasicInfoSectionView.swift
-//  - ProductsSectionView.swift
-//  - KeyDataSectionView.swift
-//  - AddressSectionView.swift
-//  - FeaturesSectionView.swift
-//  - TagsFlowLayout.swift
-//
 
 import UIKit
 import TRPFoundationKit
@@ -34,12 +17,11 @@ import MapKit
 public class TimelinePoiDetailViewController: TRPBaseUIViewController {
 
     // MARK: - Properties
-    // Note: Properties are internal for extension access (+CollectionView.swift, +Setup.swift)
+    // Internal for extension access (+CollectionView.swift, +Setup.swift).
     var viewModel: TimelinePoiDetailViewModel!
     var currentImageIndex: Int = 0
     var isDescriptionExpanded: Bool = false
 
-    // Section Views
     var basicInfoSectionView: BasicInfoSectionView!
     var cuisinesSectionView: CuisinesSectionView!
     var productsSectionView: ProductsSectionView!
@@ -47,7 +29,6 @@ public class TimelinePoiDetailViewController: TRPBaseUIViewController {
     var addressSectionView: AddressSectionView!
     var featuresSectionView: FeaturesSectionView!
 
-    // Separators
     var separator1: UIView!
     var separator2: UIView!
     var separator3: UIView!
@@ -75,13 +56,12 @@ public class TimelinePoiDetailViewController: TRPBaseUIViewController {
         let stack = UIStackView()
         stack.translatesAutoresizingMaskIntoConstraints = false
         stack.axis = .vertical
-        stack.spacing = 0 // We'll control spacing per section
+        stack.spacing = 0
         stack.alignment = .fill
         stack.distribution = .fill
         return stack
     }()
 
-    // Image Gallery
     lazy var imageCollectionView: UICollectionView = {
         let layout = UICollectionViewFlowLayout()
         layout.scrollDirection = .horizontal
@@ -119,7 +99,6 @@ public class TimelinePoiDetailViewController: TRPBaseUIViewController {
         return button
     }()
 
-    // Content Labels
     lazy var cityLabel: UILabel = {
         let label = UILabel()
         label.translatesAutoresizingMaskIntoConstraints = false
@@ -176,7 +155,7 @@ public class TimelinePoiDetailViewController: TRPBaseUIViewController {
         label.font = FontSet.montserratMedium.font(16)
         label.textColor = ColorSet.fg.uiColor
         label.textAlignment = .center
-        label.numberOfLines = 4 // Show max 4 lines initially
+        label.numberOfLines = 4
         return label
     }()
 
@@ -186,7 +165,6 @@ public class TimelinePoiDetailViewController: TRPBaseUIViewController {
         button.isUserInteractionEnabled = true
         button.addTarget(self, action: #selector(readMoreTapped), for: .touchUpInside)
 
-        // Set underlined title
         let title = PoiDetailLocalizationKeys.localized(PoiDetailLocalizationKeys.readFullDescription)
         let attributes: [NSAttributedString.Key: Any] = [
             .font: FontSet.montserratRegular.font(16),
@@ -196,11 +174,10 @@ public class TimelinePoiDetailViewController: TRPBaseUIViewController {
         let attributedTitle = NSAttributedString(string: title, attributes: attributes)
         button.setAttributedTitle(attributedTitle, for: .normal)
 
-        // Add chevron icon
         if let chevronImage = TRPImageController().getImage(inFramework: "ic_chevron_down", inApp: nil)?.withRenderingMode(.alwaysTemplate) {
             button.setImage(chevronImage, for: .normal)
             button.tintColor = ColorSet.fg.uiColor
-            button.semanticContentAttribute = .forceRightToLeft // Image on right
+            button.semanticContentAttribute = .forceRightToLeft
             button.imageEdgeInsets = UIEdgeInsets(top: 0, left: 8, bottom: 0, right: 0)
         }
 
@@ -209,11 +186,10 @@ public class TimelinePoiDetailViewController: TRPBaseUIViewController {
         return button
     }()
 
-    // Products Section
     lazy var productsHeaderView: UIView = {
         let view = UIView()
         view.translatesAutoresizingMaskIntoConstraints = false
-        view.isHidden = true // Hidden by default, shown only if products exist
+        view.isHidden = true
         return view
     }()
 
@@ -231,7 +207,6 @@ public class TimelinePoiDetailViewController: TRPBaseUIViewController {
         button.translatesAutoresizingMaskIntoConstraints = false
         button.addTarget(self, action: #selector(seeMoreProductsTapped), for: .touchUpInside)
 
-        // Create attributed title
         let title = PoiDetailLocalizationKeys.localized(PoiDetailLocalizationKeys.seeMore)
         let attributedTitle = NSMutableAttributedString(string: title)
         attributedTitle.addAttribute(.font, value: FontSet.montserratRegular.font(14), range: NSRange(location: 0, length: title.count))
@@ -239,11 +214,10 @@ public class TimelinePoiDetailViewController: TRPBaseUIViewController {
 
         button.setAttributedTitle(attributedTitle, for: .normal)
 
-        // Add chevron icon
         if let chevronImage = TRPImageController().getImage(inFramework: "ic_next", inApp: nil) {
             button.setImage(chevronImage, for: .normal)
             button.tintColor = ColorSet.fg.uiColor
-            button.semanticContentAttribute = .forceRightToLeft // Image on right
+            button.semanticContentAttribute = .forceRightToLeft
             button.imageEdgeInsets = UIEdgeInsets(top: 0, left: 4, bottom: 0, right: 0)
         }
 
@@ -264,11 +238,10 @@ public class TimelinePoiDetailViewController: TRPBaseUIViewController {
         cv.dataSource = self
         cv.register(ProductCardCell.self, forCellWithReuseIdentifier: ProductCardCell.reuseIdentifier)
         cv.contentInset = UIEdgeInsets(top: 0, left: 16, bottom: 0, right: 16)
-        cv.isHidden = true // Hidden by default
+        cv.isHidden = true
         return cv
     }()
 
-    // Key Data Section
     lazy var keyDataHeaderLabel: UILabel = {
         let label = UILabel()
         label.translatesAutoresizingMaskIntoConstraints = false
@@ -381,7 +354,6 @@ public class TimelinePoiDetailViewController: TRPBaseUIViewController {
         return stack
     }()
 
-    // Meeting Point Section
     lazy var meetingPointHeaderLabel: UILabel = {
         let label = UILabel()
         label.translatesAutoresizingMaskIntoConstraints = false
@@ -443,7 +415,6 @@ public class TimelinePoiDetailViewController: TRPBaseUIViewController {
         button.translatesAutoresizingMaskIntoConstraints = false
         button.addTarget(self, action: #selector(viewMapTapped), for: .touchUpInside)
 
-        // Create attributed title
         let title = PoiDetailLocalizationKeys.localized(PoiDetailLocalizationKeys.viewMap)
         let attributedTitle = NSMutableAttributedString(string: title)
         attributedTitle.addAttribute(.font, value: FontSet.montserratMedium.font(16), range: NSRange(location: 0, length: title.count))
@@ -451,11 +422,10 @@ public class TimelinePoiDetailViewController: TRPBaseUIViewController {
 
         button.setAttributedTitle(attributedTitle, for: .normal)
 
-        // Add arrow icon
         if let arrowImage = TRPImageController().getImage(inFramework: "ic_view_map", inApp: nil) {
             button.setImage(arrowImage, for: .normal)
             button.tintColor = ColorSet.fgTertiary.uiColor
-            button.semanticContentAttribute = .forceRightToLeft // Image on right
+            button.semanticContentAttribute = .forceRightToLeft
             button.imageEdgeInsets = UIEdgeInsets(top: 0, left: 16, bottom: 0, right: 0)
         }
 
@@ -464,7 +434,6 @@ public class TimelinePoiDetailViewController: TRPBaseUIViewController {
         return button
     }()
 
-    // Features Section
     lazy var featuresHeaderLabel: UILabel = {
         let label = UILabel()
         label.translatesAutoresizingMaskIntoConstraints = false
@@ -504,13 +473,10 @@ public class TimelinePoiDetailViewController: TRPBaseUIViewController {
 
         isDescriptionExpanded.toggle()
 
-        // Toggle description lines
         descriptionLabel.numberOfLines = isDescriptionExpanded ? 0 : 4
 
-        // Update button appearance
         updateReadMoreButtonAppearance()
 
-        // Animate layout change
         UIView.animate(withDuration: 0.3) {
             self.scrollView.layoutIfNeeded()
             self.contentView.layoutIfNeeded()
@@ -522,7 +488,6 @@ public class TimelinePoiDetailViewController: TRPBaseUIViewController {
             ? PoiDetailLocalizationKeys.localized(PoiDetailLocalizationKeys.closeFullDescription)
             : PoiDetailLocalizationKeys.localized(PoiDetailLocalizationKeys.readFullDescription)
 
-        // Set underlined title
         let attributes: [NSAttributedString.Key: Any] = [
             .font: FontSet.montserratRegular.font(16),
             .foregroundColor: ColorSet.fg.uiColor,
@@ -531,7 +496,6 @@ public class TimelinePoiDetailViewController: TRPBaseUIViewController {
         let attributedTitle = NSAttributedString(string: title, attributes: attributes)
         readMoreButton.setAttributedTitle(attributedTitle, for: .normal)
 
-        // Rotate chevron: 180 degrees when expanded, 0 when collapsed
         let rotation: CGFloat = isDescriptionExpanded ? .pi : 0
         UIView.animate(withDuration: 0.3) {
             self.readMoreButton.imageView?.transform = CGAffineTransform(rotationAngle: rotation)
@@ -547,16 +511,12 @@ public class TimelinePoiDetailViewController: TRPBaseUIViewController {
         guard let coordinate = viewModel.getCoordinate() else { return }
         let poiName = viewModel.poi.name
 
-        // Create MKPlacemark with coordinate
         let clCoordinate = CLLocationCoordinate2D(latitude: coordinate.lat, longitude: coordinate.lon)
         let placemark = MKPlacemark(coordinate: clCoordinate)
 
-        // Create MKMapItem with placemark
         let mapItem = MKMapItem(placemark: placemark)
         mapItem.name = poiName
 
-        // Open in Maps with launch options
-        // This will show user all available map apps (Apple Maps, Google Maps, Waze, etc.)
         let launchOptions = [
             MKLaunchOptionsDirectionsModeKey: MKLaunchOptionsDirectionsModeDefault,
             MKLaunchOptionsShowsTrafficKey: false
@@ -573,7 +533,6 @@ public class TimelinePoiDetailViewController: TRPBaseUIViewController {
 // MARK: - UILabel Extension
 extension UILabel {
     func isTruncated() -> Bool {
-        // Check for attributed text first
         if let attributedText = attributedText, attributedText.length > 0 {
             let size = CGSize(width: bounds.width, height: .greatestFiniteMagnitude)
             let boundingRect = attributedText.boundingRect(
@@ -584,7 +543,6 @@ extension UILabel {
             return boundingRect.height > bounds.height
         }
 
-        // Fallback to plain text
         guard let text = text, !text.isEmpty else { return false }
         let size = CGSize(width: bounds.width, height: .greatestFiniteMagnitude)
         let boundingRect = text.boundingRect(

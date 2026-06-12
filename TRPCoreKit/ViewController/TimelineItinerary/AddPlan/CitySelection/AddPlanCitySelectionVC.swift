@@ -13,15 +13,15 @@ import TRPFoundationKit
 public class AddPlanCitySelectionVC: TRPBaseUIViewController, DynamicHeightPresentable {
 
     // MARK: - Height Constants
-    private let titleAreaHeight: CGFloat = 64  // top padding + title + gap
+    private let titleAreaHeight: CGFloat = 64
     private let rowHeight: CGFloat = 56
     private let sectionHeaderHeight: CGFloat = 32
     private let bottomPadding: CGFloat = 34
 
     // MARK: - Properties
-    public var mappedCities: [TRPCity] = []   // Cities mapped to selected date
-    public var otherCities: [TRPCity] = []    // Other available cities
-    public var showSections: Bool = false     // Whether to show section headers
+    public var mappedCities: [TRPCity] = []
+    public var otherCities: [TRPCity] = []
+    public var showSections: Bool = false
     public var selectedCity: TRPCity?
     public var onCitySelected: ((TRPCity) -> Void)?
 
@@ -38,13 +38,11 @@ public class AddPlanCitySelectionVC: TRPBaseUIViewController, DynamicHeightPrese
 
         let calculatedHeight = titleAreaHeight + rowsHeight + sectionsHeight + bottomPadding
 
-        // Max height: 70% of screen
         let maxHeight = UIScreen.main.bounds.height * 0.7
         return min(calculatedHeight, maxHeight)
     }
 
     public func updateSheetHeight() {
-        // No dynamic updates needed for city selection
     }
 
     // Backward compatibility
@@ -104,17 +102,14 @@ public class AddPlanCitySelectionVC: TRPBaseUIViewController, DynamicHeightPrese
     // MARK: - Setup
     private func setupConstraints() {
         NSLayoutConstraint.activate([
-            // Title Label
             titleLabel.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 16),
             titleLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor),
 
-            // Close Button
             closeButton.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 8),
             closeButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
             closeButton.widthAnchor.constraint(equalToConstant: 40),
             closeButton.heightAnchor.constraint(equalToConstant: 40),
 
-            // Content StackView
             contentStackView.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 24),
             contentStackView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             contentStackView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
@@ -122,23 +117,19 @@ public class AddPlanCitySelectionVC: TRPBaseUIViewController, DynamicHeightPrese
     }
 
     private func setupCityRows() {
-        // Clear existing
         contentStackView.arrangedSubviews.forEach { $0.removeFromSuperview() }
 
         if showSections {
-            // Add mapped cities section
             if !mappedCities.isEmpty {
                 addSectionHeader(AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.citiesForSelectedDate))
                 mappedCities.forEach { addCityRow($0) }
             }
 
-            // Add other cities section
             if !otherCities.isEmpty {
                 addSectionHeader(AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.otherCities))
                 otherCities.forEach { addCityRow($0) }
             }
         } else {
-            // No sections - just add all cities
             (mappedCities + otherCities).forEach { addCityRow($0) }
         }
     }

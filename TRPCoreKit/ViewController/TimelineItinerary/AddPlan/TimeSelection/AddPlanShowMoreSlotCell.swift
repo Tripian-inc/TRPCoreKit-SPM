@@ -2,13 +2,7 @@
 //  AddPlanShowMoreSlotCell.swift
 //  TRPCoreKit
 //
-//  "Show more" link rendered as the 8th cell in the time-slot grid when the day has
-//  strictly more slots than fit in the collapsed view. Same cell size as a regular
-//  slot cell — single underlined label, no border, no fill — so it slots into the
-//  4-column grid alongside `AddPlanTimeSlotCell` without breaking layout.
-//
-//  Tap routing: the VC's `didSelectItemAt` branches on indexPath to decide between
-//  `selectTimeSlot(...)` and `expandTimeSlots()`.
+//  "Show more" link rendered as the 8th cell in the time-slot grid when the day has more slots than fit collapsed.
 //
 
 import UIKit
@@ -50,8 +44,6 @@ class AddPlanShowMoreSlotCell: UICollectionViewCell {
 
     // MARK: - Configuration
     func configure(title: String) {
-        // Underline drawn via attributed text so the cell stays a plain UILabel + no
-        // separate border view.
         label.attributedText = NSAttributedString(
             string: title,
             attributes: [

@@ -26,15 +26,12 @@ public struct PlanCategory {
         ]
     }
     
-    /// Get category names for filter list (used in activity listing screens)
-    /// Returns array of category names in the same order as allCategories()
-    /// Names are cleaned to remove line breaks for single-line display
+    /// Category names for the filter list, in `allCategories()` order, line breaks stripped.
     public static func getCategoryNamesForFilter() -> [String] {
         return allCategories().map { $0.name.replacingOccurrences(of: "\n", with: " ") }
     }
     
-    /// Get category IDs for filter list
-    /// Returns array of category IDs in the same order as allCategories()
+    /// Category IDs for the filter list, in `allCategories()` order.
     public static func getCategoryIdsForFilter() -> [String] {
         return allCategories().map { $0.id }
     }
@@ -49,8 +46,7 @@ public class AddPlanCategorySelectionViewModel {
     // MARK: - Initialization
     public init(containerViewModel: AddPlanContainerViewModel) {
         self.containerViewModel = containerViewModel
-        
-        // Restore previously selected categories
+
         let selectedIds = containerViewModel.planData.selectedCategories ?? []
         for (index, _) in categories.enumerated() {
             if selectedIds.contains(categories[index].id) {

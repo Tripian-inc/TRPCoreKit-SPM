@@ -78,6 +78,22 @@ public struct TRPDateHelper {
         return formatter.string(from: date)
     }
 
+    /// Format date to datetime string (yyyy-MM-dd HH:mm). Counterpart to `parseDateTime`.
+    /// - Parameter date: Date to format
+    /// - Returns: Datetime string like "2025-01-15 10:00"
+    public static func formatDateTime(_ date: Date) -> String {
+        formatter.dateFormat = dateTimeWithoutSeconds
+        return formatter.string(from: date)
+    }
+
+    /// Format date to datetime string with seconds (yyyy-MM-dd HH:mm:ss).
+    /// - Parameter date: Date to format
+    /// - Returns: Datetime string like "2025-01-15 10:00:00"
+    public static func formatDateTimeWithSeconds(_ date: Date) -> String {
+        formatter.dateFormat = dateTimeWithSeconds
+        return formatter.string(from: date)
+    }
+
     /// Format date to display date string (dd/MM/yyyy)
     /// - Parameter date: Date to format
     /// - Returns: Display date string like "15/01/2025"
@@ -144,6 +160,79 @@ public struct TRPDateHelper {
         guard let dateStr = extractDateString(dateTimeString) else { return false }
         let targetDateStr = formatDateString(targetDate)
         return dateStr == targetDateStr
+    }
+
+    // MARK: - Flexible Extraction
+
+    /// Extract "HH:mm" from either "yyyy-MM-dd HH:mm[:ss]" or a bare "HH:mm[:ss]".
+    /// Returns nil for empty/unparseable input. Unlike `extractTimeString`, this does
+    /// not assume a fixed character offset — it splits on the date/time separator — so
+    /// it also handles time-only inputs (e.g. a step's "HH:mm" start string).
+    public static func extractHourMinute(from raw: String?) -> String? {
+        guard let raw = raw, !raw.isEmpty else { return nil }
+        let timePart: String
+        if let spaceIndex = raw.firstIndex(of: " ") {
+            timePart = String(raw[raw.index(after: spaceIndex)...])
+        } else {
+            timePart = raw
+        }
+        let parts = timePart.split(separator: ":")
+        guard parts.count >= 2 else { return nil }
+        return "\(parts[0]):\(parts[1])"
+    }
+
+    /// Extract a validated "yyyy-MM-dd" from "yyyy-MM-dd HH:mm[:ss]" (or pass-through
+    /// when the input is already date-only). Returns nil for empty input or a malformed
+    /// prefix. Stricter than `extractDateString` — it verifies the 10-char dashed shape
+    /// rather than blindly taking `prefix(10)`.
+    public static func extractDateOnly(from raw: String?) -> String? {
+        guard let raw = raw, !raw.isEmpty else { return nil }
+        let datePart: String
+        if let spaceIndex = raw.firstIndex(of: " ") {
+            datePart = String(raw[..<spaceIndex])
+        } else {
+            datePart = raw
+        }
+        let chars = Array(datePart)
+        guard chars.count == 10, chars[4] == "-", chars[7] == "-" else { return nil }
+        return datePart
+    }
+
+    // MARK: - Day Matching
+
+    /// Find the `Date` in `days` whose calendar-day matches `ymd` ("yyyy-MM-dd").
+    /// Tries UTC first, then the local time zone, because day producers in the timeline
+    /// are UTC-anchored while some cell delegates parse segment/step strings in local
+    /// time. Trying both sidesteps that inconsistency without changing the producers.
+    /// Uses a dedicated formatter so the shared static formatter's time zone is untouched.
+    public static func matchDay(ymd: String?, in days: [Date]) -> Date? {
+        guard let ymd = ymd else { return nil }
+        let matchFormatter = DateFormatter()
+        matchFormatter.dateFormat = dateOnly
+        for tz in [TimeZone(identifier: "UTC"), TimeZone.current].compactMap({ $0 }) {
+            matchFormatter.timeZone = tz
+            if let match = days.first(where: { matchFormatter.string(from: $0) == ymd }) {
+                return match
+            }
+        }
+        return nil
+    }
+
+    // MARK: - Time Arithmetic
+
+    /// Add `minutes` to a "HH:mm[:ss]" time string and return "HH:mm", wrapping at 24h.
+    /// Returns nil for unparseable input so the caller can decide its own fallback.
+    public static func addMinutes(toTime time: String, minutes: Int) -> String? {
+        let components = time.split(separator: ":")
+        guard components.count >= 2,
+              let hour = Int(components[0]),
+              let minute = Int(components[1]) else {
+            return nil
+        }
+        let totalMinutes = hour * 60 + minute + minutes
+        let endHour = (totalMinutes / 60) % 24
+        let endMinute = totalMinutes % 60
+        return String(format: "%02d:%02d", endHour, endMinute)
     }
 
     // MARK: - Range Methods

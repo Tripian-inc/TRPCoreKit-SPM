@@ -8,7 +8,6 @@
 
 import UIKit
 
-/// Simple bottom sheet for displaying sorting info
 class SortingInfoBottomSheetVC: TRPBaseUIViewController, DynamicHeightPresentable {
     var preferredContentHeight: CGFloat = 150
     
@@ -80,23 +79,19 @@ class SortingInfoBottomSheetVC: TRPBaseUIViewController, DynamicHeightPresentabl
         view.addSubview(messageLabel)
 
         NSLayoutConstraint.activate([
-            // Header
             headerView.topAnchor.constraint(equalTo: view.topAnchor, constant: 16),
             headerView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
             headerView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
             headerView.heightAnchor.constraint(equalToConstant: 44),
 
-            // Title (centered)
             titleLabel.centerXAnchor.constraint(equalTo: headerView.centerXAnchor),
             titleLabel.centerYAnchor.constraint(equalTo: headerView.centerYAnchor),
 
-            // Close Button (right side)
             closeButton.trailingAnchor.constraint(equalTo: headerView.trailingAnchor),
             closeButton.centerYAnchor.constraint(equalTo: headerView.centerYAnchor),
             closeButton.widthAnchor.constraint(equalToConstant: 44),
             closeButton.heightAnchor.constraint(equalToConstant: 44),
 
-            // Message
             messageLabel.topAnchor.constraint(equalTo: headerView.bottomAnchor, constant: 8),
             messageLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
             messageLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16)

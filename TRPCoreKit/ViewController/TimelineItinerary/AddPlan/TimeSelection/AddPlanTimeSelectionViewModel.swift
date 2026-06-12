@@ -12,11 +12,7 @@ import TRPRestKit
 
 public typealias TimeSlot = TRPTourScheduleSlot
 
-/// UI-level slot model used by the time-grid cells. Wraps the underlying schedule
-/// slot so the view layer can carry a `isDisabled` placeholder for the activity's
-/// previously-saved time during change-time (when that time is no longer in the
-/// schedule response — sold out or in the past). The data model
-/// `TRPTourScheduleSlot` stays a pure Codable; this struct lives outside it.
+/// UI-level slot model wrapping the schedule slot to carry an `isDisabled` placeholder for a previously-saved time no longer in the response.
 public struct DisplayTimeSlot: Equatable {
     public let time: String
     public let price: Double?
@@ -45,41 +41,27 @@ public class AddPlanTimeSelectionViewModel {
     internal let planData: AddPlanData
     private let tourRepository: TourRepository
 
-    private var allTimeSlots: [Date: [TimeSlot]] = [:] // Date -> Timed slots only
-    /// Days where the activity is "flexible" (valid any time). Populated alongside
-    /// `allTimeSlots` from the search/schedule response. Mixed days (with both timed
-    /// and flexible markers) are NOT considered flexible — timed grid wins.
+    private var allTimeSlots: [Date: [TimeSlot]] = [:]
+    /// Days where the activity is flexible (valid any time). A mixed day with any timed slot is NOT flexible — timed grid wins.
     private var flexibleDays: Set<Date> = []
     private var selectedDate: Date?
     private var selectedTimeSlot: TimeSlot?
     private var hasPreloadedSlots: Bool = false
 
-    /// Maximum slots shown collapsed before the "More" link appears. When the day has
-    /// strictly more than this many slots, the grid renders the first
-    /// `collapsedSlotCount` and a "Show more" link below; tapping the link expands the
-    /// grid to the full set.
     private let collapsedSlotThreshold: Int = 8
     private let collapsedSlotCount: Int = 7
 
-    /// Expansion flag for the slot grid. Reset to `false` whenever the day changes so
-    /// each day starts collapsed.
     private(set) public var isTimeSlotsExpanded: Bool = false
 
-    /// Polling use case retained for the duration of a "wait for timeline regeneration"
-    /// step that runs after a successful segment-creation API call. Held as a strong
-    /// reference so it isn't deallocated mid-poll; cleared once the cycle finishes.
+    /// Held strongly so it isn't deallocated mid-poll; cleared once the cycle finishes.
     private var checkAllPlanUseCase: TRPTimelineCheckAllPlanUseCases?
 
-    // Edit mode properties
     private var segment: TRPTimelineSegment?
     private var step: TRPTimelineStep?
     public var isEditMode: Bool { segment != nil || step != nil }
     public var isStepEditMode: Bool { step != nil }
 
-    /// "HH:mm" of the activity being edited. Only populated in segment/step edit
-    /// initializers. When the schedule response for the activity's day does NOT
-    /// contain this time, the grid injects a disabled placeholder cell at this
-    /// time and the VC shows the sold-out warning banner.
+    /// "HH:mm" of the activity being edited; when absent from the schedule response the grid injects a disabled placeholder.
     private var editingTimeString: String?
 
     // MARK: - Initialization
@@ -89,11 +71,7 @@ public class AddPlanTimeSelectionViewModel {
         self.tourRepository = tourRepository
         self.selectedDate = planData.selectedDay
 
-        // Only treat the search-preloaded slots as authoritative when there's actually
-        // something to render. An empty array means the search response carried the
-        // field but the backend had nothing for this product — fall back to the
-        // per-day `getTourSchedule` API instead of locking the screen into an empty
-        // state.
+        // Empty preloaded slots mean the search field was present but empty — fall back to per-day schedule instead of locking into an empty state.
         if let preloaded = tour.slots, !preloaded.isEmpty {
             prefillCacheFromPreloadedSlots(preloaded)
             hasPreloadedSlots = true
@@ -105,21 +83,17 @@ public class AddPlanTimeSelectionViewModel {
         self.segment = segment
         self.planData = planData
         self.tourRepository = tourRepository
-        // Seed selectedDate from the segment's own saved date (timezone-robust),
-        // falling back to planData.selectedDay if no match (defensive — caller
-        // already attempts to set it via parseSegmentDateTime).
-        let savedYMD = Self.extractYMD(from: segment.startDate)
-        self.selectedDate = Self.findAvailableDay(matching: savedYMD, in: planData.availableDays)
+        // Seed selectedDate from the segment's own saved date (timezone-robust).
+        let savedYMD = TRPDateHelper.extractDateOnly(from: segment.startDate)
+        self.selectedDate = TRPDateHelper.matchDay(ymd: savedYMD, in: planData.availableDays)
             ?? planData.selectedDay
-        self.editingTimeString = Self.extractHHmm(from: segment.startDate)
+        self.editingTimeString = TRPDateHelper.extractHourMinute(from: segment.startDate)
 
-        // Extract tour info from segment's additionalData
         guard let additionalData = segment.additionalData else {
             fatalError("Reserved activity segment must have additionalData")
         }
 
-        // Format productId for availability API
-        // If activityId doesn't start with "C_", format as "C_{activityId}_15_{cityId}"
+        // Non-"C_" activityId is formatted as "C_{activityId}_15_{cityId}".
         let activityId = additionalData.activityId ?? ""
         let cityId = segment.city?.id ?? planData.selectedCity?.id ?? 0
         let formattedProductId: String
@@ -129,7 +103,6 @@ public class AddPlanTimeSelectionViewModel {
             formattedProductId = "C_\(activityId)_15_\(cityId)"
         }
 
-        // Create TRPTourProduct from additionalData (schedule API needs productId)
         let tourImage: TRPImage? = additionalData.imageUrl != nil
             ? TRPImage(url: additionalData.imageUrl!, imageOwner: nil, width: nil, height: nil)
             : nil
@@ -166,19 +139,16 @@ public class AddPlanTimeSelectionViewModel {
         self.step = step
         self.planData = planData
         self.tourRepository = tourRepository
-        // Seed selectedDate from the step's own saved date (timezone-robust),
-        // falling back to planData.selectedDay if no match.
-        let savedYMD = Self.extractYMD(from: step.startDateTimes)
-        self.selectedDate = Self.findAvailableDay(matching: savedYMD, in: planData.availableDays)
+        // Seed selectedDate from the step's own saved date (timezone-robust).
+        let savedYMD = TRPDateHelper.extractDateOnly(from: step.startDateTimes)
+        self.selectedDate = TRPDateHelper.matchDay(ymd: savedYMD, in: planData.availableDays)
             ?? planData.selectedDay
-        self.editingTimeString = Self.extractHHmm(from: step.startDateTimes)
+        self.editingTimeString = TRPDateHelper.extractHourMinute(from: step.startDateTimes)
 
-        // Extract product info from step's POI
         guard let poi = step.poi else {
             fatalError("Activity step must have POI")
         }
 
-        // Get productId from POI's additionalData or bookings
         let productId: String
         if let additionalProductId = poi.additionalData?.productId {
             productId = additionalProductId
@@ -188,8 +158,7 @@ public class AddPlanTimeSelectionViewModel {
             productId = poi.id
         }
 
-        // Format productId for availability API
-        // If productId doesn't start with "C_", format as "C_{productId}_15_{cityId}"
+        // Non-"C_" productId is formatted as "C_{productId}_15_{cityId}".
         let cityId = planData.selectedCity?.id ?? poi.cityId
         let formattedProductId: String
         if productId.hasPrefix("C_") {
@@ -198,7 +167,6 @@ public class AddPlanTimeSelectionViewModel {
             formattedProductId = "C_\(productId)_15_\(cityId)"
         }
 
-        // Create TRPTourProduct from POI (schedule API needs productId)
         self.tour = TRPTourProduct(
             id: formattedProductId,
             productId: formattedProductId,
@@ -207,8 +175,7 @@ public class AddPlanTimeSelectionViewModel {
             image: poi.image,
             gallery: poi.gallery,
             duration: poi.duration,
-            // `poi.price` is a dollar-sign tier (1-4), NOT a monetary value —
-            // the real activity price lives in `additionalData.price`.
+            // `poi.price` is a dollar-sign tier (1-4), not money — real price lives in `additionalData.price`.
             price: poi.additionalData?.price,
             rating: poi.rating,
             ratingCount: poi.ratingCount,
@@ -230,26 +197,21 @@ public class AddPlanTimeSelectionViewModel {
 
     // MARK: - Public Methods
 
-    /// Get available days for this activity (from timeline/itinerary)
     public func getAvailableDays() -> [Date] {
         return planData.availableDays
     }
 
-    /// Get selected day index
     public func getSelectedDayIndex() -> Int {
         guard let selectedDate = selectedDate else { return 0 }
         let days = getAvailableDays()
         return days.firstIndex(where: { Calendar.current.isDate($0, inSameDayAs: selectedDate) }) ?? 0
     }
 
-    /// Get selected date
     public func getSelectedDate() -> Date? {
         return selectedDate
     }
 
-    /// Select a day. The schedule cache is populated up-front for the entire trip
-    /// range (single fetch in `fetchTimeSlots`), so day switches are instant — no
-    /// per-day API call is triggered here.
+    /// Schedule cache is populated up-front for the whole trip range, so day switches are instant (no per-day fetch).
     public func selectDay(at index: Int) {
         let days = getAvailableDays()
         guard index < days.count else { return }
@@ -258,25 +220,19 @@ public class AddPlanTimeSelectionViewModel {
         if selectedDate != newDate {
             selectedDate = newDate
             selectedTimeSlot = nil
-            // Each day starts collapsed — user has to expand again per-day if needed.
             isTimeSlotsExpanded = false
             delegate?.timeSlotsDidLoad()
         }
     }
 
-    /// Get time slots for selected day (filtered for today to exclude past times, deduplicated by time)
+    /// Service slots for the selected day, deduplicated by time. No device-clock filtering — see `timedSlots(for:)`.
     public func getTimeSlots() -> [TimeSlot] {
         guard let selectedDate = selectedDate else { return [] }
-        let slots = validTimedSlots(for: selectedDate)
-        // Deduplicate slots by time, keeping the one with lowest price
+        let slots = timedSlots(for: selectedDate)
         return deduplicateSlotsByTime(slots)
     }
 
-    /// Full merged display list for the selected day — schedule slots mapped to
-    /// `DisplayTimeSlot`, plus (in edit mode, on the activity's own day, when the
-    /// editing time is missing from the schedule response) a disabled placeholder
-    /// inserted in chronological order. Used as the source of truth for both the
-    /// collapsed view and the show-more affordance.
+    /// Merged display list: schedule slots plus, in edit mode on the activity's own day, a disabled placeholder for a missing editing time.
     private func getAllDisplayTimeSlots() -> [DisplayTimeSlot] {
         let baseSlots = getTimeSlots()
         let base = baseSlots.map {
@@ -300,65 +256,34 @@ public class AddPlanTimeSelectionViewModel {
         return merged
     }
 
-    /// Slots actually shown in the grid right now. Honours the collapsed/expanded state
-    /// so the "Show more" link can hide the tail. When the total count is at or below
-    /// `collapsedSlotThreshold`, returns everything regardless of expansion state.
+    /// Slots shown right now, honouring collapsed/expanded state.
     public func getDisplayedTimeSlots() -> [DisplayTimeSlot] {
         let all = getAllDisplayTimeSlots()
         guard !isTimeSlotsExpanded, all.count > collapsedSlotThreshold else { return all }
         return Array(all.prefix(collapsedSlotCount))
     }
 
-    /// True when there are strictly more slots than `collapsedSlotThreshold` AND the grid
-    /// is still collapsed — drives whether the "Show more" link is visible. Counts the
-    /// disabled placeholder (if any) as a normal slot for collapse purposes.
+    /// Drives whether the "Show more" link is visible.
     public func hasMoreTimeSlotsToShow() -> Bool {
         return !isTimeSlotsExpanded && getAllDisplayTimeSlots().count > collapsedSlotThreshold
     }
 
-    /// True when the merged display list contains a disabled placeholder for the
-    /// activity's previously-saved time — i.e. the time is sold out or in the past
-    /// and isn't in the schedule response. Drives the sold-out warning banner.
+    /// True when the saved editing time is missing from the schedule (sold out / past) — drives the sold-out warning banner.
     public var shouldShowSoldOutWarning: Bool {
         return getAllDisplayTimeSlots().contains { $0.isDisabled }
     }
 
-    /// Expand the slot grid to show every available slot. No-op if already expanded.
-    /// Caller should reload the grid + refresh the sheet height afterward.
     public func expandTimeSlots() {
         guard !isTimeSlotsExpanded else { return }
         isTimeSlotsExpanded = true
     }
 
-    /// Returns the cached timed slots for `date` minus any whose time-of-day is already
-    /// in the past when `date` is today. For non-today dates this is just the cached
-    /// slots. Used by both `getTimeSlots()` (UI) and `isDayUnavailable(_:)` (day filter
-    /// gating) so the two stay consistent — a "today" with all slots expired is treated
-    /// as having no slots, i.e. unavailable.
-    private func validTimedSlots(for date: Date) -> [TimeSlot] {
-        let cached = allTimeSlots[date] ?? []
-        let calendar = Calendar.current
-        guard calendar.isDateInToday(date) else { return cached }
-
-        let nowComponents = calendar.dateComponents([.hour, .minute], from: Date())
-        let nowMinutes = (nowComponents.hour ?? 0) * 60 + (nowComponents.minute ?? 0)
-
-        return cached.filter { slot in
-            guard let timeString = slot.time else {
-                // Defensive: timed grid never holds flexible slots, but if one slipped
-                // through, keep it so we don't silently drop entries.
-                return true
-            }
-            let parts = timeString.split(separator: ":")
-            guard parts.count >= 2, let hour = Int(parts[0]), let minute = Int(parts[1]) else {
-                return true  // Keep slot if parsing fails
-            }
-            return (hour * 60 + minute) >= nowMinutes
-        }
+    /// Availability is service-driven, never device-clock driven — we don't drop slots by comparing against the current time.
+    private func timedSlots(for date: Date) -> [TimeSlot] {
+        return allTimeSlots[date] ?? []
     }
 
-    /// Deduplicate time slots by time string, keeping the slot with lowest price for each time.
-    /// Slots without a time (flexible) are skipped here — they live in `flexibleDays`.
+    /// Dedup by time, keeping lowest price. Flexible (nil-time) slots are skipped — they live in `flexibleDays`.
     private func deduplicateSlotsByTime(_ slots: [TimeSlot]) -> [TimeSlot] {
         var slotsByTime: [String: TimeSlot] = [:]
 
@@ -375,53 +300,42 @@ public class AddPlanTimeSelectionViewModel {
             }
         }
 
-        // Sort by time and return
         return slotsByTime.values.sorted { slot1, slot2 in
             (slot1.time ?? "") < (slot2.time ?? "")
         }
     }
 
-    /// Select a time slot. No-op for disabled placeholder slots — defense in depth
-    /// against any path that might bypass `collectionView(_:shouldSelectItemAt:)`.
+    /// No-op for disabled placeholder slots — defense against paths bypassing `shouldSelectItemAt`.
     public func selectTimeSlot(_ displaySlot: DisplayTimeSlot) {
         guard !displaySlot.isDisabled else { return }
         selectedTimeSlot = TimeSlot(time: displaySlot.time, price: displaySlot.price)
     }
 
-    /// Get selected time slot
     public func getSelectedTimeSlot() -> TimeSlot? {
         return selectedTimeSlot
     }
 
-    /// True when the currently selected day is flexible-time (activity is valid any
-    /// time on that date). Mixed-day rule: a day with at least one timed slot is NOT
-    /// flexible — the timed grid wins.
+    /// Mixed-day rule: a day with any timed slot is NOT flexible.
     public func isSelectedDayFlexible() -> Bool {
         guard let selectedDate = selectedDate else { return false }
         let hasTimedSlot = !(allTimeSlots[selectedDate] ?? []).isEmpty
         return !hasTimedSlot && flexibleDays.contains(selectedDate)
     }
 
-    /// Check if continue button should be enabled. Flexible days don't need a time
-    /// slot selection — the activity is valid any time on that date.
+    /// Flexible days don't need a slot selection.
     public func canContinue() -> Bool {
         guard selectedDate != nil else { return false }
         return selectedTimeSlot != nil || isSelectedDayFlexible()
     }
 
-    /// True when the given date has no usable timed slots and no flexible-time marker —
-    /// i.e. the activity has no bookable availability for that day. Critically, "today"
-    /// is also unavailable when every cached slot is already in the past (current time
-    /// has crossed all of them); without this gate the day shows as available in the
-    /// filter but tapping it lands on an empty grid.
+    /// Day is unavailable only when the service returned nothing for it, never because of the device clock.
     public func isDayUnavailable(_ date: Date) -> Bool {
-        let hasTimedSlot = !validTimedSlots(for: date).isEmpty
+        let hasTimedSlot = !timedSlots(for: date).isEmpty
         let isFlexible = flexibleDays.contains(date)
         return !hasTimedSlot && !isFlexible
     }
 
-    /// Indices into `availableDays` whose dates have no availability. The day filter
-    /// view uses this to render those entries as disabled (same UX as past dates).
+    /// Indices the day filter renders as disabled (same UX as past dates).
     public func unavailableDayIndices() -> Set<Int> {
         var result: Set<Int> = []
         for (index, day) in planData.availableDays.enumerated() where isDayUnavailable(day) {
@@ -430,10 +344,7 @@ public class AddPlanTimeSelectionViewModel {
         return result
     }
 
-    /// True when the activity has no bookable availability on ANY day of the trip —
-    /// every day is either in the past, has no slots, or is today with all slots
-    /// already expired. The VC swaps the time grid for a "not available" banner and
-    /// keeps the Continue button disabled.
+    /// True when no day of the trip has availability (every day is fully past or empty). `isPastDay()` is day-granular, not a time-of-day check.
     public func allDaysUnavailable() -> Bool {
         guard !planData.availableDays.isEmpty else { return false }
         return planData.availableDays.allSatisfy { day in
@@ -441,18 +352,13 @@ public class AddPlanTimeSelectionViewModel {
         }
     }
 
-    /// Fetch available time slots for the entire trip range in a single call.
-    /// `tour.slots` from search-response already covers this when available; otherwise
-    /// the schedule API is hit once with `date=trip start`, `to=trip end` and the
-    /// per-day buckets are inserted into `allTimeSlots` / `flexibleDays`. Subsequent
-    /// day picker switches use the cached state — no further network requests.
+    /// Fetch slots for the whole trip range in a single call (or skip when `tour.slots` already covers it). Day switches use the cache.
     public func fetchTimeSlots() {
         guard !planData.availableDays.isEmpty else {
             delegate?.viewModel(error: makeLocalizedError(code: -1, key: AddPlanLocalizationKeys.errorNoDateSelected))
             return
         }
 
-        // Preload path: search response already populated cache for all trip days; skip API.
         if hasPreloadedSlots {
             DispatchQueue.main.async { [weak self] in
                 self?.applyEditingTimeSlotIfNeeded()
@@ -461,17 +367,13 @@ public class AddPlanTimeSelectionViewModel {
             return
         }
 
-        // Embed the Lottie loader inside the time-selection screen itself rather than
-        // stacking a second bottom sheet on top — TimeSelectionVC is already presented
-        // as a sheet, so the loader appears inline within the host's view.
+        // Embed the loader inline — TimeSelectionVC is already a sheet, so we don't stack a second one.
         let loadingText = LoadingLocalizationKeys.localized(LoadingLocalizationKeys.loadingTimeSlots)
         delegate?.viewModel(showLottie: .inView, textMode: .single(loadingText))
 
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd"
         let sortedDays = planData.availableDays.sorted()
-        let fromDate = formatter.string(from: sortedDays.first ?? selectedDate ?? Date())
-        let toDate = formatter.string(from: sortedDays.last ?? selectedDate ?? Date())
+        let fromDate = TRPDateHelper.formatDateString(sortedDays.first ?? selectedDate ?? Date())
+        let toDate = TRPDateHelper.formatDateString(sortedDays.last ?? selectedDate ?? Date())
 
         let currency = TRPClient.getCurrency()
         let lang = TRPClient.getLanguage()
@@ -501,23 +403,14 @@ public class AddPlanTimeSelectionViewModel {
         }
     }
 
-    /// Bucket the range-aware schedule response into the per-day cache. Mirrors
-    /// `prefillCacheFromPreloadedSlots`: maps "yyyy-MM-dd" strings to the canonical
-    /// `availableDays` Date instances so dictionary keys match what the rest of the
-    /// VM uses, then splits each day's slots into timed (`allTimeSlots`) vs. flexible
-    /// markers (`flexibleDays`). Trip-range outliers (any unexpected dates the
-    /// server returned) are dropped silently.
+    /// Bucket the schedule response into the per-day cache (timed → `allTimeSlots`, flexible → `flexibleDays`), dropping trip-range outliers.
     private func applyScheduleResponse(_ schedule: TRPTourSchedule) {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd"
-
         var dateByString: [String: Date] = [:]
         for day in planData.availableDays {
-            dateByString[formatter.string(from: day)] = day
+            dateByString[TRPDateHelper.formatDateString(day)] = day
         }
 
-        // Pre-fill empty buckets so subsequent day switches treat each trip day as
-        // "loaded" (no fetch retry needed).
+        // Pre-fill empty buckets so day switches treat each trip day as loaded.
         for day in planData.availableDays where allTimeSlots[day] == nil {
             allTimeSlots[day] = []
         }
@@ -539,11 +432,8 @@ public class AddPlanTimeSelectionViewModel {
             }
         }
 
-        // If the user landed on a day that has no availability after the fetch, jump
-        // to the first available day so the screen is in a usable state — the day
-        // filter renders the empty days disabled and the user can still see them but
-        // not pick them.
-        if let current = selectedDate, isDayUnavailable(current) {
+        // Add flow only: jump to the first available day. Edit mode keeps the activity's own day so its saved time can show as a sold-out placeholder.
+        if !isEditMode, let current = selectedDate, isDayUnavailable(current) {
             if let firstAvailable = planData.availableDays.first(where: { !isDayUnavailable($0) }) {
                 selectedDate = firstAvailable
                 selectedTimeSlot = nil
@@ -551,26 +441,18 @@ public class AddPlanTimeSelectionViewModel {
         }
     }
 
-    /// Bucket preloaded search-response slots into the per-day cache.
-    /// Uses string equality on "yyyy-MM-dd" against canonical Date instances from `availableDays`,
-    /// so dictionary keys exactly match the Date instances `selectDay(at:)`/`getTimeSlots()` use.
+    /// Bucket preloaded search-response slots into the per-day cache, keyed on canonical `availableDays` Date instances.
     private func prefillCacheFromPreloadedSlots(_ slots: [TRPTourSlot]) {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd"
-
-        // Build map "yyyy-MM-dd" -> canonical Date from availableDays
         var dateByString: [String: Date] = [:]
         for day in planData.availableDays {
-            dateByString[formatter.string(from: day)] = day
+            dateByString[TRPDateHelper.formatDateString(day)] = day
         }
 
-        // Pre-create empty buckets for every trip day so cache miss never triggers a fetch
+        // Pre-create empty buckets so a cache miss never triggers a fetch.
         for day in planData.availableDays where allTimeSlots[day] == nil {
             allTimeSlots[day] = []
         }
 
-        // Bucket each preloaded slot under its canonical Date; drop trip-range outliers.
-        // Timed slots → `allTimeSlots`; nil-time entries → `flexibleDays` marker.
         for slot in slots {
             guard let canonicalDay = dateByString[slot.date] else { continue }
             if slot.time != nil {
@@ -580,34 +462,21 @@ public class AddPlanTimeSelectionViewModel {
             }
         }
 
-        // Auto-shift the initial selection to the first day with availability if the
-        // pre-selected day turned out empty — keeps the screen in a usable state.
-        if let current = selectedDate, isDayUnavailable(current) {
+        // Add flow only: auto-shift to the first available day (see `applyScheduleResponse`).
+        if !isEditMode, let current = selectedDate, isDayUnavailable(current) {
             if let firstAvailable = planData.availableDays.first(where: { !isDayUnavailable($0) }) {
                 selectedDate = firstAvailable
             }
         }
     }
 
-    /// Create reserved activity segment
     public func createReservedActivitySegment() {
-        // 1. Validate required data
         guard let tripHash = planData.tripHash else {
             delegate?.viewModel(error: makeLocalizedError(code: -1, key: AddPlanLocalizationKeys.errorTimelineNotFound))
             return
         }
 
-        // Coordinate resolution: prefer the tour's own coordinate. When the source
-        // activity has none, fall back to the selected city's coordinate and flag
-        // the segment with `isNoLocation = true` so the UI/map can react. If
-        // neither is available, the segment can't be placed at all.
-        //
-        // Both the tour and the selected city can carry `(0, 0)` — the city in
-        // particular leaks from the booked-activity merge path when the host trip
-        // item arrives without a coordinate, since the merge synthesizes a
-        // placeholder `TRPCity`. `TRPCity.resolvedCoordinate()` re-fetches the real
-        // coordinate from `TRPCityCache` by id so we don't reject a perfectly valid
-        // selection just because the in-memory city object was a stub.
+        // Prefer the tour coordinate; fall back to the city's `resolvedCoordinate()` (re-fetched from cache) and flag `isNoLocation`.
         let resolvedCoordinate: TRPLocation
         let isNoLocationActivity: Bool
         if let tourCoordinate = tour.coordinate, !tourCoordinate.isMissingOrZero {
@@ -627,23 +496,17 @@ public class AddPlanTimeSelectionViewModel {
         }
 
         let isFlexible = isSelectedDayFlexible()
-        // Flexible day → no slot selection required; otherwise enforce slot pick.
         guard isFlexible || selectedTimeSlot != nil else {
             delegate?.viewModel(error: makeLocalizedError(code: -3, key: AddPlanLocalizationKeys.errorSelectTimeSlot))
             return
         }
 
-        // 2. Calculate start and end times — `calculateSegmentTimes` handles the
-        //    flexible case internally (start = end = 00:00 on selectedDate).
         let (startDateString, endDateString, startDatetimeString, endDatetimeString) = calculateSegmentTimes(
             selectedDate: selectedDate,
             selectedTimeSlot: selectedTimeSlot
         )
 
-        // 3. Create TRPSegmentActivityItem (additionalData)
-        // Duration: flexible activities are encoded with the sentinel `-1` so the
-        // timeline read flow can identify them later without needing a separate
-        // field. Timed activities use the tour's natural duration.
+        // Flexible activities use the sentinel duration `-1` so the read flow can identify them.
         let durationValue: Double?
         if isFlexible {
             durationValue = -1
@@ -651,38 +514,18 @@ public class AddPlanTimeSelectionViewModel {
             durationValue = tour.duration != nil ? Double(tour.duration!) : nil
         }
 
-        // Get price with currency - prefer slot price over tour price
-        var activityPrice: TRPSegmentActivityPrice? = nil
-        if let slotPrice = selectedTimeSlot?.price, slotPrice > 0 {
-            // Use slot price with currency from API request
-            let currency = TRPClient.getCurrency()
-            activityPrice = TRPSegmentActivityPrice(currency: currency, value: slotPrice)
-        } else if let priceValue = tour.price, priceValue > 0 {
-            // Fallback to tour price. `tour.offers` is empty for every TRPTourProduct
-            // we construct today (search mapper, saved-plans converter, time-selection
-            // stubs all pass `offers: []`), so the offer-derived currency was
-            // effectively dead code. `tour.currency` carries the API/source currency
-            // (search mapper sets it from `restModel.currency`; saved-plans converter
-            // sets it from `item.price?.currency`). When neither is set, fall back to
-            // the SDK-configured currency from `TRPClient.getCurrency()` rather than
-            // hard-coding "EUR" — the host app's selected currency is the correct
-            // last resort.
-            let currency = tour.offers.first?.currency.rawValue
-                ?? tour.currency
-                ?? TRPClient.getCurrency()
-            activityPrice = TRPSegmentActivityPrice(currency: currency, value: priceValue)
-        }
+        let activityPrice = resolveActivityPrice()
 
         let activityItem = TRPSegmentActivityItem(
             activityId: tour.productId,
-            bookingId: nil,  // Not sent for reserved activities
+            bookingId: nil,
             title: tour.name,
             imageUrl: tour.image?.url,
             description: tour.description,
             startDatetime: startDatetimeString,
             endDatetime: endDatetimeString,
             coordinate: resolvedCoordinate,
-            cancellation: nil,  // Not sent for reserved activities
+            cancellation: nil,
             adultCount: planData.travelers,
             childCount: 0,
             duration: durationValue,
@@ -693,7 +536,6 @@ public class AddPlanTimeSelectionViewModel {
             isNoLocation: isNoLocationActivity
         )
 
-        // 4. Create TRPCreateEditTimelineSegmentProfile
         let profile = TRPCreateEditTimelineSegmentProfile(tripHash: tripHash)
         profile.segmentType = .reservedActivity
         profile.available = false
@@ -709,14 +551,10 @@ public class AddPlanTimeSelectionViewModel {
         profile.pets = 0
         profile.additionalData = activityItem
 
-        // 5. Show in-view Lottie loader (TimeSelectionVC is itself a bottom sheet —
-        //    we embed inside it rather than stacking another sheet on top).
         let loadingText = LoadingLocalizationKeys.localized(LoadingLocalizationKeys.addingToItinerary)
         delegate?.viewModel(showLottie: .inView, textMode: .single(loadingText))
 
-        // 6. Create segment via repository — keep the loader on through both the
-        //    creation API and the timeline-regeneration polling that follows on
-        //    success, so the user sees a single continuous "Adding…" state.
+        // Keep the loader on through both the create API and the regeneration poll for one continuous "Adding…" state.
         let repository = TRPTimelineRepository()
         repository.createEditTimelineSegment(profile: profile) { [weak self] result in
             guard let self = self else { return }
@@ -740,10 +578,7 @@ public class AddPlanTimeSelectionViewModel {
         }
     }
 
-    /// Poll for segment generation completion after a successful create. Loader
-    /// stays visible throughout. On completion this method emits the shared
-    /// refresh state so any subscribed screen (notably `TRPTimelineItineraryVC`)
-    /// can sync its data, then hides the loader and signals success.
+    /// Poll for generation after a create; loader stays visible, then emit shared refresh state, hide loader, signal success.
     private func waitForTimelineRefreshAfterCreation(tripHash: String) {
         TRPTimelineRefreshState.shared.setRefreshing()
 
@@ -779,7 +614,6 @@ public class AddPlanTimeSelectionViewModel {
 
     /// Update existing reserved activity segment (edit mode)
     public func updateReservedActivitySegment() {
-        // 1. Validate required data
         guard let tripHash = planData.tripHash else {
             delegate?.viewModel(error: makeLocalizedError(code: -1, key: AddPlanLocalizationKeys.errorTimelineNotFound))
             return
@@ -802,34 +636,27 @@ public class AddPlanTimeSelectionViewModel {
             return
         }
 
-        // 2. Calculate new times — flexible day yields 00:00/00:00 internally.
         let (startDateString, endDateString, startDatetimeString, endDatetimeString) = calculateSegmentTimes(
             selectedDate: selectedDate,
             selectedTimeSlot: selectedTimeSlot
         )
 
-        // 3. Update additionalData times + flexible flag
+        // Price travels with the time — a different slot can have a different price.
         var updatedAdditionalData = segment.additionalData
         updatedAdditionalData?.startDatetime = startDatetimeString
         updatedAdditionalData?.endDatetime = endDatetimeString
         updatedAdditionalData?.isFlexible = isFlexible ? true : nil
+        updatedAdditionalData?.price = resolveActivityPrice()
 
-        // 4. Create edit profile from existing segment
         let profile = TRPCreateEditTimelineSegmentProfile(from: segment, tripHash: tripHash, segmentIndex: segmentIndex)
         profile.startDate = startDateString
         profile.endDate = endDateString
         profile.additionalData = updatedAdditionalData
 
-        // 5. Show inline "Changing time" loader (the sheet is already presenting — embed
-        //    the loader in view). Stays visible through both the create-edit API call
-        //    AND the host-driven timeline refresh; the host dismisses the sheet (which
-        //    tears down the loader) once the refresh completes. No second bottom-sheet
-        //    loader is shown afterward.
+        // Inline loader stays through the edit API and the host refresh; host dismisses the sheet (tearing down the loader) after.
         let changingTimeText = LoadingLocalizationKeys.localized(LoadingLocalizationKeys.changingTime)
         delegate?.viewModel(showLottie: .inView, textMode: .single(changingTimeText))
 
-        // 6. Update segment via repository — on success, signal the host without hiding
-        //    the loader and without dismissing the sheet.
         let repository = TRPTimelineRepository()
         repository.createEditTimelineSegment(profile: profile) { [weak self] result in
             guard let self = self else { return }
@@ -838,8 +665,7 @@ public class AddPlanTimeSelectionViewModel {
                 switch result {
                 case .success(let success):
                     if success {
-                        // Loader intentionally stays on; host VC dismisses the sheet
-                        // when the refresh completes.
+                        // Loader intentionally stays on; host dismisses the sheet after refresh.
                         self.delegate?.segmentUpdateDidSucceed()
                     } else {
                         self.delegate?.viewModel(hideLottie: .inView)
@@ -864,14 +690,11 @@ public class AddPlanTimeSelectionViewModel {
 
         guard let selectedTimeSlot = selectedTimeSlot,
               let timeString = selectedTimeSlot.time else {
-            // Step edit mode requires a specific time — flexible-time entries are not
-            // editable here; the user must pick a concrete slot.
+            // Step edit requires a concrete time — flexible entries aren't editable here.
             delegate?.viewModel(error: makeLocalizedError(code: -2, key: AddPlanLocalizationKeys.errorSelectTimeSlot))
             return
         }
 
-        // Get start time from time slot (format: "HH:mm" or "HH:mm:ss")
-        // Extract just the "HH:mm" part
         let startTimeComponents = timeString.split(separator: ":")
         guard startTimeComponents.count >= 2 else {
             delegate?.viewModel(error: makeLocalizedError(code: -3, key: AddPlanLocalizationKeys.errorInvalidTimeFormat))
@@ -879,25 +702,19 @@ public class AddPlanTimeSelectionViewModel {
         }
         let startTime = "\(startTimeComponents[0]):\(startTimeComponents[1])"
 
-        // Calculate end time based on duration
         let durationMinutes = tour.duration ?? 60
-        let endTime = calculateEndTime(startTime: startTime, durationMinutes: durationMinutes)
+        let endTime = TRPDateHelper.addMinutes(toTime: startTime, minutes: durationMinutes) ?? "13:00"
 
-        // Create step edit request (only time, no date)
         let stepEdit = TRPTimelineStepEdit(
             stepId: step.id,
             startTime: startTime,
             endTime: endTime
         )
 
-        // Show inline "Changing time" loader. Same pattern as segment edit: stays on
-        // through both the step-edit API and the host's timeline refresh; host
-        // dismisses the sheet (which tears down the loader) once refresh completes.
+        // Inline loader stays through the step-edit API and the host refresh; host dismisses the sheet after.
         let changingTimeText = LoadingLocalizationKeys.localized(LoadingLocalizationKeys.changingTime)
         delegate?.viewModel(showLottie: .inView, textMode: .single(changingTimeText))
 
-        // Update step via repository — on success, signal the host without hiding the
-        // loader and without dismissing the sheet.
         let repository = TRPTimelineStepRepository()
         repository.editStep(step: stepEdit) { [weak self] result in
             guard let self = self else { return }
@@ -905,7 +722,6 @@ public class AddPlanTimeSelectionViewModel {
             DispatchQueue.main.async {
                 switch result {
                 case .success:
-                    // Loader intentionally stays on.
                     self.delegate?.stepUpdateDidSucceed()
 
                 case .failure(let error):
@@ -918,64 +734,7 @@ public class AddPlanTimeSelectionViewModel {
 
     // MARK: - Private Methods
 
-    /// Extract "HH:mm" from either "yyyy-MM-dd HH:mm[:ss]" or "HH:mm[:ss]". Returns
-    /// nil for empty/unparseable input. Used to capture the editing activity's time
-    /// from `segment.startDate` / `step.startDateTimes` in the edit-mode initializers.
-    private static func extractHHmm(from raw: String?) -> String? {
-        guard let raw = raw, !raw.isEmpty else { return nil }
-        let timePart: String
-        if let spaceIndex = raw.firstIndex(of: " ") {
-            timePart = String(raw[raw.index(after: spaceIndex)...])
-        } else {
-            timePart = raw
-        }
-        let parts = timePart.split(separator: ":")
-        guard parts.count >= 2 else { return nil }
-        return "\(parts[0]):\(parts[1])"
-    }
-
-    /// Extract "yyyy-MM-dd" from "yyyy-MM-dd HH:mm[:ss]" (or pass-through if the
-    /// input is already date-only). Returns nil for empty input or malformed
-    /// prefixes. Used by the edit-mode initializers to find the activity's own
-    /// trip day in `planData.availableDays`.
-    private static func extractYMD(from raw: String?) -> String? {
-        guard let raw = raw, !raw.isEmpty else { return nil }
-        let datePart: String
-        if let spaceIndex = raw.firstIndex(of: " ") {
-            datePart = String(raw[..<spaceIndex])
-        } else {
-            datePart = raw
-        }
-        // Basic shape check: "yyyy-MM-dd" is 10 chars with two dashes at fixed offsets.
-        let chars = Array(datePart)
-        guard chars.count == 10, chars[4] == "-", chars[7] == "-" else { return nil }
-        return datePart
-    }
-
-    /// Find the `Date` in `days` whose calendar-day matches `ymd` ("yyyy-MM-dd").
-    /// Tries UTC first, then local TZ — `getDayDates()` is UTC-anchored but cell
-    /// delegates parse segment/step strings inconsistently (segment via UTC, step
-    /// via local). Trying both timezones sidesteps that fragility without changing
-    /// the existing producers.
-    private static func findAvailableDay(matching ymd: String?, in days: [Date]) -> Date? {
-        guard let ymd = ymd else { return nil }
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd"
-        for tz in [TimeZone(identifier: "UTC"), TimeZone.current].compactMap({ $0 }) {
-            formatter.timeZone = tz
-            if let match = days.first(where: { formatter.string(from: $0) == ymd }) {
-                return match
-            }
-        }
-        return nil
-    }
-
-    /// In edit mode, pre-select the time slot matching `editingTimeString` once the
-    /// schedule for the activity's day has loaded. No-op when the user has already
-    /// tapped a slot (selectedTimeSlot != nil), when no editing time exists, or
-    /// when the saved time is missing from the schedule (the sold-out placeholder
-    /// is `isDisabled` and excluded here so Continue stays gated until the user
-    /// picks a fresh slot).
+    /// In edit mode, pre-select the slot matching `editingTimeString`. Disabled placeholders are excluded so Continue stays gated.
     private func applyEditingTimeSlotIfNeeded() {
         guard isEditMode,
               selectedTimeSlot == nil,
@@ -992,98 +751,77 @@ public class AddPlanTimeSelectionViewModel {
         return NSError(domain: "AddPlanTimeSelection", code: code, userInfo: [NSLocalizedDescriptionKey: message])
     }
 
+    /// Prefer the selected slot's price; fall back to `tour.price` (which, in edit mode,
+    /// holds the segment's existing price so a slot without a price keeps it unchanged).
+    private func resolveActivityPrice() -> TRPSegmentActivityPrice? {
+        if let slotPrice = selectedTimeSlot?.price, slotPrice > 0 {
+            return TRPSegmentActivityPrice(currency: TRPClient.getCurrency(), value: slotPrice)
+        }
+        if let priceValue = tour.price, priceValue > 0 {
+            let currency = tour.offers.first?.currency.rawValue
+                ?? tour.currency
+                ?? TRPClient.getCurrency()
+            return TRPSegmentActivityPrice(currency: currency, value: priceValue)
+        }
+        return nil
+    }
+
+    // MARK: - Segment Time Calculation
+
+    /// Resolve the four segment date strings. Flexible days pin to a single instant; timed days add the tour duration; noon fallback otherwise.
     private func calculateSegmentTimes(
         selectedDate: Date,
         selectedTimeSlot: TimeSlot?
     ) -> (startDateString: String, endDateString: String, startDatetimeString: String, endDatetimeString: String) {
 
-        // Flexible-time path: no slot selected (or slot has nil time) AND the selected
-        // day is flexible. Both start and end pinned to 00:00 — duration is intentionally
-        // not added so the segment lands at the top of the day's itinerary.
-        if (selectedTimeSlot?.time == nil) && isSelectedDayFlexible() {
-            return formatDatesForFlexibleSegment(selectedDate)
+        if selectedTimeSlot?.time == nil && isSelectedDayFlexible() {
+            return flexibleSegmentTimes(for: selectedDate)
         }
 
-        // Parse time slot (format: "HH:mm" or "HH:mm:ss")
         guard let timeString = selectedTimeSlot?.time else {
-            // Defensive: shouldn't reach here unless a non-flexible day somehow lacks
-            // a time. Fall back to noon to preserve existing safety net.
-            return calculateTimesWithDefaults(selectedDate: selectedDate, hour: 12, minute: 0)
+            return timedSegmentTimes(selectedDate: selectedDate, hour: 12, minute: 0)
         }
-        let timeComponents = timeString.split(separator: ":")
-        guard timeComponents.count >= 2,
-              let hour = Int(timeComponents[0]),
-              let minute = Int(timeComponents[1]) else {
-            return calculateTimesWithDefaults(selectedDate: selectedDate, hour: 12, minute: 0)
+        let parts = timeString.split(separator: ":")
+        guard parts.count >= 2, let hour = Int(parts[0]), let minute = Int(parts[1]) else {
+            return timedSegmentTimes(selectedDate: selectedDate, hour: 12, minute: 0)
         }
-
-        return calculateTimesWithDefaults(selectedDate: selectedDate, hour: hour, minute: minute)
+        return timedSegmentTimes(selectedDate: selectedDate, hour: hour, minute: minute)
     }
 
-    /// Build segment date strings used for flexible-time activities. Both start and
-    /// end land on the same instant. Normally that's 00:00 (top of itinerary), but
-    /// when the user is creating a flexible activity for **today** the server would
-    /// reject 00:00 as a past timestamp — so anchor to 23:59 instead, keeping the
-    /// segment in the future while still occupying a single conceptual moment.
-    private func formatDatesForFlexibleSegment(_ selectedDate: Date) -> (String, String, String, String) {
+    /// Flexible activity pins start == end to 00:00, or 23:59 when today so the server doesn't reject a past 00:00. No duration added.
+    private func flexibleSegmentTimes(for selectedDate: Date) -> (String, String, String, String) {
         let isToday = Calendar.current.isDateInToday(selectedDate)
         var components = Calendar.current.dateComponents([.year, .month, .day], from: selectedDate)
         components.hour = isToday ? 23 : 0
         components.minute = isToday ? 59 : 0
         components.second = 0
         let anchor = Calendar.current.date(from: components) ?? selectedDate
-        return formatDates(start: anchor, end: anchor)
+        return segmentDateStrings(start: anchor, end: anchor)
     }
 
-    private func calculateTimesWithDefaults(selectedDate: Date, hour: Int, minute: Int) -> (String, String, String, String) {
-        // Create start time
+    /// Timed activity starts at `hour:minute`, ends after the tour duration (default 60m). Falls back to +1h on failure.
+    private func timedSegmentTimes(selectedDate: Date, hour: Int, minute: Int) -> (String, String, String, String) {
         var startComponents = Calendar.current.dateComponents([.year, .month, .day], from: selectedDate)
         startComponents.hour = hour
         startComponents.minute = minute
         startComponents.second = 0
 
         guard let startDate = Calendar.current.date(from: startComponents) else {
-            // Fallback to selected date if components fail
-            return formatDates(start: selectedDate, end: selectedDate.addingTimeInterval(3600))
+            return segmentDateStrings(start: selectedDate, end: selectedDate.addingTimeInterval(3600))
         }
-
-        // Calculate end time (start + duration or +1 hour)
         let durationMinutes = tour.duration ?? 60
         let endDate = startDate.addingTimeInterval(TimeInterval(durationMinutes * 60))
-
-        return formatDates(start: startDate, end: endDate)
+        return segmentDateStrings(start: startDate, end: endDate)
     }
 
-    private func formatDates(start: Date, end: Date) -> (String, String, String, String) {
-        let dateFormatter = DateFormatter()
-
-        // Format for segment dates (yyyy-MM-dd HH:mm)
-        dateFormatter.dateFormat = "yyyy-MM-dd HH:mm"
-        let startDateString = dateFormatter.string(from: start)
-        let endDateString = dateFormatter.string(from: end)
-
-        // Format for additionalData datetimes (yyyy-MM-dd HH:mm:ss)
-        dateFormatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
-        let startDatetimeString = dateFormatter.string(from: start)
-        let endDatetimeString = dateFormatter.string(from: end)
-
-        return (startDateString, endDateString, startDatetimeString, endDatetimeString)
+    /// Bundle start/end into (date, date, datetime, datetime): "yyyy-MM-dd HH:mm" plus "yyyy-MM-dd HH:mm:ss".
+    private func segmentDateStrings(start: Date, end: Date) -> (String, String, String, String) {
+        return (
+            TRPDateHelper.formatDateTime(start),
+            TRPDateHelper.formatDateTime(end),
+            TRPDateHelper.formatDateTimeWithSeconds(start),
+            TRPDateHelper.formatDateTimeWithSeconds(end)
+        )
     }
 
-    /// Calculate end time from start time and duration (returns "HH:mm" format)
-    private func calculateEndTime(startTime: String, durationMinutes: Int) -> String {
-        let components = startTime.split(separator: ":")
-        guard components.count >= 2,
-              let hour = Int(components[0]),
-              let minute = Int(components[1]) else {
-            // Fallback: add 1 hour to a default time
-            return "13:00"
-        }
-
-        let totalMinutes = hour * 60 + minute + durationMinutes
-        let endHour = (totalMinutes / 60) % 24
-        let endMinute = totalMinutes % 60
-
-        return String(format: "%02d:%02d", endHour, endMinute)
-    }
 }

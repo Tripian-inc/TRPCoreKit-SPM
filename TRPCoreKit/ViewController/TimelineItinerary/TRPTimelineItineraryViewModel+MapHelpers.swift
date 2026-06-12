@@ -16,34 +16,27 @@ import MapboxDirections
 
 extension TRPTimelineItineraryViewModel {
 
-    /// Get ordered items for map display (collection view and annotations)
-    /// Returns items with unified order, cityIndex for marker coloring, sorted by section then order ascending
-    /// This matches the order displayed in the list view (city-based numbering)
+    /// Ordered items for map display, matching the list view's city-based numbering, sorted by section then order.
     public func getOrderedItemsForMap() -> [(order: Int, section: Int, cityIndex: Int, item: MapDisplayItem)] {
         var result: [(order: Int, section: Int, cityIndex: Int, item: MapDisplayItem)] = []
 
         for (sectionIndex, cityGroup) in displayItems.enumerated() {
-            let cityIndex = sectionIndex  // Each section is a different city
+            let cityIndex = sectionIndex
             for item in cityGroup.items {
-                // Key format: "sectionIndex_segmentIndex"
                 let key = "\(sectionIndex)_\(item.originalSegmentIndex)"
                 let startingOrder = unifiedOrderMap[key] ?? 1
 
                 switch item.segmentType {
                 case .bookedActivity, .reservedActivity:
-                    // isNoLocation activities are kept in the result so the bottom
-                    // preview collection can still surface them (with a "no exact
-                    // location" tag). Map annotations skip them separately.
+                    // Kept here so the preview collection can surface isNoLocation items; map annotations skip them separately.
                     result.append((order: startingOrder, section: sectionIndex, cityIndex: cityIndex, item: .activity(item.segment)))
 
                 case .manualPoi:
-                    // Manual POI (no step info available)
                     if let poi = item.manualPoi {
                         result.append((order: startingOrder, section: sectionIndex, cityIndex: cityIndex, item: .poi(poi, item.segment, nil)))
                     }
 
                 case .itinerary:
-                    // Recommendations - each step gets sequential order
                     for (index, step) in item.steps.enumerated() {
                         if let poi = step.poi {
                             let stepOrder = startingOrder + index
@@ -54,11 +47,10 @@ extension TRPTimelineItineraryViewModel {
             }
         }
 
-        // Sort by section first, then by order within section
         return result.sorted { ($0.section, $0.order) < ($1.section, $1.order) }
     }
 
-    /// Get all POIs for the currently selected day
+    /// Get all POIs for the currently selected day.
     public func getPoisForSelectedDay() -> [TRPPoi] {
         var pois: [TRPPoi] = []
         for cityGroup in displayItems {
@@ -69,8 +61,7 @@ extension TRPTimelineItineraryViewModel {
         return pois
     }
 
-    /// Get POIs grouped by segments for the selected day
-    /// Each inner array represents a separate segment that should have its own route
+    /// POIs grouped by segment for the selected day; each inner array gets its own route.
     public func getSegmentsWithPoisForSelectedDay() -> [[TRPPoi]] {
         var segmentGroups: [[TRPPoi]] = []
         for cityGroup in displayItems {
@@ -84,19 +75,19 @@ extension TRPTimelineItineraryViewModel {
         return segmentGroups
     }
 
-    /// Get booked and reserved activities for the selected day
+    /// Get booked and reserved activities for the selected day.
     public func getBookedActivitiesForSelectedDay() -> [TRPTimelineSegment] {
         return displayItems.flatMap { cityGroup in
             cityGroup.items.filter { $0.isBookedActivity || $0.isReservedActivity }.map { $0.segment }
         }
     }
 
-    /// Get all booked and reserved activities (for all days, used in POI selection)
+    /// Get all booked and reserved activities (all days, used in POI selection).
     public func getAllBookedActivities() -> [TRPTimelineSegment] {
         return mergedTimeline?.allBookedActivities ?? []
     }
 
-    /// Get count of reserved activities (saved plans that haven't been purchased)
+    /// Count of reserved activities (saved plans not yet purchased).
     public func getReservedActivitiesCount() -> Int {
         return mergedTimeline?.reservedActivitiesCount ?? 0
     }
@@ -116,7 +107,6 @@ extension TRPTimelineItineraryViewModel {
         return filteredFavoriteItems
     }
 
-    /// Get POI by ID
     public func getPoi(byId id: String) -> TRPPoi? {
         for cityGroup in displayItems {
             for item in cityGroup.items {
@@ -130,7 +120,6 @@ extension TRPTimelineItineraryViewModel {
         return nil
     }
 
-    /// Get booked or reserved activity by activity ID
     public func getBookedActivity(byId activityId: String) -> TRPTimelineSegment? {
         for cityGroup in displayItems {
             for item in cityGroup.items {
@@ -145,11 +134,9 @@ extension TRPTimelineItineraryViewModel {
         return nil
     }
 
-    /// Get step for a specific POI ID
     public func getStep(forPoiId id: String) -> TRPTimelineStep? {
         for cityGroup in displayItems {
             for item in cityGroup.items {
-                // Get steps from merged item
                 for step in item.steps {
                     if let poi = step.poi, poi.id == id {
                         return step
@@ -160,20 +147,15 @@ extension TRPTimelineItineraryViewModel {
         return nil
     }
 
-    /// Get first plan from timeline
     public func getFirstPlan() -> TRPTimelinePlan? {
         return timeline?.plans?.first
     }
 
-    /// Check if the selected day has multiple cities
     public func hasMultipleCities() -> Bool {
         return displayItems.count > 1
     }
 
-    /// Get cities with coordinates for the selected day (for city marker annotations)
-    /// Prefers `TRPCity.coordinate` so the city marker doesn't collide with the auto-selected
-    /// step marker (which uses the first item's coordinate). Falls back to the first item only
-    /// when the city has no coordinate set (lat/lon both zero).
+    /// Prefers `TRPCity.coordinate` (avoids colliding with the auto-selected step marker); falls back to the first item only when the city coordinate is zero.
     public func getCitiesWithCoordinatesForSelectedDay() -> [(city: TRPCity, coordinate: TRPLocation)] {
         var result: [(city: TRPCity, coordinate: TRPLocation)] = []
 
@@ -190,28 +172,23 @@ extension TRPTimelineItineraryViewModel {
         return result
     }
 
-    /// Get cities for the selected day (for city marker annotations)
-    /// Note: Cities may not have coordinates set - use getCitiesWithCoordinatesForSelectedDay() instead
+    /// Cities for the selected day. They may lack coordinates — use getCitiesWithCoordinatesForSelectedDay() for markers.
     public func getCitiesForSelectedDay() -> [TRPCity] {
         return displayItems.compactMap { $0.city }
     }
 
-    /// Get the preferred city coordinate for map centering
-    /// Priority: selected day's first city > timeline.city > first plan city > nil
+    /// Preferred city coordinate for map centering. Priority: selected day's first city > timeline.city > first plan city > nil.
     public func getPreferredCityCoordinate() -> TRPLocation? {
-        // 1. O gün bulunan ilk plan'ın şehri (seçili gün)
         if let city = displayItems.first?.city,
            city.coordinate.lat != 0 || city.coordinate.lon != 0 {
             return city.coordinate
         }
 
-        // 2. Timeline'ın ana city'si
         if let city = timeline?.city,
            city.coordinate.lat != 0 || city.coordinate.lon != 0 {
             return city.coordinate
         }
 
-        // 3. İlk plan'ın city'si (tüm günlerde)
         if let firstPlan = getFirstPlan(),
            let city = firstPlan.city,
            city.coordinate.lat != 0 || city.coordinate.lon != 0 {
@@ -221,7 +198,6 @@ extension TRPTimelineItineraryViewModel {
         return nil
     }
 
-    /// Calculate route for given locations
     public func calculateRoute(for locations: [TRPLocation], completion: @escaping (Route?, Error?) -> Void) {
         guard locations.count > 1 else {
             completion(nil, nil)
@@ -234,38 +210,33 @@ extension TRPTimelineItineraryViewModel {
         }
 
         let calculator = TRPRouteCalculator(providerApiKey: accessToken, wayPoints: locations, dailyPlanId: 0)
-        // Retain calculator to prevent deallocation during async operation
+        // Retain calculator to prevent deallocation during the async operation.
         activeRouteCalculators.append(calculator)
         calculator.calculateRoute { [weak self] route, error, _, _ in
             DispatchQueue.main.async {
-                // Remove calculator from active list after completion
                 self?.activeRouteCalculators.removeAll { $0 === calculator }
                 completion(route, error)
             }
         }
     }
 
-    /// Cancel all active route calculations (e.g., when switching days)
+    /// Cancel all active route calculations (e.g. when switching days).
     public func cancelActiveRouteCalculations() {
         activeRouteCalculators.removeAll()
     }
 
     // MARK: - Segment Route Calculation
 
-    /// Returns itinerary segments with multiple steps for route calculation
-    /// - Returns: Array of segment index and POI locations tuples
+    /// Returns itinerary segments with multiple steps for route calculation, as (segmentIndex, POI locations) tuples.
     public func getItinerarySegmentsForRouteCalculation() -> [(segmentIndex: Int, locations: [TRPLocation])] {
         var result: [(segmentIndex: Int, locations: [TRPLocation])] = []
         var segmentIndex = 0
 
         for cityGroup in displayItems {
             for item in cityGroup.items {
-                // Only itinerary type segments
                 if item.isItinerary {
-                    // Only segments with more than 1 step
                     let steps = item.steps
                     if steps.count > 1 {
-                        // Collect POI coordinates
                         let locations = steps.compactMap { $0.poi?.coordinate }
                         if locations.count > 1 {
                             result.append((segmentIndex: segmentIndex, locations: locations))

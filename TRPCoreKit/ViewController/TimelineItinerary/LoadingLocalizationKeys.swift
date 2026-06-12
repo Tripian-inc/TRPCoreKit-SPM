@@ -41,7 +41,6 @@ public struct LoadingLocalizationKeys {
     public static func localized(_ key: String) -> String {
         let localizedValue = TRPLanguagesController.shared.getLanguageValue(for: key)
 
-        // If the localization returns the key itself or is empty, use default English value
         if localizedValue.isEmpty || localizedValue == key {
             return defaultValues[key] ?? key
         }
@@ -49,7 +48,6 @@ public struct LoadingLocalizationKeys {
         return localizedValue
     }
 
-    /// Returns all rotating text messages in order
     public static func allRotatingTexts() -> [String] {
         return [
             localized(findingActivities),

@@ -47,7 +47,6 @@ class PoiImageCell: UICollectionViewCell {
 
     func configure(with urlString: String) {
         if urlString.isEmpty {
-            // Show placeholder for empty URL
             imageView.backgroundColor = ColorSet.neutral200.uiColor
             imageView.image = nil
         } else if let url = URL(string: urlString) {

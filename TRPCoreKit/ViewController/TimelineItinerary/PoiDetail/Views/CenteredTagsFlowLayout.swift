@@ -21,7 +21,6 @@ class CenteredTagsFlowLayout: UICollectionViewFlowLayout {
 
         let collectionViewWidth = collectionView.bounds.width - sectionInset.left - sectionInset.right
 
-        // Group attributes by row (same Y position)
         var rows: [[UICollectionViewLayoutAttributes]] = []
         var currentRow: [UICollectionViewLayoutAttributes] = []
         var currentY: CGFloat = -1
@@ -42,7 +41,6 @@ class CenteredTagsFlowLayout: UICollectionViewFlowLayout {
             rows.append(currentRow)
         }
 
-        // Center each row
         for row in rows {
             let totalWidth = row.reduce(0) { $0 + $1.frame.width } + CGFloat(row.count - 1) * minimumInteritemSpacing
             let leadingOffset = (collectionViewWidth - totalWidth) / 2 + sectionInset.left

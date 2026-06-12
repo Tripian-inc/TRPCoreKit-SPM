@@ -14,7 +14,7 @@ public class AddPlanCategorySelectionVC: TRPBaseUIViewController, AddPlanChildVi
 
     // MARK: - AddPlanChildViewController
     public var preferredContentHeight: CGFloat {
-        return 284 // Static height from design
+        return 284
     }
 
     // MARK: - Properties
@@ -50,7 +50,6 @@ public class AddPlanCategorySelectionVC: TRPBaseUIViewController, AddPlanChildVi
         super.setupViews()
         view.backgroundColor = .white
 
-        // Add all subviews directly to view (scroll is handled by container)
         view.addSubview(descriptionLabel)
         view.addSubview(gridContainer)
         view.addSubview(bottomSeparator)
@@ -75,31 +74,25 @@ public class AddPlanCategorySelectionVC: TRPBaseUIViewController, AddPlanChildVi
 
     // MARK: - Setup
     private func setupCategoryButtons() {
-        // Grid container already added to view
-        
         let itemsPerRow = 3
         let spacing: CGFloat = 8
         let buttonHeight: CGFloat = 96
-        
-        // Calculate button width based on screen width
+
         let screenWidth = UIScreen.main.bounds.width
-        let containerWidth = screenWidth - 48 // 24pt padding on each side
+        let containerWidth = screenWidth - 48
         let buttonWidth = (containerWidth - (CGFloat(itemsPerRow - 1) * spacing)) / CGFloat(itemsPerRow)
-        
-        // Calculate total rows
+
         let totalItems = viewModel.categories.count
         let itemsInLastRow = totalItems % itemsPerRow == 0 ? itemsPerRow : totalItems % itemsPerRow
         let totalRows = Int(ceil(CGFloat(totalItems) / CGFloat(itemsPerRow)))
         
         var previousRowView: UIView? = nil
-        
-        // Create rows
+
         for row in 0..<totalRows {
             let rowView = UIView()
             rowView.translatesAutoresizingMaskIntoConstraints = false
             gridContainer.addSubview(rowView)
-            
-            // Row constraints
+
             if let previousRow = previousRowView {
                 rowView.topAnchor.constraint(equalTo: previousRow.bottomAnchor, constant: spacing).isActive = true
             } else {
@@ -107,8 +100,7 @@ public class AddPlanCategorySelectionVC: TRPBaseUIViewController, AddPlanChildVi
             }
             rowView.centerXAnchor.constraint(equalTo: gridContainer.centerXAnchor).isActive = true
             rowView.heightAnchor.constraint(equalToConstant: buttonHeight).isActive = true
-            
-            // Add buttons to row
+
             let startIndex = row * itemsPerRow
             let endIndex = min(startIndex + itemsPerRow, totalItems)
             let itemsInThisRow = endIndex - startIndex
@@ -121,8 +113,7 @@ public class AddPlanCategorySelectionVC: TRPBaseUIViewController, AddPlanChildVi
                 button.tag = i
                 rowView.addSubview(button)
                 categoryButtons.append(button)
-                
-                // Button constraints
+
                 NSLayoutConstraint.activate([
                     button.topAnchor.constraint(equalTo: rowView.topAnchor),
                     button.bottomAnchor.constraint(equalTo: rowView.bottomAnchor),
@@ -158,19 +149,16 @@ public class AddPlanCategorySelectionVC: TRPBaseUIViewController, AddPlanChildVi
         button.layer.borderWidth = 1
         button.layer.borderColor = ColorSet.lineWeak.uiColor.cgColor
 
-        // Content container (holds icon + label, centered in button)
         let contentContainer = UIView()
         contentContainer.translatesAutoresizingMaskIntoConstraints = false
         contentContainer.isUserInteractionEnabled = false
 
-        // Icon
         let iconImageView = UIImageView()
         iconImageView.translatesAutoresizingMaskIntoConstraints = false
         iconImageView.image = TRPImageController().getImage(inFramework: category.iconName, inApp: nil, withTintColor: true)
         iconImageView.tintColor = ColorSet.fg.uiColor
         iconImageView.contentMode = .scaleAspectFit
 
-        // Label
         let label = UILabel()
         label.translatesAutoresizingMaskIntoConstraints = false
         label.text = category.name
@@ -185,19 +173,16 @@ public class AddPlanCategorySelectionVC: TRPBaseUIViewController, AddPlanChildVi
         button.addSubview(contentContainer)
 
         NSLayoutConstraint.activate([
-            // Content container centered in button
             contentContainer.centerXAnchor.constraint(equalTo: button.centerXAnchor),
             contentContainer.centerYAnchor.constraint(equalTo: button.centerYAnchor),
             contentContainer.leadingAnchor.constraint(greaterThanOrEqualTo: button.leadingAnchor, constant: 8),
             contentContainer.trailingAnchor.constraint(lessThanOrEqualTo: button.trailingAnchor, constant: -8),
 
-            // Icon at top of container
             iconImageView.topAnchor.constraint(equalTo: contentContainer.topAnchor),
             iconImageView.centerXAnchor.constraint(equalTo: contentContainer.centerXAnchor),
             iconImageView.widthAnchor.constraint(equalToConstant: 32),
             iconImageView.heightAnchor.constraint(equalToConstant: 32),
 
-            // Label below icon
             label.topAnchor.constraint(equalTo: iconImageView.bottomAnchor, constant: 8),
             label.leadingAnchor.constraint(equalTo: contentContainer.leadingAnchor),
             label.trailingAnchor.constraint(equalTo: contentContainer.trailingAnchor),
@@ -207,7 +192,6 @@ public class AddPlanCategorySelectionVC: TRPBaseUIViewController, AddPlanChildVi
 
         button.addTarget(self, action: #selector(categoryButtonTapped(_:)), for: .touchUpInside)
 
-        // Set initial state
         updateCategoryButtonStyle(button, isSelected: category.isSelected)
 
         return button

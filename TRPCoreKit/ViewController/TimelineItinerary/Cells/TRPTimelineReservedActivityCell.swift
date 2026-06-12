@@ -24,10 +24,7 @@ class TRPTimelineReservedActivityCell: UITableViewCell {
 
     private var segment: TRPTimelineSegment?
 
-    /// `true` while the cell is rendered for a past day. Buttons stay `isEnabled = true` so
-    /// they consume the touch (blocking tableView selection / cell tap gesture), but their
-    /// action handlers short-circuit on this flag — net effect: tapping the button area is
-    /// a silent no-op. Reset to `false` in `prepareForReuse`.
+    /// Past-day mode: buttons stay enabled to consume touches, but their handlers no-op on this flag.
     private var isPastDayMode: Bool = false
 
     // MARK: - UI Components
@@ -168,7 +165,6 @@ class TRPTimelineReservedActivityCell: UITableViewCell {
         return button
     }()
 
-    // Action buttons container
     private let actionButtonsStack: UIStackView = {
         let stack = UIStackView()
         stack.translatesAutoresizingMaskIntoConstraints = false
@@ -178,7 +174,6 @@ class TRPTimelineReservedActivityCell: UITableViewCell {
         return stack
     }()
 
-    // Stack view for right side content
     private let rightContentStackView: UIStackView = {
         let stack = UIStackView()
         stack.translatesAutoresizingMaskIntoConstraints = false
@@ -189,7 +184,6 @@ class TRPTimelineReservedActivityCell: UITableViewCell {
         return stack
     }()
 
-    // Horizontal stack for duration icon and label
     private let durationStackView: UIStackView = {
         let stack = UIStackView()
         stack.translatesAutoresizingMaskIntoConstraints = false
@@ -222,19 +216,15 @@ class TRPTimelineReservedActivityCell: UITableViewCell {
         containerView.addSubview(actionButtonsStack)
         containerView.addSubview(rightContentStackView)
 
-        // Build action buttons stack
         actionButtonsStack.addArrangedSubview(changeTimeButton)
         actionButtonsStack.addArrangedSubview(removeButton)
 
-        // Build duration horizontal stack
         durationStackView.addArrangedSubview(durationIcon)
         durationStackView.addArrangedSubview(durationLabel)
 
-        // Build badges row (activity + optional "no exact location")
         badgeStackView.addArrangedSubview(activityBadge)
         badgeStackView.addArrangedSubview(noLocationBadge)
 
-        // Build right content vertical stack (below title)
         rightContentStackView.addArrangedSubview(ratingStack)
         rightContentStackView.addArrangedSubview(badgeStackView)
         rightContentStackView.addArrangedSubview(durationStackView)
@@ -242,7 +232,6 @@ class TRPTimelineReservedActivityCell: UITableViewCell {
         rightContentStackView.addArrangedSubview(priceRowContainer)
         rightContentStackView.addArrangedSubview(reservationButton)
 
-        // Add tap gesture for cell selection
         let cellTapGesture = UITapGestureRecognizer(target: self, action: #selector(cellTapped))
         cellTapGesture.delegate = TRPDisabledControlAwareTapDelegate.shared
         contentView.addGestureRecognizer(cellTapGesture)
@@ -252,38 +241,31 @@ class TRPTimelineReservedActivityCell: UITableViewCell {
 
     private func setupConstraints() {
         NSLayoutConstraint.activate([
-            // Time Badge View
             timeBadgeView.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 16),
             timeBadgeView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
 
-            // Container View
             containerView.topAnchor.constraint(equalTo: timeBadgeView.bottomAnchor),
             containerView.leadingAnchor.constraint(equalTo: timeBadgeView.leadingAnchor),
             containerView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
             containerView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -16),
 
-            // Activity Image
             activityImageView.topAnchor.constraint(equalTo: containerView.topAnchor),
             activityImageView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
             activityImageView.widthAnchor.constraint(equalToConstant: 80),
             activityImageView.heightAnchor.constraint(equalToConstant: 80),
 
-            // Title Label - top right area
             titleLabel.topAnchor.constraint(equalTo: containerView.topAnchor),
             titleLabel.leadingAnchor.constraint(equalTo: activityImageView.trailingAnchor, constant: 12),
             titleLabel.trailingAnchor.constraint(equalTo: actionButtonsStack.leadingAnchor, constant: -8),
 
-            // Action buttons stack - fixed to right, aligned with title
             actionButtonsStack.topAnchor.constraint(equalTo: containerView.topAnchor),
             actionButtonsStack.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
 
-            // Button sizes
             changeTimeButton.widthAnchor.constraint(equalToConstant: 36),
             changeTimeButton.heightAnchor.constraint(equalToConstant: 28),
             removeButton.widthAnchor.constraint(equalToConstant: 40),
             removeButton.heightAnchor.constraint(equalToConstant: 28),
 
-            // Right Content Stack View - below title
             rightContentStackView.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 8),
             rightContentStackView.leadingAnchor.constraint(equalTo: activityImageView.trailingAnchor, constant: 12),
             rightContentStackView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
@@ -292,10 +274,8 @@ class TRPTimelineReservedActivityCell: UITableViewCell {
             durationIcon.widthAnchor.constraint(equalToConstant: 16),
             durationIcon.heightAnchor.constraint(equalToConstant: 16),
 
-            // Price row container needs full width for right alignment
             priceRowContainer.widthAnchor.constraint(equalTo: rightContentStackView.widthAnchor),
 
-            // Reservation button full width
             reservationButton.widthAnchor.constraint(equalTo: rightContentStackView.widthAnchor),
         ])
     }
@@ -318,10 +298,8 @@ class TRPTimelineReservedActivityCell: UITableViewCell {
         activityBadge.textColor = ColorSet.fgGray.uiColor
     }
 
-    /// Past-day rendering: keep all info content (time/title/cancellation/price/tag) at normal
-    /// colors. Hide the reservation CTA entirely; grey out the change-time and remove icon
-    /// buttons. Buttons stay enabled so they consume taps (blocking parent gesture / table
-    /// view selection) — `isPastDayMode` makes their action handlers no-op.
+    /// Past-day rendering: hide the reservation CTA, grey out the action buttons (they stay
+    /// enabled to consume taps; `isPastDayMode` makes their handlers no-op).
     func applyPastDayStyle() {
         isPastDayMode = true
         reservationButton.isHidden = true
@@ -329,8 +307,6 @@ class TRPTimelineReservedActivityCell: UITableViewCell {
         removeButton.setPastDayDisabled(true, originalTint: ColorSet.primary.uiColor)
     }
 
-    /// Reverse of `applyPastDayStyle()`. Called from `prepareForReuse` so the cell is clean
-    /// when reused for a non-past row.
     private func resetPastDayState() {
         isPastDayMode = false
         reservationButton.isHidden = false
@@ -338,14 +314,11 @@ class TRPTimelineReservedActivityCell: UITableViewCell {
         removeButton.setPastDayDisabled(false, originalTint: ColorSet.primary.uiColor)
     }
 
-    /// Configure cell with pre-computed BookedActivityCellData
     func configure(with cellData: BookedActivityCellData) {
         self.segment = cellData.segment
 
-        // Title (pre-computed)
         titleLabel.text = cellData.title
 
-        // Time badge with order and time range
         let timeParts = cellData.timeRange.components(separatedBy: " - ")
         let startTime = timeParts.first ?? ""
         let endTime = timeParts.count > 1 ? timeParts[1] : ""
@@ -358,9 +331,7 @@ class TRPTimelineReservedActivityCell: UITableViewCell {
             isAvailabilityExpired: cellData.isAvailabilityExpired
         )
 
-        // Image — desaturate to grayscale when the activity is no longer available
-        // for its scheduled time slot. SDWebImage cancels in-flight loads on reuse
-        // so the completion below won't fire for a stale cell configuration.
+        // Desaturate to grayscale when the activity is no longer available for its slot.
         let shouldDesaturate = cellData.isAvailabilityExpired
         if let imageUrlString = cellData.imageUrl, let url = URL(string: imageUrlString) {
             activityImageView.sd_setImage(with: url, placeholderImage: nil) { [weak self] image, _, _, _ in
@@ -373,7 +344,6 @@ class TRPTimelineReservedActivityCell: UITableViewCell {
             activityImageView.image = nil
         }
 
-        // Configure cancellation
         if let cancellation = cellData.cancellation, !cancellation.isEmpty {
             cancellationLabel.text = cancellation
             cancellationLabel.isHidden = false
@@ -382,7 +352,6 @@ class TRPTimelineReservedActivityCell: UITableViewCell {
             cancellationLabel.isHidden = false
         }
 
-        // Configure duration
         if let duration = cellData.duration, duration > 0 {
             durationLabel.text = formatDuration(duration)
             durationStackView.isHidden = false
@@ -390,13 +359,10 @@ class TRPTimelineReservedActivityCell: UITableViewCell {
             durationStackView.isHidden = true
         }
 
-        // Configure rating
         configureRating(rating: cellData.rating, ratingCount: cellData.ratingCount)
 
-        // Configure no-location badge
         noLocationBadge.isHidden = !cellData.isNoLocation
 
-        // Configure price
         configurePriceRow(with: cellData.price)
     }
 
@@ -457,26 +423,21 @@ class TRPTimelineReservedActivityCell: UITableViewCell {
             return
         }
 
-        // Clear previous content
         priceRowContainer.subviews.forEach { $0.removeFromSuperview() }
 
-        // Price row stack
         let priceRow = UIStackView()
         priceRow.translatesAutoresizingMaskIntoConstraints = false
         priceRow.axis = .horizontal
         priceRow.spacing = 4
         priceRow.alignment = .center
 
-        // Check if price is 0 (free)
         if price.value == 0 {
-            // Show "FREE" label only
             let freeLabel = UILabel()
             freeLabel.font = FontSet.montserratBold.font(16)
             freeLabel.textColor = ColorSet.primaryText.uiColor
             freeLabel.text = CommonLocalizationKeys.localized(CommonLocalizationKeys.free)
             priceRow.addArrangedSubview(freeLabel)
 
-            // Add priceRow to container, aligned to right
             priceRowContainer.addSubview(priceRow)
             NSLayoutConstraint.activate([
                 priceRow.topAnchor.constraint(equalTo: priceRowContainer.topAnchor),
@@ -487,13 +448,11 @@ class TRPTimelineReservedActivityCell: UITableViewCell {
             return
         }
 
-        // "From" label - medium 14px primaryText
         let fromLabel = UILabel()
         fromLabel.font = FontSet.montserratMedium.font(14)
         fromLabel.textColor = ColorSet.primaryText.uiColor
         fromLabel.text = CommonLocalizationKeys.localized(CommonLocalizationKeys.from)
 
-        // Price label - bold 16px primaryText
         let priceLabel = UILabel()
         priceLabel.font = FontSet.montserratBold.font(16)
         priceLabel.textColor = ColorSet.primaryText.uiColor
@@ -505,7 +464,6 @@ class TRPTimelineReservedActivityCell: UITableViewCell {
             priceRow.addArrangedSubview(fromLabel)
             priceRow.addArrangedSubview(priceLabel)
 
-            // Add priceRow to container, aligned to right
             priceRowContainer.addSubview(priceRow)
             NSLayoutConstraint.activate([
                 priceRow.topAnchor.constraint(equalTo: priceRowContainer.topAnchor),

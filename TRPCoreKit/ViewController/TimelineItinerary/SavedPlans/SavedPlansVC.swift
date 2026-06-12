@@ -16,16 +16,10 @@ public class SavedPlansVC: TRPBaseUIViewController {
     private var viewModel: SavedPlansViewModel!
     private var customNavigationBar: TRPTimelineCustomNavigationBar!
 
-    // Callback when segment is created successfully, passes selected day for navigation.
-    // Legacy "dismiss everything" path; left in place for any external caller still wired
-    // to it. Internal flow now prefers the silent variant below.
+    /// Legacy "dismiss everything" path; internal flow prefers the silent variant below.
     public var onSegmentCreated: ((Date?) -> Void)?
 
-    /// Callback fired AFTER the activity has been added and the timeline regeneration
-    /// poll has completed. Saved Plans stays open (no dismiss); the host VC is expected
-    /// to refresh its timeline silently (e.g. apply pending day navigation). Mirrors
-    /// `AddPlanActivityListingVC.onSegmentCreatedSilent` so both add-to-itinerary entry
-    /// points behave the same — keep the listing visible, show a success toast on it.
+    /// Fired after add + regeneration poll; Saved Plans stays open, host refreshes silently.
     public var onSegmentCreatedSilent: ((Date?) -> Void)?
 
     // MARK: - UI Components
@@ -44,6 +38,17 @@ public class SavedPlansVC: TRPBaseUIViewController {
             tableView.sectionHeaderTopPadding = 0
         }
         return tableView
+    }()
+
+    /// "All done" placeholder shown once every saved activity is added and the list empties.
+    private lazy var emptyStateView: SavedPlansEmptyStateView = {
+        let view = SavedPlansEmptyStateView()
+        view.translatesAutoresizingMaskIntoConstraints = false
+        view.isHidden = true
+        view.onViewItineraryTapped = { [weak self] in
+            self?.dismiss(animated: true)
+        }
+        return view
     }()
 
     // MARK: - Initialization
@@ -68,20 +73,33 @@ public class SavedPlansVC: TRPBaseUIViewController {
         super.setupViews()
         view.backgroundColor = .white
 
-        // Setup navigation bar using base class method
         customNavigationBar = setupCustomNavigationBar(
             title: AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.savedPlans)
         )
         customNavigationBar.delegate = self
 
         view.addSubview(tableView)
+        view.addSubview(emptyStateView)
 
         NSLayoutConstraint.activate([
             tableView.topAnchor.constraint(equalTo: customNavigationBar.bottomAnchor),
             tableView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
             tableView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
-            tableView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor)
+            tableView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor),
+
+            emptyStateView.topAnchor.constraint(equalTo: customNavigationBar.bottomAnchor),
+            emptyStateView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            emptyStateView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            emptyStateView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor)
         ])
+
+        updateEmptyState()
+    }
+
+    private func updateEmptyState() {
+        let isEmpty = viewModel.getTotalItemCount() == 0
+        emptyStateView.isHidden = !isEmpty
+        tableView.isHidden = isEmpty
     }
 }
 
@@ -113,7 +131,6 @@ extension SavedPlansVC: UITableViewDataSource {
 
         if let item = viewModel.getItem(at: indexPath),
            let tourProduct = viewModel.convertToTourProduct(from: item) {
-            // Use the new configure method that shows cancellation and proper price formatting
             cell.configure(with: item, tourProduct: tourProduct)
         }
 
@@ -127,9 +144,7 @@ extension SavedPlansVC: UITableViewDelegate {
     public func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         tableView.deselectRow(at: indexPath, animated: true)
 
-        // Open activity detail. Favourite items can carry either the raw id
-        // (`"12345"`) or the `C_{id}_{provider}` form depending on where they
-        // came from — normalize so the host always sees the bare product id.
+        // activityId may be raw or `C_{id}_{provider}` form — normalize to the bare product id.
         if let item = viewModel.getItem(at: indexPath),
            let activityId = item.activityId {
             TRPCoreKit.shared.delegate?.trpCoreKitDidRequestActivityDetail(activityId: activityId.cleanedAsActivityId())
@@ -181,17 +196,11 @@ extension SavedPlansVC: UITableViewDelegate {
 extension SavedPlansVC: ActivityCardCellDelegate {
 
     func activityCardCellDidTapAdd(_ cell: ActivityCardCell, tour: TRPTourProduct) {
-        // Create time selection screen with the activity's own city
         let planData = viewModel.createAddPlanData(cityId: tour.cityId)
         let timeSelectionVC = AddPlanTimeSelectionVC(tour: tour, planData: planData)
 
         timeSelectionVC.onTimeSelected = { _, _ in }
 
-        // Capture the activity name + product id; day label comes from the Date extension.
-        // Mirrors the ActivityListing flow: keep Saved Plans visible, show a success toast
-        // on it, and let the host refresh the timeline silently. The "Adding…" Lottie loader
-        // is shown inside the time-selection sheet for the entire create + GetTimeline poll
-        // window, so by the time this callback fires the regeneration is already done.
         let activityName = tour.name
         let productId = tour.productId
         timeSelectionVC.onSegmentCreated = { [weak self] selectedDay in
@@ -202,16 +211,11 @@ extension SavedPlansVC: ActivityCardCellDelegate {
             let message = String(format: template, activityName, dayLabel)
             TRPSuccessToast.show(over: self, message: message)
 
-            // Drop the just-added activity from the saved-plans list so the user sees it
-            // disappear immediately. The VM fires `savedPlansDidLoad` after mutating, which
-            // reloads the table for us.
             self.viewModel.removeItem(matchingProductId: productId)
 
-            // Stay on Saved Plans — host VC refreshes the timeline silently.
             self.onSegmentCreatedSilent?(selectedDay)
         }
 
-        // Present as dynamic height bottom sheet
         presentVCWithDynamicHeight(timeSelectionVC, prefersGrabberVisible: true, isDimmed: true)
     }
 }
@@ -221,7 +225,9 @@ extension SavedPlansVC: SavedPlansViewModelDelegate {
 
     public func savedPlansDidLoad() {
         DispatchQueue.main.async { [weak self] in
-            self?.tableView.reloadData()
+            guard let self = self else { return }
+            self.tableView.reloadData()
+            self.updateEmptyState()
         }
     }
 }

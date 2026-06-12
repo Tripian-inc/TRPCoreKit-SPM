@@ -17,14 +17,12 @@ extension TRPTimelineItineraryViewModel {
 
     // MARK: - Plan Matching
 
-    /// Find the matching plan for a segment using plan.id and segment.dayIds
-    /// Returns the plan if found, nil otherwise
+    /// Matches plan.id (String) against segment.dayIds (Int values).
     internal func findMatchingPlan(for segment: TRPTimelineSegment, in plans: [TRPTimelinePlan]) -> TRPTimelinePlan? {
         guard let dayIds = segment.dayIds, !dayIds.isEmpty else {
             return nil
         }
 
-        // Match plan.id (String) with segment.dayIds (contains Int values)
         for plan in plans {
             if let planIdInt = Int(plan.id), dayIds.contains(planIdInt) {
                 return plan
@@ -36,24 +34,15 @@ extension TRPTimelineItineraryViewModel {
 
     // MARK: - Merge Timeline Data
 
-    /// Merges tripProfile.segments + plans into unified TRPMergedTimelineItem array.
+    /// Merges tripProfile.segments + plans into a unified array, preserving API response order.
     /// tripProfile.segments is the SINGLE SOURCE OF TRUTH for all segment types.
-    /// - Returns: Array of TRPMergedTimelineItem preserving API response order
     internal func mergeTimelineData() -> [TRPMergedTimelineItem] {
         guard let timeline = timeline else { return [] }
 
         var mergedItems: [TRPMergedTimelineItem] = []
 
-        // Process tripProfile.segments in API response order (SINGLE SOURCE OF TRUTH)
-        // Each segment has a segmentType that determines which cell to display:
-        // - bookedActivity → TRPTimelineBookedActivityCell
-        // - reservedActivity → TRPTimelineBookedActivityCell (with isReserved=true)
-        // - manualPoi → TRPTimelineManualPoiCell
-        // - itinerary → TRPTimelineRecommendationsCell
         if let profileSegments = timeline.tripProfile?.segments {
             for (index, segment) in profileSegments.enumerated() {
-                // Skip date boundary segments (Empty or TimelineDate)
-                // These segments mark trip date boundaries and should not be displayed in UI
                 if isDateBoundarySegment(segment) {
                     continue
                 }
@@ -61,8 +50,6 @@ extension TRPTimelineItineraryViewModel {
 
                 switch segment.segmentType {
                 case .bookedActivity, .reservedActivity:
-                    // Booked/reserved activities don't have plans
-                    // Update segment dates from additionalData if available
                     if let additionalData = segment.additionalData {
                         segment.startDate = additionalData.startDatetime
                         segment.endDate = additionalData.endDatetime
@@ -70,10 +57,8 @@ extension TRPTimelineItineraryViewModel {
                     plan = nil
 
                 case .manualPoi, .itinerary:
-                    // Find matching plan using plan.id and segment.dayIds
                     if let plans = timeline.plans,
                        let matchingPlan = findMatchingPlan(for: segment, in: plans) {
-                        // Update segment dates from plan if not set
                         if segment.startDate == nil || segment.startDate?.isEmpty == true {
                             segment.startDate = matchingPlan.startDate
                         }
@@ -98,34 +83,23 @@ extension TRPTimelineItineraryViewModel {
         return mergedItems
     }
 
-    /// Checks if a segment is an empty placeholder segment
-    /// Empty placeholder segments are created to ensure timeline covers the full trip date range
-    /// They should not be displayed in the UI
-    /// - Parameter segment: The segment to check
-    /// - Returns: true if the segment is an empty placeholder (title = "Empty" and available = false)
+    /// Empty placeholder segments cover the full trip date range and are not displayed.
     internal func isEmptyPlaceholderSegment(_ segment: TRPTimelineSegment) -> Bool {
         return segment.title == "Empty" && segment.available == false
     }
 
-    /// Checks if a segment is a TimelineDate segment (new system)
-    /// TimelineDate segments span the full trip duration and mark date boundaries
-    /// - Parameter segment: The segment to check
-    /// - Returns: true if the segment is a TimelineDate segment
+    /// TimelineDate segments (new system) span the full trip duration and mark date boundaries.
     internal func isTimelineDateSegment(_ segment: TRPTimelineSegment) -> Bool {
         return segment.title == "TimelineDate" && segment.available == false
     }
 
-    /// Unified check for date boundary segments (supports both old and new systems)
-    /// Returns true if segment is either Empty (old) or TimelineDate (new)
-    /// - Parameter segment: The segment to check
-    /// - Returns: true if the segment is a date boundary segment
+    /// True if segment is Empty (old) or TimelineDate (new).
     internal func isDateBoundarySegment(_ segment: TRPTimelineSegment) -> Bool {
         return isEmptyPlaceholderSegment(segment) || isTimelineDateSegment(segment)
     }
 
     // MARK: - Display Items
 
-    /// Updates displayItems for current day using new architecture
     internal func updateDisplayItems() {
         guard let mergedTimeline = mergedTimeline else {
             displayItems = []
@@ -133,7 +107,6 @@ extension TRPTimelineItineraryViewModel {
             return
         }
 
-        // Get the selected date from all trip dates (continuous range)
         guard selectedDayIndex >= 0, selectedDayIndex < allTripDates.count else {
             displayItems = []
             unifiedOrderMap = [:]
@@ -142,20 +115,14 @@ extension TRPTimelineItineraryViewModel {
 
         let selectedDate = allTripDates[selectedDayIndex]
 
-        // Get items for the selected date (flat list, not grouped yet)
         let dayItems = mergedTimeline.items(for: selectedDate)
 
-        // Detect time conflicts BEFORE grouping by city
-        // This ensures all items on the same day are checked against each other
+        // Detect conflicts before grouping so all items on the day are checked against each other.
         detectTimeConflicts(items: dayItems)
 
-        // Get items grouped by city for section display
-        // If no items exist for this date, displayItems will be empty (shows empty state)
         let cityGroups = mergedTimeline.itemsGroupedByCity(for: selectedDate)
 
-        // Within each city, pin flexible-time activities to the top of the section.
-        // Flex items keep their city; only the in-section order is overridden so that
-        // their `00:00` / `23:59` timestamps don't push them out of place.
+        // Pin flexible-time activities to the top of each city section so their 00:00/23:59 times don't misplace them.
         displayItems = cityGroups.map { group in
             let reordered = group.items.sorted { lhs, rhs in
                 if lhs.isFlexibleActivity != rhs.isFlexibleActivity {
@@ -168,38 +135,29 @@ extension TRPTimelineItineraryViewModel {
             return TRPTimelineCityGroup(city: group.city, items: reordered)
         }
 
-        // Calculate unified orders for the current day
         calculateUnifiedOrders()
     }
 
     // MARK: - Time Conflict Detection
 
-    /// Helper struct for time range comparison
     private struct TimeRangeInfo {
         let startTime: Date
         let endTime: Date
-        let itemIndex: Int   // Index in the items array
-        let stepIndex: Int?  // For itinerary items, the step index
+        let itemIndex: Int
+        let stepIndex: Int?
 
         func overlaps(with other: TimeRangeInfo) -> Bool {
-            // Two ranges overlap if R1.start < R2.end AND R2.start < R1.end.
             // Adjacent times (12:00–13:00 and 13:00–14:00) do NOT overlap.
             return startTime < other.endTime && other.startTime < endTime
         }
     }
 
-    /// Helper struct for grouping conflicting time ranges
     private struct ConflictGroup {
-        var segmentIndices: Set<Int>    // Unique item indices
-        var timeRangeIndices: Set<Int>  // All conflicting range indices
+        var segmentIndices: Set<Int>
+        var timeRangeIndices: Set<Int>
     }
 
-    /// Detects time conflicts among display items for the current day.
-    /// Rules:
-    ///   - `bookedActivity`: included — time badge turns red, no "Time Overlap" label.
-    ///   - Flexible-time reserved activities: excluded (00:00–23:59 placeholder times).
-    ///   - All other conflicting items/steps: `hasConflict = true`, `showTimeOverlapText = true`.
-    ///   - Only items passed in `items` (current day's list) are considered.
+    /// `bookedActivity` turns its badge red without a label; flexible reserved activities are excluded.
     internal func detectTimeConflicts(items: [TRPMergedTimelineItem]) {
         resetConflictFlags(items: items)
 
@@ -210,7 +168,6 @@ extension TRPTimelineItineraryViewModel {
             for rangeIndex in group.timeRangeIndices {
                 let range = timeRanges[rangeIndex]
                 let item = items[range.itemIndex]
-                // bookedActivity: time badge turns red but no "Time Overlap" label.
                 let showText = !item.isBookedActivity
 
                 if let stepIndex = range.stepIndex {
@@ -231,7 +188,6 @@ extension TRPTimelineItineraryViewModel {
 
     /// Builds conflict groups using BFS on the overlap adjacency graph.
     private func buildConflictGroups(timeRanges: [TimeRangeInfo]) -> [ConflictGroup] {
-        // Build adjacency list — O(n²)
         var adjacency: [Int: Set<Int>] = [:]
         for i in 0..<timeRanges.count {
             for j in (i + 1)..<timeRanges.count {
@@ -242,7 +198,6 @@ extension TRPTimelineItineraryViewModel {
             }
         }
 
-        // BFS to collect connected components
         var groups: [ConflictGroup] = []
         var visited = Set<Int>()
 
@@ -269,12 +224,7 @@ extension TRPTimelineItineraryViewModel {
         return groups
     }
 
-    /// Collects time ranges for conflict checking.
-    /// Excluded from the check:
-    ///   - Flexible-time reserved activities (00:00–23:59 placeholder times)
-    /// Included but text-suppressed:
-    ///   - `.bookedActivity` — participates in overlap detection so its time badge
-    ///     turns red, but `showTimeOverlapText` is kept false (no label).
+    /// Excludes flexible reserved activities; `.bookedActivity` participates but with text suppressed.
     private func collectTimeRanges(from items: [TRPMergedTimelineItem]) -> [TimeRangeInfo] {
         var timeRanges: [TimeRangeInfo] = []
 
@@ -286,8 +236,7 @@ extension TRPTimelineItineraryViewModel {
                                                 itemIndex: itemIndex, stepIndex: nil))
 
             case .reservedActivity:
-                // Skip flexible-time activities — their 00:00/23:59 placeholder
-                // times would falsely overlap with every other item on the day.
+                // Skip flexible activities — 00:00/23:59 placeholders would falsely overlap everything.
                 if item.isFlexibleActivity { break }
                 guard let startDate = item.startDate, let endDate = item.endDate else { break }
                 timeRanges.append(TimeRangeInfo(startTime: startDate, endTime: endDate,
@@ -301,12 +250,7 @@ extension TRPTimelineItineraryViewModel {
             case .itinerary:
                 guard let plan = item.plan else { break }
                 for (stepIndex, step) in plan.steps.enumerated() {
-                    // Use TRPDateHelper (local timezone) — same as item.startDate/endDate —
-                    // so step times and reserved-activity times are compared on the same
-                    // clock. Date.fromString uses UTC and causes a timezone-shifted
-                    // overlap between unrelated items (e.g. a UTC+2 device makes the
-                    // Istanbul tour appear 2 h earlier, falsely conflicting with steps
-                    // that are actually clear).
+                    // Use TRPDateHelper (local timezone) so step times match item.startDate/endDate; Date.fromString (UTC) causes timezone-shifted false overlaps.
                     guard let startStr = step.startDateTimes,
                           let endStr = step.endDateTimes,
                           let startDate = TRPDateHelper.parseDateTime(startStr),
@@ -322,13 +266,10 @@ extension TRPTimelineItineraryViewModel {
         return timeRanges
     }
 
-    /// Resets all conflict flags
-    /// - Parameter items: All merged timeline items
     private func resetConflictFlags(items: [TRPMergedTimelineItem]) {
         for item in items {
             item.hasConflict = false
             item.showTimeOverlapText = false
-            // Reset step conflicts for itinerary items
             if item.isItinerary, item.plan != nil {
                 for i in 0..<item.plan!.steps.count {
                     item.plan!.steps[i].hasConflict = false
@@ -338,19 +279,13 @@ extension TRPTimelineItineraryViewModel {
         }
     }
 
-    /// Calculates unified order for all items in the current day
-    /// Order continues across cities - day-based numbering
-    /// - BookedActivity/ReservedActivity/ManualPoi: 1 order each
-    /// - Itinerary (Recommendations): consumes N orders (where N = number of steps)
+    /// Day-based numbering continuing across cities; itinerary segments consume one order per step.
     internal func calculateUnifiedOrders() {
         unifiedOrderMap = [:]
 
-        // Start order at 1 for the entire day (continues across cities)
         var currentOrder = 1
 
-        // Calculate order per city group (section)
         for (sectionIndex, cityGroup) in displayItems.enumerated() {
-            // Sort items within this city by start time
             let sortedItems = cityGroup.items.sorted { item1, item2 in
                 let date1 = item1.startDate ?? Date.distantFuture
                 let date2 = item2.startDate ?? Date.distantFuture
@@ -358,11 +293,9 @@ extension TRPTimelineItineraryViewModel {
             }
 
             for item in sortedItems {
-                // Key format: "sectionIndex_segmentIndex"
                 let key = "\(sectionIndex)_\(item.originalSegmentIndex)"
 
-                // Flexible activities render with "-" instead of an order number;
-                // they must not consume a slot in the day's unified ordering.
+                // Flexible activities render with "-" and must not consume an order slot.
                 if item.isFlexibleActivity {
                     unifiedOrderMap[key] = 0
                     continue
@@ -372,10 +305,8 @@ extension TRPTimelineItineraryViewModel {
 
                 switch item.segmentType {
                 case .bookedActivity, .reservedActivity, .manualPoi:
-                    // Single item, consumes 1 order
                     currentOrder += 1
                 case .itinerary:
-                    // Recommendations segment, consumes N orders (one per step)
                     let stepCount = item.steps.count
                     currentOrder += max(stepCount, 1) // At least 1 even if no steps
                 }
@@ -386,7 +317,6 @@ extension TRPTimelineItineraryViewModel {
     // MARK: - Process Timeline
 
     internal func processTimelineData() {
-        // Reset to empty state
         mergedTimeline = nil
         displayItems = []
         filteredFavoriteItems = []
@@ -396,49 +326,39 @@ extension TRPTimelineItineraryViewModel {
             return
         }
 
-        // Build merged timeline (SINGLE SOURCE OF TRUTH)
+        // Re-apply cached "not available" flags (transient, lost on re-fetch) before building merged items. No-op until the sweep populates expiredAvailabilityKeys.
+        reapplyCachedAvailabilityFlags()
+
         let mergedItems = mergeTimelineData()
         mergedTimeline = TRPDateGroupedTimeline(items: mergedItems)
 
-        // Calculate all trip dates (continuous from start to end)
         allTripDates = calculateAllTripDates()
 
-        // First load: default selectedDayIndex to today (or nearest in-range fallback)
         if !hasLoadedData {
             selectedDayIndex = computeInitialSelectedDayIndex()
         }
 
         updateDisplayItems()
 
-        // Filter favorite items to exclude already booked/reserved activities
         filterFavoriteItems()
 
-        // Mark data as loaded
         hasLoadedData = true
 
-        // Kick off the post-load availability sweep once. The method itself
-        // guards on `hasRunInitialAvailabilityCheck`, so subsequent refreshes
-        // (segment edits, add/remove flows) re-enter this funnel as no-ops.
+        // Guarded by hasRunInitialAvailabilityCheck, so later refreshes re-enter as no-ops.
         runInitialAvailabilityCheck()
     }
 
     // MARK: - Date Calculations
 
-    /// Gets the timeline date boundaries (start and end dates)
-    /// Prioritizes TimelineDate segment for accuracy, falls back to scanning all segments
-    /// - Returns: Tuple of (startDate, endDate) or nil if no valid dates found
+    /// Prioritizes the TimelineDate segment, falling back to scanning all segments for min/max.
     internal func getTimelineDateBoundaries() -> (startDate: Date, endDate: Date)? {
         guard let timeline = timeline else { return nil }
 
-        // STEP 1: Check for TimelineDate segment first (most accurate source)
-        // TimelineDate segment spans the full trip duration
         if let profileSegments = timeline.tripProfile?.segments {
             for segment in profileSegments {
                 if isTimelineDateSegment(segment) {
-                    // Found TimelineDate segment - use its dates directly
                     if let startDateStr = segment.startDate,
                        let endDateStr = segment.endDate {
-                        // Parse dates
                         let startDate = Date.fromString(startDateStr, format: "yyyy-MM-dd HH:mm") ??
                                        Date.fromString(startDateStr, format: "yyyy-MM-dd HH:mm:ss")
                         let endDate = Date.fromString(endDateStr, format: "yyyy-MM-dd HH:mm") ??
@@ -452,7 +372,6 @@ extension TRPTimelineItineraryViewModel {
             }
         }
 
-        // STEP 2: Fallback - scan all segments for min/max (backward compatibility for Empty segments)
         var allSegments: [TRPTimelineSegment] = []
         var addedSegmentIds = Set<String>()
 
@@ -478,13 +397,11 @@ extension TRPTimelineItineraryViewModel {
 
         guard !allSegments.isEmpty else { return nil }
 
-        // Use string-based comparison to avoid timezone issues
+        // String comparison avoids timezone issues.
         var minDateString: String?
         var maxDateString: String?
 
-        // Find min and max dates from all segments
         for segment in allSegments {
-            // Check startDate
             var segmentStartDateStr = segment.additionalData?.startDatetime
             if segmentStartDateStr == nil {
                 segmentStartDateStr = segment.startDate
@@ -500,7 +417,6 @@ extension TRPTimelineItineraryViewModel {
                 }
             }
 
-            // Check endDate
             var segmentEndDateStr = segment.additionalData?.endDatetime
             if segmentEndDateStr == nil {
                 segmentEndDateStr = segment.endDate
@@ -519,7 +435,6 @@ extension TRPTimelineItineraryViewModel {
 
         guard let minStr = minDateString, let maxStr = maxDateString else { return nil }
 
-        // Convert date strings to Date objects
         let dateFormatter = DateFormatter()
         dateFormatter.dateFormat = "yyyy-MM-dd"
         dateFormatter.timeZone = TimeZone.current
@@ -530,11 +445,7 @@ extension TRPTimelineItineraryViewModel {
         return (startDate: startDate, endDate: endDate)
     }
 
-    /// Computes the initial selectedDayIndex on first load.
-    /// - Returns today's index if today falls within `allTripDates`.
-    /// - Returns 0 if today is before the trip range.
-    /// - Returns last index if today is after the trip range.
-    /// - Returns 0 for empty range.
+    /// First-load index: today if in range, 0 if before the trip, last index if after, 0 if empty.
     internal func computeInitialSelectedDayIndex() -> Int {
         guard !allTripDates.isEmpty else { return 0 }
         let today = Date()
@@ -548,14 +459,12 @@ extension TRPTimelineItineraryViewModel {
         return allTripDates.count - 1
     }
 
-    /// Calculates all dates from trip start to end (continuous range for day filter)
+    /// All dates from trip start to end (inclusive), for the day filter.
     internal func calculateAllTripDates() -> [Date] {
-        // Use central method to get date boundaries
         guard let boundaries = getTimelineDateBoundaries() else { return [] }
 
         let numberOfDays = boundaries.startDate.numberOfDaysBetween(boundaries.endDate)
 
-        // Generate all days from start to end (inclusive)
         var dates: [Date] = []
         for dayIndex in 0..<numberOfDays {
             if let currentDate = boundaries.startDate.addDay(dayIndex) {
@@ -568,12 +477,7 @@ extension TRPTimelineItineraryViewModel {
 
     // MARK: - Favorite Items
 
-    /// Filters favorite items to exclude those that are already booked or reserved.
-    ///
-    /// Comparison is done on the bare product id (`cleanedAsActivityId()`) so that a
-    /// favourite stored as `"12345"` still matches a segment carrying the
-    /// `"C_12345_15"` encoding (and vice versa). Without that normalization a
-    /// just-added favourite reappears in Saved Plans the next time the screen opens.
+    /// Compares on the bare product id (`cleanedAsActivityId()`) so `"12345"` matches `"C_12345_15"`; otherwise a just-added favourite reappears in Saved Plans.
     internal func filterFavoriteItems() {
         guard let favouriteItems = timeline?.favouriteItems else {
             filteredFavoriteItems = []
@@ -610,18 +514,13 @@ extension TRPTimelineItineraryViewModel {
 
     // MARK: - Favourite Items City Resolution
 
-    /// Resolves cityIds for favourite items that don't have a valid one.
-    /// Items with a coordinate go through cities/resolve; items without (coordinate
-    /// `(0, 0)`) fall through to tour-api/product-lookup using their `activityId`.
-    /// Results are written back to `item.cityId`.
-    /// - Parameter completion: Called when resolution is complete (regardless of success/failure)
+    /// Items with a coordinate go through cities/resolve; items at (0,0) fall through to product-lookup by activityId.
     internal func resolveFavouriteItemCities(completion: @escaping () -> Void) {
         guard let initial = timeline?.favouriteItems, !initial.isEmpty else {
             completion()
             return
         }
 
-        // Collect items that need city resolution (cityId is nil or invalid <= 0)
         let itemsNeedingResolution = initial.enumerated().filter { ($0.element.cityId ?? 0) <= 0 }
 
         guard !itemsNeedingResolution.isEmpty else {
@@ -636,7 +535,6 @@ extension TRPTimelineItineraryViewModel {
         let resultsQueue = DispatchQueue(label: "com.tripian.timeline.favourites.cityResolve")
         var resolved: [Int: Int] = [:]  // index -> cityId
 
-        // With-location branch: cities/resolve (no cache fallback historically).
         if !withLocation.isEmpty {
             group.enter()
             let coordinates = withLocation.map { $0.element.coordinate }
@@ -659,7 +557,6 @@ extension TRPTimelineItineraryViewModel {
             }
         }
 
-        // No-location branch: lookup by product id.
         let lookupTriples: [(index: Int, productId: String, providerId: Int)] = noLocation.compactMap { entry in
             guard let keys = entry.element.tourLookupKeys else { return nil }
             return (index: entry.offset, productId: keys.productId, providerId: keys.providerId)
@@ -695,31 +592,25 @@ extension TRPTimelineItineraryViewModel {
 
     // MARK: - Segment Identification
 
-    /// Generates a unique identifier for a segment to avoid duplicates
-    /// Uses activityId or bookingId if available, otherwise creates from startDate + title
+    /// Unique segment id for de-duplication; prefers bookingId, then activityId+startDate, then date-based keys.
     internal func getSegmentUniqueId(_ segment: TRPTimelineSegment) -> String {
-        // Priority 1: Use bookingId from additionalData (unique per booking)
         if let bookingId = segment.additionalData?.bookingId {
             return "booking_\(bookingId)"
         }
 
-        // Priority 2: Use activityId + startDate for reserved/booked activities
-        // Same activity can be at different times, so include startDate
+        // Same activity can recur at different times, so include startDate.
         if let activityId = segment.additionalData?.activityId, let startDate = segment.startDate {
             return "activity_\(activityId)_\(startDate)"
         }
 
-        // Priority 3: For itinerary segments, use startDate + title
         if let startDate = segment.startDate, let title = segment.title {
             return "segment_\(startDate)_\(title)"
         }
 
-        // Priority 4: Use startDate + segmentType
         if let startDate = segment.startDate {
             return "segment_\(startDate)_\(segment.segmentType.rawValue)"
         }
 
-        // Last resort: Use object pointer as string
         return "segment_\(ObjectIdentifier(segment))"
     }
 }

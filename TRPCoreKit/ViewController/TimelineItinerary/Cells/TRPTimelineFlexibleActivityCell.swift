@@ -23,9 +23,7 @@ class TRPTimelineFlexibleActivityCell: UITableViewCell {
 
     private var segment: TRPTimelineSegment?
 
-    /// `true` while the cell is rendered for a past day. Buttons stay enabled so they
-    /// consume taps; this flag short-circuits their action handlers. See
-    /// `TRPTimelineReservedActivityCell.isPastDayMode` for full reasoning.
+    /// Buttons stay enabled to consume taps; this flag short-circuits their action handlers.
     private var isPastDayMode: Bool = false
 
     // MARK: - UI Components
@@ -196,7 +194,6 @@ class TRPTimelineFlexibleActivityCell: UITableViewCell {
         containerView.addSubview(actionButtonsStack)
         containerView.addSubview(rightContentStackView)
 
-        // Only remove button — no change-time button for flexible activities
         actionButtonsStack.addArrangedSubview(removeButton)
 
         durationStackView.addArrangedSubview(durationIcon)
@@ -274,16 +271,12 @@ class TRPTimelineFlexibleActivityCell: UITableViewCell {
         timeBadgeView.resetStyle()
     }
 
-    /// Past-day rendering: keep info content (time/title/cancellation/price/tag) at normal
-    /// colors. Hide the reservation CTA entirely; grey out the remove icon button. Button
-    /// stays enabled so it consumes taps; `isPastDayMode` makes its action a no-op.
     func applyPastDayStyle() {
         isPastDayMode = true
         reservationButton.isHidden = true
         removeButton.setPastDayDisabled(true, originalTint: ColorSet.primary.uiColor)
     }
 
-    /// Reverse of `applyPastDayStyle()` for cell reuse.
     private func resetPastDayState() {
         isPastDayMode = false
         reservationButton.isHidden = false
@@ -324,8 +317,6 @@ class TRPTimelineFlexibleActivityCell: UITableViewCell {
             durationStackView.isHidden = true
         }
 
-        // Surface the "no exact location" tag for flexible activities the same way
-        // the standard reserved cell does.
         noLocationBadge.isHidden = !cellData.isNoLocation
 
         configurePriceRow(with: cellData.price)

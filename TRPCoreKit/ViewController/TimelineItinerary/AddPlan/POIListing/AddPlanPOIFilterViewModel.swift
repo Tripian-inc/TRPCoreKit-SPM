@@ -28,7 +28,6 @@ public class AddPlanPOIFilterViewModel {
     private func loadCategories() {
         let allGroups = TRPPoiUseCases.getCategoryGroups()
 
-        // Filter groups based on category type
         var filteredCategories: [TRPPoiCategory] = []
 
         for group in allGroups {
@@ -44,7 +43,6 @@ public class AddPlanPOIFilterViewModel {
             }
         }
 
-        // Remove duplicates and sort by name
         var uniqueCategories: [Int: TRPPoiCategory] = [:]
         for category in filteredCategories {
             uniqueCategories[category.id] = category
@@ -55,45 +53,37 @@ public class AddPlanPOIFilterViewModel {
 
     // MARK: - Public Methods
 
-    /// Returns the number of categories
     public func getCategoryCount() -> Int {
         return categories.count
     }
 
-    /// Returns category at given index
     public func getCategory(at index: Int) -> TRPPoiCategory? {
         guard index >= 0 && index < categories.count else { return nil }
         return categories[index]
     }
 
-    /// Returns category name at given index
     public func getCategoryName(at index: Int) -> String {
         return categories[index].name ?? ""
     }
 
-    /// Returns whether category at index is selected
     public func isCategorySelected(at index: Int) -> Bool {
         guard let category = getCategory(at: index) else { return false }
         return filterData.isSelected(category.id)
     }
 
-    /// Toggles category selection at given index
     public func toggleCategory(at index: Int) {
         guard let category = getCategory(at: index) else { return }
         filterData.toggleCategory(category.id)
     }
 
-    /// Clears all selections
     public func clearSelection() {
         filterData.clear()
     }
 
-    /// Returns current filter data
     public func getFilterData() -> POIFilterData {
         return filterData
     }
 
-    /// Returns whether any category is selected
     public func hasSelection() -> Bool {
         return !filterData.isEmpty
     }

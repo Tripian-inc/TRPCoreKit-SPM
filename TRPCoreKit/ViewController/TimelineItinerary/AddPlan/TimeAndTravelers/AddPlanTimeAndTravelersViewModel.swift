@@ -20,12 +20,10 @@ public class AddPlanTimeAndTravelersViewModel {
         self.containerViewModel = containerViewModel
         // TODO: Initialize savedPOIs from timeline data or trip data
 
-        // Set default starting point to city center if none is selected
         if containerViewModel.planData.startingPointLocation == nil {
             setStartingPointToCityCenter()
         }
 
-        // Set default traveler count to 1 if not already set
         if containerViewModel.planData.travelers == 0 {
             containerViewModel.planData.travelers = 1
         }
@@ -102,6 +100,41 @@ public class AddPlanTimeAndTravelersViewModel {
         return containerViewModel?.planData.selectedCity
     }
 
+    // MARK: - Time Picker Bounds
+    // Thin wrappers over `TimePickerBounds`; all honour the selected city's IANA timezone, falling back to device tz.
+
+    public func getMinimumStartTime() -> Date? {
+        return TimePickerBounds.minimumStartTime(
+            selectedDay: getSelectedDay(),
+            city: getSelectedCity()
+        )
+    }
+
+    public func getMinimumEndTime() -> Date? {
+        return TimePickerBounds.minimumEndTime(
+            selectedDay: getSelectedDay(),
+            city: getSelectedCity(),
+            currentStartTime: getStartTime()
+        )
+    }
+
+    /// "Today" → next top of the hour in the city's tz; future days → nil (picker default).
+    public func getDefaultInitialTime() -> Date? {
+        return TimePickerBounds.defaultInitialTime(
+            selectedDay: getSelectedDay(),
+            city: getSelectedCity()
+        )
+    }
+
+    /// When a start time exists, opens one hour past it (13:30 → 14:30); otherwise mirrors `getDefaultInitialTime`.
+    public func getDefaultInitialEndTime() -> Date? {
+        return TimePickerBounds.defaultInitialEndTime(
+            selectedDay: getSelectedDay(),
+            city: getSelectedCity(),
+            currentStartTime: getStartTime()
+        )
+    }
+
     // MARK: - Day & City Selection
 
     public func getAvailableDays() -> [Date] {
@@ -112,7 +145,6 @@ public class AddPlanTimeAndTravelersViewModel {
         return containerViewModel?.getAvailableCities() ?? []
     }
 
-    /// Returns true if there's only one city available (no need for city selection)
     public func hasSingleCity() -> Bool {
         return getAvailableCities().count == 1
     }
@@ -131,7 +163,6 @@ public class AddPlanTimeAndTravelersViewModel {
         containerViewModel?.planData.selectedCity = city
     }
 
-    /// Get cities for currently selected day (for date-city mapping)
     public func getCitiesForSelectedDay() -> (mapped: [TRPCity], other: [TRPCity]) {
         guard let selectedDay = containerViewModel?.planData.selectedDay else {
             return (mapped: [], other: getAvailableCities())
@@ -139,7 +170,6 @@ public class AddPlanTimeAndTravelersViewModel {
         return containerViewModel?.getCitiesForDate(selectedDay) ?? (mapped: [], other: getAvailableCities())
     }
 
-    /// Check if date-city mapping is available
     public func hasDateCityMapping() -> Bool {
         return containerViewModel?.hasDateCityMapping() ?? false
     }
@@ -158,13 +188,11 @@ public class AddPlanTimeAndTravelersViewModel {
 
     public func isStartingPointCityCenter() -> Bool {
         guard let currentLocation = containerViewModel?.planData.startingPointLocation else {
-            return true // No starting point set, treat as city center
+            return true
         }
 
-        // Get all available cities from container
         let availableCities = containerViewModel?.getAvailableCities() ?? []
 
-        // Check if current starting point matches any city's coordinate
         for city in availableCities {
             if areCoordinatesEqual(currentLocation, city.coordinate) {
                 return true
@@ -175,13 +203,11 @@ public class AddPlanTimeAndTravelersViewModel {
     }
 
     private func areCoordinatesEqual(_ loc1: TRPLocation, _ loc2: TRPLocation) -> Bool {
-        // Compare with small tolerance for floating point precision
         let tolerance = 0.0001
         return abs(loc1.lat - loc2.lat) < tolerance && abs(loc1.lon - loc2.lon) < tolerance
     }
 
     public func clearSelection() {
-        // Reset to city center instead of nil
         setStartingPointToCityCenter()
         containerViewModel?.planData.startTime = nil
         containerViewModel?.planData.endTime = nil
@@ -212,7 +238,6 @@ public class AddPlanTimeAndTravelersViewModel {
         return city.coordinate
     }
 
-    // Keep this method for backwards compatibility if needed elsewhere
     public func getCityCenterPOI() -> TRPPoi? {
         guard let city = containerViewModel?.planData.selectedCity else { return nil }
         guard let location = createCityCenterLocation() else { return nil }

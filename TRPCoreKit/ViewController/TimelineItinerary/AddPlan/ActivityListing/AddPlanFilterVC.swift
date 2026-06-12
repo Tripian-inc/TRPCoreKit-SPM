@@ -13,8 +13,8 @@ import TRPFoundationKit
 public struct FilterData {
     public var minPrice: Double?
     public var maxPrice: Double?
-    public var minDuration: Int?  // in minutes
-    public var maxDuration: Int?  // in minutes
+    public var minDuration: Int?
+    public var maxDuration: Int?
 
     public init(minPrice: Double? = nil, maxPrice: Double? = nil, minDuration: Int? = nil, maxDuration: Int? = nil) {
         self.minPrice = minPrice
@@ -27,7 +27,6 @@ public struct FilterData {
         return minPrice == nil && maxPrice == nil && minDuration == nil && maxDuration == nil
     }
 
-    /// Returns the count of active filter types (price = 1, duration = 1, max = 2)
     public var activeFilterCount: Int {
         var count = 0
         if minPrice != nil || maxPrice != nil {
@@ -45,10 +44,6 @@ public class AddPlanFilterVC: TRPBaseUIViewController, DynamicHeightPresentable 
 
     // MARK: - DynamicHeightPresentable
     public var preferredContentHeight: CGFloat {
-        // Header: 56
-        // Content: top margin (24) + price title (20) + gap (16) + price slider (50)
-        //        + gap (32) + duration title (20) + gap (16) + duration slider (50) + bottom margin (24) = 252
-        // Button container: 80
         return 56 + 252 + 80
     }
 
@@ -56,18 +51,14 @@ public class AddPlanFilterVC: TRPBaseUIViewController, DynamicHeightPresentable 
     private var filterData: FilterData
     public var onFilterApplied: ((FilterData) -> Void)?
 
-    /// Inject facet-derived price bounds (optional). When set, overrides hardcoded fallback range.
     public var priceRangeFacet: TRPTourPriceRangeFacet?
-    /// Inject facet-derived duration bounds (optional). When set, overrides hardcoded fallback range.
     public var durationRangeFacet: TRPTourDurationRangeFacet?
 
-    // Hardcoded fallback bounds — used when facet bounds are unavailable
     private let priceFallbackMin: Double = 0
     private let priceFallbackMax: Double = 1500
     private let durationFallbackMin: Double = 0
-    private let durationFallbackMax: Double = 1440 // 4 days in minutes
+    private let durationFallbackMax: Double = 1440
 
-    // Effective bounds resolved at setup time
     private var priceMinValue: Double = 0
     private var priceMaxValue: Double = 1500
     private var durationMinValue: Double = 0
@@ -128,7 +119,6 @@ public class AddPlanFilterVC: TRPBaseUIViewController, DynamicHeightPresentable 
         return view
     }()
 
-    // Price Section
     private let priceTitleLabel: UILabel = {
         let label = UILabel()
         label.text = AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.filterPrice)
@@ -144,7 +134,6 @@ public class AddPlanFilterVC: TRPBaseUIViewController, DynamicHeightPresentable 
         return slider
     }()
 
-    // Duration Section
     private let durationTitleLabel: UILabel = {
         let label = UILabel()
         label.text = AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.filterDuration)
@@ -160,7 +149,6 @@ public class AddPlanFilterVC: TRPBaseUIViewController, DynamicHeightPresentable 
         return slider
     }()
 
-    // Apply Button
     private lazy var comfitmButton: TRPButton = {
         let button = TRPButton(
             title: CommonLocalizationKeys.localized(CommonLocalizationKeys.confirm),
@@ -211,36 +199,30 @@ public class AddPlanFilterVC: TRPBaseUIViewController, DynamicHeightPresentable 
         comfitmButton.addTarget(self, action: #selector(applyButtonTapped), for: .touchUpInside)
 
         NSLayoutConstraint.activate([
-            // Header view
             headerView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
             headerView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             headerView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             headerView.heightAnchor.constraint(equalToConstant: 56),
 
-            // Title label (centered)
             titleLabel.centerXAnchor.constraint(equalTo: headerView.centerXAnchor),
             titleLabel.centerYAnchor.constraint(equalTo: headerView.centerYAnchor),
 
-            // Close button (right side)
             closeButton.trailingAnchor.constraint(equalTo: headerView.trailingAnchor, constant: -16),
             closeButton.centerYAnchor.constraint(equalTo: headerView.centerYAnchor),
             closeButton.widthAnchor.constraint(equalToConstant: 24),
             closeButton.heightAnchor.constraint(equalToConstant: 24),
 
-            // Scroll view
             scrollView.topAnchor.constraint(equalTo: headerView.bottomAnchor),
             scrollView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             scrollView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             scrollView.bottomAnchor.constraint(equalTo: buttonContainerView.topAnchor),
 
-            // Content view
             contentView.topAnchor.constraint(equalTo: scrollView.topAnchor),
             contentView.leadingAnchor.constraint(equalTo: scrollView.leadingAnchor),
             contentView.trailingAnchor.constraint(equalTo: scrollView.trailingAnchor),
             contentView.bottomAnchor.constraint(equalTo: scrollView.bottomAnchor),
             contentView.widthAnchor.constraint(equalTo: scrollView.widthAnchor),
 
-            // Price section
             priceTitleLabel.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 24),
             priceTitleLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
 
@@ -249,7 +231,6 @@ public class AddPlanFilterVC: TRPBaseUIViewController, DynamicHeightPresentable 
             priceSlider.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
             priceSlider.heightAnchor.constraint(equalToConstant: 50),
 
-            // Duration section
             durationTitleLabel.topAnchor.constraint(equalTo: priceSlider.bottomAnchor, constant: 32),
             durationTitleLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
 
@@ -259,17 +240,14 @@ public class AddPlanFilterVC: TRPBaseUIViewController, DynamicHeightPresentable 
             durationSlider.heightAnchor.constraint(equalToConstant: 50),
             durationSlider.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -24),
 
-            // Button container view
             buttonContainerView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             buttonContainerView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             buttonContainerView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor),
             buttonContainerView.heightAnchor.constraint(equalToConstant: 80),
 
-            // Clear button (left)
             clearButton.leadingAnchor.constraint(equalTo: buttonContainerView.leadingAnchor, constant: 16),
             clearButton.topAnchor.constraint(equalTo: buttonContainerView.topAnchor, constant: 16),
 
-            // Apply button (right)
             comfitmButton.leadingAnchor.constraint(equalTo: clearButton.trailingAnchor, constant: 16),
             comfitmButton.trailingAnchor.constraint(equalTo: buttonContainerView.trailingAnchor, constant: -16),
             comfitmButton.topAnchor.constraint(equalTo: buttonContainerView.topAnchor, constant: 16),
@@ -278,7 +256,6 @@ public class AddPlanFilterVC: TRPBaseUIViewController, DynamicHeightPresentable 
     }
 
     private func setupSliders() {
-        // Resolve effective bounds: prefer facet-derived ranges, fallback to hardcoded.
         priceMinValue = priceRangeFacet?.minAmount ?? priceFallbackMin
         priceMaxValue = priceRangeFacet?.maxAmount ?? priceFallbackMax
         if priceMaxValue <= priceMinValue {
@@ -293,7 +270,6 @@ public class AddPlanFilterVC: TRPBaseUIViewController, DynamicHeightPresentable 
             durationMaxValue = durationFallbackMax
         }
 
-        // Price slider — clamp persisted filter values into resolved bounds.
         priceSlider.minimumValue = priceMinValue
         priceSlider.maximumValue = priceMaxValue
         let persistedMinPrice = filterData.minPrice ?? priceMinValue
@@ -308,7 +284,6 @@ public class AddPlanFilterVC: TRPBaseUIViewController, DynamicHeightPresentable 
             return "\(intValue)€"
         }
 
-        // Duration slider — same clamp.
         durationSlider.minimumValue = durationMinValue
         durationSlider.maximumValue = durationMaxValue
         let persistedMinDuration = Double(filterData.minDuration ?? Int(durationMinValue))
@@ -326,7 +301,6 @@ public class AddPlanFilterVC: TRPBaseUIViewController, DynamicHeightPresentable 
     }
 
     @objc private func clearButtonTapped() {
-        // Reset sliders to full range
         priceSlider.lowerValue = priceMinValue
         priceSlider.upperValue = priceMaxValue
         durationSlider.lowerValue = durationMinValue
@@ -334,10 +308,8 @@ public class AddPlanFilterVC: TRPBaseUIViewController, DynamicHeightPresentable 
     }
 
     @objc private func applyButtonTapped() {
-        // Build filter data
         var newFilterData = FilterData()
 
-        // Only set price filter if not at full range
         if priceSlider.lowerValue > priceMinValue {
             newFilterData.minPrice = priceSlider.lowerValue
         }
@@ -345,7 +317,6 @@ public class AddPlanFilterVC: TRPBaseUIViewController, DynamicHeightPresentable 
             newFilterData.maxPrice = priceSlider.upperValue
         }
 
-        // Only set duration filter if not at full range
         if durationSlider.lowerValue > durationMinValue {
             newFilterData.minDuration = Int(durationSlider.lowerValue)
         }

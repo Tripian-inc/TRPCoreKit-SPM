@@ -50,22 +50,18 @@ class AddressSectionView: UIView {
         contentStackView.addArrangedSubview(locationStack)
         contentStackView.addArrangedSubview(viewMapButton)
 
-        // Set custom spacing of 36px between locationStack and viewMapButton
         contentStackView.setCustomSpacing(36, after: locationStack)
 
         NSLayoutConstraint.activate([
-            // Header
             headerLabel.topAnchor.constraint(equalTo: topAnchor, constant: 40),
             headerLabel.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 16),
             headerLabel.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -16),
 
-            // Content Stack (automatically handles hidden subviews)
             contentStackView.topAnchor.constraint(equalTo: headerLabel.bottomAnchor, constant: 24),
             contentStackView.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 16),
             contentStackView.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -16),
             contentStackView.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -24),
 
-            // Map Container height (when visible)
             mapContainer.heightAnchor.constraint(equalToConstant: 220)
         ])
     }

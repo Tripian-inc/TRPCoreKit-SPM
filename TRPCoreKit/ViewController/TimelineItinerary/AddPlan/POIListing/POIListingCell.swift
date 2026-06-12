@@ -97,16 +97,12 @@ class POIListingCell: UITableViewCell {
         button.setImage(image, for: .normal)
         button.tintColor = ColorSet.primary.uiColor
         button.imageView?.contentMode = .scaleAspectFit
-        // Center 20x20 image in 32x32 button (6px padding on each side)
         button.imageEdgeInsets = UIEdgeInsets(top: 6, left: 6, bottom: 6, right: 6)
         button.translatesAutoresizingMaskIntoConstraints = false
         return button
     }()
 
     // MARK: - Skeleton Placeholders
-    // Mirrors `ActivityCardCell`'s skeleton pattern: greyed bars overlayed on the real
-    // subviews while a fetch / local recompute is in flight, animated with a shimmer.
-
     private let imageSkeletonView: UIView = {
         let view = UIView()
         view.backgroundColor = ColorSet.lineWeak.uiColor
@@ -148,7 +144,6 @@ class POIListingCell: UITableViewCell {
     override func prepareForReuse() {
         super.prepareForReuse()
 
-        // Clear previous data
         poi = nil
         titleLabel.text = nil
         poiImageView.sd_cancelCurrentImageLoad()
@@ -168,7 +163,6 @@ class POIListingCell: UITableViewCell {
         containerView.addSubview(poiImageView)
         containerView.addSubview(contentStackView)
         containerView.addSubview(addButton)
-        // Skeleton overlays — invisible by default; toggled by `configureSkeleton()`.
         containerView.addSubview(imageSkeletonView)
         containerView.addSubview(titleSkeletonView)
         containerView.addSubview(subtitleSkeletonView)
@@ -183,7 +177,6 @@ class POIListingCell: UITableViewCell {
         // Add extra 2px spacing before reviewCountLabel (total: 2 + 2 = 4px)
         ratingStackView.setCustomSpacing(4, after: starImageView)
 
-        // Connect add button action
         addButton.addTarget(self, action: #selector(addButtonTapped), for: .touchUpInside)
 
         setupConstraints()
@@ -191,49 +184,39 @@ class POIListingCell: UITableViewCell {
 
     private func setupConstraints() {
         NSLayoutConstraint.activate([
-            // Container View — 16pt horizontal inset is applied inside the cell so the
-            // parent table view can be edge-to-edge (full width). Matches the activity
-            // listing screen so the header content can extend to the screen edges.
             containerView.topAnchor.constraint(equalTo: contentView.topAnchor),
             containerView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
             containerView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
             containerView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
 
-            // POI Image
             poiImageView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
             poiImageView.topAnchor.constraint(equalTo: containerView.topAnchor),
             poiImageView.bottomAnchor.constraint(equalTo: containerView.bottomAnchor, constant: -16),
             poiImageView.widthAnchor.constraint(equalToConstant: 80),
             poiImageView.heightAnchor.constraint(equalToConstant: 80),
 
-            // Content Stack View
             contentStackView.leadingAnchor.constraint(equalTo: poiImageView.trailingAnchor, constant: 16),
             contentStackView.trailingAnchor.constraint(equalTo: addButton.leadingAnchor),
             contentStackView.topAnchor.constraint(equalTo: poiImageView.topAnchor),
 
-            // Add Button
             addButton.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
             addButton.topAnchor.constraint(equalTo: poiImageView.topAnchor),
             addButton.widthAnchor.constraint(equalToConstant: 32),
             addButton.heightAnchor.constraint(equalToConstant: 32),
 
-            // Star Image
             starImageView.widthAnchor.constraint(equalToConstant: 12),
             starImageView.heightAnchor.constraint(equalToConstant: 12),
 
-            // Skeleton: image placeholder over real image
             imageSkeletonView.topAnchor.constraint(equalTo: poiImageView.topAnchor),
             imageSkeletonView.leadingAnchor.constraint(equalTo: poiImageView.leadingAnchor),
             imageSkeletonView.widthAnchor.constraint(equalTo: poiImageView.widthAnchor),
             imageSkeletonView.heightAnchor.constraint(equalTo: poiImageView.heightAnchor),
 
-            // Skeleton: title bar — full width next to image
             titleSkeletonView.topAnchor.constraint(equalTo: poiImageView.topAnchor, constant: 8),
             titleSkeletonView.leadingAnchor.constraint(equalTo: poiImageView.trailingAnchor, constant: 16),
             titleSkeletonView.trailingAnchor.constraint(equalTo: addButton.leadingAnchor, constant: -8),
             titleSkeletonView.heightAnchor.constraint(equalToConstant: 14),
 
-            // Skeleton: subtitle bar — half width
             subtitleSkeletonView.topAnchor.constraint(equalTo: titleSkeletonView.bottomAnchor, constant: 10),
             subtitleSkeletonView.leadingAnchor.constraint(equalTo: poiImageView.trailingAnchor, constant: 16),
             subtitleSkeletonView.widthAnchor.constraint(equalToConstant: 120),
@@ -248,7 +231,6 @@ class POIListingCell: UITableViewCell {
 
         titleLabel.text = poi.name
 
-        // Set image with placeholder
         let placeholderImage = TRPImageController().getImage(inFramework: "placeholder_poi", inApp: nil)
         if let imageUrl = poi.image?.url, let url = URL(string: imageUrl) {
             poiImageView.sd_setImage(with: url, placeholderImage: placeholderImage)
@@ -256,7 +238,6 @@ class POIListingCell: UITableViewCell {
             poiImageView.image = placeholderImage
         }
 
-        // Set rating
         if let rating = poi.rating, rating > 0 {
             ratingLabel.text = String(format: "%.1f", rating)
             ratingStackView.isHidden = false
@@ -264,7 +245,6 @@ class POIListingCell: UITableViewCell {
             ratingStackView.isHidden = true
         }
 
-        // Set review count
         if let reviewCount = poi.ratingCount, reviewCount > 0 {
             let formattedCount = formatReviewCount(reviewCount)
             let opinionsText = AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.opinions)
@@ -287,19 +267,15 @@ class POIListingCell: UITableViewCell {
 
     // MARK: - Skeleton Mode
 
-    /// Render the cell as a shimmering skeleton — used while a POI fetch / local
-    /// recompute is in flight. Mirrors `ActivityCardCell.configureSkeleton()`.
     func configureSkeleton() {
         self.poi = nil
         isUserInteractionEnabled = false
 
-        // Hide real content
         poiImageView.isHidden = true
         titleLabel.isHidden = true
         ratingStackView.isHidden = true
         addButton.isHidden = true
 
-        // Show skeleton overlays
         imageSkeletonView.isHidden = false
         titleSkeletonView.isHidden = false
         subtitleSkeletonView.isHidden = false
@@ -307,8 +283,6 @@ class POIListingCell: UITableViewCell {
         startSkeletonAnimation()
     }
 
-    /// Reverse of `configureSkeleton()` — restores real subviews. Called from `configure(with:)`
-    /// so a recycled skeleton cell snaps back cleanly when bound to a real POI.
     private func exitSkeletonMode() {
         stopSkeletonAnimation()
         isUserInteractionEnabled = true
@@ -320,7 +294,6 @@ class POIListingCell: UITableViewCell {
         poiImageView.isHidden = false
         titleLabel.isHidden = false
         addButton.isHidden = false
-        // ratingStackView visibility is content-driven (set by configure based on rating presence).
     }
 
     private func startSkeletonAnimation() {

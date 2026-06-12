@@ -36,7 +36,6 @@ public struct CommonLocalizationKeys {
     public static func localized(_ key: String) -> String {
         let localizedValue = TRPLanguagesController.shared.getLanguageValue(for: key)
 
-        // If the localization returns the key itself or is empty, use default English value
         if localizedValue.isEmpty || localizedValue == key {
             return defaultValues[key] ?? key
         }

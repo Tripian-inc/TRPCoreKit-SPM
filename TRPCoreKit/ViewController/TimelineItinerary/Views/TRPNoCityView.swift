@@ -62,7 +62,7 @@ class TRPNoCityView: UIView {
         button.backgroundColor = .white
         button.layer.borderWidth = 1
         button.layer.borderColor = ColorSet.primary.uiColor.cgColor
-        button.layer.cornerRadius = 24 // height/2 = 48/2
+        button.layer.cornerRadius = 24
         button.clipsToBounds = true
         button.contentEdgeInsets = UIEdgeInsets(top: 0, left: 32, bottom: 0, right: 32)
         button.addTarget(self, action: #selector(actionButtonTapped), for: .touchUpInside)
@@ -93,28 +93,23 @@ class TRPNoCityView: UIView {
         containerView.addSubview(actionButton)
 
         NSLayoutConstraint.activate([
-            // Container view - centered in parent
             containerView.centerYAnchor.constraint(equalTo: centerYAnchor, constant: -100),
             containerView.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 32),
             containerView.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -32),
 
-            // Image - 106x106, centered at top
             imageView.topAnchor.constraint(equalTo: containerView.topAnchor),
             imageView.centerXAnchor.constraint(equalTo: containerView.centerXAnchor),
             imageView.widthAnchor.constraint(equalToConstant: 162),
             imageView.heightAnchor.constraint(equalToConstant: 162),
 
-            // Title - 40px below image
             titleLabel.topAnchor.constraint(equalTo: imageView.bottomAnchor, constant: 40),
             titleLabel.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
             titleLabel.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
 
-            // Description - 16px below title
             descriptionLabel.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 16),
             descriptionLabel.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
             descriptionLabel.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
 
-            // Button - 40px below description, 48px height, centered
             actionButton.topAnchor.constraint(equalTo: descriptionLabel.bottomAnchor, constant: 40),
             actionButton.centerXAnchor.constraint(equalTo: containerView.centerXAnchor),
             actionButton.heightAnchor.constraint(equalToConstant: 48),

@@ -13,10 +13,7 @@ extension TRPTimelineItineraryViewModel {
 
     // MARK: - Public Entry
 
-    /// Runs the one-shot post-load availability sweep. Selected day's batch goes
-    /// out first, remaining non-past days follow sequentially in trip-day order.
-    /// Past days are skipped entirely. Subsequent calls are no-ops (gated by
-    /// `hasRunInitialAvailabilityCheck`).
+    /// One-shot post-load availability sweep: selected day first, then remaining non-past days in trip order. No-op on repeat calls.
     internal func runInitialAvailabilityCheck() {
         guard !hasRunInitialAvailabilityCheck else { return }
         hasRunInitialAvailabilityCheck = true
@@ -27,13 +24,11 @@ extension TRPTimelineItineraryViewModel {
         let allDays = getDayDates()
         guard !allDays.isEmpty else { return }
 
-        // Drop past days; preserve trip-day order in the remainder.
         let nonPast = allDays.enumerated().compactMap { (idx, date) -> (Int, Date)? in
             return date.isPastDay() ? nil : (idx, date)
         }
         guard !nonPast.isEmpty else { return }
 
-        // Selected day first if it's a non-past day; otherwise just trip order.
         var ordered: [Date] = []
         if selectedDayIndex >= 0, selectedDayIndex < allDays.count,
            !allDays[selectedDayIndex].isPastDay() {
@@ -94,15 +89,8 @@ extension TRPTimelineItineraryViewModel {
                 }
                 switch result {
                 case .success(let response):
-                    self.applyResults(response, targets: targets)
-                    // displayItems / cellData capture `isAvailabilityExpired` at build
-                    // time (segments hold class refs but reads still snapshot, and plans
-                    // are structs so the merged item also snapshots them). Rebuild via
-                    // the standard mutation pattern (see `reconcileSegmentsWithItinerary`
-                    // and TimelineDate updates in +TimelineOperations) so the next
-                    // `reload()` sees the new flags. The sweep itself is gated by
-                    // `hasRunInitialAvailabilityCheck`, so re-entering processTimelineData
-                    // here is a no-op for the availability path.
+                    self.applyResults(response, targets: targets, dateString: dateString)
+                    // cellData snapshots `isAvailabilityExpired` at build time, so rebuild it before the next reload().
                     self.processTimelineData()
                     self.delegate?.timelineItineraryViewModel(didUpdateTimeline: true)
                 case .failure(let error):
@@ -120,9 +108,7 @@ extension TRPTimelineItineraryViewModel {
         let dateString = AvailabilityCheckDateFormat.shared.string(from: date)
         var targets: [AvailabilityTarget] = []
 
-        // Reserved-activity segments on this date. `tripProfile.segments` is the
-        // single source of truth (see `mergeTimelineData` / `populateCitiesInSegments`);
-        // `timeline.segments` has a different order and isn't what the UI reads from.
+        // `tripProfile.segments` is the single source of truth; `timeline.segments` has a different order.
         if let segments = timeline.tripProfile?.segments {
             for (segIndex, segment) in segments.enumerated() {
                 guard segment.segmentType == .reservedActivity else { continue }
@@ -142,7 +128,6 @@ extension TRPTimelineItineraryViewModel {
             }
         }
 
-        // Itinerary activity steps on this date.
         if let plans = timeline.plans {
             for (planIndex, plan) in plans.enumerated() {
                 for (stepIndex, step) in plan.steps.enumerated() {
@@ -195,19 +180,25 @@ extension TRPTimelineItineraryViewModel {
     // MARK: - Apply
 
     private func applyResults(_ response: [TRPTourScheduleAvailability],
-                              targets: [AvailabilityTarget]) {
-        // Index response by activityId for O(1) lookups.
+                              targets: [AvailabilityTarget],
+                              dateString: String) {
         var byId: [String: TRPTourScheduleAvailability] = [:]
         for entry in response { byId[entry.activityId] = entry }
 
-        // Collect per-location decisions; apply mutations in batch at the end so
-        // we touch `self.timeline?.plans` only once.
+        // Batch decisions, then apply once at the end.
         var planUpdates: [Int: [Int: Bool]] = [:]   // planIndex -> stepIndex -> expired
         var segmentExpires: [Int: Bool] = [:]       // segIndex -> expired
 
         for target in targets {
             let expired = isExpired(entry: byId[target.activityId], target: target)
             guard expired else { continue }
+
+            // Cache by stable key so the decision survives a network re-fetch.
+            expiredAvailabilityKeys.insert(availabilityCacheKey(
+                activityId: target.activityId,
+                dateString: dateString,
+                expectedHHmm: target.expectedHHmm,
+                isFlexible: target.isFlexible))
 
             switch target.location {
             case .reservedSegment(let index):
@@ -217,9 +208,7 @@ extension TRPTimelineItineraryViewModel {
             }
         }
 
-        // Mutate reserved segments via the same `tripProfile.segments` array we
-        // collected targets from. `TRPTimelineSegment` is a class so additionalData
-        // is mutated via the two-step copy-and-write pattern (struct value semantics).
+        // additionalData is a struct, so mutate via copy-and-write back onto the segment.
         if !segmentExpires.isEmpty, let segments = timeline?.tripProfile?.segments {
             for (index, _) in segmentExpires where index < segments.count {
                 if var data = segments[index].additionalData {
@@ -229,8 +218,7 @@ extension TRPTimelineItineraryViewModel {
             }
         }
 
-        // Mutate itinerary steps. Plans/steps are structs; take a local copy of the
-        // plans array, write through the indexed paths, then assign back.
+        // Plans/steps are structs: copy, write through indexed paths, assign back.
         if !planUpdates.isEmpty, var plans = timeline?.plans {
             for (planIndex, stepMap) in planUpdates where planIndex < plans.count {
                 for (stepIndex, _) in stepMap where stepIndex < plans[planIndex].steps.count {
@@ -244,12 +232,70 @@ extension TRPTimelineItineraryViewModel {
               + "\(planUpdates.values.reduce(0) { $0 + $1.count }) step(s) expired")
     }
 
+    // MARK: - Cache re-apply (no network)
+
+    /// Stable key `activityId|date|time` (time = `HH:mm`, or `flex`). Changing time yields a new key, so a stale decision stops applying.
+    private func availabilityCacheKey(activityId: String, dateString: String,
+                                      expectedHHmm: String?, isFlexible: Bool) -> String {
+        let timeComponent = isFlexible ? "flex" : (expectedHHmm ?? "any")
+        return "\(activityId)|\(dateString)|\(timeComponent)"
+    }
+
+    /// Drops the cached "expired" decision for a segment when its slot is re-validated (time change / removal). No-op for non-reserved segments.
+    internal func clearCachedAvailability(for segment: TRPTimelineSegment) {
+        guard segment.segmentType == .reservedActivity,
+              let additional = segment.additionalData,
+              let activityId = buildReservedActivityId(segment: segment, additional: additional),
+              let dateString = datePart(of: additional.startDatetime ?? segment.startDate) else { return }
+
+        let isFlexible = additional.isFlexible == true
+        let expectedHHmm = isFlexible ? nil : timePart(of: additional.startDatetime)
+        let key = availabilityCacheKey(activityId: activityId, dateString: dateString,
+                                       expectedHHmm: expectedHHmm, isFlexible: isFlexible)
+        expiredAvailabilityKeys.remove(key)
+    }
+
+    /// Re-applies cached "not available" decisions onto the current timeline (no network), restoring the transient flag wiped by a re-fetch.
+    internal func reapplyCachedAvailabilityFlags() {
+        guard !expiredAvailabilityKeys.isEmpty, timeline != nil else { return }
+
+        var planUpdates: [Int: Set<Int>] = [:]   // planIndex -> stepIndexes
+
+        for date in getDayDates() {
+            let dateString = AvailabilityCheckDateFormat.shared.string(from: date)
+            for target in targetsForDay(date) {
+                let key = availabilityCacheKey(activityId: target.activityId,
+                                               dateString: dateString,
+                                               expectedHHmm: target.expectedHHmm,
+                                               isFlexible: target.isFlexible)
+                guard expiredAvailabilityKeys.contains(key) else { continue }
+
+                switch target.location {
+                case .reservedSegment(let index):
+                    if let segments = timeline?.tripProfile?.segments, index < segments.count,
+                       var data = segments[index].additionalData {
+                        data.isAvailabilityExpired = true
+                        segments[index].additionalData = data
+                    }
+                case .itineraryStep(let planIndex, let stepIndex):
+                    planUpdates[planIndex, default: []].insert(stepIndex)
+                }
+            }
+        }
+
+        if !planUpdates.isEmpty, var plans = timeline?.plans {
+            for (planIndex, steps) in planUpdates where planIndex < plans.count {
+                for stepIndex in steps where stepIndex < plans[planIndex].steps.count {
+                    plans[planIndex].steps[stepIndex].isAvailabilityExpired = true
+                }
+            }
+            timeline?.plans = plans
+        }
+    }
+
     // MARK: - Expiry rule
 
-    /// `nil` entry / `nil` schedule / empty slots → expired (for any target).
-    /// Flexible target → available iff at least one slot exists.
-    /// Timed target → available iff any `slot.time == expectedHHmm` OR any
-    /// `slot.time == nil` (flexible slot covers any time on the date).
+    /// Expired when no entry/schedule/slots. Flexible target needs any slot; timed target needs a matching or flexible (`nil`-time) slot.
     private func isExpired(entry: TRPTourScheduleAvailability?,
                            target: AvailabilityTarget) -> Bool {
         guard let entry = entry, let schedule = entry.schedule else { return true }
@@ -266,15 +312,11 @@ extension TRPTimelineItineraryViewModel {
 
     // MARK: - Date / time helpers
 
-    /// Extracts the leading "yyyy-MM-dd" out of a "yyyy-MM-dd HH:mm[:ss]" string.
-    /// Returns `nil` for malformed / empty input.
     private func datePart(of value: String?) -> String? {
         guard let value = value, value.count >= 10 else { return nil }
         return String(value.prefix(10))
     }
 
-    /// Extracts "HH:mm" out of a "yyyy-MM-dd HH:mm" / "yyyy-MM-dd HH:mm:ss" string.
-    /// Returns `nil` when the value doesn't contain a time portion.
     private func timePart(of value: String?) -> String? {
         guard let value = value, value.count >= 16 else { return nil }
         let start = value.index(value.startIndex, offsetBy: 11)
@@ -285,9 +327,7 @@ extension TRPTimelineItineraryViewModel {
 
 // MARK: - File-local types
 
-/// Compact descriptor for an item we need to verify against the schedule. Carries
-/// the pointer into the live timeline so `applyResults` can flip its flag without
-/// re-traversing the model graph.
+/// Descriptor for an item to verify, carrying its location in the live timeline so `applyResults` can flip its flag.
 private struct AvailabilityTarget {
     enum Location {
         case reservedSegment(index: Int)
@@ -299,8 +339,7 @@ private struct AvailabilityTarget {
     let isFlexible: Bool
 }
 
-/// Cached formatter for the `yyyy-MM-dd` strings the API takes (and we match against).
-/// Date formatters are expensive to recreate; share one instance for the sweep.
+/// Shared `yyyy-MM-dd` formatter (recreating DateFormatters is expensive).
 private final class AvailabilityCheckDateFormat {
     static let shared = AvailabilityCheckDateFormat()
     private let formatter: DateFormatter

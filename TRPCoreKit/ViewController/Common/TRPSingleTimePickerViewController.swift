@@ -86,6 +86,7 @@ class TRPSingleTimePickerViewController: TRPBaseUIViewController, DynamicHeightP
         let picker = UIDatePicker()
         picker.datePickerMode = .time
         picker.preferredDatePickerStyle = .wheels
+        // Force a 12-hour AM/PM wheel regardless of the device's 24h region setting.
         picker.locale = Locale(identifier: "en_US")
         picker.translatesAutoresizingMaskIntoConstraints = false
         return picker

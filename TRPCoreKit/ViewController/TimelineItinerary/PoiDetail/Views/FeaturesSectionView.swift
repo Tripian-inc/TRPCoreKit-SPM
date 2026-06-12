@@ -49,16 +49,13 @@ class FeaturesSectionView: UIView {
         addSubview(headerLabel)
         addSubview(tagsCollectionView)
 
-        // Create height constraint for collection view
         collectionHeightConstraint = tagsCollectionView.heightAnchor.constraint(equalToConstant: 100)
 
         NSLayoutConstraint.activate([
-            // Header
             headerLabel.topAnchor.constraint(equalTo: topAnchor, constant: 40),
             headerLabel.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 16),
             headerLabel.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -16),
 
-            // Tags CollectionView
             tagsCollectionView.topAnchor.constraint(equalTo: headerLabel.bottomAnchor, constant: 24),
             tagsCollectionView.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 16),
             tagsCollectionView.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -16),
@@ -71,7 +68,6 @@ class FeaturesSectionView: UIView {
         tags = newTags
         tagsCollectionView.reloadData()
 
-        // Force layout and update height after reload
         tagsCollectionView.layoutIfNeeded()
 
         DispatchQueue.main.async { [weak self] in

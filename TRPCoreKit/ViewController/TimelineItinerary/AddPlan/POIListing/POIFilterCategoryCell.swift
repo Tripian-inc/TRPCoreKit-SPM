@@ -63,19 +63,16 @@ public class POIFilterCategoryCell: UITableViewCell {
         contentView.addSubview(titleLabel)
 
         NSLayoutConstraint.activate([
-            // Checkbox
             checkboxView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
             checkboxView.centerYAnchor.constraint(equalTo: contentView.centerYAnchor),
             checkboxView.widthAnchor.constraint(equalToConstant: 24),
             checkboxView.heightAnchor.constraint(equalToConstant: 24),
 
-            // Checkmark
             checkmarkImageView.centerXAnchor.constraint(equalTo: checkboxView.centerXAnchor),
             checkmarkImageView.centerYAnchor.constraint(equalTo: checkboxView.centerYAnchor),
             checkmarkImageView.widthAnchor.constraint(equalToConstant: 14),
             checkmarkImageView.heightAnchor.constraint(equalToConstant: 14),
 
-            // Title label
             titleLabel.leadingAnchor.constraint(equalTo: checkboxView.trailingAnchor, constant: 12),
             titleLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
             titleLabel.centerYAnchor.constraint(equalTo: contentView.centerYAnchor)

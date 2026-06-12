@@ -14,7 +14,6 @@ public class AddPlanPOIFilterVC: TRPBaseUIViewController, DynamicHeightPresentab
 
     // MARK: - DynamicHeightPresentable
     public var preferredContentHeight: CGFloat {
-        // Header (56) + separator (0.5) + top margin (24) + rows (N * 52) + button container (80)
         let rowCount = viewModel.getCategoryCount()
         return 56 + 0.5 + 24 + CGFloat(rowCount * 52) + 80
     }
@@ -118,39 +117,32 @@ public class AddPlanPOIFilterVC: TRPBaseUIViewController, DynamicHeightPresentab
         tableView.register(POIFilterCategoryCell.self, forCellReuseIdentifier: POIFilterCategoryCell.reuseIdentifier)
 
         NSLayoutConstraint.activate([
-            // Header view
             headerView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
             headerView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             headerView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             headerView.heightAnchor.constraint(equalToConstant: 56),
 
-            // Title label (centered)
             titleLabel.centerXAnchor.constraint(equalTo: headerView.centerXAnchor),
             titleLabel.centerYAnchor.constraint(equalTo: headerView.centerYAnchor),
 
-            // Close button (right side)
             closeButton.trailingAnchor.constraint(equalTo: headerView.trailingAnchor, constant: -16),
             closeButton.centerYAnchor.constraint(equalTo: headerView.centerYAnchor),
             closeButton.widthAnchor.constraint(equalToConstant: 24),
             closeButton.heightAnchor.constraint(equalToConstant: 24),
 
-            // Table view
             tableView.topAnchor.constraint(equalTo: headerView.bottomAnchor, constant: 16),
             tableView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             tableView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             tableView.bottomAnchor.constraint(equalTo: buttonContainerView.topAnchor),
 
-            // Button container view
             buttonContainerView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             buttonContainerView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             buttonContainerView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor),
             buttonContainerView.heightAnchor.constraint(equalToConstant: 80),
 
-            // Clear button (left)
             clearButton.leadingAnchor.constraint(equalTo: buttonContainerView.leadingAnchor, constant: 16),
             clearButton.topAnchor.constraint(equalTo: buttonContainerView.topAnchor, constant: 16),
 
-            // Confirm button (right)
             confirmButton.leadingAnchor.constraint(equalTo: clearButton.trailingAnchor, constant: 16),
             confirmButton.trailingAnchor.constraint(equalTo: buttonContainerView.trailingAnchor, constant: -16),
             confirmButton.topAnchor.constraint(equalTo: buttonContainerView.topAnchor, constant: 16),

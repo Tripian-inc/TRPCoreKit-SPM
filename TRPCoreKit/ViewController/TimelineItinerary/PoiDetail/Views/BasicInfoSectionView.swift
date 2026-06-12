@@ -61,29 +61,24 @@ class BasicInfoSectionView: UIView {
 
         addSubview(mainStackView)
 
-        // Add all elements to main stack
         mainStackView.addArrangedSubview(cityLabel)
         mainStackView.addArrangedSubview(poiNameLabel)
         mainStackView.addArrangedSubview(ratingContainerView)
         mainStackView.addArrangedSubview(descriptionStackView)
 
-        // Add description and button to description stack
         descriptionStackView.addArrangedSubview(descriptionLabel)
         descriptionStackView.addArrangedSubview(readMoreButton)
 
         bottomConstraint = mainStackView.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -16)
 
         NSLayoutConstraint.activate([
-            // Main StackView
             mainStackView.topAnchor.constraint(equalTo: topAnchor, constant: 24),
             mainStackView.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 16),
             mainStackView.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -16),
             bottomConstraint,
 
-            // Rating height
             ratingContainerView.heightAnchor.constraint(equalToConstant: 24),
 
-            // Ensure labels take full width within stack
             cityLabel.widthAnchor.constraint(equalTo: mainStackView.widthAnchor),
             poiNameLabel.widthAnchor.constraint(equalTo: mainStackView.widthAnchor),
             descriptionStackView.widthAnchor.constraint(equalTo: mainStackView.widthAnchor),
@@ -93,8 +88,6 @@ class BasicInfoSectionView: UIView {
 
     func setDescriptionSectionHidden(_ hidden: Bool) {
         descriptionStackView.isHidden = hidden
-        // When description is shown: 40pt bottom padding
-        // When description is hidden (cuisines shown): 16pt bottom padding
         bottomConstraint.constant = hidden ? -16 : -40
     }
 }

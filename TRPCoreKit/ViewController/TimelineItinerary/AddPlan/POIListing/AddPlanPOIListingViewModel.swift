@@ -9,18 +9,13 @@
 import Foundation
 import TRPFoundationKit
 
-// POIListingCategoryType is defined in TRPPoiUseCases
-
 public protocol AddPlanPOIListingViewModelDelegate: ViewModelDelegate {
     func poisDidLoad()
     func segmentCreatedSuccessfully()
-    /// Fired whenever `loadingStyle` changes so the VC can swap between full-screen
-    /// Lottie / inline skeleton / no-loader UIs without a full reload pass.
+    /// Fired when `loadingStyle` changes so the VC can swap loading UIs without a full reload.
     func poiLoadingStateDidChange()
 }
 
-// Default implementation so existing conformers don't have to add the method until they
-// adopt the new loading-style UI.
 public extension AddPlanPOIListingViewModelDelegate {
     func poiLoadingStateDidChange() {}
 }
@@ -39,7 +34,7 @@ public class AddPlanPOIListingViewModel {
     private var allPois: [TRPPoi] = []
     private var filteredPois: [TRPPoi] = []
     private var categoryIds: [Int] = []
-    private var allCategoryIds: [Int] = [] // Store all category IDs for reset
+    private var allCategoryIds: [Int] = []
 
     private var poiUseCases: TRPPoiUseCases
     private var timelineRepository: TRPTimelineRepository
@@ -50,14 +45,10 @@ public class AddPlanPOIListingViewModel {
     private var totalPoiCount: Int = 0
     private var hasMorePages: Bool = false
 
-    /// Drives which loading UI the listing screen renders. Mirrors `AddPlanLoadingStyle`
-    /// in Activity Listing — `.lottie` for first open + heavy refetches (filter / search /
-    /// sort / category change), `.skeleton` for inline refetches, `.none` when idle. The
-    /// VC observes this via `poiLoadingStateDidChange()`.
+    /// Drives the listing's loading UI: `.lottie` for first open / heavy refetches, `.skeleton` for inline refetches, `.none` when idle.
     private(set) public var loadingStyle: AddPlanLoadingStyle = .none
 
-    /// Strong reference held during the post-add timeline-regeneration poll. Cleared once
-    /// `allSegmentGenerated` fires so it doesn't leak across adds.
+    /// Held during the post-add regeneration poll; cleared when `allSegmentGenerated` fires so it doesn't leak across adds.
     private var checkAllPlanUseCase: TRPTimelineCheckAllPlanUseCases?
 
     // MARK: - Initialization
@@ -67,7 +58,6 @@ public class AddPlanPOIListingViewModel {
         self.poiUseCases = TRPPoiUseCases.shared
         self.timelineRepository = TRPTimelineRepository()
 
-        // Set city ID from planData
         if let cityId = planData.selectedCity?.id {
             self.poiUseCases.cityId = cityId
         }
@@ -107,18 +97,14 @@ public class AddPlanPOIListingViewModel {
         return filteredPois.count
     }
 
-    /// Returns whether there are more POIs available to load
     public func hasMorePoisAvailable() -> Bool {
         return hasMorePages
     }
 
-    /// Returns the total POI count from API
     public func getTotalPoiCount() -> Int {
         return totalPoiCount
     }
 
-    /// Returns formatted string for POI count display
-    /// Shows total count from API pagination info
     public func getPoiCountDisplayString() -> String {
         let count = totalPoiCount > 0 ? totalPoiCount : filteredPois.count
         let placeText = count == 1
@@ -136,8 +122,7 @@ public class AddPlanPOIListingViewModel {
     public func updateSortOption(_ option: SortOption) {
         selectedSortOption = option
 
-        // Sort is server-side — pagination breaks if we only re-sort the loaded subset,
-        // so reset pagination and refetch from page 1 with the new sort.
+        // Sort is server-side: reset pagination and refetch from page 1 (re-sorting the loaded subset would break pagination).
         currentPage = 1
         totalPages = 1
         totalPoiCount = 0
@@ -154,14 +139,12 @@ public class AddPlanPOIListingViewModel {
     public func updateFilterData(_ newFilterData: POIFilterData) {
         filterData = newFilterData
 
-        // If filter has selected categories, use them; otherwise use all categories
         if filterData.selectedCategoryIds.isEmpty {
             categoryIds = allCategoryIds
         } else {
             categoryIds = Array(filterData.selectedCategoryIds)
         }
 
-        // Re-fetch POIs with new category filter — skeleton mode while fetch is in flight.
         currentPage = 1
         totalPages = 1
         totalPoiCount = 0
@@ -181,21 +164,17 @@ public class AddPlanPOIListingViewModel {
     }
 
     private func fetchCategoriesAndPois() {
-        // Reset pagination
         currentPage = 1
         totalPages = 1
         totalPoiCount = 0
         hasMorePages = false
 
-        // Initial fetch → full-screen Lottie ("Getting Places"). The VC handles the
-        // window-attached overlay based on `loadingStyle == .lottie`.
         loadingStyle = .lottie
         delegate?.poiLoadingStateDidChange()
 
-        // Use cached categories if available, otherwise fetch
         poiUseCases.fetchCategoryIdsIfNeeded(type: categoryType) { [weak self] ids in
             guard let self = self else { return }
-            self.allCategoryIds = ids // Store all categories for filter reset
+            self.allCategoryIds = ids
             self.categoryIds = ids
             self.fetchPois()
         }
@@ -203,8 +182,7 @@ public class AddPlanPOIListingViewModel {
 
     private func fetchPois(page: Int = 1) {
         guard let cityId = planData.selectedCity?.id else {
-            // Tear down whatever loading style was set so we don't strand the UI in a
-            // skeleton/lottie state when there's no city to fetch for.
+            // No city to fetch for — clear the loading style so the UI isn't stranded in skeleton/lottie.
             loadingStyle = .none
             delegate?.poiLoadingStateDidChange()
             delegate?.viewModel(error: GeneralError.customMessage("City not selected"))
@@ -239,14 +217,12 @@ public class AddPlanPOIListingViewModel {
             return
         }
 
-        // Reset pagination for new search
         currentPage = 1
         totalPages = 1
         totalPoiCount = 0
         hasMorePages = false
         filteredPois = []
 
-        // Search debounce → skeleton mode while server roundtrips.
         loadingStyle = .skeleton
         delegate?.poiLoadingStateDidChange()
         delegate?.poisDidLoad()
@@ -263,8 +239,6 @@ public class AddPlanPOIListingViewModel {
     }
 
     private func handleSearchResult(result: Result<[TRPPoi], Error>, pagination: TRPPagination?, isLoadMore: Bool = false, requestedPage: Int = 1) {
-        // Drop the active loading style (lottie / skeleton) — load-more pagination keeps
-        // `.none` since it has its own footer indicator.
         loadingStyle = .none
         delegate?.poiLoadingStateDidChange()
         isLoadingMore = false
@@ -272,30 +246,25 @@ public class AddPlanPOIListingViewModel {
         switch result {
         case .success(let pois):
             if isLoadMore {
-                // Append new POIs for load more
                 allPois.append(contentsOf: pois)
             } else {
-                // Replace POIs for initial load or new search
                 allPois = pois
             }
 
-            // Update currentPage only for initial fetch (loadMore already increments it)
+            // loadMore already increments currentPage.
             if !isLoadMore {
                 currentPage = requestedPage
             }
 
-            // Update pagination info from TRPPagination
             if let pagination = pagination {
                 switch pagination {
                 case .completed:
                     totalPages = currentPage
                     hasMorePages = false
-                    // When completed, total count is the loaded count
                     if !isLoadMore {
                         totalPoiCount = pois.count
                     }
                 case .continues(let paginationInfo):
-                    // Extract pagination info from API response
                     totalPages = paginationInfo.totalPages
                     totalPoiCount = paginationInfo.total
                     hasMorePages = paginationInfo.hasMore
@@ -308,8 +277,7 @@ public class AddPlanPOIListingViewModel {
             filterPois()
             delegate?.poisDidLoad()
         case .failure(let error):
-            // Reload so the table flips out of skeleton mode (loadingStyle is already
-            // `.none` above) and renders the empty/previous state behind the alert.
+            // Reload so the table flips out of skeleton mode and renders the previous state behind the alert.
             delegate?.poisDidLoad()
             delegate?.viewModel(error: error)
         }
@@ -324,21 +292,19 @@ public class AddPlanPOIListingViewModel {
         guard !isLoadingMore, hasMorePois() else { return }
 
         isLoadingMore = true
-        currentPage += 1  // Increment immediately before request
+        currentPage += 1
 
         fetchPois(page: currentPage)
     }
 
     private func filterPois() {
-        // Server returns POIs already in the requested sort order — we only apply the
-        // local search-text filter on top of the loaded page set.
-        if searchText.isEmpty {
+//        if searchText.isEmpty {
             filteredPois = allPois
-        } else {
-            filteredPois = allPois.filter { poi in
-                poi.name.localizedCaseInsensitiveContains(searchText)
-            }
-        }
+//        } else {
+//            filteredPois = allPois.filter { poi in
+//                poi.name.localizedCaseInsensitiveContains(searchText)
+//            }
+//        }
     }
 
     // MARK: - Segment Creation
@@ -352,11 +318,6 @@ public class AddPlanPOIListingViewModel {
             return
         }
 
-        // Loader is owned by the VC (bottom-sheet Lottie shown before this call). VM no
-        // longer drives `showPreloader` — it just runs the create + polling cycle and
-        // signals completion via `segmentCreatedSuccessfully`.
-
-        // Create segment profile
         let segment = TRPCreateEditTimelineSegmentProfile(tripHash: tripHash)
         segment.segmentType = .manualPoi
         segment.available = false
@@ -364,11 +325,7 @@ public class AddPlanPOIListingViewModel {
         segment.poiId = poi.id
         segment.city = selectedCity
 
-        // Coordinate resolution: prefer the POI's own coordinate. If it's missing or
-        // (0, 0), fall back to the selected city's coordinate so the segment never
-        // hits the server with an unusable position. The city's in-memory coordinate
-        // can itself be a `(0, 0)` placeholder (booked-activity merge path), so go
-        // through `resolvedCoordinate()` which consults `TRPCityCache` by id.
+        // Prefer the POI coordinate; fall back to the city's via `resolvedCoordinate()` (which consults TRPCityCache, since the in-memory city coord can be a (0,0) placeholder).
         if let poiCoordinate = poi.coordinate, !poiCoordinate.isMissingOrZero {
             segment.coordinate = poiCoordinate
         } else if let cityCoordinate = selectedCity.resolvedCoordinate() {
@@ -377,22 +334,14 @@ public class AddPlanPOIListingViewModel {
             segment.coordinate = poi.coordinate
         }
 
-        // Add POI id to includePoiIds
         segment.includePoiIds = [poi.id]
 
-        // Combine selectedDay date with the time from startTime/endTime
         let calendar = Calendar.current
 
-        // Get date components from selectedDay (year, month, day)
         let dayComponents = calendar.dateComponents([.year, .month, .day], from: selectedDay)
-
-        // Get time components from startTime (hour, minute)
         let startTimeComponents = calendar.dateComponents([.hour, .minute], from: startTime)
-
-        // Get time components from endTime (hour, minute)
         let endTimeComponents = calendar.dateComponents([.hour, .minute], from: endTime)
 
-        // Combine date + start time
         var startDateComponents = DateComponents()
         startDateComponents.year = dayComponents.year
         startDateComponents.month = dayComponents.month
@@ -400,7 +349,6 @@ public class AddPlanPOIListingViewModel {
         startDateComponents.hour = startTimeComponents.hour
         startDateComponents.minute = startTimeComponents.minute
 
-        // Combine date + end time
         var endDateComponents = DateComponents()
         endDateComponents.year = dayComponents.year
         endDateComponents.month = dayComponents.month
@@ -411,15 +359,12 @@ public class AddPlanPOIListingViewModel {
         let combinedStartDate = calendar.date(from: startDateComponents) ?? selectedDay
         let combinedEndDate = calendar.date(from: endDateComponents) ?? selectedDay
 
-        // Format date as "yyyy-MM-dd HH:mm"
         let dateFormatter = DateFormatter()
         dateFormatter.dateFormat = "yyyy-MM-dd HH:mm"
         segment.startDate = dateFormatter.string(from: combinedStartDate)
         segment.endDate = dateFormatter.string(from: combinedEndDate)
 
-        // Call repository to create segment, then wait for timeline regeneration before
-        // signaling success. VC keeps its bottom-sheet Lottie loader visible through both
-        // phases so the user sees one continuous "Adding…" state.
+        // Create, then poll for regeneration before signaling success (VC keeps its loader up through both phases).
         timelineRepository.createEditTimelineSegment(profile: segment) { [weak self] result in
             guard let self = self else { return }
 
@@ -434,9 +379,7 @@ public class AddPlanPOIListingViewModel {
         }
     }
 
-    /// Poll for segment-generation completion after a successful manual-POI create.
-    /// Mirrors `AddPlanTimeSelectionViewModel.waitForTimelineRefreshAfterCreation` so the
-    /// host's `TRPTimelineRefreshState` observer drives a silent timeline refresh.
+    /// Polls for segment-generation completion so the host's `TRPTimelineRefreshState` observer drives a silent refresh.
     private func waitForTimelineRefreshAfterCreation(tripHash: String) {
         TRPTimelineRefreshState.shared.setRefreshing()
 

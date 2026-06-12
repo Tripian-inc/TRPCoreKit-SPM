@@ -21,24 +21,20 @@ extension TimelinePoiDetailViewController {
     func setupUI() {
         view.backgroundColor = .white
 
-        // Add ScrollView
         view.addSubview(scrollView)
         scrollView.addSubview(contentView)
         contentView.addSubview(contentStackView)
 
-        // Add Image Gallery (outside stack, fixed at top)
         contentView.addSubview(imageCollectionView)
         view.addSubview(pageControl)
         view.addSubview(backButton)
 
-        // Add all sections to stack view
         setupContentStack()
 
         setupConstraints()
     }
 
     func setupContentStack() {
-        // Create section views
         basicInfoSectionView = BasicInfoSectionView(
             cityLabel: cityLabel,
             poiNameLabel: poiNameLabel,
@@ -77,13 +73,11 @@ extension TimelinePoiDetailViewController {
             cuisines: viewModel.getCuisines()
         )
 
-        // Create separators
         separator1 = createSeparator()
         separator2 = createSeparator()
         separator3 = createSeparator()
         separator4 = createSeparator()
 
-        // Add sections to stack
         contentStackView.addArrangedSubview(basicInfoSectionView)
         contentStackView.addArrangedSubview(cuisinesSectionView)
         contentStackView.addArrangedSubview(separator1)
@@ -95,7 +89,6 @@ extension TimelinePoiDetailViewController {
         contentStackView.addArrangedSubview(separator4)
         contentStackView.addArrangedSubview(featuresSectionView)
 
-        // Setup subcomponents
         setupRatingContainer()
         setupProductsHeader()
         setupPhoneStack()
@@ -155,16 +148,13 @@ extension TimelinePoiDetailViewController {
     }
 
     func setupHoursStack() {
-        // Header stack: icon + title (centered vertically)
         hoursHeaderStack.addArrangedSubview(hoursIconContainerView)
         hoursHeaderStack.addArrangedSubview(hoursTitleLabel)
 
-        // Create container for hours list with left padding (aligned with title)
         let hoursListContainer = UIView()
         hoursListContainer.translatesAutoresizingMaskIntoConstraints = false
         hoursListContainer.addSubview(hoursListStackView)
 
-        // Main stack: header + hours list container (vertical)
         openingHoursStackView.addArrangedSubview(hoursHeaderStack)
         openingHoursStackView.addArrangedSubview(hoursListContainer)
 
@@ -172,7 +162,6 @@ extension TimelinePoiDetailViewController {
             hoursIconContainerView.widthAnchor.constraint(equalToConstant: 40),
             hoursIconContainerView.heightAnchor.constraint(equalToConstant: 40),
 
-            // Hours list with left padding (40px icon + 12px spacing = 52px)
             hoursListStackView.topAnchor.constraint(equalTo: hoursListContainer.topAnchor),
             hoursListStackView.leadingAnchor.constraint(equalTo: hoursListContainer.leadingAnchor, constant: 52),
             hoursListStackView.trailingAnchor.constraint(equalTo: hoursListContainer.trailingAnchor),
@@ -202,7 +191,6 @@ extension TimelinePoiDetailViewController {
         rowStack.addArrangedSubview(dayLabel)
         rowStack.addArrangedSubview(hoursLabel)
 
-        // Fixed width for day label to ensure alignment
         dayLabel.widthAnchor.constraint(equalToConstant: 42).isActive = true
 
         return rowStack
@@ -226,36 +214,30 @@ extension TimelinePoiDetailViewController {
         let imageHeight = screenWidth // 1:1 ratio
 
         NSLayoutConstraint.activate([
-            // ScrollView
             scrollView.topAnchor.constraint(equalTo: view.topAnchor),
             scrollView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             scrollView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             scrollView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
 
-            // ContentView
             contentView.topAnchor.constraint(equalTo: scrollView.topAnchor),
             contentView.leadingAnchor.constraint(equalTo: scrollView.leadingAnchor),
             contentView.trailingAnchor.constraint(equalTo: scrollView.trailingAnchor),
             contentView.bottomAnchor.constraint(equalTo: scrollView.bottomAnchor),
             contentView.widthAnchor.constraint(equalTo: scrollView.widthAnchor),
 
-            // Image Gallery (1:1 ratio, fixed at top)
             imageCollectionView.topAnchor.constraint(equalTo: contentView.topAnchor),
             imageCollectionView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
             imageCollectionView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
             imageCollectionView.heightAnchor.constraint(equalToConstant: imageHeight),
 
-            // Page Control
             pageControl.bottomAnchor.constraint(equalTo: imageCollectionView.bottomAnchor, constant: -16),
             pageControl.centerXAnchor.constraint(equalTo: view.centerXAnchor),
 
-            // Back Button
             backButton.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 16),
             backButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
             backButton.widthAnchor.constraint(equalToConstant: 40),
             backButton.heightAnchor.constraint(equalToConstant: 40),
 
-            // Content Stack (below image gallery)
             contentStackView.topAnchor.constraint(equalTo: imageCollectionView.bottomAnchor),
             contentStackView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
             contentStackView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
@@ -268,21 +250,18 @@ extension TimelinePoiDetailViewController {
     func configureContent() {
         let poi = viewModel.poi
 
-        // Configure Images
         let images = viewModel.getImageUrls()
         pageControl.numberOfPages = max(images.count, 1)
         pageControl.currentPage = 0
         pageControl.isHidden = images.count <= 1
         imageCollectionView.reloadData()
 
-        // Configure Labels
         let cityName = viewModel.getCityName()
         cityLabel.text = cityName.isEmpty ? TimelineLocalizationKeys.localized(TimelineLocalizationKeys.unknownLocation) : cityName
         cityLabel.isHidden = cityName.isEmpty
 
         poiNameLabel.text = poi.name
 
-        // Configure Rating - Hidden
         ratingContainerView.isHidden = true
 //        if let rating = poi.rating, rating > 0 {
 //            ratingLabel.text = String(format: "%.1f", rating)
@@ -296,22 +275,16 @@ extension TimelinePoiDetailViewController {
 //            ratingContainerView.isHidden = true
 //        }
 
-        // Configure Description and Cuisines
         configureDescriptionAndCuisines(poi: poi)
 
-        // Configure Products Section
         configureProductsSection()
 
-        // Configure Key Data Section
         configureKeyDataSection()
 
-        // Configure Address Section
         configureAddressSection()
 
-        // Configure Features Section
         configureFeaturesSection()
 
-        // Control separator visibility
         configureSeparators()
     }
 
@@ -319,7 +292,6 @@ extension TimelinePoiDetailViewController {
         let isEatAndDrink = viewModel.isRestaurantCafeOrNightlife()
         let hasCuisines = viewModel.hasCuisines()
 
-        // For Eat & Drink with cuisines: show cuisines, hide description
         if isEatAndDrink && hasCuisines {
             cuisinesSectionView.isHidden = false
             cuisinesSectionView.updateCuisines(viewModel.getCuisines())
@@ -329,12 +301,10 @@ extension TimelinePoiDetailViewController {
             return
         }
 
-        // Otherwise: hide cuisines, show description if available
         cuisinesSectionView.isHidden = true
         basicInfoSectionView.setDescriptionSectionHidden(false)
 
         if let description = poi.description, !description.isEmpty {
-            // Create attributed string with line height
             let paragraphStyle = NSMutableParagraphStyle()
             paragraphStyle.lineSpacing = 8 // 24 line height - 16 font size = 8
             paragraphStyle.alignment = .center
@@ -347,11 +317,9 @@ extension TimelinePoiDetailViewController {
             descriptionLabel.attributedText = attributedString
             descriptionLabel.isHidden = false
 
-            // Force full layout before checking truncation
             view.setNeedsLayout()
             view.layoutIfNeeded()
 
-            // Check if description needs "Read More" button
             let isTruncated = descriptionLabel.isTruncated()
             readMoreButton.isHidden = !isTruncated
 
@@ -381,7 +349,6 @@ extension TimelinePoiDetailViewController {
         if hasKeyData {
             keyDataHeaderLabel.isHidden = false
 
-            // Phone is only shown for restaurant, cafe, or nightlife categories
             let hasPhone = viewModel.getPhone() != nil && viewModel.isRestaurantCafeOrNightlife()
             let hasHours = viewModel.getOpeningHoursList() != nil
 
@@ -392,14 +359,12 @@ extension TimelinePoiDetailViewController {
                 let phoneTitle = PoiDetailLocalizationKeys.localized(PoiDetailLocalizationKeys.phone) + ": "
                 let attributedString = NSMutableAttributedString()
 
-                // "Phone: " part - regular 16px primaryText
                 let titleAttributes: [NSAttributedString.Key: Any] = [
                     .font: FontSet.montserratRegular.font(16),
                     .foregroundColor: ColorSet.primaryText.uiColor
                 ]
                 attributedString.append(NSAttributedString(string: phoneTitle, attributes: titleAttributes))
 
-                // Phone value part - medium 16px fgWeak
                 let valueAttributes: [NSAttributedString.Key: Any] = [
                     .font: FontSet.montserratMedium.font(16),
                     .foregroundColor: ColorSet.fgWeak.uiColor
@@ -410,10 +375,8 @@ extension TimelinePoiDetailViewController {
             }
 
             if hasHours, let hoursList = viewModel.getOpeningHoursList() {
-                // Clear previous rows
                 hoursListStackView.arrangedSubviews.forEach { $0.removeFromSuperview() }
 
-                // Add row for each day
                 for item in hoursList {
                     let rowView = createHoursRowView(day: item.day, hours: item.hours)
                     hoursListStackView.addArrangedSubview(rowView)
@@ -432,10 +395,8 @@ extension TimelinePoiDetailViewController {
             locationStackView.isHidden = false
             viewMapButton.isHidden = false
 
-            // Setup MapView
             setupMapView()
 
-            // Set address
             if let address = viewModel.getAddress() {
                 locationValueLabel.text = address
             }
@@ -443,31 +404,20 @@ extension TimelinePoiDetailViewController {
     }
 
     private func configureFeaturesSection() {
-        // Features section is temporarily hidden
         featuresSectionView.isHidden = true
         featuresHeaderLabel.isHidden = true
     }
 
     private func configureSeparators() {
-        // separator1: before products section
         separator1.isHidden = productsSectionView.isHidden
-
-        // separator2: before key data section
         separator2.isHidden = keyDataSectionView.isHidden
-
-        // separator3: before address section
         separator3.isHidden = addressSectionView.isHidden
-
-        // separator4: before features section
         separator4.isHidden = featuresSectionView.isHidden
-
-        // Note: UIStackView automatically handles layout when arrangedSubviews are hidden
     }
 
     // MARK: - Map Setup
 
     func setupMapView() {
-        // Remove existing map if any
         mapView?.removeFromSuperview()
 
         guard let coordinate = viewModel.getCoordinate() else { return }
@@ -476,13 +426,11 @@ extension TimelinePoiDetailViewController {
         let options = MapInitOptions(cameraOptions: camera)
         let newMapView = MapView(frame: .zero, mapInitOptions: options)
 
-        // Create point annotation with ic_civi_point
         var pointAnnotation = PointAnnotation(coordinate: center)
         if let civiPointImage = TRPImageController().getImage(inFramework: "ic_civi_point", inApp: nil) {
             pointAnnotation.image = .init(image: civiPointImage, name: "ic_civi_point")
         }
 
-        // Create annotation manager
         let pointAnnotationManager = newMapView.annotations.makePointAnnotationManager()
         pointAnnotationManager.annotations = [pointAnnotation]
 

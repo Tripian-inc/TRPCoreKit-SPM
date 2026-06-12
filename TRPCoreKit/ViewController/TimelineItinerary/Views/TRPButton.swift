@@ -54,7 +54,6 @@ public class TRPButton: UIButton {
     }
 
     private func setupPrimaryStyle() {
-        // Primary button: filled background with white text
         setTitleColor(.white, for: .normal)
         setTitleColor(.white, for: .disabled)
         titleLabel?.font = FontSet.montserratMedium.font(16)
@@ -64,21 +63,18 @@ public class TRPButton: UIButton {
     }
 
     private func setupSecondaryStyle() {
-        // Secondary button: transparent background with colored text
         setTitleColor(ColorSet.fg.uiColor, for: .normal)
         titleLabel?.font = FontSet.montserratRegular.font(14)
         backgroundColor = .clear
     }
 
     private func setupSecondaryBoldStyle() {
-        // Secondary button: transparent background with colored text
         setTitleColor(ColorSet.primary.uiColor, for: .normal)
         titleLabel?.font = FontSet.montserratMedium.font(16)
         backgroundColor = .clear
     }
 
     private func setupOutlinedStyle() {
-        // Outlined button: white background with primary border and text
         setTitleColor(ColorSet.primary.uiColor, for: .normal)
         titleLabel?.font = FontSet.montserratSemiBold.font(16)
         backgroundColor = .white

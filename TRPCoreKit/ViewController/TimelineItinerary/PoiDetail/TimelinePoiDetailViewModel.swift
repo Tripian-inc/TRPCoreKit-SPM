@@ -23,22 +23,18 @@ public class TimelinePoiDetailViewModel {
     // MARK: - Public Methods
     public func getImageUrls() -> [String] {
         guard let gallery = poi.gallery, !gallery.isEmpty else {
-            // Return empty placeholder to show at least one image cell
             return [""]
         }
 
         let imageUrls = gallery.compactMap { image -> String? in
             guard let urlString = image?.url, !urlString.isEmpty else { return nil }
-            // Resize image for better performance
             return urlString
         }
 
-        // If no valid images, return empty placeholder
         return imageUrls.isEmpty ? [""] : imageUrls
     }
 
     public func getCityName() -> String {
-        // Try to get city name from poi locations
         if let cityName = poi.locations.first?.name {
             return cityName
         }
@@ -68,48 +64,38 @@ public class TimelinePoiDetailViewModel {
     public func getFormattedOpeningHours() -> String? {
         guard let hours = poi.hours, !hours.isEmpty else { return nil }
 
-        // Parse complex opening hours format
-        // Example: "Sun, Sat: 9:00 AM - 1:00 AM | Mon, Tue, Wed, Thu, Fri: 8:30 AM - 1:00 AM"
         let parsedHours = parseOpeningHours(hours)
         return parsedHours
     }
 
-    /// Returns opening hours as array of (day, hours) tuples for list display
     public func getOpeningHoursList() -> [(day: String, hours: String)]? {
         guard let hours = poi.hours, !hours.isEmpty else { return nil }
         return parseOpeningHoursToList(hours)
     }
 
     private func parseOpeningHoursToList(_ hoursString: String) -> [(day: String, hours: String)] {
-        // Get localized day names from languages service
         let localizedDays = getLocalizedDayNames()
         let localizedDayAbbrs = getLocalizedDayAbbreviations()
 
-        // Initialize all days as closed
         let closedText = PoiDetailLocalizationKeys.localized(PoiDetailLocalizationKeys.closed)
         var dayHours: [Int: String] = [:]
         for i in 0..<7 {
             dayHours[i] = closedText
         }
 
-        // Split by pipe (|) to get different day groups
         let groups = hoursString.components(separatedBy: "|")
 
         for group in groups {
             let trimmedGroup = group.trimmingCharacters(in: .whitespaces)
 
-            // Split by colon to separate days from hours (only first colon)
             guard let colonIndex = trimmedGroup.firstIndex(of: ":") else { continue }
             let daysString = String(trimmedGroup[..<colonIndex]).trimmingCharacters(in: .whitespaces)
             let timeString = String(trimmedGroup[trimmedGroup.index(after: colonIndex)...]).trimmingCharacters(in: .whitespaces)
 
-            // Convert time to 24h format
             let convertedTimeString = convertTo24HourFormat(timeString)
 
-            // Parse days (can be comma-separated)
             let days = daysString.components(separatedBy: ",").map { $0.trimmingCharacters(in: .whitespaces) }
 
-            // Assign time to each day
             for day in days {
                 if day.contains("-") {
                     let rangeParts = day.components(separatedBy: "-")
@@ -141,7 +127,6 @@ public class TimelinePoiDetailViewModel {
             }
         }
 
-        // Build result array
         var result: [(day: String, hours: String)] = []
         for (index, abbr) in localizedDayAbbrs.enumerated() {
             if let hours = dayHours[index] {
@@ -153,37 +138,29 @@ public class TimelinePoiDetailViewModel {
     }
 
     private func parseOpeningHours(_ hoursString: String) -> String {
-        // Get localized day names from languages service
         let localizedDays = getLocalizedDayNames()
         let localizedDayAbbrs = getLocalizedDayAbbreviations()
 
-        // Initialize all days as closed
         let closedText = PoiDetailLocalizationKeys.localized(PoiDetailLocalizationKeys.closed)
         var dayHours: [Int: String] = [:] // Use day index (0=Sun, 1=Mon, etc.)
         for i in 0..<7 {
             dayHours[i] = closedText
         }
 
-        // Split by pipe (|) to get different day groups
         let groups = hoursString.components(separatedBy: "|")
 
         for group in groups {
             let trimmedGroup = group.trimmingCharacters(in: .whitespaces)
 
-            // Split by colon to separate days from hours (only first colon)
             guard let colonIndex = trimmedGroup.firstIndex(of: ":") else { continue }
             let daysString = String(trimmedGroup[..<colonIndex]).trimmingCharacters(in: .whitespaces)
             let timeString = String(trimmedGroup[trimmedGroup.index(after: colonIndex)...]).trimmingCharacters(in: .whitespaces)
 
-            // Convert time to 24h format (handles multiple time ranges separated by comma)
             let convertedTimeString = convertTo24HourFormat(timeString)
 
-            // Parse days (can be comma-separated)
             let days = daysString.components(separatedBy: ",").map { $0.trimmingCharacters(in: .whitespaces) }
 
-            // Assign time to each day
             for day in days {
-                // Handle day ranges like "Mon-Fri" or "Lun-Vie"
                 if day.contains("-") {
                     let rangeParts = day.components(separatedBy: "-")
                     if rangeParts.count == 2 {
@@ -192,13 +169,11 @@ public class TimelinePoiDetailViewModel {
 
                         if let startIndex = getDayIndex(startDay, localizedDays: localizedDays),
                            let endIndex = getDayIndex(endDay, localizedDays: localizedDays) {
-                            // Handle wrap-around (e.g., Fri-Mon)
                             if startIndex <= endIndex {
                                 for i in startIndex...endIndex {
                                     dayHours[i] = convertedTimeString
                                 }
                             } else {
-                                // Wrap around: startIndex to Saturday, then Sunday to endIndex
                                 for i in startIndex..<7 {
                                     dayHours[i] = convertedTimeString
                                 }
@@ -209,7 +184,6 @@ public class TimelinePoiDetailViewModel {
                         }
                     }
                 } else {
-                    // Single day
                     if let dayIndex = getDayIndex(day, localizedDays: localizedDays) {
                         dayHours[dayIndex] = convertedTimeString
                     }
@@ -217,14 +191,11 @@ public class TimelinePoiDetailViewModel {
             }
         }
 
-        // Find max day abbreviation length for alignment
         let maxDayLength = localizedDayAbbrs.map { $0.count }.max() ?? 3
 
-        // Format output: each day on a new line with aligned hours
         var result: [String] = []
         for (index, abbr) in localizedDayAbbrs.enumerated() {
             if let hours = dayHours[index] {
-                // Pad day abbreviation for alignment
                 let paddedDay = abbr.padding(toLength: maxDayLength + 2, withPad: " ", startingAt: 0)
                 result.append("\(paddedDay)\(hours)")
             }
@@ -233,7 +204,6 @@ public class TimelinePoiDetailViewModel {
         return result.joined(separator: "\n")
     }
 
-    /// Get localized day abbreviations for display
     private func getLocalizedDayAbbreviations() -> [String] {
         let dayKeys = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"]
         let englishAbbr = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
@@ -241,7 +211,6 @@ public class TimelinePoiDetailViewModel {
         var abbreviations: [String] = []
         for i in 0..<7 {
             let localizedDay = TRPLanguagesController.shared.getLanguageValue(for: dayKeys[i])
-            // If localized, use first 3 characters as abbreviation
             if !localizedDay.isEmpty && localizedDay != dayKeys[i] {
                 let abbr = localizedDay.count >= 3 ? String(localizedDay.prefix(3)) : localizedDay
                 abbreviations.append(abbr.capitalized)
@@ -252,22 +221,17 @@ public class TimelinePoiDetailViewModel {
         return abbreviations
     }
 
-    /// Convert 12-hour format to 24-hour format
-    /// Example: "1:00 PM - 4:00 PM, 8:00 PM - 11:00 PM" -> "13:00 - 16:00, 20:00 - 23:00"
     private func convertTo24HourFormat(_ timeString: String) -> String {
-        // Check if it contains AM/PM
         let upperTime = timeString.uppercased()
         if !upperTime.contains("AM") && !upperTime.contains("PM") {
             return timeString // Already in 24h format or not a time
         }
 
-        // First split by comma to handle multiple time ranges (e.g., "1:00 PM - 4:00 PM, 8:00 PM - 11:00 PM")
         let timeRanges = timeString.components(separatedBy: ",")
         var convertedRanges: [String] = []
 
         for range in timeRanges {
             let trimmedRange = range.trimmingCharacters(in: .whitespaces)
-            // Handle single time range (e.g., "8:30 AM - 1:00 PM")
             let rangeParts = trimmedRange.components(separatedBy: " - ")
             var convertedParts: [String] = []
 
@@ -282,7 +246,7 @@ public class TimelinePoiDetailViewModel {
         return convertedRanges.joined(separator: ", ")
     }
 
-    /// Convert a single time like "8:30 AM" to "08:30"
+    /// Convert a single time like "8:30 AM" to "08:30".
     private func convertSingleTimeTo24Hour(_ time: String) -> String {
         let upperTime = time.uppercased()
         let isPM = upperTime.contains("PM")
@@ -290,20 +254,17 @@ public class TimelinePoiDetailViewModel {
 
         guard isPM || isAM else { return time }
 
-        // Remove AM/PM and trim
         let cleanTime = upperTime
             .replacingOccurrences(of: "AM", with: "")
             .replacingOccurrences(of: "PM", with: "")
             .trimmingCharacters(in: .whitespaces)
 
-        // Parse hour and minute
         let timeParts = cleanTime.components(separatedBy: ":")
         guard timeParts.count >= 1 else { return time }
 
         var hour = Int(timeParts[0]) ?? 0
         let minute = timeParts.count > 1 ? (Int(timeParts[1]) ?? 0) : 0
 
-        // Convert to 24-hour format
         if isPM && hour != 12 {
             hour += 12
         } else if isAM && hour == 12 {
@@ -313,10 +274,8 @@ public class TimelinePoiDetailViewModel {
         return String(format: "%02d:%02d", hour, minute)
     }
 
-    /// Get localized day names from languages service
+    /// Each inner array holds variations of a day name (full, abbreviated, localized). Index 0 = Sunday.
     private func getLocalizedDayNames() -> [[String]] {
-        // Each inner array contains variations of the day name (full, abbreviated, localized)
-        // Index 0 = Sunday, 1 = Monday, ..., 6 = Saturday
         var localizedDays: [[String]] = []
 
         let dayKeys = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"]
@@ -326,19 +285,16 @@ public class TimelinePoiDetailViewModel {
         for i in 0..<7 {
             var variations: [String] = []
 
-            // Add English variations
             variations.append(englishFull[i])
             variations.append(englishAbbr[i])
             variations.append(englishFull[i].lowercased())
             variations.append(englishAbbr[i].lowercased())
 
-            // Add localized variation from languages service
             let localizedDay = TRPLanguagesController.shared.getLanguageValue(for: dayKeys[i])
             if !localizedDay.isEmpty && localizedDay != dayKeys[i] {
                 variations.append(localizedDay)
                 variations.append(localizedDay.lowercased())
                 variations.append(localizedDay.capitalized)
-                // Also add first 3 characters as potential abbreviation
                 if localizedDay.count >= 3 {
                     let abbr = String(localizedDay.prefix(3))
                     variations.append(abbr)
@@ -353,7 +309,6 @@ public class TimelinePoiDetailViewModel {
         return localizedDays
     }
 
-    /// Get day index (0-6) from day string, checking both English and localized names
     private func getDayIndex(_ dayString: String, localizedDays: [[String]]) -> Int? {
         let normalizedDay = dayString.trimmingCharacters(in: .whitespaces)
 
@@ -362,7 +317,6 @@ public class TimelinePoiDetailViewModel {
                 if normalizedDay.caseInsensitiveCompare(variation) == .orderedSame {
                     return index
                 }
-                // Also check if the day string starts with the variation (for abbreviated forms)
                 if normalizedDay.count >= 3 && variation.count >= 3 {
                     let dayPrefix = String(normalizedDay.prefix(3))
                     let varPrefix = String(variation.prefix(3))
@@ -380,10 +334,7 @@ public class TimelinePoiDetailViewModel {
         return poi.phone != nil || poi.hours != nil
     }
 
-    /// Check if POI category is restaurant, cafe, or nightlife (for showing phone number)
-    /// Uses the cached Eat & Drink category IDs from TRPPoiUseCases
     public func isRestaurantCafeOrNightlife() -> Bool {
-        // Check if POI has any Eat & Drink category using cached IDs
         for category in poi.categories {
             if TRPPoiUseCases.isEatAndDrinkCategory(category.id) {
                 return true
@@ -433,7 +384,7 @@ public class TimelinePoiDetailViewModel {
     public func hasProducts() -> Bool {
         guard let bookings = poi.bookings else { return false }
 
-        // Check if any booking with provider ID 15 (Civitatis) has products
+        // provider ID 15 = Civitatis
         return bookings.contains { booking in
             guard booking.providerId == 15,
                   let products = booking.products,
@@ -445,7 +396,7 @@ public class TimelinePoiDetailViewModel {
     public func getProducts() -> [TRPBookingProduct] {
         guard let bookings = poi.bookings else { return [] }
 
-        // Get products only from provider ID 15 (Civitatis)
+        // provider ID 15 = Civitatis
         var civittatisProducts: [TRPBookingProduct] = []
         bookings.forEach { booking in
             if booking.providerId == 15, let products = booking.products {

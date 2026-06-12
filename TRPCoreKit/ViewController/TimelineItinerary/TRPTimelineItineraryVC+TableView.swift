@@ -5,8 +5,6 @@
 //  Created by Cem Çaygöz on 20.01.2025.
 //  Copyright © 2025 Tripian Inc. All rights reserved.
 //
-//  SOLID: SRP - TableView DataSource and Delegate methods extracted from main VC
-//
 
 import UIKit
 import TRPFoundationKit
@@ -30,7 +28,6 @@ extension TRPTimelineItineraryVC: UITableViewDataSource {
         return configureCell(for: cellType, at: indexPath, in: tableView)
     }
 
-    /// Configure cell using TimelineCellType with pre-computed cell data
     internal func configureCell(for cellType: TimelineCellType, at indexPath: IndexPath, in tableView: UITableView) -> UITableViewCell {
         let isPastDay = viewModel.isSelectedDayPast
         switch cellType {
@@ -87,7 +84,6 @@ extension TRPTimelineItineraryVC: UITableViewDataSource {
             cell.delegate = self
             cell.configure(with: cellData, indexPath: indexPath)
 
-            // Apply any pre-calculated distances
             if let distances = calculatedDistances[indexPath] {
                 for (index, distanceData) in distances {
                     cell.updateDistance(at: index, distance: distanceData.distance, time: distanceData.time)
@@ -110,7 +106,6 @@ extension TRPTimelineItineraryVC: UITableViewDataSource {
     public func tableView(_ tableView: UITableView, viewForHeaderInSection section: Int) -> UIView? {
         let headerData = viewModel.headerData(for: section)
 
-        // Don't show header if shouldShowHeader is false
         guard headerData.shouldShowHeader else {
             return nil
         }
@@ -132,29 +127,24 @@ extension TRPTimelineItineraryVC: UITableViewDelegate {
     public func tableView(_ tableView: UITableView, heightForHeaderInSection section: Int) -> CGFloat {
         let headerData = viewModel.headerData(for: section)
 
-        // Return 0 height if header should not be shown
         guard headerData.shouldShowHeader else {
             return 0
         }
 
-        // Return automatic dimension for header
         return UITableView.automaticDimension
     }
 
     public func tableView(_ tableView: UITableView, estimatedHeightForHeaderInSection section: Int) -> CGFloat {
         let headerData = viewModel.headerData(for: section)
 
-        // Return 0 estimated height if header should not be shown
         guard headerData.shouldShowHeader else {
             return 0
         }
 
-        // Return estimated height for header
         return 80
     }
 
     public func tableView(_ tableView: UITableView, viewForFooterInSection section: Int) -> UIView? {
-        // Don't show footer for empty state
         if viewModel.numberOfSections() == 1,
            viewModel.numberOfRows(in: section) == 1,
            let cellType = viewModel.cellType(at: IndexPath(row: 0, section: section)),
@@ -162,7 +152,6 @@ extension TRPTimelineItineraryVC: UITableViewDelegate {
             return nil
         }
 
-        // Don't show footer after the last section
         guard section < viewModel.numberOfSections() - 1 else {
             return nil
         }
@@ -175,7 +164,6 @@ extension TRPTimelineItineraryVC: UITableViewDelegate {
     }
 
     public func tableView(_ tableView: UITableView, heightForFooterInSection section: Int) -> CGFloat {
-        // Don't show footer for empty state
         if viewModel.numberOfSections() == 1,
            viewModel.numberOfRows(in: section) == 1,
            let cellType = viewModel.cellType(at: IndexPath(row: 0, section: section)),
@@ -183,7 +171,6 @@ extension TRPTimelineItineraryVC: UITableViewDelegate {
             return 0
         }
 
-        // Don't show footer after the last section
         guard section < viewModel.numberOfSections() - 1 else {
             return 0
         }
@@ -192,7 +179,6 @@ extension TRPTimelineItineraryVC: UITableViewDelegate {
     }
 
     public func tableView(_ tableView: UITableView, estimatedHeightForFooterInSection section: Int) -> CGFloat {
-        // Don't show footer for empty state
         if viewModel.numberOfSections() == 1,
            viewModel.numberOfRows(in: section) == 1,
            let cellType = viewModel.cellType(at: IndexPath(row: 0, section: section)),
@@ -200,7 +186,6 @@ extension TRPTimelineItineraryVC: UITableViewDelegate {
             return 0
         }
 
-        // Don't show footer after the last section
         guard section < viewModel.numberOfSections() - 1 else {
             return 0
         }
@@ -226,18 +211,15 @@ extension TRPTimelineItineraryVC: UITableViewDelegate {
             delegate?.timelineItineraryDidSelectBookedActivity(self, segment: cellData.segment)
 
         case .manualPoi:
-            // Manual POI cell handles selection internally via TRPTimelineManualPoiCellDelegate
             break
 
         case .activityStep(let cellData):
             delegate?.timelineItineraryDidSelectStep(self, step: cellData.step)
 
         case .recommendations:
-            // Recommendations cell handles selection internally
             break
 
         case .emptyState:
-            // Empty state cell handles selection internally via button
             break
         }
     }

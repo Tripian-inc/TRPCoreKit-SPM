@@ -15,7 +15,6 @@ public struct TimelineLocalizationKeys {
     // MARK: - Booked Activity Cell
     public static let reservation = "timeline.bookedActivity.reservation"
     public static let confirmed = "timeline.bookedActivity.confirmed"
-    // freeCancellation is now in CommonLocalizationKeys
     public static let adults = "timeline.bookedActivity.adults"
     public static let child = "timeline.bookedActivity.child"
     public static let children = "timeline.bookedActivity.children"
@@ -24,7 +23,6 @@ public struct TimelineLocalizationKeys {
     public static let removeActivityTitle = "timeline.removeActivity.title"
     public static let removeActivityMessage = "timeline.removeActivity.message"
     public static let remove = "timeline.removeActivity.remove"
-    // cancel is now in CommonLocalizationKeys
 
     // MARK: - Remove Recommendations Alert
     public static let removeRecommendationsTitle = "timeline.removeRecommendations.title"
@@ -57,7 +55,6 @@ public struct TimelineLocalizationKeys {
     public static let unknown = "timeline.label.unknown"
     public static let unknownLocation = "timeline.label.unknownLocation"
     public static let changeTime = "timeline.label.changeTime"
-    // from is now in CommonLocalizationKeys
 
     // MARK: - Map
     public static let mapMainView = "timeline.map.mainView"
@@ -136,7 +133,6 @@ public struct TimelineLocalizationKeys {
     public static func localized(_ key: String) -> String {
         let localizedValue = TRPLanguagesController.shared.getLanguageValue(for: key)
 
-        // If the localization returns the key itself or is empty, use default English value
         if localizedValue.isEmpty || localizedValue == key {
             return defaultValues[key] ?? key
         }
@@ -146,7 +142,6 @@ public struct TimelineLocalizationKeys {
 
     // MARK: - Format Helpers
 
-    /// Formats duration in minutes to localized string (e.g., "2h 30m" or "45m")
     public static func formatDuration(minutes: Int) -> String {
         let hours = minutes / 60
         let mins = minutes % 60
@@ -163,7 +158,6 @@ public struct TimelineLocalizationKeys {
         }
     }
 
-    /// Formats distance with walking time (e.g., "5 min (0.4 km)")
     public static func formatDistance(minutes: Int, kilometers: String) -> String {
         let format = localized(distanceFormat)
         return String(format: format, minutes, kilometers)

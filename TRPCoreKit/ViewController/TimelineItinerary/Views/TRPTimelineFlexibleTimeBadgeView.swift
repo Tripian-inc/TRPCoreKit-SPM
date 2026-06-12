@@ -37,9 +37,7 @@ class TRPTimelineFlexibleTimeBadgeView: UIView {
         label.textAlignment = .center
         label.layer.cornerRadius = 10
         label.clipsToBounds = true
-        // U+2212 MINUS SIGN sits at the math axis (same height as the bar of "+"),
-        // which visually centers in the 20pt chip designed for digit glyphs. The
-        // ASCII hyphen-minus sits at x-height and looked dropped.
+        // U+2212 MINUS SIGN sits at the math axis so it centers in the digit-sized chip; ASCII hyphen looked dropped.
         label.text = "\u{2212}"
         return label
     }()
@@ -141,8 +139,7 @@ class TRPTimelineFlexibleTimeBadgeView: UIView {
         subtitleLabel.text = subtitle
     }
 
-    /// Recolor labels and dashed border for past-day rendering. CAShapeLayer.strokeColor
-    /// is not touched by the recursive `trp_recolorLabelsAndBorders` helper, so do it here.
+    /// Past-day recolor: `trp_recolorLabelsAndBorders` skips CAShapeLayer.strokeColor, so set it here.
     func applyMutedStyle(color: UIColor) {
         titleLabel.textColor = color
         subtitleLabel.textColor = color

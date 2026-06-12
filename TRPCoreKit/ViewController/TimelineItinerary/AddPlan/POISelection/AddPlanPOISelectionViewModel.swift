@@ -17,7 +17,6 @@ public protocol AddPlanPOISelectionViewModelDelegate: AnyObject {
     func viewModel(showPreloader: Bool)
 }
 
-/// Represents a saved item that can be selected as starting point
 public enum SavedItem {
     case bookedActivity(TRPTimelineSegment)
     case favouriteActivity(TRPSegmentFavoriteItem)
@@ -62,10 +61,8 @@ public class AddPlanPOISelectionViewModel {
     private let favouriteItems: [TRPSegmentFavoriteItem]
     private let cityCoordinate: TRPLocation?
 
-    // Filtered items for selected city (combined booked + favourites)
     private var filteredSavedItems: [SavedItem] = []
 
-    // Google Places Search
     private var googleApiKey: String?
     private var boundarySW: TRPLocation?
     private var boundaryNE: TRPLocation?
@@ -90,19 +87,16 @@ public class AddPlanPOISelectionViewModel {
         self.boundaryNE = boundaryNE
         self.cityCoordinate = cityCoordinate ?? cityCenterPOI?.coordinate
 
-        // Get Google API key
         if let key = TRPApiKeyController.getKey(TRPApiKeys.trpGooglePlace) {
             googleApiKey = key
         }
 
-        // Filter activities by selected city
         filterItemsByCity()
     }
 
     private func filterItemsByCity() {
         var items: [SavedItem] = []
 
-        // Filter booked activities by city
         for segment in bookedActivities {
             let matchesCity = matchesCityFilter(cityId: segment.city?.id, cityName: segment.city?.name)
             if matchesCity {
@@ -110,7 +104,6 @@ public class AddPlanPOISelectionViewModel {
             }
         }
 
-        // Filter favourite items by city
         for item in favouriteItems {
             let matchesCity = matchesCityFilter(cityId: item.cityId, cityName: item.cityName)
             if matchesCity {
@@ -122,17 +115,14 @@ public class AddPlanPOISelectionViewModel {
     }
 
     private func matchesCityFilter(cityId itemCityId: Int?, cityName itemCityName: String?) -> Bool {
-        // If no cityId or cityName provided for filter, show all
         guard self.cityId != nil || self.cityName != nil else {
             return true
         }
 
-        // Filter by cityId if available
         if let filterCityId = self.cityId, let itemCityId = itemCityId {
             return filterCityId == itemCityId
         }
 
-        // Fallback to city name matching
         if let filterCityName = self.cityName, let itemCityName = itemCityName {
             return filterCityName.lowercased() == itemCityName.lowercased()
         }
@@ -176,7 +166,6 @@ public class AddPlanPOISelectionViewModel {
         return !filteredSavedItems.isEmpty
     }
 
-    // Keep old methods for backward compatibility
     public func getBookedActivitiesCount() -> Int {
         return filteredSavedItems.count
     }
@@ -195,7 +184,6 @@ public class AddPlanPOISelectionViewModel {
 
     // MARK: - Google Places Search
     public func searchAddress(text: String) {
-        // Cancel previous search
         searchWorkItem?.cancel()
 
         let searchText = text.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -208,7 +196,6 @@ public class AddPlanPOISelectionViewModel {
             return
         }
 
-        // Debounce search by 650ms
         let workItem = DispatchWorkItem { [weak self] in
             self?.performSearch(text: searchText, apiKey: apiKey)
         }

@@ -56,9 +56,8 @@ extension TimelinePoiDetailViewController: UICollectionViewDelegateFlowLayout {
     public func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAt indexPath: IndexPath) -> CGSize {
         if collectionView == imageCollectionView {
             let width = collectionView.bounds.width
-            return CGSize(width: width, height: width) // 1:1 ratio
+            return CGSize(width: width, height: width)
         } else if collectionView == productsCollectionView {
-            // Fixed size: covers all content variations
             return CGSize(width: 253, height: 295)
         }
         return .zero
@@ -67,8 +66,7 @@ extension TimelinePoiDetailViewController: UICollectionViewDelegateFlowLayout {
     public func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         if collectionView == productsCollectionView {
             let product = viewModel.getProducts()[indexPath.item]
-            // `product.id` is the `C_{id}_{provider}` form from the search mapper —
-            // strip to the bare product id to match every other delegate callsite.
+            // `product.id` is the `C_{id}_{provider}` form; strip to the bare product id like every other callsite.
             TRPCoreKit.shared.delegate?.trpCoreKitDidRequestActivityDetail(activityId: product.id.cleanedAsActivityId())
         }
     }

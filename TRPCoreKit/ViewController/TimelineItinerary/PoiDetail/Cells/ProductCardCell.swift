@@ -136,56 +136,45 @@ class ProductCardCell: UICollectionViewCell {
         contentView.backgroundColor = .white
         contentView.layer.cornerRadius = 8
 
-        // Add rating subviews
         ratingStackView.addArrangedSubview(ratingLabel)
         ratingStackView.addArrangedSubview(starImageView)
         ratingStackView.addArrangedSubview(reviewCountLabel)
-        
-        // Setup duration stack view
+
         durationStackView.addArrangedSubview(durationIconImageView)
         durationStackView.addArrangedSubview(durationLabel)
 
-        // Add to details stack
         detailsStackView.addArrangedSubview(ratingStackView)
         detailsStackView.addArrangedSubview(durationStackView)
         detailsStackView.addArrangedSubview(freeCancellationLabel)
 
-        // Add to content view
         contentView.addSubview(imageView)
         contentView.addSubview(titleLabel)
         contentView.addSubview(detailsStackView)
         contentView.addSubview(priceLabel)
 
         NSLayoutConstraint.activate([
-            // Cell width
             contentView.widthAnchor.constraint(equalToConstant: 253),
 
-            // Image
             imageView.topAnchor.constraint(equalTo: contentView.topAnchor),
             imageView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
             imageView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
             imageView.heightAnchor.constraint(equalToConstant: 152),
 
-            // Title
             titleLabel.topAnchor.constraint(equalTo: imageView.bottomAnchor, constant: 8),
             titleLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 8),
             titleLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -8),
 
-            // Details Stack (rating, duration, free cancellation)
             detailsStackView.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 4),
             detailsStackView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 8),
             detailsStackView.trailingAnchor.constraint(lessThanOrEqualTo: contentView.trailingAnchor, constant: -8),
 
-            // Rating Container
             ratingStackView.heightAnchor.constraint(equalToConstant: 18),
-            
-            // Star and duration icons size
+
             starImageView.widthAnchor.constraint(equalToConstant: 12),
             starImageView.heightAnchor.constraint(equalToConstant: 12),
             durationIconImageView.widthAnchor.constraint(equalToConstant: 16),
             durationIconImageView.heightAnchor.constraint(equalToConstant: 16),
 
-            // Price - Below details stack with minimum 8px spacing
             priceLabel.topAnchor.constraint(equalTo: detailsStackView.bottomAnchor, constant: 8),
             priceLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -8),
             priceLabel.bottomAnchor.constraint(lessThanOrEqualTo: contentView.bottomAnchor, constant: -8),
@@ -196,7 +185,6 @@ class ProductCardCell: UICollectionViewCell {
     func configure(with product: TRPBookingProduct) {
         titleLabel.text = product.title
 
-        // Configure Image
         if let imageUrlString = product.image, !imageUrlString.isEmpty, let url = URL(string: imageUrlString) {
             imageView.sd_setImage(with: url, placeholderImage: nil)
         } else {
@@ -204,7 +192,6 @@ class ProductCardCell: UICollectionViewCell {
             imageView.image = nil
         }
 
-        // Configure Rating
         if let rating = product.rating, rating > 0 {
             ratingLabel.text = String(format: "%.1f", rating)
             if let ratingCount = product.ratingCount {
@@ -216,7 +203,6 @@ class ProductCardCell: UICollectionViewCell {
             ratingStackView.isHidden = true
         }
 
-        // Configure Duration
         if let duration = product.duration, !duration.isEmpty {
             durationLabel.text = duration
             durationLabel.isHidden = false
@@ -224,14 +210,11 @@ class ProductCardCell: UICollectionViewCell {
             durationLabel.isHidden = true
         }
 
-        // Configure Free Cancellation
         let hasNonRefundable = product.info.contains { $0.lowercased() == "non_refundable" }
         freeCancellationLabel.isHidden = hasNonRefundable
 //        freeCancellationLabel.isHidden = true
 
-        // Configure Price with "From:" prefix or "FREE" for zero price
         if let price = product.price, price == 0 {
-            // Show "FREE" for zero price
             priceLabel.attributedText = NSAttributedString(
                 string: CommonLocalizationKeys.localized(CommonLocalizationKeys.free),
                 attributes: [

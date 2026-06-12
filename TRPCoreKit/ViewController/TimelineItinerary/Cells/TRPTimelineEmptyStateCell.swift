@@ -80,23 +80,19 @@ class TRPTimelineEmptyStateCell: UITableViewCell {
         containerView.addSubview(addPlansButton)
 
         NSLayoutConstraint.activate([
-            // Container View - 32px margin from dayFilters
             containerView.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 0),
             containerView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
             containerView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
             containerView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -16),
 
-            // Title Label - top gap 32px
             titleLabel.topAnchor.constraint(equalTo: containerView.topAnchor, constant: 32),
             titleLabel.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 16),
             titleLabel.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -16),
 
-            // Description Label - top gap 12px
             descriptionLabel.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 12),
             descriptionLabel.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 16),
             descriptionLabel.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -16),
 
-            // Add Plans Button - top gap 16px, bottom gap 32px, horizontally centered
             addPlansButton.topAnchor.constraint(equalTo: descriptionLabel.bottomAnchor, constant: 16),
             addPlansButton.centerXAnchor.constraint(equalTo: containerView.centerXAnchor),
             addPlansButton.bottomAnchor.constraint(equalTo: containerView.bottomAnchor, constant: -32)
@@ -108,7 +104,6 @@ class TRPTimelineEmptyStateCell: UITableViewCell {
         titleLabel.text = TimelineLocalizationKeys.localized(TimelineLocalizationKeys.noPlansYet)
         addPlansButton.updateTitle(TimelineLocalizationKeys.localized(TimelineLocalizationKeys.addPlansButton))
 
-        // Set description with line height 23px
         let descriptionText = TimelineLocalizationKeys.localized(TimelineLocalizationKeys.noPlansDescription)
         let paragraphStyle = NSMutableParagraphStyle()
         paragraphStyle.lineSpacing = 23 - (FontSet.montserratLight.font(14).lineHeight)

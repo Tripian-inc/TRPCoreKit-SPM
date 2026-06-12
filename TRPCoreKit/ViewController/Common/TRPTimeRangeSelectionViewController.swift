@@ -26,6 +26,11 @@ class TRPTimeRangeSelectionViewController: TRPBaseUIViewController, DynamicHeigh
     private var fromDate: Date?
     private var toDate: Date?
     private var selectedDate: Date?  // The date being planned for (used for minimum time validation)
+    /// Optional. When set, "today" detection and the minimum-time computation
+    /// use this city's IANA timezone instead of the device timezone. Mirrors
+    /// `selectedDate` — both are call-site optional; without them we silently
+    /// fall back to `Calendar.current`.
+    private var selectedCity: TRPCity?
     private var editingStartTime = false  // Track which time is being edited
 
     // MARK: - UI Components
@@ -190,12 +195,18 @@ class TRPTimeRangeSelectionViewController: TRPBaseUIViewController, DynamicHeigh
 
     private func startTimeFieldTapped() {
         editingStartTime = true
+        // Bounds (minimum + default initial) come from the shared `TimePickerBounds`
+        // helper — keeps the city-tz / next-top-of-hour rules out of the VC.
+        let initialTime = fromDate ?? TimePickerBounds.defaultInitialTime(
+            selectedDay: selectedDate,
+            city: selectedCity
+        )
         let picker = TRPSingleTimePickerViewController(
             title: AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.startTime),
             selectedDate: selectedDate,
-            minimumTime: getMinimumStartTime(),
+            minimumTime: TimePickerBounds.minimumStartTime(selectedDay: selectedDate, city: selectedCity),
             maximumTime: nil,
-            initialTime: fromDate,
+            initialTime: initialTime,
             showBackButton: true
         )
         picker.delegate = self
@@ -210,13 +221,23 @@ class TRPTimeRangeSelectionViewController: TRPBaseUIViewController, DynamicHeigh
         // sensible moment (today+30m, or unrestricted on future days) and is a
         // valid pick on its own. Mirrors the smart-recommendation screen
         // (`AddPlanTimeAndTravelersVC.endTimeButtonTapped`).
+        // Initial: previously-picked end, or "start + 1h" / city-tz fallback.
         let hasStartTime = fromDate != nil
+        let initialTime = toDate ?? TimePickerBounds.defaultInitialEndTime(
+            selectedDay: selectedDate,
+            city: selectedCity,
+            currentStartTime: fromDate
+        )
         let picker = TRPSingleTimePickerViewController(
             title: AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.endTime),
             selectedDate: selectedDate,
-            minimumTime: getMinimumEndTime(),
+            minimumTime: TimePickerBounds.minimumEndTime(
+                selectedDay: selectedDate,
+                city: selectedCity,
+                currentStartTime: fromDate
+            ),
             maximumTime: nil,
-            initialTime: toDate,
+            initialTime: initialTime,
             showBackButton: true,
             strictMinimum: hasStartTime
         )
@@ -224,29 +245,8 @@ class TRPTimeRangeSelectionViewController: TRPBaseUIViewController, DynamicHeigh
         presentVCWithDynamicHeight(picker)
     }
 
-    // MARK: - Time Restriction Logic
-    private func getMinimumStartTime() -> Date? {
-        guard let selectedDate = selectedDate else { return nil }
-
-        let calendar = Calendar.current
-        if calendar.isDateInToday(selectedDate) {
-            // Today: minimum is current time + 30 minutes
-            return Date().addingTimeInterval(30 * 60)
-        }
-
-        // Future dates: no minimum restriction
-        return nil
-    }
-
-    private func getMinimumEndTime() -> Date? {
-        // End time must be at least start time
-        if let fromDate = fromDate {
-            return fromDate
-        }
-
-        // If no start time yet, use same logic as start time
-        return getMinimumStartTime()
-    }
+    // Time-picker bounds (minimum + default initial time) live in
+    // `TimePickerBounds` so this VC stays focused on view wiring.
 
     // MARK: - UI Updates
     private func updateStartTimeDisplay() {
@@ -315,6 +315,13 @@ class TRPTimeRangeSelectionViewController: TRPBaseUIViewController, DynamicHeigh
     /// Sets the date being planned for (used for minimum time validation)
     func setSelectedDate(_ date: Date) {
         self.selectedDate = date
+    }
+
+    /// Optional. When set, the minimum-time gate and the default initial time
+    /// are computed in this city's IANA timezone instead of the device
+    /// timezone. Pass the segment / planData city at the call site.
+    func setSelectedCity(_ city: TRPCity?) {
+        self.selectedCity = city
     }
 
     func setInitialTimes(from: String, to: String) {

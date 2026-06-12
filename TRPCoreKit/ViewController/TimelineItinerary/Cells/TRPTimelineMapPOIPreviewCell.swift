@@ -142,48 +142,38 @@ class TRPTimelineMapPOIPreviewCell: UICollectionViewCell {
         numberBadge.addSubview(numberLabel)
         containerView.addSubview(mainTextStack)
 
-        // Time row: icon + label
         timeRow.addArrangedSubview(timeIcon)
         timeRow.addArrangedSubview(timeLabel)
 
-        // Main vertical stack (city → title → noLocationBadge → time).
-        // Each child collapses cleanly when hidden, so layout is correct whether
-        // the badge or the time row is present.
         mainTextStack.addArrangedSubview(cityLabel)
         mainTextStack.addArrangedSubview(titleLabel)
         mainTextStack.addArrangedSubview(noLocationBadge)
         mainTextStack.addArrangedSubview(timeRow)
 
         NSLayoutConstraint.activate([
-            // Container
             containerView.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 0),
             containerView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 0),
             containerView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: 0),
             containerView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: 0),
 
-            // Thumbnail (102x102, corner radius 4, top/leading/bottom 12)
             thumbnailImageView.topAnchor.constraint(equalTo: containerView.topAnchor, constant: 12),
             thumbnailImageView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 12),
             thumbnailImageView.widthAnchor.constraint(equalToConstant: 102),
             thumbnailImageView.heightAnchor.constraint(equalToConstant: 102),
 
-            // Number Badge (24x24, positioned relative to contentView)
             numberBadge.topAnchor.constraint(equalTo: containerView.topAnchor, constant: 6),
             numberBadge.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 4),
             numberBadge.widthAnchor.constraint(equalToConstant: 24),
             numberBadge.heightAnchor.constraint(equalToConstant: 24),
 
-            // Number Label (18px semibold)
             numberLabel.centerXAnchor.constraint(equalTo: numberBadge.centerXAnchor),
             numberLabel.centerYAnchor.constraint(equalTo: numberBadge.centerYAnchor),
 
-            // Main text stack (city/title/badge/time)
             mainTextStack.topAnchor.constraint(equalTo: containerView.topAnchor, constant: 12),
             mainTextStack.leadingAnchor.constraint(equalTo: thumbnailImageView.trailingAnchor, constant: 16),
             mainTextStack.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -12),
             mainTextStack.bottomAnchor.constraint(lessThanOrEqualTo: containerView.bottomAnchor, constant: -12),
 
-            // Time row icon size
             timeIcon.widthAnchor.constraint(equalToConstant: 16),
             timeIcon.heightAnchor.constraint(equalToConstant: 16)
         ])
@@ -193,16 +183,14 @@ class TRPTimelineMapPOIPreviewCell: UICollectionViewCell {
     func configure(with poi: TRPPoi, orderNumber: Int) {
         numberLabel.text = "\(orderNumber)"
         titleLabel.text = poi.name
-        
-        // Load image
+
         if let imageUrl = poi.image?.url, let url = URL(string: imageUrl) {
             thumbnailImageView.sd_setImage(with: url, placeholderImage: nil)
         } else {
             thumbnailImageView.image = nil
             thumbnailImageView.backgroundColor = ColorSet.neutral100.uiColor
         }
-        
-        // For POIs, we don't have specific date/time, so hide them
+
         timeRow.isHidden = true
     }
 
@@ -217,7 +205,6 @@ class TRPTimelineMapPOIPreviewCell: UICollectionViewCell {
 
         titleLabel.text = additionalData.title ?? segment.title ?? ""
 
-        // Configure image
         if let imageUrl = additionalData.imageUrl {
             thumbnailImageView.sd_setImage(with: URL(string: imageUrl), placeholderImage: nil)
         } else {
@@ -225,7 +212,6 @@ class TRPTimelineMapPOIPreviewCell: UICollectionViewCell {
             thumbnailImageView.backgroundColor = ColorSet.neutral100.uiColor
         }
 
-        // Configure date and time (same style as TRPTimelineBookedActivityCell)
         if let startDatetime = additionalData.startDatetime {
             timeLabel.text = formatTime(from: startDatetime)
             timeRow.isHidden = false
@@ -234,25 +220,18 @@ class TRPTimelineMapPOIPreviewCell: UICollectionViewCell {
         }
     }
 
-    /// Configure cell with MapDisplayItem, unified order, and selection state
     func configure(with item: MapDisplayItem, order: Int, isSelected: Bool = false) {
-        // Non-positive orders (e.g. flexible-time activities) render as a centered
-        // minus sign (U+2212, math-axis aligned) instead of ASCII hyphen so it
-        // optically centers in the digit-sized chip.
+        // Non-positive orders (e.g. flexible activities) render as a math-axis minus (U+2212) for optical centering.
         numberLabel.text = order > 0 ? "\(order)" : "\u{2212}"
         titleLabel.text = item.title
 
-        // Set city name
         cityLabel.text = item.cityName
         cityLabel.isHidden = item.cityName == nil
 
-        // Update badge style based on selection state
         updateBadgeStyle(isSelected: isSelected)
 
-        // No-exact-location tag (between title and time row)
         noLocationBadge.isHidden = !item.isNoLocation
 
-        // Load image
         if let imageUrl = item.imageUrl, let url = URL(string: imageUrl) {
             thumbnailImageView.sd_setImage(with: url, placeholderImage: nil)
         } else {
@@ -260,7 +239,6 @@ class TRPTimelineMapPOIPreviewCell: UICollectionViewCell {
             thumbnailImageView.backgroundColor = ColorSet.neutral100.uiColor
         }
 
-        // Flexible-time activities show "Flexible" instead of a clock time.
         if item.isFlexibleActivity {
             timeLabel.text = TimelineLocalizationKeys.localized(TimelineLocalizationKeys.flexibleShort)
             timeRow.isHidden = false
@@ -272,15 +250,12 @@ class TRPTimelineMapPOIPreviewCell: UICollectionViewCell {
         }
     }
 
-    /// Update badge style based on selection state
     private func updateBadgeStyle(isSelected: Bool) {
         if isSelected {
-            // Selected: Black background, white text, no border
             numberBadge.backgroundColor = ColorSet.fg.uiColor
             numberBadge.layer.borderWidth = 0
             numberLabel.textColor = .white
         } else {
-            // Default: White background, black border, black text
             numberBadge.backgroundColor = .white
             numberBadge.layer.borderWidth = 2
             numberBadge.layer.borderColor = ColorSet.fg.uiColor.cgColor
@@ -312,7 +287,6 @@ class TRPTimelineMapPOIPreviewCell: UICollectionViewCell {
         timeLabel.text = nil
         timeRow.isHidden = true
         noLocationBadge.isHidden = true
-        // Reset badge to default (unselected) style
         updateBadgeStyle(isSelected: false)
     }
 }

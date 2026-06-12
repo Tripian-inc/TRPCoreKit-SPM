@@ -48,12 +48,10 @@ class KeyDataSectionView: UIView {
         contentStackView.addArrangedSubview(hoursStack)
 
         NSLayoutConstraint.activate([
-            // Header
             headerLabel.topAnchor.constraint(equalTo: topAnchor, constant: 40),
             headerLabel.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 16),
             headerLabel.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -16),
 
-            // Content Stack (automatically handles hidden subviews)
             contentStackView.topAnchor.constraint(equalTo: headerLabel.bottomAnchor, constant: 24),
             contentStackView.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 16),
             contentStackView.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -16),

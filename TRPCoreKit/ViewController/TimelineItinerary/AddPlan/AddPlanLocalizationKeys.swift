@@ -22,8 +22,6 @@ public struct AddPlanLocalizationKeys {
     public static let clearSelection = "addPlan.button.clearSelection"
 
     // MARK: - Common Keys (use CommonLocalizationKeys)
-    // cancel, confirm, continueButton, select, from, freeCancellation
-    // are now in CommonLocalizationKeys
 
     // MARK: - Time Range Selection
     public static let timeTitle = "addPlan.title.time"
@@ -103,32 +101,24 @@ public struct AddPlanLocalizationKeys {
     public static let flexibleTimeInfo = "addPlan.time.flexibleInfo"
     public static let flexibleTimePinTopHint = "addPlan.time.flexibleTopOfItinerary"
 
-    /// Banner shown on the time-selection screen when the activity has no availability
-    /// for any day of the user's trip (every day is unavailable: past, no slots, or
-    /// today with all slots already expired).
     public static let activityNotAvailableForTrip = "addPlan.time.activityNotAvailableForTrip"
 
-    /// Underlined "Show more" link rendered below the time-slot grid when there are
-    /// strictly more slots than fit in the collapsed view (>8). Tap expands to all.
     public static let showMoreTimeSlots = "addPlan.time.showMore"
 
-    /// Red-tinted error banner shown above the continue button during activity
-    /// change-time when the activity's currently-saved time is no longer in the
-    /// schedule response (sold out or already in the past). Paired with a disabled
-    /// placeholder cell in the time grid at that slot.
     public static let soldOutWarning = "addPlan.time.soldOutWarning"
 
-    /// Inline warning shown below the end-time field in Smart Recommendations
-    /// time selection when the chosen end time is not strictly after the start
-    /// time. The end-time field's title + border also switch to primary tint.
     public static let endTimeBeforeStartWarning = "addPlan.time.endTimeBeforeStart"
 
     // MARK: - Toast / Success Notifications
-    /// Format: takes activity name as %1$@ and day display string as %2$@.
+    /// Format: activity name as %1$@, day display string as %2$@.
     public static let activityAddedToast = "addPlan.toast.activityAdded"
 
     // MARK: - Saved Plans Screen
     public static let savedPlans = "addPlan.title.savedPlans"
+
+    public static let savedPlansAllAddedTitle = "addPlan.emptyState.allAddedTitle"
+    public static let savedPlansAllAddedDescription = "addPlan.emptyState.allAddedDescription"
+    public static let viewItinerary = "addPlan.button.viewItinerary"
 
     // MARK: - Error Messages
     public static let errorMissingData = "trips.myTrips.timelineitinerary.addPlan.error.missingData"
@@ -207,6 +197,9 @@ public struct AddPlanLocalizationKeys {
         addSavedPlansToItinerary: "Add your saved plans to the itinerary",
         noAvailableTimes: "No available times",
         savedPlans: "Saved Plans",
+        savedPlansAllAddedTitle: "All set!",
+        savedPlansAllAddedDescription: "You've added all your favourite activities to the itinerary. Now all that's left is to enjoy them.",
+        viewItinerary: "View itinerary",
         errorMissingData: "Missing required information. Please complete all fields.",
         errorCreateFailed: "Failed to create smart recommendation. Please try again.",
         errorTimelineNotFound: "Timeline not found. Please try again.",
@@ -231,8 +224,7 @@ public struct AddPlanLocalizationKeys {
     // MARK: - Helper Methods
     public static func localized(_ key: String) -> String {
         let localizedValue = TRPLanguagesController.shared.getLanguageValue(for: key)
-        
-        // If the localization returns the key itself or is empty, use default English value
+
         if localizedValue.isEmpty || localizedValue == key {
             return defaultValues[key] ?? key
         }

@@ -5,8 +5,6 @@
 //  Created by Cem Çaygöz on 20.01.2025.
 //  Copyright © 2025 Tripian Inc. All rights reserved.
 //
-//  SOLID: SRP - Timeline creation, fetch, and refresh methods extracted from main ViewModel
-//
 
 import Foundation
 import TRPFoundationKit
@@ -15,13 +13,10 @@ import TRPFoundationKit
 
 extension TRPTimelineItineraryViewModel {
 
-    /// Creates a new timeline from itinerary model
     internal func createTimeline(from itineraryModel: TRPItineraryWithActivities) {
-        // First, resolve missing cityIds in destination items
         resolveMissingCityIds(in: itineraryModel) { [weak self] resolvedItineraryModel in
             guard let self = self else { return }
 
-            // Check if ALL cities are unresolved (no valid cityId found for any destination)
             let allCitiesInvalid = resolvedItineraryModel.destinationItems.allSatisfy { item in
                 guard let cityId = item.cityId else { return true }
                 return cityId <= 0
@@ -39,15 +34,10 @@ extension TRPTimelineItineraryViewModel {
         }
     }
 
-    /// Internal method to create timeline after city resolution
     internal func createTimelineInternal(from itineraryModel: TRPItineraryWithActivities) {
-        // Create timeline profile from itinerary
         let profile = itineraryModel.createTimelineProfileFromBookings()
-
-        // Also add favourite items to profile
         profile.favouriteItems = itineraryModel.favouriteItems
 
-        // Create timeline using repository
         let repository = TRPTimelineRepository()
         let createUseCase = TRPCreateTimelineUseCase(repository: repository)
 
@@ -56,7 +46,6 @@ extension TRPTimelineItineraryViewModel {
 
             switch result {
             case .success(let createdTimeline):
-                // Wait for timeline generation to complete
                 self.waitForTimelineGeneration(tripHash: createdTimeline.tripHash, itineraryModel: itineraryModel)
 
             case .failure(let error):
@@ -70,55 +59,44 @@ extension TRPTimelineItineraryViewModel {
 
     // MARK: - City Resolution
 
-    /// Resolves cityIds for ALL destination items via API
-    /// ALL destinations are sent to the API to validate city support
-    /// Uses API first, then falls back to local cache if API fails
-    /// SDK continues even if some cities cannot be resolved
+    /// Resolves cityIds for ALL destination items: API first to validate city support, cache fallback on failure. SDK continues even if some cities don't resolve.
     internal func resolveMissingCityIds(in itineraryModel: TRPItineraryWithActivities,
                                         completion: @escaping (TRPItineraryWithActivities) -> Void) {
         var mutableItinerary = itineraryModel
 
-        // Get ALL destination items for resolution (not just ones with missing cityIds)
         let allItems = mutableItinerary.destinationItems.enumerated()
             .map { (index: $0.offset, item: $0.element) }
 
-        // If no destinations, proceed directly
         if allItems.isEmpty {
             completion(mutableItinerary)
             return
         }
 
-        // Parse coordinates for ALL items
         let coordinates = allItems.map { parseCoordinate(from: $0.item.coordinate) }
 
-        // Try API first (more accurate)
         let cityRemoteApi = TRPCityRemoteApi()
         cityRemoteApi.resolveCities(coordinates: coordinates) { [weak self] result in
             guard let self = self else { return }
 
             switch result {
             case .success(let cityIds):
-                // Update ALL destination items with resolved cityIds
                 for (i, (index, _)) in allItems.enumerated() {
                     if i < cityIds.count && cityIds[i] > 0 {
                         mutableItinerary.destinationItems[index].cityId = cityIds[i]
                     } else {
-                        // API returned 0 or invalid - city not supported
                         mutableItinerary.destinationItems[index].cityId = 0
                     }
                 }
-                // Continue even if some cities could not be resolved
                 completion(mutableItinerary)
 
             case .failure(let error):
                 self.resolveCityIdsFromCache(items: allItems, itinerary: &mutableItinerary)
-                // Continue even if some cities could not be resolved
                 completion(mutableItinerary)
             }
         }
     }
 
-    /// Fallback method to resolve cities from local cache using coordinate proximity
+    /// Cache fallback: resolve cities by coordinate proximity.
     private func resolveCityIdsFromCache(items: [(index: Int, item: TRPSegmentDestinationItem)],
                                          itinerary: inout TRPItineraryWithActivities) {
         for (index, item) in items {
@@ -130,31 +108,26 @@ extension TRPTimelineItineraryViewModel {
     }
 
 
-    /// Waits for timeline generation to complete
     internal func waitForTimelineGeneration(tripHash: String, itineraryModel: TRPItineraryWithActivities) {
         let repository = TRPTimelineRepository()
         let modelRepository = TRPTimelineModelRepository()
         TRPCoreKit.shared.delegate?.trpCoreKitDidCreateTimeline(tripHash: tripHash)
 
-        // Store use case as instance variable to prevent deallocation
+        // Held as an instance var to prevent deallocation during the poll.
         checkAllPlanUseCase = TRPTimelineCheckAllPlanUseCases(
             timelineRepository: repository,
             timelineModelRepository: modelRepository
         )
 
-        // Observe when all segments are generated
         checkAllPlanUseCase?.allSegmentGenerated.addObserver(self) { [weak self] isGenerated in
             guard let self = self else { return }
             guard isGenerated else { return }
 
-            // Fetch the complete timeline
             self.fetchTimeline(tripHash: tripHash, itineraryModel: itineraryModel)
 
-            // Clear use case reference after completion
             self.checkAllPlanUseCase = nil
         }
 
-        // Start checking generation status
         checkAllPlanUseCase?.executeFetchTimelineCheckAllPlanGenerate(tripHash: tripHash) { [weak self] result in
             guard let self = self else { return }
 
@@ -166,14 +139,12 @@ extension TRPTimelineItineraryViewModel {
                 DispatchQueue.main.async {
                     self.delegate?.timelineItineraryViewModel(showLottieLoading: false)
                     self.delegate?.viewModel(error: error)
-                    // Clear use case reference on error
                     self.checkAllPlanUseCase = nil
                 }
             }
         }
     }
 
-    /// Fetches existing timeline by tripHash
     internal func fetchTimeline(tripHash: String, itineraryModel: TRPItineraryWithActivities) {
         let repository = TRPTimelineRepository()
         repository.fetchTimeline(tripHash: tripHash) { [weak self] result in
@@ -181,36 +152,27 @@ extension TRPTimelineItineraryViewModel {
 
             switch result {
             case .success(var timeline):
-                // Merge itinerary model data (only favouriteItems - segments handled via API)
+                // Merge only favouriteItems — segments are handled via API.
                 timeline = self.mergeItineraryData(timeline: timeline, itineraryModel: itineraryModel)
 
                 self.populateCitiesInSegments(&timeline)
                 self.timeline = timeline
                 self.itineraryModel = itineraryModel
 
-                // Resolve favourite item city IDs, then process data
                 self.resolveFavouriteItemCities { [weak self] in
                     guard let self = self else { return }
                     DispatchQueue.main.async {
                         self.processTimelineData()
 
-                        // Edit-only sync: updates the TimelineDate segment's date range.
-                        // No DELETE side-effects, no index conflict with the cascade below.
+                        // Edit-only: updates the TimelineDate segment's date range (no DELETE, no index conflict with the cascade below).
                         self.syncTimelineDateRange()
 
-                        // Unified removal cascade. Collects every reason a segment may
-                        // need to be deleted (reserved→booked, city removed, day out of
-                        // range) into a single descending-index list, applies one
-                        // optimistic local remove + one delegate refresh, then runs a
-                        // single sequential DELETE cascade. On completion we add any
-                        // host-app booked activities not yet on the timeline.
                         self.reconcileSegmentsWithItinerary { [weak self] in
                             guard let self = self else { return }
                             print("🔁 [Reconcile] Cascade completed, adding missing booked activities")
                             self.addMissingBookedActivities(from: itineraryModel)
                         }
 
-                        // Notify delegate - UI is ready
                         self.delegate?.timelineItineraryViewModel(showLottieLoading: false)
                         self.delegate?.timelineItineraryViewModel(didUpdateTimeline: true)
                     }
@@ -225,12 +187,10 @@ extension TRPTimelineItineraryViewModel {
         }
     }
 
-    /// Merges itinerary model data into timeline
-    /// Missing booked activities should be added via addMissingBookedActivities() which calls API
+    /// Merges only favouriteItems into the timeline; missing booked activities are added via the API in `addMissingBookedActivities()`.
     internal func mergeItineraryData(timeline: TRPTimeline, itineraryModel: TRPItineraryWithActivities) -> TRPTimeline {
         var updatedTimeline = timeline
 
-        // Add favourite items only - segments are handled separately via API
         updatedTimeline.favouriteItems = itineraryModel.favouriteItems
 
         return updatedTimeline
@@ -238,13 +198,7 @@ extension TRPTimelineItineraryViewModel {
 
     // MARK: - CityId Resolution
 
-    /// Resolves cityIds for tripItems. Items with a real coordinate go through
-    /// cities/resolve (existing path). Items missing a coordinate are resolved via
-    /// tour-api/product-lookup using their `activityId` so we can still place them
-    /// in the right city section instead of dropping to `cityId = 0`.
-    /// - Parameters:
-    ///   - tripItems: Array of tripItems to resolve
-    ///   - completion: Called with updated tripItems (cityId fields populated)
+    /// Resolves cityIds for tripItems: items with a coordinate via cities/resolve, items without via tour-api/product-lookup (`activityId`) so they still land in the right city instead of `cityId = 0`.
     internal func resolveTripItemsCityIds(
         tripItems: [TRPSegmentActivityItem],
         completion: @escaping ([TRPSegmentActivityItem]) -> Void
@@ -262,7 +216,7 @@ extension TRPTimelineItineraryViewModel {
         let resultsQueue = DispatchQueue(label: "com.tripian.timeline.tripItems.cityResolve")
         var resolved: [Int: Int] = [:]  // index -> cityId
 
-        // With-location branch: cities-resolve + cache fallback (unchanged semantics).
+        // With-location: cities-resolve + cache fallback.
         if !withLocation.isEmpty {
             group.enter()
             let coordinates = withLocation.map { $0.item.coordinate }
@@ -291,7 +245,7 @@ extension TRPTimelineItineraryViewModel {
             }
         }
 
-        // No-location branch: lookup-by-product per item.
+        // No-location: lookup-by-product per item.
         var lookupTriples: [(index: Int, productId: String, providerId: Int)] = []
         var unlookableIndices: [Int] = []
         for entry in noLocation {
@@ -333,9 +287,7 @@ extension TRPTimelineItineraryViewModel {
         }
     }
 
-    /// Fans out `lookupTourProduct` calls for the given items and returns the
-    /// resolved cityIds keyed by input index. Missing keys mean the lookup failed
-    /// or returned `cityId == 0` — callers should default those to `0`.
+    /// Fans out `lookupTourProduct` and returns cityIds keyed by input index. Missing keys (lookup failed or `cityId == 0`) should be defaulted to `0` by callers.
     internal func lookupCityIds(
         for items: [(index: Int, productId: String, providerId: Int)],
         completion: @escaping ([Int: Int]) -> Void
@@ -376,9 +328,7 @@ extension TRPTimelineItineraryViewModel {
 
     // MARK: - Add Missing Booked Activities
 
-    /// Adds missing booked activities from itineraryModel to timeline via API
-    /// Compares itineraryModel.tripItems with timeline segments and adds only missing ones
-    /// - Parameter itineraryModel: Itinerary model containing tripItems to check
+    /// Adds tripItems that aren't already on the timeline (by activityId) via the API.
     public func addMissingBookedActivities(from itineraryModel: TRPItineraryWithActivities) {
         guard let timeline = timeline,
               let tripItems = itineraryModel.tripItems,
@@ -388,7 +338,6 @@ extension TRPTimelineItineraryViewModel {
 
         let tripHash = timeline.tripHash
 
-        // Collect existing activity IDs from timeline (both segments and tripProfile.segments)
         var existingActivityIds = Set<String>()
 
         if let segments = timeline.segments {
@@ -407,44 +356,35 @@ extension TRPTimelineItineraryViewModel {
             }
         }
 
-        // Find tripItems that are NOT in timeline
         let missingTripItems = tripItems.filter { tripItem in
             guard let activityId = tripItem.activityId else { return false }
             return !existingActivityIds.contains(activityId)
         }
 
-        // If no missing items, nothing to do
         guard !missingTripItems.isEmpty else {
             return
         }
 
-        // Show loading (Lottie loader inside the VC)
         delegate?.timelineItineraryViewModel(showLottieLoading: true)
 
-        // Resolve cityIds for ALL missing tripItems BEFORE sequential addition
+        // Resolve cityIds for ALL missing tripItems before sequential addition.
         resolveTripItemsCityIds(tripItems: missingTripItems) { [weak self] resolvedTripItems in
             guard let self = self else { return }
 
-            // Now add items sequentially with resolved cityIds
             self.addMissingTripItemsSequentially(tripItems: resolvedTripItems, tripHash: tripHash, index: 0)
         }
     }
 
-    /// Recursively adds missing tripItems one by one via API
     internal func addMissingTripItemsSequentially(tripItems: [TRPSegmentActivityItem], tripHash: String, index: Int) {
-        // Base case: all items added
         guard index < tripItems.count else {
-            // Wait for generation and refresh timeline
             waitForSegmentGeneration(tripHash: tripHash)
             return
         }
 
         let tripItem = tripItems[index]
 
-        // Create segment profile from tripItem
         let profile = createSegmentProfileFromTripItem(tripItem, tripHash: tripHash)
 
-        // Call API to add segment
         let repository = TRPTimelineRepository()
         repository.createEditTimelineSegment(profile: profile) { [weak self] result in
             guard let self = self else { return }
@@ -452,66 +392,52 @@ extension TRPTimelineItineraryViewModel {
             switch result {
             case .success(let success):
                 if success {
-                    // Continue with next item
                     self.addMissingTripItemsSequentially(tripItems: tripItems, tripHash: tripHash, index: index + 1)
                 } else {
-                    // Continue anyway to try remaining items
+                    // Continue anyway to try remaining items.
                     self.addMissingTripItemsSequentially(tripItems: tripItems, tripHash: tripHash, index: index + 1)
                 }
 
             case .failure(let error):
-                // Continue anyway to try remaining items
+                // Continue anyway to try remaining items.
                 self.addMissingTripItemsSequentially(tripItems: tripItems, tripHash: tripHash, index: index + 1)
             }
         }
     }
 
-    /// Creates a TRPCreateEditTimelineSegmentProfile from a TRPSegmentActivityItem
     internal func createSegmentProfileFromTripItem(_ tripItem: TRPSegmentActivityItem, tripHash: String) -> TRPCreateEditTimelineSegmentProfile {
         let profile = TRPCreateEditTimelineSegmentProfile(tripHash: tripHash)
 
-        // Set segment type
         profile.segmentType = .bookedActivity
 
-        // Set basic properties
         profile.title = tripItem.title
         profile.description = tripItem.description
-        profile.available = false // Booking products are fixed activities
+        profile.available = false
         profile.distinctPlan = true
 
-        // Set dates
         profile.startDate = tripItem.startDatetime
         profile.endDate = tripItem.endDatetime
 
-        // Resolve city first so we can fall back to its coordinate when the trip item
-        // arrives without a usable one (isNoLocation or (0, 0)).
+        // Resolve city first so we can fall back to its coordinate when the trip item has none (isNoLocation or (0, 0)).
         var resolvedCity: TRPCity? = nil
         if let cityId = tripItem.cityId, cityId > 0 {
             if let city = TRPCityCache.shared.getCity(byId: cityId) {
                 resolvedCity = city
             } else if !tripItem.coordinate.isMissingOrZero,
                       let cityByCoordinate = TRPCityCache.shared.getCityByCoordinate(tripItem.coordinate) {
-                // Fallback: Try to find city by coordinate to get the name
-                // Use the resolved cityId but take the name from coordinate lookup
+                // Use the API's cityId but take the name from the coordinate lookup.
                 var city = cityByCoordinate
-                city.id = cityId  // Use the resolved cityId from API
+                city.id = cityId
                 resolvedCity = city
             } else {
-                // Last resort: Create minimal city object with just ID and coordinate
-                // API will have full city data on server side
+                // Minimal stub; the server has full city data.
                 let city = TRPCity(id: cityId, name: "", coordinate: tripItem.coordinate)
                 resolvedCity = city
             }
         }
         profile.city = resolvedCity
 
-        // Set coordinate — if the trip item has no usable position, fall back to the
-        // resolved city's coordinate. Without this, segments for no-location booked
-        // activities would be POSTed with `(0, 0)` and break map/route rendering.
-        // When we do fall back we also stamp `isNoLocation = true` and overwrite the
-        // additionalData's coordinate, so the UI's no-location badge and the segment
-        // body stay consistent (additionalData is the cell's source of truth for the
-        // flag — `TRPMergedTimelineItem.isNoLocation` reads `additionalData.isNoLocation`).
+        // Fall back to the city's coordinate when the trip item has none, stamping isNoLocation so the UI badge stays consistent (additionalData is the cell's source of truth for the flag).
         var enrichedTripItem = tripItem
         if !tripItem.coordinate.isMissingOrZero {
             profile.coordinate = tripItem.coordinate
@@ -521,66 +447,53 @@ extension TRPTimelineItineraryViewModel {
             enrichedTripItem.isNoLocation = true
         } else {
             profile.coordinate = tripItem.coordinate
-            // No usable coordinate anywhere — still flag the item so the UI doesn't
-            // try to pin it on the map at `(0, 0)`.
+            // No usable coordinate anywhere — flag so the UI won't pin it at (0, 0).
             enrichedTripItem.isNoLocation = true
         }
 
-        // Set traveler counts
         profile.adults = tripItem.adultCount
         profile.children = tripItem.childCount
         profile.pets = 0
 
-        // Set additional data (this is CRITICAL for booked activities)
         profile.additionalData = enrichedTripItem
 
-        // Don't generate recommendations for booked activities
         profile.doNotGenerate = 1
 
         return profile
     }
 
-    /// Populates city information in segments using index-based mapping with plans
-    /// CRITICAL: ONLY tripProfile.segments[i] and plans[i] represent the SAME segment (same order)
-    /// timeline.segments has DIFFERENT order/content, so we DON'T use index mapping for it
+    /// Populates segment cities by index-mapping plans. CRITICAL: only tripProfile.segments[i] matches plans[i] — timeline.segments has different order/content, so it's matched by unique ID instead.
     internal func populateCitiesInSegments(_ timeline: inout TRPTimeline, destinationItems: [TRPSegmentDestinationItem] = []) {
         guard let plans = timeline.plans, !plans.isEmpty else {
             return
         }
 
-        // ONLY populate city info for tripProfile.segments using index-based mapping
-        // timeline.segments has different order/content than plans, so we skip it
         if let profileSegments = timeline.tripProfile?.segments, !profileSegments.isEmpty {
             for (index, segment) in profileSegments.enumerated() {
-                // Skip if segment already has complete city info
                 if let existingCity = segment.city, existingCity.id > 0, !existingCity.name.isEmpty {
                     continue
                 }
 
-                // Get corresponding plan city (same index)
                 if index < plans.count, let planCity = plans[index].city, planCity.id > 0 {
                     segment.city = planCity
                 }
             }
         }
 
-        // For timeline.segments: Copy city from corresponding tripProfile.segments by matching unique ID
+        // timeline.segments: copy city from the tripProfile.segments with the matching unique ID.
         if let segments = timeline.segments, !segments.isEmpty,
            let profileSegments = timeline.tripProfile?.segments, !profileSegments.isEmpty {
             for timelineSegment in segments {
-                // Skip if already has city
                 if let existingCity = timelineSegment.city, existingCity.id > 0, !existingCity.name.isEmpty {
                     continue
                 }
 
-                // Find matching segment in tripProfile.segments by unique ID
                 let timelineSegmentId = getSegmentUniqueId(timelineSegment)
 
                 for profileSegment in profileSegments {
                     let profileSegmentId = getSegmentUniqueId(profileSegment)
 
                     if timelineSegmentId == profileSegmentId {
-                        // Found matching segment, copy city
                         if let profileCity = profileSegment.city, profileCity.id > 0 {
                             timelineSegment.city = profileCity
                         }
@@ -593,19 +506,14 @@ extension TRPTimelineItineraryViewModel {
 
     // MARK: - Initial Load (GetTimeline)
 
-    /// Performs the initial GetTimeline request when the ViewModel was created with `init(tripHash:)`.
-    /// Called by the VC in `viewDidLoad` after the delegate is wired up so that the Lottie loader
-    /// can be presented from the VC itself (not from the coordinator).
+    /// Initial GetTimeline for a ViewModel created with `init(tripHash:)`. Called from `viewDidLoad` so the Lottie loader is presented by the VC, not the coordinator.
     public func loadInitialTimelineIfNeeded() {
         guard let tripHash = pendingInitialTripHash else { return }
-        // Consume so we don't refetch on subsequent view appearances
+        // Consume so we don't refetch on subsequent view appearances.
         pendingInitialTripHash = nil
         let mergeProfile = pendingMergeProfile
         pendingMergeProfile = nil
 
-        // First GetTimeline on SDK open — show the localized "Getting your itinerary
-        // plan" message alongside the animation so the user has explicit feedback
-        // about what's happening rather than a silent spinner.
         let initialLoadText = LoadingLocalizationKeys.localized(LoadingLocalizationKeys.gettingYourItineraryPlan)
         delegate?.timelineItineraryViewModel(showLottieLoading: true, textMode: .single(initialLoadText))
 
@@ -615,7 +523,6 @@ extension TRPTimelineItineraryViewModel {
 
             switch result {
             case .success(var fetchedTimeline):
-                // Merge segments/favourites from the create-flow profile if provided
                 if let profile = mergeProfile {
                     if !profile.segments.isEmpty {
                         fetchedTimeline.segments = profile.segments
@@ -649,14 +556,11 @@ extension TRPTimelineItineraryViewModel {
 
     // MARK: - Timeline Refresh (Unified)
 
-    /// Refreshes the timeline from server
-    /// Use this after any operation that might affect timeline ordering
+    /// Refreshes the timeline from server; use after any operation that may affect ordering.
     public func refreshTimeline() {
         fetchAndRefreshTimeline(completion: nil)
     }
 
-    /// Unified method for fetching and refreshing timeline from server
-    /// - Parameter completion: Optional completion handler called after refresh (success: Bool)
     internal func fetchAndRefreshTimeline(completion: ((Bool) -> Void)?) {
         guard let tripHash = timeline?.tripHash else {
             delegate?.viewModel(showPreloader: false)
@@ -671,17 +575,14 @@ extension TRPTimelineItineraryViewModel {
 
             switch result {
             case .success(var updatedTimeline):
-                // Preserve favouriteItems from previous timeline (API doesn't return these)
+                // API doesn't return favouriteItems — preserve them from the previous timeline.
                 updatedTimeline.favouriteItems = self.timeline?.favouriteItems
-                // Populate city information in segments BEFORE processing
                 self.populateCitiesInSegments(&updatedTimeline)
                 self.timeline = updatedTimeline
 
-                // Resolve favourite item city IDs, then process data
                 self.resolveFavouriteItemCities { [weak self] in
                     guard let self = self else { return }
                     DispatchQueue.main.async {
-                        // Hide both loaders (standard and Lottie)
                         self.delegate?.viewModel(showPreloader: false)
                         self.delegate?.timelineItineraryViewModel(showLottieLoading: false)
                         self.processTimelineData()
@@ -692,10 +593,9 @@ extension TRPTimelineItineraryViewModel {
 
             case .failure:
                 DispatchQueue.main.async {
-                    // Hide both loaders (standard and Lottie)
                     self.delegate?.viewModel(showPreloader: false)
                     self.delegate?.timelineItineraryViewModel(showLottieLoading: false)
-                    // Even if refresh fails, notify UI to reload with local data
+                    // Refresh failed — reload with local data anyway.
                     self.delegate?.timelineItineraryViewModel(didUpdateTimeline: true)
                     completion?(true)
                 }
@@ -705,28 +605,20 @@ extension TRPTimelineItineraryViewModel {
 
     // MARK: - Destination Sync
 
-    /// Formats a datetime string by replacing the time component
-    /// - Parameters:
-    ///   - dateString: Input datetime string in "yyyy-MM-dd HH:mm" format
-    ///   - hour: Hour to set (0-23)
-    ///   - minute: Minute to set (0-59)
-    /// - Returns: Formatted datetime string with specified time
+    /// Replaces the time component of a "yyyy-MM-dd HH:mm" string with the given hour/minute.
     private func formatDateWithTime(_ dateString: String, hour: Int, minute: Int) -> String {
-        // Extract date part (yyyy-MM-dd)
         let components = dateString.components(separatedBy: " ")
         guard let datePart = components.first else {
             return dateString
         }
 
-        // Format time part with zero padding
         let hourStr = String(format: "%02d", hour)
         let minuteStr = String(format: "%02d", minute)
 
         return "\(datePart) \(hourStr):\(minuteStr)"
     }
 
-    /// Syncs TimelineDate segment's date range with itinerary date range
-    /// Updates via API if dates don't match
+    /// Syncs the TimelineDate segment's date range with the itinerary's, updating via API on mismatch.
     internal func syncTimelineDateRange() {
         print("📅 [Sync] syncTimelineDateRange() called")
 
@@ -745,7 +637,6 @@ extension TRPTimelineItineraryViewModel {
             return
         }
 
-        // Find TimelineDate segment
         guard let timelineDateIndex = segments.firstIndex(where: {
             $0.title == "TimelineDate" && $0.available == false
         }) else {
@@ -758,15 +649,12 @@ extension TRPTimelineItineraryViewModel {
         print("📅 [Sync] Current TimelineDate: \(timelineDateSegment.startDate ?? "nil") - \(timelineDateSegment.endDate ?? "nil")")
         print("📅 [Sync] Itinerary dates: \(itineraryModel.startDatetime) - \(itineraryModel.endDatetime)")
 
-        // Extract date part and set specific times
-        // startDate should be "yyyy-MM-dd 00:00"
-        // endDate should be "yyyy-MM-dd 23:59"
+        // startDate → "yyyy-MM-dd 00:00", endDate → "yyyy-MM-dd 23:59".
         let startDateWithTime = formatDateWithTime(itineraryModel.startDatetime, hour: 0, minute: 0)
         let endDateWithTime = formatDateWithTime(itineraryModel.endDatetime, hour: 23, minute: 59)
 
         print("📅 [Sync] Formatted dates: \(startDateWithTime) - \(endDateWithTime)")
 
-        // Compare dates
         let needsUpdate = timelineDateSegment.startDate != startDateWithTime ||
                          timelineDateSegment.endDate != endDateWithTime
 
@@ -777,24 +665,21 @@ extension TRPTimelineItineraryViewModel {
 
         print("📅 [Sync] Dates don't match, updating TimelineDate segment...")
 
-        // STEP 1: Update LOCAL timeline first (optimistic update)
+        // Optimistic local update first, then fire-and-forget API update below.
         var updatedSegment = timelineDateSegment
         updatedSegment.startDate = startDateWithTime
         updatedSegment.endDate = endDateWithTime
         segments[timelineDateIndex] = updatedSegment
 
-        // Update timeline
         if var mutableTimeline = timeline {
             mutableTimeline.tripProfile?.segments = segments
             self.timeline = mutableTimeline
 
-            // STEP 2: Refresh UI immediately
             processTimelineData()
             delegate?.timelineItineraryViewModel(didUpdateTimeline: true)
             print("📅 [Sync] Local TimelineDate updated, UI refreshed")
         }
 
-        // STEP 3: Update via API in background (fire and forget)
         let profile = TRPCreateEditTimelineSegmentProfile(from: updatedSegment, tripHash: tripHash, segmentIndex: timelineDateIndex)
         profile.startDate = startDateWithTime
         profile.endDate = endDateWithTime
@@ -812,8 +697,7 @@ extension TRPTimelineItineraryViewModel {
 
     // MARK: - Unified segment-removal cascade
 
-    /// A single segment slated for removal on SDK init. Reason is informational
-    /// (drives the log line) — the cascade treats every entry the same way.
+    /// A segment slated for removal on SDK init. Reason is informational (log only) — the cascade treats every entry the same.
     internal struct SegmentRemovalCandidate {
         let index: Int
         let segment: TRPTimelineSegment
@@ -826,18 +710,14 @@ extension TRPTimelineItineraryViewModel {
         }
     }
 
-    /// Predicate filter shared by every collector: TimelineDate is never a
-    /// removal candidate (its date range is EDITed by `syncTimelineDateRange`,
-    /// not deleted), and only the segment types that actually carry user content
-    /// are deletable.
+    /// TimelineDate is never removed (its range is EDITed by `syncTimelineDateRange`); only content-carrying segment types are deletable.
     private func isSegmentEligibleForRemoval(_ segment: TRPTimelineSegment) -> Bool {
         if segment.title == "TimelineDate" && segment.available == false { return false }
         let deletable: [TRPTimelineSegmentType] = [.bookedActivity, .reservedActivity, .manualPoi, .itinerary]
         return deletable.contains(segment.segmentType)
     }
 
-    /// Reserved activities that the host app now reports as booked in `tripItems`.
-    /// Pure: no mutation, no I/O.
+    /// Reserved activities the host now reports as booked in `tripItems`. Pure: no mutation, no I/O.
     internal func collectReservedNowBookedSegments(
         in segments: [TRPTimelineSegment],
         itinerary: TRPItineraryWithActivities
@@ -856,8 +736,7 @@ extension TRPTimelineItineraryViewModel {
         return out
     }
 
-    /// Segments whose city is not in the host app's incoming destinations
-    /// (or whose city is missing / has an invalid id). Pure: no mutation, no I/O.
+    /// Segments whose city is missing/invalid or not in the host's incoming destinations. Pure: no mutation, no I/O.
     internal func collectSegmentsForRemovedCities(
         in segments: [TRPTimelineSegment],
         itinerary: TRPItineraryWithActivities
@@ -871,8 +750,7 @@ extension TRPTimelineItineraryViewModel {
         for (index, segment) in segments.enumerated() {
             guard isSegmentEligibleForRemoval(segment) else { continue }
 
-            // Match the pre-unification behaviour: an eligible segment with no
-            // valid city is also removed (city removed implicitly).
+            // An eligible segment with no valid city is also removed (city removed implicitly).
             guard let city = segment.city, city.id > 0 else {
                 out.append(.init(index: index, segment: segment, reason: .cityRemoved))
                 continue
@@ -884,12 +762,7 @@ extension TRPTimelineItineraryViewModel {
         return out
     }
 
-    /// Segments whose day falls outside the incoming `[startDatetime, endDatetime]`
-    /// range — e.g. trip shrunk from 24-27 June to 24-26 June and a segment was
-    /// pinned to the 27th. Compares the `yyyy-MM-dd` prefix lex-wise (server-side
-    /// format `"yyyy-MM-dd HH:mm"` sorts correctly under string compare). A
-    /// segment with no parseable `startDate` is left alone (conservative).
-    /// Pure: no mutation, no I/O.
+    /// Segments whose day falls outside the incoming `[startDatetime, endDatetime]` range. Compares the `yyyy-MM-dd` prefix lex-wise (the server format sorts correctly under string compare); unparseable dates are left alone. Pure: no mutation, no I/O.
     internal func collectSegmentsOutOfDateRange(
         in segments: [TRPTimelineSegment],
         itinerary: TRPItineraryWithActivities
@@ -909,14 +782,7 @@ extension TRPTimelineItineraryViewModel {
         return out
     }
 
-    /// Single-pass reconciliation: collect every reason a segment may need to be
-    /// deleted (reserved→booked, city removed, day out of range), union by index,
-    /// apply ONE optimistic local remove + ONE delegate refresh, then run ONE
-    /// sequential DELETE cascade. This is the only segment-deletion entry point
-    /// in the SDK-init flow — running multiple cascades in parallel would race
-    /// on the backend's `segmentIndex` and corrupt the descending-delete invariant.
-    /// - Parameter completion: Called after every DELETE finishes (or immediately
-    ///   if there's nothing to delete / no tripHash).
+    /// Single-pass reconciliation: union all removal reasons by index, apply one optimistic local remove + one refresh, then run one sequential DELETE cascade. The only segment-deletion entry point in SDK init — parallel cascades would race on the backend's `segmentIndex` and corrupt the descending-delete invariant.
     internal func reconcileSegmentsWithItinerary(completion: @escaping () -> Void) {
         print("🔁 [Reconcile] reconcileSegmentsWithItinerary() called")
 
@@ -937,15 +803,12 @@ extension TRPTimelineItineraryViewModel {
             return
         }
 
-        // STEP A: collect from all three sources
         let reserved = collectReservedNowBookedSegments(in: segments, itinerary: itinerary)
         let cities   = collectSegmentsForRemovedCities(in: segments, itinerary: itinerary)
         let dates    = collectSegmentsOutOfDateRange(in: segments, itinerary: itinerary)
         print("🔁 [Reconcile] candidates — reserved→booked: \(reserved.count), cityRemoved: \(cities.count), outOfDateRange: \(dates.count)")
 
-        // STEP B: union by segment index. A single segment may match more than one
-        // reason (e.g. on a removed day AND a removed city); we only want one
-        // DELETE per index. First-wins ordering matches the source priority above.
+        // Union by index (one DELETE per segment even if it matches multiple reasons); first-wins matches source priority above.
         var byIndex: [Int: SegmentRemovalCandidate] = [:]
         for candidate in (reserved + cities + dates) where byIndex[candidate.index] == nil {
             byIndex[candidate.index] = candidate
@@ -959,26 +822,21 @@ extension TRPTimelineItineraryViewModel {
         }
         print("🔁 [Reconcile] Found \(unified.count) unique segments to remove")
 
-        // STEP C: single local remove (descending indices stay valid as we shrink)
+        // Descending indices stay valid as we shrink.
         for candidate in unified {
             segments.remove(at: candidate.index)
         }
         mutableTimeline.tripProfile?.segments = segments
         self.timeline = mutableTimeline
 
-        // STEP D: single UI refresh — date filter, list, map all snap to the new
-        // state in one frame.
         processTimelineData()
         delegate?.timelineItineraryViewModel(didUpdateTimeline: true)
         print("🔁 [Reconcile] Local removal applied, UI refreshed")
 
-        // STEP E: single sequential DELETE cascade (highest index first)
         deleteSegmentsSequentially(unified, tripHash: tripHash, currentIndex: 0, completion: completion)
     }
 
-    /// Recursively DELETEs segments one by one, waiting for each backend response
-    /// before issuing the next. Highest-index-first ordering is the caller's
-    /// responsibility (see `reconcileSegmentsWithItinerary` STEP E).
+    /// DELETEs segments one by one, waiting for each response. Caller must pass them highest-index-first (see `reconcileSegmentsWithItinerary`).
     private func deleteSegmentsSequentially(
         _ sorted: [SegmentRemovalCandidate],
         tripHash: String,
@@ -1011,8 +869,7 @@ extension TRPTimelineItineraryViewModel {
                 print("🔁 [Background Delete] Failed: index \(candidate.index), error: \(error)")
             }
 
-            // Continue regardless of success/failure — partial progress is still
-            // better than aborting on a transient failure.
+            // Continue regardless of success/failure — partial progress beats aborting on a transient failure.
             self.deleteSegmentsSequentially(sorted, tripHash: tripHash, currentIndex: currentIndex + 1, completion: completion)
         }
     }

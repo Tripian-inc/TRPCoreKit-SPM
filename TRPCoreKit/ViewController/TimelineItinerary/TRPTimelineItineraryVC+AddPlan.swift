@@ -16,7 +16,6 @@ import TRPFoundationKit
 extension TRPTimelineItineraryVC {
 
     public func showAddPlanFlow() {
-        // Get available days and cities from view model
         let days = viewModel.getDayDates()
         let cities = viewModel.getCities()
         let selectedDayIndex = viewModel.selectedDayIndex
@@ -24,7 +23,6 @@ extension TRPTimelineItineraryVC {
         let destinationItems = viewModel.getDestinationItems()
         let favouriteItems = viewModel.getFavoriteItems()
 
-        // Create container view model
         let containerViewModel = AddPlanContainerViewModel(days: days,
                                                            cities: cities,
                                                            selectedDayIndex: selectedDayIndex,
@@ -32,15 +30,12 @@ extension TRPTimelineItineraryVC {
                                                            destinationItems: destinationItems,
                                                            favouriteItems: favouriteItems)
 
-        // Inject tripHash into planData
         containerViewModel.planData.tripHash = viewModel.getTripHash()
 
-        // Create container VC
         let containerVC = AddPlanContainerVC()
         containerVC.viewModel = containerViewModel
         containerVC.delegate = self
 
-        // Create step ViewModels and VCs
         let selectDayViewModel = AddPlanSelectDayViewModel(containerViewModel: containerViewModel)
         let selectDayVC = AddPlanSelectDayVC()
         selectDayVC.viewModel = selectDayViewModel
@@ -56,12 +51,10 @@ extension TRPTimelineItineraryVC {
         categoryVC.viewModel = categoryViewModel
         categoryVC.containerVC = containerVC
 
-        // Add VCs to container
         containerVC.addViewController(selectDayVC)
         containerVC.addViewController(timeAndTravelersVC)
         containerVC.addViewController(categoryVC)
 
-        // Present as bottom sheet modal with dynamic height
         presentVCWithDynamicHeight(containerVC)
     }
 }
@@ -71,19 +64,15 @@ extension TRPTimelineItineraryVC {
 extension TRPTimelineItineraryVC: AddPlanContainerVCDelegate {
 
     public func addPlanContainerDidComplete(_ viewController: AddPlanContainerVC, data: AddPlanData) {
-        // Check if Smart Recommendations mode
         guard data.selectedMode == .smartRecommendations else {
-            // For manual mode, just dismiss (existing behavior)
             viewController.dismiss(animated: true)
             return
         }
 
-        // Create segment for Smart Recommendations
         createSmartRecommendationSegment(from: data, containerVC: viewController)
     }
 
     public func addPlanContainerDidCancel(_ viewController: AddPlanContainerVC) {
-        // Dismissed without completing
     }
 
     public func addPlanContainerShouldShowActivityListing(_ viewController: AddPlanContainerVC, data: AddPlanData) {
@@ -98,11 +87,7 @@ extension TRPTimelineItineraryVC: AddPlanContainerVCDelegate {
         let navController = UINavigationController(rootViewController: activityListingVC)
         navController.modalPresentationStyle = .fullScreen
 
-        // Present the listing FROM the AddPlan sheet so the animation starts on
-        // the Continue tap with no visible gap. AddPlan stays underneath, fully
-        // covered by the fullscreen listing — effectively "in the background".
-        // The listing's back handler dismisses the whole stack so the user
-        // returns to the timeline, not back to AddPlan.
+        // Present from the AddPlan sheet (kept underneath) so the transition has no gap; back handler tears down the whole stack.
         viewController.present(navController, animated: true)
     }
 
@@ -118,25 +103,20 @@ extension TRPTimelineItineraryVC: AddPlanContainerVCDelegate {
         let navController = UINavigationController(rootViewController: poiListingVC)
         navController.modalPresentationStyle = .fullScreen
 
-        // Same pattern as activity listing — present on top of AddPlan so the
-        // transition is smooth; the back handler tears down the whole chain.
+        // Same pattern as activity listing — present on top of AddPlan; back handler tears down the chain.
         viewController.present(navController, animated: true)
     }
 
     public func addPlanContainerSegmentCreated(_ viewController: AddPlanContainerVC, selectedDay: Date?) {
-        // Dismiss all modals from self (TRPTimelineItineraryVC)
-        // This will dismiss AddPlanContainerVC and all modals presented on top of it
+        // Dismissing self tears down AddPlanContainerVC and any modals on top of it.
         dismiss(animated: true) { [weak self] in
             guard let self = self else { return }
-            // Set pending day navigation before refresh
             self.setPendingDayNavigation(selectedDay: selectedDay)
-            // Refresh timeline after segment creation
             self.refreshTimelineAfterSegmentCreation()
         }
     }
 
-    /// Sets pending day navigation index from selected day
-    /// This will be applied after segment generation completes
+    /// Sets pending day navigation index, applied after segment generation completes.
     internal func setPendingDayNavigation(selectedDay: Date?) {
         guard let selectedDay = selectedDay else { return }
         let availableDays = viewModel.getAvailableDates()
@@ -148,18 +128,10 @@ extension TRPTimelineItineraryVC: AddPlanContainerVCDelegate {
     internal func refreshTimelineAfterSegmentCreation() {
         guard let tripHash = viewModel.getTripHash() else { return }
 
-        // Wait for segment generation to complete, then refresh timeline
         viewModel.waitForSegmentGeneration(tripHash: tripHash)
     }
 
-    /// Switch to the day the new activity/POI landed on for screens that initiate
-    /// their own silent refresh (`AddPlanTimeSelectionViewModel` /
-    /// `AddPlanPOIListingViewModel` poll then emit
-    /// `TRPTimelineRefreshState.completed`). Those VMs fire `setCompleted` BEFORE
-    /// their delegate callback bubbles up here, so by the time this method is
-    /// invoked the shared refresh observer has already read a still-nil
-    /// `pendingNavigationDayIndex`. Apply the day directly and reload — the in-flight
-    /// data refresh will re-render at the same (new) day when it lands.
+    /// Apply the new day directly (don't rely on `pendingNavigationDayIndex`): silent-refresh VMs fire `setCompleted` before this callback, so the observer already read a nil index.
     internal func refreshTimelineSilently(selectedDay: Date?) {
         guard let selectedDay = selectedDay else { return }
         let availableDays = viewModel.getAvailableDates()
@@ -173,10 +145,8 @@ extension TRPTimelineItineraryVC: AddPlanContainerVCDelegate {
     // MARK: - Smart Recommendations Segment Creation
 
     internal func createSmartRecommendationSegment(from data: AddPlanData, containerVC: AddPlanContainerVC) {
-        // Dismiss AddPlan modal first, then start segment creation
-        // This prevents "already presenting" error when showing Lottie loading
+        // Dismiss AddPlan first to avoid an "already presenting" error when the Lottie loading appears.
         containerVC.dismiss(animated: true) { [weak self] in
-            // Delegate segment creation to ViewModel (this shows Lottie loading)
             self?.viewModel.createSmartRecommendationSegment(from: data)
         }
     }
@@ -188,13 +158,8 @@ extension TRPTimelineItineraryVC: TRPTimelineItineraryViewModelDelegate {
 
     public func timelineItineraryViewModel(didUpdateTimeline: Bool) {
         guard didUpdateTimeline else { return }
-        // Data changed via `fetchAndRefreshTimeline` (add/remove/time edit).
-        // Re-evaluate conflicts from a clean slate: clear the per-day banner
-        // dismissal so a freshly introduced overlap on this day re-surfaces
-        // the warning even if the user dismissed an earlier instance of it.
+        // Clear the per-day banner dismissal so a freshly introduced overlap re-surfaces the warning.
         conflictWarningDismissedDayIndex = nil
-        // Dismiss any active bottom sheet loader (e.g. "Changing time", "Removing from plan")
-        // before reloading so the UI transitions cleanly.
         viewModel(hideLottie: .bottomSheet)
         reload()
     }
@@ -205,16 +170,13 @@ extension TRPTimelineItineraryVC: TRPTimelineItineraryViewModelDelegate {
     }
 
     public func timelineItineraryViewModel(someCitiesUnavailable cityNames: [String]) {
-        // Format city names: "City1, City2"
         let cityList = cityNames.joined(separator: ", ")
 
-        // Get localized strings
         let titleFormat = TimelineLocalizationKeys.localized(TimelineLocalizationKeys.partialUnavailableTitle)
         let title = String(format: titleFormat, cityList)
         let description = TimelineLocalizationKeys.localized(TimelineLocalizationKeys.partialUnavailableDescription)
         let buttonTitle = TimelineLocalizationKeys.localized(TimelineLocalizationKeys.partialUnavailableButton)
 
-        // Show alert (no completion needed - timeline continues in background)
         showOkAlert(title: title, message: "", subContent: description, btnTitle: buttonTitle)
     }
 
@@ -227,7 +189,6 @@ extension TRPTimelineItineraryVC: TRPTimelineItineraryViewModelDelegate {
     }
 
     private func showNoCityState() {
-        // Hide other UI elements
         dayFilterView.isHidden = true
         savedPlansButton.isHidden = true
         tableView.isHidden = true
@@ -235,7 +196,6 @@ extension TRPTimelineItineraryVC: TRPTimelineItineraryViewModelDelegate {
         mapFloatingButton.isHidden = true
         addPlanFloatingButton.isHidden = true
 
-        // Show no city view
         noCityView.isHidden = false
     }
 }
@@ -245,7 +205,6 @@ extension TRPTimelineItineraryVC: TRPTimelineItineraryViewModelDelegate {
 extension TRPTimelineItineraryVC: TRPNoCityViewDelegate {
 
     func noCityViewDidTapButton(_ view: TRPNoCityView) {
-        // Dismiss SDK - use same pattern as back button
         if let navController = navigationController {
             navController.dismiss(animated: true, completion: nil)
         } else {
@@ -270,7 +229,6 @@ extension TRPTimelineItineraryVC: UICollectionViewDataSource, UICollectionViewDe
         let (order, _, _, item) = mapDisplayItems[indexPath.item]
         let isSelected = selectedMarkerPoiIds.contains(item.itemId)
 
-        // Configure cell with MapDisplayItem, unified order, and selection state
         cell.configure(with: item, order: order, isSelected: isSelected)
 
         return cell
@@ -283,34 +241,26 @@ extension TRPTimelineItineraryVC: UICollectionViewDataSource, UICollectionViewDe
     public func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         let (_, _, _, item) = mapDisplayItems[indexPath.item]
 
-        // Check if item is already selected
         let isAlreadySelected = selectedMarkerPoiIds.contains(item.itemId)
 
         if isAlreadySelected {
-            // Navigate to detail - use same logic as list (RecommendationsCell)
             switch item {
             case .poi(let manualPoi, _, let step):
-                // Recommendation step: poi comes from the step; manual-POI segment:
-                // step is nil and the poi is the segment's own manualPoi captured in
-                // `getOrderedItemsForMap`. Resolve in that order.
+                // Recommendation step uses the step's poi; manual-POI segment has step == nil and its own manualPoi.
                 let poi = step?.poi ?? manualPoi
 
-                // Activity step - call trpCoreKitDidRequestActivityDetail (same as list)
                 if step?.stepType == "activity" {
                     let activityId = extractActivityId(from: poi)
                     TRPCoreKit.shared.delegate?.trpCoreKitDidRequestActivityDetail(activityId: activityId)
                     return
                 }
 
-                // Normal POI step or manual POI - open POI detail (same as list)
                 let detailVM = TimelinePoiDetailViewModel(poi: poi)
                 let detailVC = TimelinePoiDetailViewController(viewModel: detailVM)
                 navigationController?.pushViewController(detailVC, animated: true)
 
             case .activity(let segment):
-                // Booked → bookingDetail with bookingId; Reserved → activityDetail with activityId.
-                // Both ids are normalized via `cleanedAsActivityId()` so the host always
-                // sees the bare product id regardless of the `C_*` encoding.
+                // Booked → bookingDetail; Reserved → activityDetail. Ids normalized via `cleanedAsActivityId()`.
                 if segment.segmentType == .bookedActivity {
                     guard let bookingId = segment.additionalData?.bookingId else { return }
                     TRPCoreKit.shared.delegate?.trpCoreKitDidRequestBookingDetail(bookingId: bookingId.cleanedAsActivityId())
@@ -320,14 +270,11 @@ extension TRPTimelineItineraryVC: UICollectionViewDataSource, UICollectionViewDe
                 }
             }
         } else {
-            // Normal selection flow
             expandCollectionView()
 
-            // In multi-city mode, switch to step markers when selecting from collection view
             if viewModel.hasMultipleCities() && !isShowingStepMarkersInMultiCity {
                 isShowingStepMarkersInMultiCity = true
 
-                // Clear and redraw with step markers
                 selectedMarkerPoiIds.removeAll()
                 selectedMarkerPoiIds.insert(item.itemId)
 
@@ -338,16 +285,13 @@ extension TRPTimelineItineraryVC: UICollectionViewDataSource, UICollectionViewDe
                 updateSelectedMarker(poiId: item.itemId)
             }
 
-            // No-exact-location items have no precise coordinate (segment uses
-            // the city center as a fallback). Don't recenter the map — keep it
-            // wherever it was so the last meaningful selection stays in view.
+            // No-exact-location items use a city-center fallback coordinate; don't recenter the map for them.
             if !item.isNoLocation, let coordinate = item.coordinate, let mapView = map {
                 mapView.setCenter(coordinate, zoomLevel: 15)
                 isMarkerFocused = true
                 updateMainViewButtonVisibility()
             }
 
-            // Scroll collection view to center the selected item
             poiPreviewCollectionView.scrollToItem(at: indexPath, at: .centeredHorizontally, animated: true)
             poiPreviewCollectionView.reloadData()
         }
@@ -363,14 +307,11 @@ extension TRPTimelineItineraryVC: UICollectionViewDataSource, UICollectionViewDe
         let itemWidth = cellWidth + spacing
         let leftInset: CGFloat = 16
 
-        // Calculate nearest index based on target offset
         let targetX = targetContentOffset.pointee.x + leftInset
         var nearestIndex = round(targetX / itemWidth)
 
-        // Clamp to valid range
         nearestIndex = max(0, min(nearestIndex, CGFloat(mapDisplayItems.count - 1)))
 
-        // Calculate new target offset (left-aligned)
         let newTargetX = nearestIndex * itemWidth - leftInset
         targetContentOffset.pointee.x = newTargetX
     }
@@ -385,34 +326,28 @@ extension TRPTimelineItineraryVC: UICollectionViewDataSource, UICollectionViewDe
         syncMapSelectionWithVisibleCell()
     }
 
-    /// Sync map selection with the currently visible cell in collection view
     private func syncMapSelectionWithVisibleCell() {
         let cellWidth: CGFloat = 300
         let spacing: CGFloat = 8
         let itemWidth = cellWidth + spacing
         let leftInset: CGFloat = 16
 
-        // Find the left-aligned visible cell index
         let currentIndex = Int(round((poiPreviewCollectionView.contentOffset.x + leftInset) / itemWidth))
 
         guard currentIndex >= 0, currentIndex < mapDisplayItems.count else { return }
 
         let (_, _, _, item) = mapDisplayItems[currentIndex]
 
-        // Update selected marker on map
         updateSelectedMarker(poiId: item.itemId)
 
-        // Center map on selected item's coordinate. Skip for no-exact-location
-        // items so the map stays at the previously focused coordinate.
+        // Skip recentering for no-exact-location items so the map stays put.
         if !item.isNoLocation, let coordinate = item.coordinate {
             map?.setCenter(coordinate, zoomLevel: 15)
         }
 
-        // Update focus state for Main View button
         isMarkerFocused = true
         updateMainViewButtonVisibility()
 
-        // Reload collection view to update badge styles
         poiPreviewCollectionView.reloadData()
     }
 }

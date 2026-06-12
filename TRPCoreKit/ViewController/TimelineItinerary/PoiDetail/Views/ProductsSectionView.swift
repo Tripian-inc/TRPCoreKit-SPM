@@ -36,16 +36,13 @@ class ProductsSectionView: UIView {
         addSubview(headerView)
         addSubview(collectionView)
 
-        // Create height constraint matching cell height
         collectionHeightConstraint = collectionView.heightAnchor.constraint(equalToConstant: 295)
 
         NSLayoutConstraint.activate([
-            // Header
             headerView.topAnchor.constraint(equalTo: topAnchor, constant: 24),
             headerView.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 16),
             headerView.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -16),
 
-            // CollectionView
             collectionView.topAnchor.constraint(equalTo: headerView.bottomAnchor, constant: 12),
             collectionView.leadingAnchor.constraint(equalTo: leadingAnchor),
             collectionView.trailingAnchor.constraint(equalTo: trailingAnchor),

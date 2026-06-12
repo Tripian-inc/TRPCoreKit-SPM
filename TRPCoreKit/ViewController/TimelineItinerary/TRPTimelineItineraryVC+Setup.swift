@@ -26,7 +26,6 @@ extension TRPTimelineItineraryVC {
         tableView.register(TRPTimelineSectionHeaderView.self, forHeaderFooterViewReuseIdentifier: TRPTimelineSectionHeaderView.reuseIdentifier)
         tableView.register(TRPTimelineSectionFooterView.self, forHeaderFooterViewReuseIdentifier: TRPTimelineSectionFooterView.reuseIdentifier)
 
-        // POI preview cell for map view
         poiPreviewCollectionView.register(TRPTimelineMapPOIPreviewCell.self, forCellWithReuseIdentifier: TRPTimelineMapPOIPreviewCell.reuseIdentifier)
     }
 
@@ -56,7 +55,7 @@ extension TRPTimelineItineraryVC {
 
         view.addSubview(dayFilterView)
 
-        // Initial constraint: below navigation bar (since button is hidden by default)
+        // Defaults below the nav bar since the saved-plans button is hidden by default.
         dayFilterViewTopConstraint = dayFilterView.topAnchor.constraint(equalTo: customNavigationBar.bottomAnchor, constant: 12)
 
         NSLayoutConstraint.activate([
@@ -68,27 +67,21 @@ extension TRPTimelineItineraryVC {
     }
 
     internal func updateDayFilterViewConstraints() {
-        // Update day filter view position based on saved plans button visibility
         let newConstraint: NSLayoutConstraint
 
         if savedPlansButton.isHidden {
-            // Button is hidden: attach to navigation bar
             newConstraint = dayFilterView.topAnchor.constraint(equalTo: customNavigationBar.bottomAnchor, constant: 12)
         } else {
-            // Button is visible: attach to button
             newConstraint = dayFilterView.topAnchor.constraint(equalTo: savedPlansButton.bottomAnchor, constant: 12)
         }
 
-        // Deactivate old constraint and activate new one
         dayFilterViewTopConstraint?.isActive = false
         dayFilterViewTopConstraint = newConstraint
         dayFilterViewTopConstraint?.isActive = true
     }
 
     internal func setupTableView() {
-        // Banner is attached to tableView as `tableHeaderView` — it scrolls with
-        // the list contents instead of staying pinned above them. The host VC
-        // installs/removes it in `updateConflictWarningVisibility()`.
+        // The conflict banner rides as `tableHeaderView` (scrolls with the list); host installs/removes it in `updateConflictWarningVisibility()`.
         view.addSubview(tableView)
 
         NSLayoutConstraint.activate([
@@ -102,7 +95,6 @@ extension TRPTimelineItineraryVC {
     internal func setupMapView() {
         view.addSubview(mapContainerView)
 
-        // Make map full screen (covers entire view)
         NSLayoutConstraint.activate([
             mapContainerView.topAnchor.constraint(equalTo: view.topAnchor),
             mapContainerView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
@@ -115,36 +107,30 @@ extension TRPTimelineItineraryVC {
         view.addSubview(poiPreviewContainerView)
         poiPreviewContainerView.addSubview(poiPreviewCollectionView)
 
-        // Use bottom constraint to slide in/out
         poiPreviewBottomConstraint = poiPreviewContainerView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: expandedOffset)
 
         NSLayoutConstraint.activate([
-            // Container - fixed height, slides up/down via bottom constraint
             poiPreviewContainerView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             poiPreviewContainerView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             poiPreviewContainerView.heightAnchor.constraint(equalToConstant: collectionViewHeight),
             poiPreviewBottomConstraint!,
 
-            // Collection View
             poiPreviewCollectionView.topAnchor.constraint(equalTo: poiPreviewContainerView.topAnchor),
             poiPreviewCollectionView.leadingAnchor.constraint(equalTo: poiPreviewContainerView.leadingAnchor),
             poiPreviewCollectionView.trailingAnchor.constraint(equalTo: poiPreviewContainerView.trailingAnchor),
             poiPreviewCollectionView.bottomAnchor.constraint(equalTo: poiPreviewContainerView.bottomAnchor)
         ])
 
-        // Add tap gesture to expand when collapsed
-        // cancelsTouchesInView = false allows collection view cells to receive taps
+        // cancelsTouchesInView = false so collection view cells still receive taps.
         let tapGesture = UITapGestureRecognizer(target: self, action: #selector(handlePreviewContainerTap))
         tapGesture.cancelsTouchesInView = false
         poiPreviewContainerView.addGestureRecognizer(tapGesture)
 
-        // Add pan gesture to drag up/down
         let panGesture = UIPanGestureRecognizer(target: self, action: #selector(handlePreviewContainerPan(_:)))
         poiPreviewContainerView.addGestureRecognizer(panGesture)
     }
 
     @objc private func handlePreviewContainerTap() {
-        // Expand when tapped in collapsed state
         if !isCollectionViewExpanded {
             expandCollectionView()
         }
@@ -156,22 +142,17 @@ extension TRPTimelineItineraryVC {
 
         switch gesture.state {
         case .changed:
-            // Calculate new bottom constraint based on drag
             let currentOffset = isCollectionViewExpanded ? expandedOffset : collapsedOffset
             var newOffset = currentOffset - translation.y
 
-            // Clamp to valid range
             newOffset = max(expandedOffset, min(collapsedOffset, newOffset))
             poiPreviewBottomConstraint?.constant = newOffset
 
         case .ended, .cancelled:
-            // Determine final state based on velocity and position
             let shouldExpand: Bool
             if abs(velocity.y) > 500 {
-                // Fast swipe - use velocity direction
                 shouldExpand = velocity.y < 0  // Swipe up = expand
             } else {
-                // Slow drag - use position (midpoint threshold)
                 let midpoint = (expandedOffset + collapsedOffset) / 2
                 shouldExpand = (poiPreviewBottomConstraint?.constant ?? 0) < midpoint
             }
@@ -191,7 +172,6 @@ extension TRPTimelineItineraryVC {
         view.addSubview(mainViewButton)
 
         NSLayoutConstraint.activate([
-            // Centered horizontally, below day filter
             mainViewButton.centerXAnchor.constraint(equalTo: view.centerXAnchor),
             mainViewButton.topAnchor.constraint(equalTo: dayFilterView.bottomAnchor, constant: 16)
         ])
@@ -201,20 +181,17 @@ extension TRPTimelineItineraryVC {
         view.addSubview(mapFloatingButton)
         view.addSubview(addPlanFloatingButton)
 
-        // Use constraint for add plan button bottom that we can animate
         addPlanButtonBottomConstraint = addPlanFloatingButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -24)
 
-        // Map floating button constraints - one for list view, one for map view, one for empty days
+        // One map-button constraint each for list view, map view, and empty days.
         mapFloatingButtonBottomToAddPlanConstraint = mapFloatingButton.bottomAnchor.constraint(equalTo: addPlanFloatingButton.topAnchor, constant: -16)
         mapFloatingButtonBottomToPreviewConstraint = mapFloatingButton.bottomAnchor.constraint(equalTo: poiPreviewContainerView.topAnchor, constant: -16)
         mapFloatingButtonBottomToSafeAreaConstraint = mapFloatingButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -24)
 
         NSLayoutConstraint.activate([
-            // Map floating button - bottom right
             mapFloatingButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -24),
-            mapFloatingButtonBottomToAddPlanConstraint!, // Default: above add plan button (list view)
+            mapFloatingButtonBottomToAddPlanConstraint!,
 
-            // Add plan floating button - bottom right (constraint managed for animation)
             addPlanFloatingButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -24),
             addPlanButtonBottomConstraint!
         ])

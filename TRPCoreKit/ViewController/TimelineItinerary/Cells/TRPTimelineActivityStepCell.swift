@@ -123,42 +123,34 @@ class TRPTimelineActivityStepCell: UITableViewCell {
     
     private func setupConstraints() {
         NSLayoutConstraint.activate([
-            // Time Badge View
             timeBadgeView.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 16),
             timeBadgeView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
 
-            // Container View
             containerView.topAnchor.constraint(equalTo: timeBadgeView.bottomAnchor),
             containerView.leadingAnchor.constraint(equalTo: timeBadgeView.leadingAnchor),
             containerView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
             containerView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -16),
-            
-            // Activity Image
+
             activityImageView.topAnchor.constraint(equalTo: containerView.topAnchor),
             activityImageView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
             activityImageView.widthAnchor.constraint(equalToConstant: 80),
             activityImageView.heightAnchor.constraint(equalToConstant: 80),
-            
-            // Title Label
+
             titleLabel.topAnchor.constraint(equalTo: containerView.topAnchor),
             titleLabel.leadingAnchor.constraint(equalTo: activityImageView.trailingAnchor, constant: 12),
             titleLabel.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -12),
-            
-            // Activity Badge - uses intrinsic content size from TRPPaddingLabel
+
             activityBadge.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 4),
             activityBadge.leadingAnchor.constraint(equalTo: activityImageView.trailingAnchor, constant: 12),
-            
-            // Rating Stack
+
             ratingStack.topAnchor.constraint(equalTo: activityBadge.bottomAnchor, constant: 6),
             ratingStack.leadingAnchor.constraint(equalTo: activityBadge.leadingAnchor),
             ratingStack.trailingAnchor.constraint(lessThanOrEqualTo: containerView.trailingAnchor, constant: -12),
-            
-            // Description Label
+
             descriptionLabel.topAnchor.constraint(equalTo: ratingStack.bottomAnchor, constant: 4),
             descriptionLabel.leadingAnchor.constraint(equalTo: activityBadge.leadingAnchor),
             descriptionLabel.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -12),
 
-            // Reservation Button
             reservationButton.topAnchor.constraint(equalTo: descriptionLabel.bottomAnchor, constant: 12),
             reservationButton.leadingAnchor.constraint(equalTo: activityImageView.trailingAnchor, constant: 12),
             reservationButton.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
@@ -178,8 +170,7 @@ class TRPTimelineActivityStepCell: UITableViewCell {
         activityBadge.textColor = ColorSet.fgGray.uiColor
     }
 
-    /// Past-day rendering: keep info content (title/description/badge) at normal colors;
-    /// only hide the reservation CTA so the row is no longer actionable.
+    /// Past day: keep content colors, just hide the reservation CTA so the row isn't actionable.
     func applyPastDayStyle() {
         reservationButton.isHidden = true
     }
@@ -192,15 +183,12 @@ class TRPTimelineActivityStepCell: UITableViewCell {
             return
         }
 
-        // Configure time badge
         if let startTime = step.getStartTime(), let endTime = step.getEndTime() {
             timeBadgeView.configure(order: order, startTime: startTime, endTime: endTime)
         }
 
-        // Configure title
         titleLabel.text = poi.name
-        
-        // Configure rating - Activity steps show rating
+
         ratingStack.arrangedSubviews.forEach { $0.removeFromSuperview() }
 
         if let rating = poi.rating {
@@ -228,16 +216,14 @@ class TRPTimelineActivityStepCell: UITableViewCell {
                 ratingStack.addArrangedSubview(reviewLabel)
             }
         }
-        
-        // Configure description
+
         if let description = poi.description {
             descriptionLabel.text = description
             descriptionLabel.isHidden = false
         } else {
             descriptionLabel.isHidden = true
         }
-        
-        // Configure image
+
         if let image = poi.image {
             activityImageView.sd_setImage(with: URL(string: image.url), placeholderImage: nil)
         } else if let gallery = poi.gallery, let firstImage = gallery.compactMap({ $0 }).first {

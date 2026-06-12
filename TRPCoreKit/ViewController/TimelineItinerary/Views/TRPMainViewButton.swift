@@ -8,8 +8,7 @@
 
 import UIKit
 
-/// Button to return to main/overview camera position on map
-/// Shows when: map mode + multiple cities + marker is focused
+/// Returns to overview camera; shown when: map mode + multiple cities + marker focused.
 class TRPMainViewButton: UIButton {
 
     // MARK: - Initialization
@@ -29,26 +28,21 @@ class TRPMainViewButton: UIButton {
     private func setupButton() {
         translatesAutoresizingMaskIntoConstraints = false
 
-        // Styling
         backgroundColor = .white
         setTitleColor(ColorSet.fg.uiColor, for: .normal)
         titleLabel?.font = FontSet.montserratMedium.font(16)
 
-        // Text
         let title = TimelineLocalizationKeys.localized(TimelineLocalizationKeys.mapMainView)
         setTitle(title, for: .normal)
 
-        // Shape
         layer.cornerRadius = 16
 
-        // Shadow
         layer.shadowColor = UIColor.black.cgColor
         layer.shadowOffset = CGSize(width: 0, height: 2)
         layer.shadowRadius = 4
         layer.shadowOpacity = 0.1
         layer.masksToBounds = false
 
-        // Size
         heightAnchor.constraint(equalToConstant: 32).isActive = true
         contentEdgeInsets = UIEdgeInsets(top: 0, left: 16, bottom: 0, right: 16)
     }

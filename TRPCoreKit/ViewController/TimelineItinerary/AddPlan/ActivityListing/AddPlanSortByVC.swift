@@ -35,7 +35,6 @@ public enum SortOption: Int, CaseIterable {
         }
     }
 
-    /// Returns (sortingBy, sortingType) tuple for API
     var apiParameters: (sortingBy: String, sortingType: String) {
         switch self {
         case .popularity:
@@ -53,8 +52,7 @@ public enum SortOption: Int, CaseIterable {
         }
     }
 
-    /// Single `sort` query param value for the POI listing endpoint.
-    /// `popularity` returns `nil` so we omit the param and let the server use its default.
+    /// `popularity` returns `nil` so the param is omitted and the server uses its default.
     var poiSortQuery: String? {
         switch self {
         case .popularity:
@@ -74,7 +72,6 @@ public class AddPlanSortByVC: TRPBaseUIViewController, DynamicHeightPresentable 
 
     // MARK: - DynamicHeightPresentable
     public var preferredContentHeight: CGFloat {
-        // Header (56) + rows (N * 52) + bottom padding (24)
         return 56 + CGFloat(availableOptions.count * 52) + 24
     }
 
@@ -119,10 +116,6 @@ public class AddPlanSortByVC: TRPBaseUIViewController, DynamicHeightPresentable 
     }()
 
     // MARK: - Initialization
-    /// Initialize with selected option and available options
-    /// - Parameters:
-    ///   - selectedOption: Currently selected sort option
-    ///   - availableOptions: Options to show. Defaults to all options.
     public init(selectedOption: SortOption = .popularity, availableOptions: [SortOption]? = nil) {
         self.selectedOption = selectedOption
         self.availableOptions = availableOptions ?? Array(SortOption.allCases)
@@ -155,23 +148,19 @@ public class AddPlanSortByVC: TRPBaseUIViewController, DynamicHeightPresentable 
         tableView.register(SortOptionCell.self, forCellReuseIdentifier: SortOptionCell.reuseIdentifier)
 
         NSLayoutConstraint.activate([
-            // Header view
             headerView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
             headerView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             headerView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             headerView.heightAnchor.constraint(equalToConstant: 56),
 
-            // Title label (centered)
             titleLabel.centerXAnchor.constraint(equalTo: headerView.centerXAnchor),
             titleLabel.centerYAnchor.constraint(equalTo: headerView.centerYAnchor),
 
-            // Close button (right side)
             closeButton.trailingAnchor.constraint(equalTo: headerView.trailingAnchor, constant: -16),
             closeButton.centerYAnchor.constraint(equalTo: headerView.centerYAnchor),
             closeButton.widthAnchor.constraint(equalToConstant: 24),
             closeButton.heightAnchor.constraint(equalToConstant: 24),
 
-            // Table view
             tableView.topAnchor.constraint(equalTo: headerView.bottomAnchor, constant: 8),
             tableView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             tableView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
@@ -211,7 +200,6 @@ extension AddPlanSortByVC: UITableViewDataSource, UITableViewDelegate {
         selectedOption = option
         tableView.reloadData()
 
-        // Notify and dismiss
         onSortOptionSelected?(option)
         dismiss(animated: true)
     }
@@ -271,19 +259,16 @@ private class SortOptionCell: UITableViewCell {
         contentView.addSubview(titleLabel)
 
         NSLayoutConstraint.activate([
-            // Radio button
             radioButton.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
             radioButton.centerYAnchor.constraint(equalTo: contentView.centerYAnchor),
             radioButton.widthAnchor.constraint(equalToConstant: 24),
             radioButton.heightAnchor.constraint(equalToConstant: 24),
 
-            // Inner circle (centered in radio button)
             radioInnerCircle.centerXAnchor.constraint(equalTo: radioButton.centerXAnchor),
             radioInnerCircle.centerYAnchor.constraint(equalTo: radioButton.centerYAnchor),
             radioInnerCircle.widthAnchor.constraint(equalToConstant: 12),
             radioInnerCircle.heightAnchor.constraint(equalToConstant: 12),
 
-            // Title label
             titleLabel.leadingAnchor.constraint(equalTo: radioButton.trailingAnchor, constant: 12),
             titleLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
             titleLabel.centerYAnchor.constraint(equalTo: contentView.centerYAnchor)

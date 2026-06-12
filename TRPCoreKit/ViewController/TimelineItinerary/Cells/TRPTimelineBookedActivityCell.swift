@@ -110,7 +110,6 @@ class TRPTimelineBookedActivityCell: UITableViewCell {
         return label
     }()
 
-    // Stack view for right side content
     private let rightContentStackView: UIStackView = {
         let stack = UIStackView()
         stack.translatesAutoresizingMaskIntoConstraints = false
@@ -121,7 +120,6 @@ class TRPTimelineBookedActivityCell: UITableViewCell {
         return stack
     }()
 
-    // Horizontal stack for person icon and label
     private let personStackView: UIStackView = {
         let stack = UIStackView()
         stack.translatesAutoresizingMaskIntoConstraints = false
@@ -131,7 +129,6 @@ class TRPTimelineBookedActivityCell: UITableViewCell {
         return stack
     }()
 
-    // Horizontal stack for duration icon and label
     private let durationStackView: UIStackView = {
         let stack = UIStackView()
         stack.translatesAutoresizingMaskIntoConstraints = false
@@ -163,21 +160,17 @@ class TRPTimelineBookedActivityCell: UITableViewCell {
         containerView.addSubview(titleLabel)
         containerView.addSubview(rightContentStackView)
 
-        // Build person horizontal stack
         personStackView.addArrangedSubview(personIcon)
         personStackView.addArrangedSubview(personLabel)
 
-        // Build duration horizontal stack
         durationStackView.addArrangedSubview(durationIcon)
         durationStackView.addArrangedSubview(durationLabel)
 
-        // Build right content vertical stack (below title)
         rightContentStackView.addArrangedSubview(confirmedBadge)
         rightContentStackView.addArrangedSubview(personStackView)
         rightContentStackView.addArrangedSubview(durationStackView)
         rightContentStackView.addArrangedSubview(cancellationLabel)
 
-        // Add tap gesture for cell selection
         let cellTapGesture = UITapGestureRecognizer(target: self, action: #selector(cellTapped))
         cellTapGesture.delegate = TRPDisabledControlAwareTapDelegate.shared
         contentView.addGestureRecognizer(cellTapGesture)
@@ -187,28 +180,23 @@ class TRPTimelineBookedActivityCell: UITableViewCell {
 
     private func setupConstraints() {
         NSLayoutConstraint.activate([
-            // Time Badge View
             timeBadgeView.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 16),
             timeBadgeView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
 
-            // Container View
             containerView.topAnchor.constraint(equalTo: timeBadgeView.bottomAnchor),
             containerView.leadingAnchor.constraint(equalTo: timeBadgeView.leadingAnchor),
             containerView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
             containerView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -16),
 
-            // Activity Image
             activityImageView.topAnchor.constraint(equalTo: containerView.topAnchor),
             activityImageView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
             activityImageView.widthAnchor.constraint(equalToConstant: 80),
             activityImageView.heightAnchor.constraint(equalToConstant: 80),
 
-            // Title Label - top right area
             titleLabel.topAnchor.constraint(equalTo: containerView.topAnchor),
             titleLabel.leadingAnchor.constraint(equalTo: activityImageView.trailingAnchor, constant: 12),
             titleLabel.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
 
-            // Right Content Stack View - below title
             rightContentStackView.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 8),
             rightContentStackView.leadingAnchor.constraint(equalTo: activityImageView.trailingAnchor, constant: 12),
             rightContentStackView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
@@ -237,20 +225,15 @@ class TRPTimelineBookedActivityCell: UITableViewCell {
         confirmedBadge.textColor = ColorSet.fgGreen.uiColor
     }
 
-    /// Past-day rendering: BookedActivity has no action buttons or reservation CTA, so all
-    /// info (time/title/cancellation/price/tag) stays at normal colors — no-op.
+    /// No-op: BookedActivity has no CTAs, so past-day rendering leaves all colors unchanged.
     func applyPastDayStyle() {
-        // Intentionally empty.
     }
 
-    /// Configure cell with pre-computed BookedActivityCellData
     func configure(with cellData: BookedActivityCellData) {
         self.segment = cellData.segment
 
-        // Title (pre-computed)
         titleLabel.text = cellData.title
 
-        // Time badge with order and time range
         let timeParts = cellData.timeRange.components(separatedBy: " - ")
         let startTime = timeParts.first ?? ""
         let endTime = timeParts.count > 1 ? timeParts[1] : ""
@@ -262,14 +245,12 @@ class TRPTimelineBookedActivityCell: UITableViewCell {
             showTimeOverlapText: false  // BookedActivity never shows "Time Overlap" text
         )
 
-        // Image
         if let imageUrl = cellData.imageUrl {
             activityImageView.sd_setImage(with: URL(string: imageUrl), placeholderImage: nil)
         } else {
             activityImageView.image = nil
         }
 
-        // Configure person count
         let adultsText = TimelineLocalizationKeys.localized(TimelineLocalizationKeys.adults)
         if cellData.childCount > 0 {
             let childText = cellData.childCount == 1
@@ -280,7 +261,6 @@ class TRPTimelineBookedActivityCell: UITableViewCell {
             personLabel.text = "\(cellData.adultCount) \(adultsText)"
         }
 
-        // Configure cancellation
         if let cancellation = cellData.cancellation, !cancellation.isEmpty {
             cancellationLabel.text = cancellation
             cancellationLabel.isHidden = false
@@ -289,7 +269,6 @@ class TRPTimelineBookedActivityCell: UITableViewCell {
             cancellationLabel.isHidden = false
         }
 
-        // Configure duration
         if let duration = cellData.duration, duration > 0 {
             durationLabel.text = formatDuration(duration)
             durationStackView.isHidden = false

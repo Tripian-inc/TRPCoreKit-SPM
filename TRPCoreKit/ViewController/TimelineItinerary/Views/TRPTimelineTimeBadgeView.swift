@@ -41,8 +41,7 @@ class TRPTimelineTimeBadgeView: UIView {
         return label
     }()
 
-    /// Middle-dot separator between the time range and the status row. Same
-    /// font/color as `timeLabel`; hidden in normal state.
+    /// Middle-dot separator between the time range and the status row; hidden in normal state.
     private let dotLabel: UILabel = {
         let label = UILabel()
         label.translatesAutoresizingMaskIntoConstraints = false
@@ -53,8 +52,7 @@ class TRPTimelineTimeBadgeView: UIView {
         return label
     }()
 
-    /// 16pt warning icon shown between the dot and the status text in conflict
-    /// (`civiOrange` tint) or availability-expired (`errorIcon` tint) states.
+    /// Warning icon shown in conflict (`civiOrange`) or availability-expired (`errorIcon`) states.
     private let warningIconView: UIImageView = {
         let iv = UIImageView()
         iv.translatesAutoresizingMaskIntoConstraints = false
@@ -64,8 +62,7 @@ class TRPTimelineTimeBadgeView: UIView {
         return iv
     }()
 
-    /// "Time Overlap" / "Not available" text shown after the warning icon. Hidden
-    /// in normal state.
+    /// "Time Overlap" / "Not available" text shown after the warning icon; hidden in normal state.
     private let statusLabel: UILabel = {
         let label = UILabel()
         label.translatesAutoresizingMaskIntoConstraints = false
@@ -75,10 +72,7 @@ class TRPTimelineTimeBadgeView: UIView {
         return label
     }()
 
-    /// Horizontal stack hosting [time, dot, icon, status]. Custom spacings:
-    /// 8pt after time, 8pt after dot, 2pt after icon. Hidden trailing items are
-    /// excluded automatically by UIStackView so the badge shrinks to just the
-    /// time label when no status is shown.
+    /// Horizontal stack [time, dot, icon, status]; hidden trailing items collapse so the badge shrinks to just the time.
     private let textStack: UIStackView = {
         let stack = UIStackView()
         stack.translatesAutoresizingMaskIntoConstraints = false
@@ -87,7 +81,6 @@ class TRPTimelineTimeBadgeView: UIView {
         return stack
     }()
 
-    // Vertical line between time badge and content
     private let verticalLineView: UIView = {
         let lineView = UIView()
         lineView.translatesAutoresizingMaskIntoConstraints = false
@@ -122,24 +115,20 @@ class TRPTimelineTimeBadgeView: UIView {
         textStack.setCustomSpacing(2, after: warningIconView)
 
         NSLayoutConstraint.activate([
-            // Container View
             containerView.topAnchor.constraint(equalTo: topAnchor),
             containerView.leadingAnchor.constraint(equalTo: leadingAnchor),
             containerView.trailingAnchor.constraint(equalTo: trailingAnchor),
             containerView.heightAnchor.constraint(equalToConstant: 32),
 
-            // Order Label
             orderLabel.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 6),
             orderLabel.centerYAnchor.constraint(equalTo: containerView.centerYAnchor),
             orderLabel.widthAnchor.constraint(equalToConstant: 20),
             orderLabel.heightAnchor.constraint(equalToConstant: 20),
 
-            // Text stack — sizes to its content (time + optional status row).
             textStack.leadingAnchor.constraint(equalTo: orderLabel.trailingAnchor, constant: 10),
             textStack.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -10),
             textStack.centerYAnchor.constraint(equalTo: containerView.centerYAnchor),
 
-            // Warning icon — fixed 16x16, vertically centered by the stack.
             warningIconView.widthAnchor.constraint(equalToConstant: 16),
             warningIconView.heightAnchor.constraint(equalToConstant: 16),
 
@@ -153,25 +142,14 @@ class TRPTimelineTimeBadgeView: UIView {
 
     // MARK: - Configuration
 
-    /// Configures the time badge view with order number, time range, and optional conflict styling
-    /// - Parameters:
-    ///   - order: The order number to display in the badge
-    ///   - startTime: Start time string (e.g., "09:00")
-    ///   - endTime: End time string (e.g., "12:00")
-    ///   - hasConflict: Whether this time slot has a conflict (applies warning styling)
-    ///   - showTimeOverlapText: Whether to show "Time Overlap" text after the time range
-    ///   - isAvailabilityExpired: Whether the provider no longer offers this activity's
-    ///     time slot. When `true`, this overrides the conflict styling — the badge uses
-    ///     the legacy red (errorBg / errorIcon) palette and the suffix becomes
-    ///     "Not available" instead of "Time Overlap".
+    /// `isAvailabilityExpired` overrides `hasConflict`: red palette + "Not available" suffix instead of yellow + "Time Overlap".
     func configure(order: Int, startTime: String, endTime: String,
                    hasConflict: Bool = false, showTimeOverlapText: Bool = false,
                    isAvailabilityExpired: Bool = false) {
         orderLabel.text = "\(order)"
         timeLabel.text = "\(startTime) - \(endTime)"
 
-        // Status row (dot + warning icon + text). "Not available" wins over
-        // "Time Overlap" when both apply.
+        // "Not available" wins over "Time Overlap" when both apply.
         let statusText: String?
         if isAvailabilityExpired {
             statusText = TimelineLocalizationKeys.localized(TimelineLocalizationKeys.notAvailable)
@@ -186,38 +164,27 @@ class TRPTimelineTimeBadgeView: UIView {
         statusLabel.isHidden = !showStatus
         statusLabel.text = statusText
 
-        // Text color: status states (expired / conflict) use primaryText for
-        // contrast against their tinted background; normal state uses fg.
+        // Status states use primaryText for contrast against their tinted background; normal uses fg.
         let textColor: UIColor = showStatus ? ColorSet.primaryText.uiColor : ColorSet.fg.uiColor
         timeLabel.textColor = textColor
         dotLabel.textColor = textColor
         statusLabel.textColor = textColor
 
-        // State-specific styling: chip background, container background/border,
-        // and warning icon tint. Availability-expired (red) wins over conflict
-        // (yellow).
+        // Availability-expired (red) wins over conflict (yellow).
         if isAvailabilityExpired {
-            // Legacy "Time Overlap" red palette — solid red border + light red
-            // background, white-on-red order chip.
             orderLabel.backgroundColor = ColorSet.errorIcon.uiColor
             containerView.backgroundColor = ColorSet.errorBg.uiColor
             containerView.layer.borderColor = ColorSet.errorIcon.uiColor.cgColor
             warningIconView.tintColor = ColorSet.errorIcon.uiColor
         } else if hasConflict {
-            // Warning styling — yellow border + light yellow background to
-            // match the day-level conflict banner (warningBg + warningBorder).
-            // Order chip stays in the orange family (civiOrange) for contrast
-            // against the pale yellow background.
             orderLabel.backgroundColor = ColorSet.civiOrange.uiColor
             containerView.backgroundColor = ColorSet.warningBg.uiColor
             containerView.layer.borderColor = ColorSet.warningBorder.uiColor.cgColor
             warningIconView.tintColor = ColorSet.civiOrange.uiColor
         } else {
-            // Normal styling
             orderLabel.backgroundColor = ColorSet.fg.uiColor
             containerView.backgroundColor = .clear
             containerView.layer.borderColor = ColorSet.lineWeak.uiColor.cgColor
         }
-        // Note: verticalLineView color stays unchanged (lineWeak) regardless of state
     }
 }

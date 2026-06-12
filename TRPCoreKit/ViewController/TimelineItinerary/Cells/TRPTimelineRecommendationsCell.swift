@@ -17,10 +17,6 @@ protocol TRPTimelineRecommendationsCellDelegate: AnyObject {
     func recommendationsCellDidTapChangeTime(_ cell: TRPTimelineRecommendationsCell, step: TRPTimelineStep)
     func recommendationsCellDidTapRemoveStep(_ cell: TRPTimelineRecommendationsCell, step: TRPTimelineStep)
     func recommendationsCellDidTapReservation(_ cell: TRPTimelineRecommendationsCell, step: TRPTimelineStep)
-    /// Request route calculation for all waypoints at once
-    /// - Parameters:
-    ///   - locations: Array of all POI locations in order
-    ///   - cellIndexPath: The cell's index path for updating distances
     func recommendationsCellNeedsRouteCalculation(_ cell: TRPTimelineRecommendationsCell, locations: [TRPLocation], cellIndexPath: IndexPath)
 }
 
@@ -32,10 +28,10 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
     private var steps: [TRPTimelineStep] = []
     private var segment: TRPTimelineSegment?
     private var isExpanded: Bool = true
-    private var distanceViews: [Int: UIView] = [:] // Track distance views by index
-    private var startingOrder: Int = 1 // Unified day order for first step
-    private var currentIndexPath: IndexPath? // Store indexPath for delegate calls
-    private var hasAccommodation: Bool = false // Track if accommodation is displayed
+    private var distanceViews: [Int: UIView] = [:]
+    private var startingOrder: Int = 1
+    private var currentIndexPath: IndexPath?
+    private var hasAccommodation: Bool = false
 
     // MARK: - UI Components
     private let containerView: UIStackView = {
@@ -53,8 +49,7 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
         stack.isLayoutMarginsRelativeArrangement = true
         return stack
     }()
-    
-    // Header components
+
     private let headerView: UIView = {
         let view = UIView()
         view.translatesAutoresizingMaskIntoConstraints = false
@@ -90,8 +85,7 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
         button.layer.cornerRadius = 22
         return button
     }()
-    
-    // Recommendations stack
+
     private let recommendationsStackView: UIStackView = {
         let stack = UIStackView()
         stack.translatesAutoresizingMaskIntoConstraints = false
@@ -101,17 +95,13 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
         return stack
     }()
 
-    /// References to per-step reservation CTA buttons created in `createRecommendationView`.
-    /// Tracked so `applyPastDayStyle()` can hide them all in one place. Rebuilt every `configure`.
+    /// Per-step reservation CTAs, so `applyPastDayStyle()` can hide them all. Rebuilt every `configure`.
     private var stepReservationButtons: [UIButton] = []
 
-    /// References to per-step icon action buttons (change-time, remove-step) for past-day disabling.
-    /// Rebuilt every `configure`.
+    /// Per-step change-time / remove-step buttons, for past-day disabling. Rebuilt every `configure`.
     private var stepActionButtons: [UIButton] = []
 
-    /// `true` while the cell is rendered for a past day. Per-step buttons stay enabled so
-    /// they consume taps (blocking parent gestures and table view selection); this flag
-    /// short-circuits their action handlers. Reset by `prepareForReuse`.
+    /// True on past days. Buttons stay enabled to consume taps; this flag short-circuits their handlers.
     private var isPastDayMode: Bool = false
     
     // MARK: - Initialization
@@ -131,7 +121,6 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
 
         contentView.addSubview(containerView)
 
-        // Add views to container stack view
         containerView.addArrangedSubview(headerView)
         containerView.addArrangedSubview(recommendationsStackView)
 
@@ -140,28 +129,21 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
         headerView.addSubview(closeButton)
 
         NSLayoutConstraint.activate([
-            // Container View
             containerView.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 8),
             containerView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 12),
             containerView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -12),
             containerView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -8),
 
-            // Header View
             headerView.heightAnchor.constraint(equalToConstant: 44),
 
-            // Title Label
             titleLabel.leadingAnchor.constraint(equalTo: headerView.leadingAnchor),
             titleLabel.centerYAnchor.constraint(equalTo: headerView.centerYAnchor),
 
-            // Chevron - 16x16 to match the previous button's visible icon size
-            // (button was 24x24 with 4pt insets). Not user-interactive; taps land
-            // on `headerView`'s gesture recognizer.
             chevronImageView.leadingAnchor.constraint(equalTo: titleLabel.trailingAnchor, constant: 10),
             chevronImageView.centerYAnchor.constraint(equalTo: headerView.centerYAnchor),
             chevronImageView.widthAnchor.constraint(equalToConstant: 16),
             chevronImageView.heightAnchor.constraint(equalToConstant: 16),
 
-            // Close Button - 44x44 for Apple HIG tap target
             closeButton.trailingAnchor.constraint(equalTo: headerView.trailingAnchor),
             closeButton.centerYAnchor.constraint(equalTo: headerView.centerYAnchor),
             closeButton.widthAnchor.constraint(equalToConstant: 44),
@@ -185,18 +167,13 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
     }
 
     private func resetTextAndBorderDefaults() {
-        // Static views — dynamic recommendation rows are rebuilt by configure() so they
-        // already pick up fresh defaults.
+        // Static views only — dynamic rows are rebuilt by configure().
         titleLabel.textColor = ColorSet.fg.uiColor
         containerView.layer.borderColor = ColorSet.neutral200.uiColor.cgColor
         closeButton.layer.borderColor = ColorSet.neutral200.uiColor.cgColor
     }
 
-    /// Past-day rendering: keep all per-step info content (time/title/rating/category/
-    /// duration/cancellation/price/tag) at normal colors. Hide every per-step reservation
-    /// CTA, and grey out the change-time / remove-step icon buttons. Buttons stay enabled
-    /// so they consume taps (blocking parent gestures); `isPastDayMode` makes their action
-    /// handlers no-op. Must be called AFTER `configure(...)`.
+    /// Past-day rendering: hide reservation CTAs, grey out action buttons (still tap-consuming). Must be called AFTER `configure(...)`.
     func applyPastDayStyle() {
         isPastDayMode = true
         for button in stepReservationButtons {
@@ -212,7 +189,6 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
         isExpanded.toggle()
         updateChevron(animated: true)
 
-        // Animate the collapse/expand using UIStackView's automatic hiding
         UIView.animate(withDuration: 0.3, delay: 0, usingSpringWithDamping: 0.8, initialSpringVelocity: 0.5, options: .curveEaseInOut) {
             self.recommendationsStackView.isHidden = !self.isExpanded
             self.recommendationsStackView.alpha = self.isExpanded ? 1.0 : 0.0
@@ -228,7 +204,7 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
     
     // MARK: - Updates
     private func updateChevron(animated: Bool = false) {
-        let rotation: CGFloat = isExpanded ? 0 : .pi // 0° for expanded (down), 180° for collapsed (up)
+        let rotation: CGFloat = isExpanded ? 0 : .pi
 
         if animated {
             UIView.animate(withDuration: 0.3, delay: 0, usingSpringWithDamping: 0.8, initialSpringVelocity: 0.5) {
@@ -247,38 +223,31 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
         self.startingOrder = startingOrder
         self.currentIndexPath = indexPath
 
-        // Set segment title (use localized default)
         titleLabel.text = TimelineLocalizationKeys.localized(TimelineLocalizationKeys.recommendations)
 
-        // Clear existing views and distance views
         recommendationsStackView.arrangedSubviews.forEach { $0.removeFromSuperview() }
         distanceViews.removeAll()
-        // Reset per-step button trackers — repopulated by `createRecommendationView`.
         stepReservationButtons.removeAll()
         stepActionButtons.removeAll()
 
-        // Track distance view index
         var distanceIndex = 0
 
-        // Determine starting point: accommodation or city center
-        // Priority: accommodation > city parameter > segment.city
+        // Starting point priority: accommodation > city parameter > segment.city
         var startingPointName: String?
         var startingPointCoordinate: TRPLocation?
         let effectiveCity = city ?? segment?.city
 
         if let accommodation = segment?.accommodation,
            accommodation.coordinate.lat != 0 || accommodation.coordinate.lon != 0 {
-            // Use accommodation as starting point (with valid coordinates)
             startingPointName = accommodation.name ?? accommodation.address ?? "Starting Point"
             startingPointCoordinate = accommodation.coordinate
             hasAccommodation = true
         } else if let effectiveCity = effectiveCity {
-            // Use city center as starting point
             let cityCenter = AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.cityCenter)
             startingPointName = "\(effectiveCity.name) | \(cityCenter)"
             hasAccommodation = false
 
-            // Try to get coordinates from cache first (more reliable), then fallback to city object
+            // Prefer cached coordinates over the (possibly stub) city object.
             if let cachedCity = TRPCityCache.shared.getCity(byId: effectiveCity.id),
                cachedCity.coordinate.lat != 0 || cachedCity.coordinate.lon != 0 {
                 startingPointCoordinate = cachedCity.coordinate
@@ -287,12 +256,10 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
             }
         }
 
-        // Add starting point view if exists
         if let displayName = startingPointName {
             let startingPointView = createAccommodationView(name: displayName)
             recommendationsStackView.addArrangedSubview(startingPointView)
 
-            // Add distance view between starting point and first step (only if we have valid coordinates)
             if !steps.isEmpty && startingPointCoordinate != nil {
                 let distanceView = createDistanceView(for: distanceIndex)
                 distanceViews[distanceIndex] = distanceView
@@ -301,14 +268,11 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
             }
         }
 
-        // Add recommendation views for each step with distance info between them
         for (index, step) in steps.enumerated() {
-            // Calculate unified order: startingOrder + index (0-based)
             let unifiedOrder = startingOrder + index
             let recommendationView = createRecommendationView(for: step, order: unifiedOrder)
             recommendationsStackView.addArrangedSubview(recommendationView)
 
-            // Add distance view between POIs (except after the last one)
             if index < steps.count - 1 {
                 let distanceView = createDistanceView(for: distanceIndex)
                 distanceViews[distanceIndex] = distanceView
@@ -319,18 +283,15 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
 
         updateChevron()
 
-        // Set UI based on collapse state - UIStackView handles layout automatically
         recommendationsStackView.isHidden = !isExpanded
         recommendationsStackView.alpha = isExpanded ? 1.0 : 0.0
 
-        // Build locations with starting point prepended for route calculation
         var locations: [TRPLocation] = []
         if let coord = startingPointCoordinate {
             locations.append(coord)
         }
         locations.append(contentsOf: steps.compactMap { $0.poi?.coordinate })
 
-        // Request route calculation for all waypoints at once (if more than 1 location)
         if locations.count > 1 {
             delegate?.recommendationsCellNeedsRouteCalculation(self, locations: locations, cellIndexPath: indexPath)
         }
@@ -338,10 +299,6 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
 
     // MARK: - Configuration with Pre-computed Data
 
-    /// Configure cell with pre-computed RecommendationsCellData
-    /// - Parameters:
-    ///   - cellData: Pre-computed cell data
-    ///   - indexPath: The cell's index path for delegate callbacks
     func configure(with cellData: RecommendationsCellData, indexPath: IndexPath) {
         self.steps = cellData.steps
         self.segment = cellData.segment
@@ -349,36 +306,29 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
         self.startingOrder = cellData.startingOrder
         self.currentIndexPath = indexPath
 
-        // Title (pre-computed)
         titleLabel.text = cellData.title
 
-        // Clear existing views and distance views
         recommendationsStackView.arrangedSubviews.forEach { $0.removeFromSuperview() }
         distanceViews.removeAll()
-        // Reset per-step button trackers — repopulated by `createRecommendationView`.
         stepReservationButtons.removeAll()
         stepActionButtons.removeAll()
 
-        // Track distance view index
         var distanceIndex = 0
 
-        // Determine starting point: accommodation or city center
         var startingPointName: String?
         var startingPointCoordinate: TRPLocation?
 
         if let accommodation = cellData.segment.accommodation,
            accommodation.coordinate.lat != 0 || accommodation.coordinate.lon != 0 {
-            // Use accommodation as starting point (with valid coordinates)
             startingPointName = accommodation.name ?? accommodation.address ?? "Starting Point"
             startingPointCoordinate = accommodation.coordinate
             hasAccommodation = true
         } else if let city = cellData.city {
-            // Use city center as starting point
             let cityCenter = AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.cityCenter)
             startingPointName = "\(city.name) | \(cityCenter)"
             hasAccommodation = false
 
-            // Try to get coordinates from cache first (more reliable), then fallback to city object
+            // Prefer cached coordinates over the (possibly stub) city object.
             if let cachedCity = TRPCityCache.shared.getCity(byId: city.id),
                cachedCity.coordinate.lat != 0 || cachedCity.coordinate.lon != 0 {
                 startingPointCoordinate = cachedCity.coordinate
@@ -387,12 +337,10 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
             }
         }
 
-        // Add starting point view if exists
         if let displayName = startingPointName {
             let startingPointView = createAccommodationView(name: displayName)
             recommendationsStackView.addArrangedSubview(startingPointView)
 
-            // Add distance view between starting point and first step (only if we have valid coordinates)
             if !cellData.steps.isEmpty && startingPointCoordinate != nil {
                 let distanceView = createDistanceView(for: distanceIndex)
                 distanceViews[distanceIndex] = distanceView
@@ -401,14 +349,11 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
             }
         }
 
-        // Add recommendation views for each step with distance info between them
         for (index, step) in cellData.steps.enumerated() {
-            // Calculate unified order: startingOrder + index (0-based)
             let unifiedOrder = startingOrder + index
             let recommendationView = createRecommendationView(for: step, order: unifiedOrder)
             recommendationsStackView.addArrangedSubview(recommendationView)
 
-            // Add distance view between POIs (except after the last one)
             if index < cellData.steps.count - 1 {
                 let distanceView = createDistanceView(for: distanceIndex)
                 distanceViews[distanceIndex] = distanceView
@@ -419,18 +364,15 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
 
         updateChevron()
 
-        // Set UI based on collapse state
         recommendationsStackView.isHidden = !cellData.isExpanded
         recommendationsStackView.alpha = cellData.isExpanded ? 1.0 : 0.0
 
-        // Build locations with starting point prepended for route calculation
         var locations: [TRPLocation] = []
         if let coord = startingPointCoordinate {
             locations.append(coord)
         }
         locations.append(contentsOf: cellData.steps.compactMap { $0.poi?.coordinate })
 
-        // Request route calculation for all waypoints at once (if more than 1 location)
         if locations.count > 1 {
             delegate?.recommendationsCellNeedsRouteCalculation(self, locations: locations, cellIndexPath: indexPath)
         }
@@ -441,19 +383,14 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
         containerView.translatesAutoresizingMaskIntoConstraints = false
         containerView.backgroundColor = .clear
 
-        // Check if this is an activity step
         let isActivity = step.stepType == "activity"
 
-        // Time badge view
         let timeBadgeView = TRPTimelineTimeBadgeView()
         timeBadgeView.translatesAutoresizingMaskIntoConstraints = false
 
-        // Only activity-type steps participate in the availability sweep, so the
-        // expired flag is always false for POI steps — passing it unconditionally
-        // is safe and keeps the call sites uniform.
+        // Expired flag is always false for POI steps (only activities are swept); passing it unconditionally is safe.
         let isExpired = step.isAvailabilityExpired
         if let startTime = step.getStartTime(), let endTime = step.getEndTime() {
-            // Use unified order (startingOrder + index) instead of step.order
             timeBadgeView.configure(
                 order: order,
                 startTime: startTime,
@@ -464,11 +401,10 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
             )
         }
 
-        // Content container (horizontal layout: image | info)
         let contentContainer = UIView()
         contentContainer.translatesAutoresizingMaskIntoConstraints = false
 
-        // POI Image - 80x80. Desaturate to grayscale for expired activity steps.
+        // Desaturate to grayscale for expired activity steps.
         let poiImageView = UIImageView()
         poiImageView.translatesAutoresizingMaskIntoConstraints = false
         poiImageView.contentMode = .scaleAspectFill
@@ -485,7 +421,6 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
             }
         }
 
-        // Right side info container - using stack view for auto height adjustment
         let infoStackView = UIStackView()
         infoStackView.translatesAutoresizingMaskIntoConstraints = false
         infoStackView.axis = .vertical
@@ -493,11 +428,9 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
         infoStackView.alignment = .leading
         infoStackView.distribution = .fill
 
-        // Title row (title + action buttons)
         let titleRow = UIView()
         titleRow.translatesAutoresizingMaskIntoConstraints = false
 
-        // Title label - semibold 16px, numberOfLines 0
         let titleLabel = UILabel()
         titleLabel.translatesAutoresizingMaskIntoConstraints = false
         titleLabel.font = FontSet.montserratSemiBold.font(16)
@@ -505,14 +438,12 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
         titleLabel.numberOfLines = 0
         titleLabel.text = step.poi?.name ?? ""
 
-        // Action buttons container (change time + remove step) - no spacing
         let actionButtonsStack = UIStackView()
         actionButtonsStack.translatesAutoresizingMaskIntoConstraints = false
         actionButtonsStack.axis = .horizontal
         actionButtonsStack.spacing = 4
         actionButtonsStack.alignment = .center
 
-        // Change time button - 32x32, icon 20x20 (hidden for activity steps)
         let changeTimeButton = UIButton(type: .custom)
         changeTimeButton.translatesAutoresizingMaskIntoConstraints = false
         let changeTimeIcon = TRPImageController().getImage(inFramework: "ic_change_time", inApp: nil)?.withRenderingMode(.alwaysTemplate)
@@ -523,9 +454,7 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
         changeTimeButton.contentHorizontalAlignment = .trailing
         changeTimeButton.tag = steps.firstIndex(where: { $0.id == step.id }) ?? 0
         changeTimeButton.addTarget(self, action: #selector(changeTimeTapped(_:)), for: .touchUpInside)
-        // Show change time button for both POI and activity steps
 
-        // Remove step button - 32x32, icon 20x20
         let removeStepButton = UIButton(type: .custom)
         removeStepButton.translatesAutoresizingMaskIntoConstraints = false
         let removeStepIcon = TRPImageController().getImage(inFramework: "ic_remove_step", inApp: nil)?.withRenderingMode(.alwaysTemplate)
@@ -539,15 +468,12 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
 
         actionButtonsStack.addArrangedSubview(changeTimeButton)
         actionButtonsStack.addArrangedSubview(removeStepButton)
-        // Track for past-day disable.
         stepActionButtons.append(changeTimeButton)
         stepActionButtons.append(removeStepButton)
 
-        // Add to title row
         titleRow.addSubview(titleLabel)
         titleRow.addSubview(actionButtonsStack)
 
-        // Rating stack - Only show for activity steps, hidden for POI steps
         let ratingStack = UIStackView()
         ratingStack.translatesAutoresizingMaskIntoConstraints = false
         ratingStack.axis = .horizontal
@@ -555,18 +481,15 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
         ratingStack.alignment = .center
 
         if isActivity, let poi = step.poi, let rating = poi.rating {
-            // Rating label - bold 14px primaryText
             let ratingLabel = UILabel()
             ratingLabel.font = FontSet.montserratBold.font(14)
             ratingLabel.textColor = ColorSet.primaryText.uiColor
             ratingLabel.text = String(format: "%.1f", rating).replacingOccurrences(of: ".", with: ",")
 
-            // Spacer view for 2px margin between rating and star
             let spacer1 = UIView()
             spacer1.translatesAutoresizingMaskIntoConstraints = false
             spacer1.widthAnchor.constraint(equalToConstant: 2).isActive = true
 
-            // Star icon
             let starIcon = UIImageView()
             starIcon.image = TRPImageController().getImage(inFramework: "ic_rating_star", inApp: nil)
             starIcon.tintColor = ColorSet.ratingStar.uiColor
@@ -575,12 +498,10 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
             starIcon.widthAnchor.constraint(equalToConstant: 14).isActive = true
             starIcon.heightAnchor.constraint(equalToConstant: 14).isActive = true
 
-            // Spacer view for 4px margin between star and reviewCount
             let spacer2 = UIView()
             spacer2.translatesAutoresizingMaskIntoConstraints = false
             spacer2.widthAnchor.constraint(equalToConstant: 4).isActive = true
 
-            // Review count label - regular 14px fgWeak
             let reviewLabel = UILabel()
             reviewLabel.font = FontSet.montserratRegular.font(14)
             reviewLabel.textColor = ColorSet.fgWeak.uiColor
@@ -595,12 +516,9 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
             ratingStack.addArrangedSubview(spacer2)
             ratingStack.addArrangedSubview(reviewLabel)
         }
-        // POI steps: ratingStack remains empty (hidden)
 
-        // Get booking product for activity info
         let bookingProduct = step.poi?.bookings?.first?.firstProduct()
 
-        // Category badge
         let categoryBadge = UIView()
         categoryBadge.translatesAutoresizingMaskIntoConstraints = false
         categoryBadge.layer.cornerRadius = 4
@@ -627,7 +545,6 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
 
         categoryBadge.addSubview(categoryLabel)
 
-        // Duration stack (for activity steps) - icon + duration text
         let durationStack = UIStackView()
         durationStack.translatesAutoresizingMaskIntoConstraints = false
         durationStack.axis = .horizontal
@@ -647,7 +564,6 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
             durationLabel.font = FontSet.montserratMedium.font(14)
             durationLabel.textColor = ColorSet.fgWeak.uiColor
 
-            // Get duration from booking product or POI
             var durationText: String? = nil
             if let duration = bookingProduct?.duration {
                 durationText = duration
@@ -669,7 +585,6 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
             }
         }
 
-        // Cancellation label (for activity steps) - medium 14px fgGreen
         let cancellationLabel = UILabel()
         cancellationLabel.translatesAutoresizingMaskIntoConstraints = false
         cancellationLabel.font = FontSet.montserratMedium.font(14)
@@ -687,12 +602,10 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
             }
         }
 
-        // Price row container (for activity steps) - right aligned
         let priceRowContainer = UIView()
         priceRowContainer.translatesAutoresizingMaskIntoConstraints = false
         priceRowContainer.isHidden = true
 
-        // Price row - "From" medium 14px + price bold 16px
         let priceRow = UIStackView()
         priceRow.translatesAutoresizingMaskIntoConstraints = false
         priceRow.axis = .horizontal
@@ -700,7 +613,6 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
         priceRow.alignment = .center
 
         if isActivity {
-            // Check if price is 0 (free activity)
             var isFreeActivity = false
             if let price = step.poi?.additionalData?.price, price == 0 {
                 isFreeActivity = true
@@ -711,14 +623,12 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
             }
 
             if isFreeActivity {
-                // Show "FREE" label only
                 let freeLabel = UILabel()
                 freeLabel.font = FontSet.montserratBold.font(16)
                 freeLabel.textColor = ColorSet.primaryText.uiColor
                 freeLabel.text = CommonLocalizationKeys.localized(CommonLocalizationKeys.free)
                 priceRow.addArrangedSubview(freeLabel)
 
-                // Add priceRow to container, aligned to right
                 priceRowContainer.addSubview(priceRow)
                 NSLayoutConstraint.activate([
                     priceRow.topAnchor.constraint(equalTo: priceRowContainer.topAnchor),
@@ -727,18 +637,15 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
                 ])
                 priceRowContainer.isHidden = false
             } else {
-                // "From" label - medium 14px primaryText
                 let fromLabel = UILabel()
                 fromLabel.font = FontSet.montserratMedium.font(14)
                 fromLabel.textColor = ColorSet.primaryText.uiColor
                 fromLabel.text = CommonLocalizationKeys.localized(CommonLocalizationKeys.from)
 
-                // Price label - bold 16px primaryText
                 let priceLabel = UILabel()
                 priceLabel.font = FontSet.montserratBold.font(16)
                 priceLabel.textColor = ColorSet.primaryText.uiColor
 
-                // Get price from additionalData or booking product
                 var priceText: String? = nil
                 if let price = step.poi?.additionalData?.price, let currency = step.poi?.additionalData?.currency {
                     priceText = TRPCurrencyHelper.formatPrice(price, currency: currency)
@@ -753,7 +660,6 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
                     priceRow.addArrangedSubview(fromLabel)
                     priceRow.addArrangedSubview(priceLabel)
 
-                    // Add priceRow to container, aligned to right
                     priceRowContainer.addSubview(priceRow)
                     NSLayoutConstraint.activate([
                         priceRow.topAnchor.constraint(equalTo: priceRowContainer.topAnchor),
@@ -765,30 +671,24 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
             }
         }
 
-        // Reservation button (TRPButton primary for activity steps) - height 40
         let reservationButton = TRPButton(title: TimelineLocalizationKeys.localized(TimelineLocalizationKeys.reservation), style: .primary, height: 40)
         reservationButton.translatesAutoresizingMaskIntoConstraints = false
         reservationButton.tag = steps.firstIndex(where: { $0.id == step.id }) ?? 0
         reservationButton.addTarget(self, action: #selector(reservationTapped(_:)), for: .touchUpInside)
         reservationButton.isHidden = !isActivity
-        // Track for past-day hide. Activity-step rows that aren't past will keep `isActivity`
-        // visibility logic above; past-day rows hide them all in `applyPastDayStyle()`.
         stepReservationButtons.append(reservationButton)
 
-        // Add all subviews
         containerView.addSubview(timeBadgeView)
         containerView.addSubview(contentContainer)
         contentContainer.addSubview(poiImageView)
         contentContainer.addSubview(infoStackView)
 
-        // Build info stack view
         infoStackView.addArrangedSubview(titleRow)
         if isActivity {
             infoStackView.addArrangedSubview(ratingStack)
         }
         infoStackView.addArrangedSubview(categoryBadge)
 
-        // For activity: add duration (if exists), cancellation (if exists), then price, then button
         if isActivity {
             if hasDuration {
                 infoStackView.addArrangedSubview(durationStack)
@@ -797,11 +697,9 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
                 infoStackView.addArrangedSubview(cancellationLabel)
             }
             infoStackView.addArrangedSubview(priceRowContainer)
-            // Price row container needs full width for right alignment
             priceRowContainer.widthAnchor.constraint(equalTo: infoStackView.widthAnchor).isActive = true
         }
 
-        // Add reservation button for activity steps - full width
         if isActivity {
             infoStackView.addArrangedSubview(reservationButton)
             NSLayoutConstraint.activate([
@@ -810,67 +708,50 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
             ])
         }
 
-        // Constraints
         NSLayoutConstraint.activate([
-            // Time badge
             timeBadgeView.topAnchor.constraint(equalTo: containerView.topAnchor),
             timeBadgeView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
 
-            // Content container
             contentContainer.topAnchor.constraint(equalTo: timeBadgeView.bottomAnchor),
             contentContainer.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
             contentContainer.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
             contentContainer.bottomAnchor.constraint(equalTo: containerView.bottomAnchor),
 
-            // POI Image - 80x80
             poiImageView.topAnchor.constraint(equalTo: contentContainer.topAnchor),
             poiImageView.leadingAnchor.constraint(equalTo: contentContainer.leadingAnchor),
             poiImageView.widthAnchor.constraint(equalToConstant: 80),
             poiImageView.heightAnchor.constraint(equalToConstant: 80),
 
-            // Info stack view - 16px from imageView, 12px from right
             infoStackView.topAnchor.constraint(equalTo: contentContainer.topAnchor),
             infoStackView.leadingAnchor.constraint(equalTo: poiImageView.trailingAnchor, constant: 16),
             infoStackView.trailingAnchor.constraint(equalTo: contentContainer.trailingAnchor),
 
-            // Title row - full width
             titleRow.widthAnchor.constraint(equalTo: infoStackView.widthAnchor),
 
-            // Title label inside title row - 8px margin to buttons
             titleLabel.topAnchor.constraint(equalTo: titleRow.topAnchor),
             titleLabel.leadingAnchor.constraint(equalTo: titleRow.leadingAnchor),
             titleLabel.trailingAnchor.constraint(equalTo: actionButtonsStack.leadingAnchor, constant: -8),
             titleLabel.bottomAnchor.constraint(equalTo: titleRow.bottomAnchor),
 
-            // Action buttons stack inside title row - aligned with contentContainer edge (12px matches infoStackView padding)
             actionButtonsStack.topAnchor.constraint(equalTo: titleRow.topAnchor),
             actionButtonsStack.trailingAnchor.constraint(equalTo: titleRow.trailingAnchor, constant: 8),
 
-            // Button sizes - 44x32 (wider tap area, icon aligned right)
             changeTimeButton.widthAnchor.constraint(equalToConstant: 36),
             changeTimeButton.heightAnchor.constraint(equalToConstant: 32),
             removeStepButton.widthAnchor.constraint(equalToConstant: 40),
             removeStepButton.heightAnchor.constraint(equalToConstant: 32),
 
-            // Category label inside badge
             categoryLabel.topAnchor.constraint(equalTo: categoryBadge.topAnchor, constant: 4),
             categoryLabel.bottomAnchor.constraint(equalTo: categoryBadge.bottomAnchor, constant: -4),
             categoryLabel.leadingAnchor.constraint(equalTo: categoryBadge.leadingAnchor, constant: 8),
             categoryLabel.trailingAnchor.constraint(equalTo: categoryBadge.trailingAnchor, constant: -8),
         ])
 
-        // Dynamic height constraints - content container expands to fit the taller of imageView or infoStackView
-        // Minimum height constraint (80px for imageView)
         contentContainer.heightAnchor.constraint(greaterThanOrEqualToConstant: 80).isActive = true
 
-        // Container grows to fit the info stack when it's taller than the image,
-        // but doesn't pull the stack down when it's shorter. Combined with the
-        // top pin, infoStackView hugs its intrinsic height at the top so the
-        // title always aligns with the image's top; trailing views (rating,
-        // category, etc.) sit directly under it with no forced stretch.
+        // Grows to fit info stack when taller than image; doesn't pull it down when shorter.
         contentContainer.bottomAnchor.constraint(greaterThanOrEqualTo: infoStackView.bottomAnchor).isActive = true
 
-        // Add tap gesture for selection
         let tapGesture = UITapGestureRecognizer(target: self, action: #selector(recommendationTapped(_:)))
         tapGesture.delegate = TRPDisabledControlAwareTapDelegate.shared
         contentContainer.addGestureRecognizer(tapGesture)
@@ -914,7 +795,6 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
         containerView.layer.borderColor = ColorSet.lineWeak.uiColor.cgColor
         containerView.layer.cornerRadius = 18
 
-        // Icon
         let iconImageView = UIImageView()
         iconImageView.translatesAutoresizingMaskIntoConstraints = false
         if let pinIcon = TRPImageController().getImage(inFramework: "ic_pin", inApp: nil) {
@@ -923,7 +803,6 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
         iconImageView.tintColor = ColorSet.fg.uiColor
         iconImageView.contentMode = .scaleAspectFit
 
-        // Name label
         let nameLabel = UILabel()
         nameLabel.translatesAutoresizingMaskIntoConstraints = false
         nameLabel.font = FontSet.montserratMedium.font(14)
@@ -935,19 +814,16 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
         containerView.addSubview(nameLabel)
 
         NSLayoutConstraint.activate([
-            // Icon: 12px from left, vertically centered
             iconImageView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 12),
             iconImageView.centerYAnchor.constraint(equalTo: containerView.centerYAnchor),
             iconImageView.widthAnchor.constraint(equalToConstant: 20),
             iconImageView.heightAnchor.constraint(equalToConstant: 20),
 
-            // Text: 13px after icon, 12px from right, vertically centered with padding
             nameLabel.leadingAnchor.constraint(equalTo: iconImageView.trailingAnchor, constant: 13),
             nameLabel.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -12),
             nameLabel.topAnchor.constraint(equalTo: containerView.topAnchor, constant: 8),
             nameLabel.bottomAnchor.constraint(equalTo: containerView.bottomAnchor, constant: -8),
 
-            // Height: min 36px
             containerView.heightAnchor.constraint(greaterThanOrEqualToConstant: 36)
         ])
 
@@ -959,22 +835,19 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
         let containerView = UIView()
         containerView.translatesAutoresizingMaskIntoConstraints = false
         containerView.backgroundColor = .clear
-        
-        // Icon
+
         let iconImageView = UIImageView()
         iconImageView.translatesAutoresizingMaskIntoConstraints = false
         iconImageView.image = TRPImageController().getImage(inFramework: "ic_walk", inApp: nil)
         iconImageView.contentMode = .scaleAspectFit
-        
-        // Distance label
+
         let distanceLabel = UILabel()
         distanceLabel.translatesAutoresizingMaskIntoConstraints = false
         distanceLabel.font = FontSet.montserratMedium.font(12)
         distanceLabel.textColor = ColorSet.fgWeak.uiColor
 //        distanceLabel.text = "Calculating..."
-        distanceLabel.tag = 1000 + index // Tag to identify label for updates
-        
-        // Horizontal line
+        distanceLabel.tag = 1000 + index
+
         let horizontalLine = UIView()
         horizontalLine.translatesAutoresizingMaskIntoConstraints = false
         horizontalLine.backgroundColor = ColorSet.lineWeak.uiColor
@@ -985,36 +858,29 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
         containerView.addSubview(horizontalLine)
         
         NSLayoutConstraint.activate([
-            // Icon
             iconImageView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 4),
             iconImageView.centerYAnchor.constraint(equalTo: containerView.centerYAnchor),
             iconImageView.widthAnchor.constraint(equalToConstant: 13),
             iconImageView.heightAnchor.constraint(equalToConstant: 16),
-            
-            // Distance label
+
             distanceLabel.leadingAnchor.constraint(equalTo: iconImageView.trailingAnchor, constant: 6),
             distanceLabel.centerYAnchor.constraint(equalTo: containerView.centerYAnchor),
-            
-            // Horizontal line
+
             horizontalLine.leadingAnchor.constraint(equalTo: distanceLabel.trailingAnchor, constant: 4),
             horizontalLine.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
             horizontalLine.centerYAnchor.constraint(equalTo: containerView.centerYAnchor),
             horizontalLine.heightAnchor.constraint(equalToConstant: 0.5),
-            
-            // Container height
+
             containerView.heightAnchor.constraint(equalToConstant: 24)
         ])
         
         return containerView
     }
     
-    // Update distance info after route calculation
     public func updateDistance(at index: Int, distance: Float, time: Int) {
         guard let distanceView = distanceViews[index] else { return }
 
-        // Find the distance label using tag
         if let distanceLabel = distanceView.viewWithTag(1000 + index) as? UILabel {
-            // Format distance with comma as decimal separator (e.g., "1,2 km")
             let distanceString = String(format: "%.1f", distance).replacingOccurrences(of: ".", with: ",")
             distanceLabel.text = TimelineLocalizationKeys.formatDistance(minutes: time, kilometers: distanceString)
         }

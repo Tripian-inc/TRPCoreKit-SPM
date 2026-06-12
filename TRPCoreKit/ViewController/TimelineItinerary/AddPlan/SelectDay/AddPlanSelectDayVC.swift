@@ -13,10 +13,10 @@ import TRPFoundationKit
 public class AddPlanSelectDayVC: TRPBaseUIViewController, AddPlanChildViewController {
 
     // MARK: - Height Constants (Static heights from design)
-    private let baseContentHeight: CGFloat = 486 // Base height without categories
-    private let manualModeContentHeight: CGFloat = 654 // Height when manual mode is selected (shows categories)
-    private let citySelectionHeight: CGFloat = 84 // City button height (68) + top margin (24)
-    private let travelersSectionHeight: CGFloat = 112 // Travelers section: 24 margin + 24 label + 16 gap + 48 container + 8 padding
+    private let baseContentHeight: CGFloat = 486
+    private let manualModeContentHeight: CGFloat = 654
+    private let citySelectionHeight: CGFloat = 84 // button (68) + top margin (24)
+    private let travelersSectionHeight: CGFloat = 112 // 24 margin + 24 label + 16 gap + 48 container + 8 padding
 
     // MARK: - Properties
     public var viewModel: AddPlanSelectDayViewModel!
@@ -58,8 +58,7 @@ public class AddPlanSelectDayVC: TRPBaseUIViewController, AddPlanChildViewContro
         field.onTap = { [weak self] in self?.citySelectionTapped() }
         return field
     }()
-    
-    // Selection section
+
     private lazy var selectionLabel: UILabel = {
         let label = UILabel()
         label.translatesAutoresizingMaskIntoConstraints = false
@@ -256,12 +255,10 @@ public class AddPlanSelectDayVC: TRPBaseUIViewController, AddPlanChildViewContro
         button.layer.cornerRadius = 8
         button.layer.borderWidth = 1
         button.layer.borderColor = ColorSet.lineWeak.uiColor.cgColor
-        button.tag = id.hashValue // Use hash for tag
+        button.tag = id.hashValue
 
-        // Store category ID in button's accessibility identifier
         button.accessibilityIdentifier = id
 
-        // Container view to hold icon and label (centered in button)
         let contentContainer = UIView()
         contentContainer.translatesAutoresizingMaskIntoConstraints = false
         contentContainer.isUserInteractionEnabled = false
@@ -286,19 +283,16 @@ public class AddPlanSelectDayVC: TRPBaseUIViewController, AddPlanChildViewContro
         button.addSubview(contentContainer)
 
         NSLayoutConstraint.activate([
-            // Center container in button
             contentContainer.centerXAnchor.constraint(equalTo: button.centerXAnchor),
             contentContainer.centerYAnchor.constraint(equalTo: button.centerYAnchor),
             contentContainer.leadingAnchor.constraint(greaterThanOrEqualTo: button.leadingAnchor, constant: 10),
             contentContainer.trailingAnchor.constraint(lessThanOrEqualTo: button.trailingAnchor, constant: -10),
 
-            // Icon at top of container
             iconImageView.topAnchor.constraint(equalTo: contentContainer.topAnchor),
             iconImageView.centerXAnchor.constraint(equalTo: contentContainer.centerXAnchor),
             iconImageView.widthAnchor.constraint(equalToConstant: 32),
             iconImageView.heightAnchor.constraint(equalToConstant: 32),
 
-            // Label below icon
             label.topAnchor.constraint(equalTo: iconImageView.bottomAnchor, constant: 8),
             label.leadingAnchor.constraint(equalTo: contentContainer.leadingAnchor),
             label.trailingAnchor.constraint(equalTo: contentContainer.trailingAnchor),
@@ -332,7 +326,7 @@ public class AddPlanSelectDayVC: TRPBaseUIViewController, AddPlanChildViewContro
     public override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
 
-        // Refresh day filter and city to show current selections (in case changed in another screen)
+        // Refresh in case selections changed on another screen.
         configureDayFilterView()
         updateCityButton()
     }
@@ -341,7 +335,6 @@ public class AddPlanSelectDayVC: TRPBaseUIViewController, AddPlanChildViewContro
         super.setupViews()
         view.backgroundColor = .white
 
-        // Add all subviews directly to view (scroll is handled by container)
         view.addSubview(dayLabel)
         view.addSubview(dayFilterView)
         view.addSubview(citySelectionField)
@@ -353,74 +346,61 @@ public class AddPlanSelectDayVC: TRPBaseUIViewController, AddPlanChildViewContro
         view.addSubview(travelersLabel)
         view.addSubview(travelersContainer)
 
-        // Add category buttons to stack view
         categoryStackView.addArrangedSubview(activitiesCategoryButton)
         categoryStackView.addArrangedSubview(placesOfInterestCategoryButton)
         categoryStackView.addArrangedSubview(eatAndDrinkCategoryButton)
 
-        // Add travelers container subviews
         travelersContainer.addSubview(travelersTextLabel)
         travelersContainer.addSubview(decrementButton)
         travelersContainer.addSubview(travelerCountLabel)
         travelersContainer.addSubview(incrementButton)
 
         NSLayoutConstraint.activate([
-            // Day Label - top 12, height 16
             dayLabel.topAnchor.constraint(equalTo: view.topAnchor, constant: 12),
             dayLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
             dayLabel.heightAnchor.constraint(equalToConstant: 16),
 
-            // Day Filter View - top 12, height 44
             dayFilterView.topAnchor.constraint(equalTo: dayLabel.bottomAnchor, constant: 12),
             dayFilterView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             dayFilterView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             dayFilterView.heightAnchor.constraint(equalToConstant: 74),
 
-            // City Selection Button - top 24, height 68 (16 label + 4 gap + 48 button)
             citySelectionField.topAnchor.constraint(equalTo: dayFilterView.bottomAnchor, constant: 24),
             citySelectionField.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
             citySelectionField.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
 
-            // Selection Label (How do you add plans) - height 24 (top constraint is dynamic)
             selectionLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
             selectionLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
             selectionLabel.heightAnchor.constraint(equalToConstant: 24),
 
-            // Smart Recommendations Card - top 16, height 88
             smartRecommendationsCard.topAnchor.constraint(equalTo: selectionLabel.bottomAnchor, constant: 16),
             smartRecommendationsCard.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
             smartRecommendationsCard.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
             smartRecommendationsCard.heightAnchor.constraint(equalToConstant: 88),
 
-            // Manual Add Card - top 8, height 88
             manualAddCard.topAnchor.constraint(equalTo: smartRecommendationsCard.bottomAnchor, constant: 8),
             manualAddCard.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
             manualAddCard.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
             manualAddCard.heightAnchor.constraint(equalToConstant: 88),
 
-            // Category Label - height 24 (top constraint is dynamic)
             categoryLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
             categoryLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
             categoryLabel.heightAnchor.constraint(equalToConstant: 24),
 
-            // Category Stack View - top 16, height 96
             categoryStackView.topAnchor.constraint(equalTo: categoryLabel.bottomAnchor, constant: 16),
             categoryStackView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
             categoryStackView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
             categoryStackView.heightAnchor.constraint(equalToConstant: 96),
 
-            // Travelers Label - height 24 (top constraint is dynamic)
             travelersLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
             travelersLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
             travelersLabel.heightAnchor.constraint(equalToConstant: 24),
 
-            // Travelers Container - top 16, height 48
             travelersContainer.topAnchor.constraint(equalTo: travelersLabel.bottomAnchor, constant: 16),
             travelersContainer.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
             travelersContainer.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
             travelersContainer.heightAnchor.constraint(equalToConstant: 48),
 
-            // Travelers Container inner views
             travelersTextLabel.leadingAnchor.constraint(equalTo: travelersContainer.leadingAnchor),
             travelersTextLabel.centerYAnchor.constraint(equalTo: travelersContainer.centerYAnchor),
 
@@ -439,29 +419,22 @@ public class AddPlanSelectDayVC: TRPBaseUIViewController, AddPlanChildViewContro
             decrementButton.heightAnchor.constraint(equalToConstant: 40),
         ])
 
-        // Store constraints that need to be toggled based on category visibility
-        // When manual not selected: manualAddCard bottom = view.bottom - 32
+        // These constraints are toggled by category / travelers visibility.
         manualCardBottomConstraint = manualAddCard.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -32)
-        // When manual selected: categoryLabel top = manualAddCard.bottom + 32
         categoryLabelTopConstraint = categoryLabel.topAnchor.constraint(equalTo: manualAddCard.bottomAnchor, constant: 32)
-        // When manual selected (no travelers): categoryStackView bottom = view.bottom - 32
         categoryStackViewBottomConstraint = categoryStackView.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -32)
-        // When activities selected: travelersLabel top = categoryStackView.bottom + 24
         travelersLabelTopConstraint = travelersLabel.topAnchor.constraint(equalTo: categoryStackView.bottomAnchor, constant: 24)
-        // When activities selected: travelersContainer bottom = view.bottom - 32
         travelersContainerBottomConstraint = travelersContainer.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -32)
 
-        // Store constraints for selectionLabel top (city visible vs hidden)
+        // selectionLabel top depends on whether the city field is visible.
         selectionLabelTopToCityConstraint = selectionLabel.topAnchor.constraint(equalTo: citySelectionField.bottomAnchor, constant: 24)
         selectionLabelTopToDayFilterConstraint = selectionLabel.topAnchor.constraint(equalTo: dayFilterView.bottomAnchor, constant: 32)
 
-        // Initially, manual card is at bottom (categories hidden)
         manualCardBottomConstraint?.isActive = true
         categoryStackViewBottomConstraint?.isActive = false
         travelersLabelTopConstraint?.isActive = false
         travelersContainerBottomConstraint?.isActive = false
 
-        // Travelers actions
         decrementButton.addTarget(self, action: #selector(decrementTapped), for: .touchUpInside)
         incrementButton.addTarget(self, action: #selector(incrementTapped), for: .touchUpInside)
 
@@ -470,7 +443,6 @@ public class AddPlanSelectDayVC: TRPBaseUIViewController, AddPlanChildViewContro
         updateSelectionStyles()
         updateCategorySelectionUI()
 
-        // Restore continue button state if mode was already selected
         updateContinueButtonState()
     }
     
@@ -478,7 +450,6 @@ public class AddPlanSelectDayVC: TRPBaseUIViewController, AddPlanChildViewContro
     private func configureDayFilterView() {
         let days = viewModel.getAvailableDays()
 
-        // Determine selected day index
         if let selectedDay = viewModel.getSelectedDay(),
            let index = days.firstIndex(where: { Calendar.current.isDate($0, inSameDayAs: selectedDay) }) {
             selectedDayIndex = index
@@ -488,11 +459,9 @@ public class AddPlanSelectDayVC: TRPBaseUIViewController, AddPlanChildViewContro
     }
     
     private func updateCityButton() {
-        // Hide city selection if there's only one city
         let hasSingleCity = viewModel.hasSingleCity()
         citySelectionField.isHidden = hasSingleCity
 
-        // Toggle selectionLabel top constraint based on city visibility
         selectionLabelTopToCityConstraint?.isActive = !hasSingleCity
         selectionLabelTopToDayFilterConstraint?.isActive = hasSingleCity
 
@@ -506,27 +475,24 @@ public class AddPlanSelectDayVC: TRPBaseUIViewController, AddPlanChildViewContro
         updateSelectionStyles()
         updateCategorySelectionUI()
         updateContinueButtonState()
-        // This will proceed to the next screens (time/travelers, then categories)
     }
-    
+
     @objc private func manualAddTapped() {
         selectedMode = .manual
         updateSelectionStyles()
         updateCategorySelectionUI()
         updateContinueButtonState()
-        // Show category selection on this screen
     }
     
     @objc private func categoryButtonTapped(_ sender: UIButton) {
         guard let categoryId = sender.accessibilityIdentifier else { return }
 
-        // Single-select: deselect all others first
+        // Single-select: deselect all others first.
         for button in categoryButtons {
             let isSelected = (button.accessibilityIdentifier == categoryId)
             updateSelectedButtonStyle(button, isSelected: isSelected)
         }
 
-        // Store selected category
         viewModel.setSelectedManualCategory(categoryId)
         updateTravelersSectionUI()
         updateContinueButtonState()
@@ -550,7 +516,6 @@ public class AddPlanSelectDayVC: TRPBaseUIViewController, AddPlanChildViewContro
         let citiesForDay = viewModel.getCitiesForSelectedDay()
         let hasMappings = viewModel.hasDateCityMapping()
 
-        // Check if we have any cities to show
         guard !citiesForDay.mapped.isEmpty || !citiesForDay.other.isEmpty else { return }
 
         let citySelectionVC = AddPlanCitySelectionVC()
@@ -576,11 +541,9 @@ public class AddPlanSelectDayVC: TRPBaseUIViewController, AddPlanChildViewContro
         categoryLabel.isHidden = !showCategories
         categoryStackView.isHidden = !showCategories
 
-        // Update constraints based on visibility
         manualCardBottomConstraint?.isActive = !showCategories
         categoryLabelTopConstraint?.isActive = showCategories
 
-        // Update category button styles based on selected category
         if showCategories {
             let selectedCategoryId = viewModel.getSelectedManualCategory()
             for button in categoryButtons {
@@ -589,7 +552,6 @@ public class AddPlanSelectDayVC: TRPBaseUIViewController, AddPlanChildViewContro
             }
         }
 
-        // Update travelers section visibility
         updateTravelersSectionUI()
     }
 
@@ -598,7 +560,6 @@ public class AddPlanSelectDayVC: TRPBaseUIViewController, AddPlanChildViewContro
         travelersLabel.isHidden = !showTravelers
         travelersContainer.isHidden = !showTravelers
 
-        // Toggle bottom constraints
         categoryStackViewBottomConstraint?.isActive = !showTravelers && (selectedMode == .manual)
         travelersLabelTopConstraint?.isActive = showTravelers
         travelersContainerBottomConstraint?.isActive = showTravelers
@@ -607,7 +568,6 @@ public class AddPlanSelectDayVC: TRPBaseUIViewController, AddPlanChildViewContro
             updateTravelerCountUI()
         }
 
-        // Notify container to update sheet height
         containerVC?.notifyContentHeightChanged()
     }
 
@@ -637,10 +597,8 @@ public class AddPlanSelectDayVC: TRPBaseUIViewController, AddPlanChildViewContro
     private func updateContinueButtonState() {
         let canContinue: Bool
         if selectedMode == .manual {
-            // For manual mode, require category selection
             canContinue = viewModel.getSelectedManualCategory() != nil
         } else if selectedMode == .smartRecommendations {
-            // For smart recommendations, just need mode selection
             canContinue = true
         } else {
             canContinue = false
@@ -656,7 +614,6 @@ public class AddPlanSelectDayVC: TRPBaseUIViewController, AddPlanChildViewContro
         configureDayFilterView()
         updateCityButton()
 
-        // Clear selection mode
         selectedMode = .none
         updateSelectionStyles()
         updateCategorySelectionUI()
@@ -672,7 +629,7 @@ extension AddPlanSelectDayVC: TRPTimelineDayFilterViewDelegate {
         guard dayIndex < days.count, !days[dayIndex].isPastDay() else { return }
         selectedDayIndex = dayIndex
         viewModel.selectDay(days[dayIndex])
-        updateCityButton()  // Update city when day changes (for date-city mapping)
+        updateCityButton()
     }
 }
 
