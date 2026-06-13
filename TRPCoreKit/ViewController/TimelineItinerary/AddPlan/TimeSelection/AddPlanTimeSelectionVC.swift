@@ -17,11 +17,13 @@ public class AddPlanTimeSelectionVC: TRPBaseUIViewController, DynamicHeightPrese
         if viewModel?.isStepEditMode == true {
             chrome = 56 + 24 + 24
         } else {
-            chrome = 56 + 16 + 48 + 24 + 24
+            // ...+ "Add to day" label (16) + gap (16) above the day filter.
+            chrome = 56 + 16 + 16 + 16 + 48 + 24 + 24
         }
         // `safeAreaInsets` is 0 before the view is in a window; fall back to 34pt and refine post-layout.
         let safeAreaBottom = view.safeAreaInsets.bottom > 0 ? view.safeAreaInsets.bottom : 34
-        let bottom: CGFloat = 16 + 52 + safeAreaBottom
+        // SavedPlans context stacks a Remove button (48) + 12 spacing under the primary button.
+        let bottom: CGFloat = 16 + 52 + (isSavedPlansContext ? 60 : 0) + safeAreaBottom
 
         let allDaysUnavailable = viewModel?.allDaysUnavailable() == true
         let isFlexible = !allDaysUnavailable && viewModel?.isSelectedDayFlexible() == true
@@ -103,6 +105,13 @@ public class AddPlanTimeSelectionVC: TRPBaseUIViewController, DynamicHeightPrese
 
     public var onStepUpdated: (() -> Void)?
 
+    /// Set by SavedPlans to opt the sheet into the "Select + Remove" layout: the primary
+    /// button reads "Select" and a Remove button appears below it. Invoked after the
+    /// favourite has been removed so SavedPlans can drop it from its list.
+    public var onRemoveFavourite: (() -> Void)?
+
+    private var isSavedPlansContext: Bool { onRemoveFavourite != nil }
+
     // MARK: - UI Components
     private var customNavigationBar: TRPTimelineCustomNavigationBar!
 
@@ -116,8 +125,17 @@ public class AddPlanTimeSelectionVC: TRPBaseUIViewController, DynamicHeightPrese
         let label = UILabel()
         label.translatesAutoresizingMaskIntoConstraints = false
         label.text = AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.selectATime)
-        label.font = FontSet.montserratSemiBold.font(18)
-        label.textColor = ColorSet.primaryText.uiColor
+        label.font = FontSet.montserratLight.font(12)
+        label.textColor = ColorSet.fg.uiColor
+        return label
+    }()
+
+    private let addToDayLabel: UILabel = {
+        let label = UILabel()
+        label.translatesAutoresizingMaskIntoConstraints = false
+        label.text = AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.addToDay)
+        label.font = FontSet.montserratLight.font(12)
+        label.textColor = ColorSet.fg.uiColor
         return label
     }()
 
@@ -144,6 +162,14 @@ public class AddPlanTimeSelectionVC: TRPBaseUIViewController, DynamicHeightPrese
             style: .primary
         )
         button.setEnabled(false)
+        return button
+    }()
+
+    private lazy var removeFavouriteButton: TRPButton = {
+        let button = TRPButton(
+            title: TimelineLocalizationKeys.localized(TimelineLocalizationKeys.remove),
+            style: .outlined
+        )
         return button
     }()
 
@@ -317,6 +343,9 @@ public class AddPlanTimeSelectionVC: TRPBaseUIViewController, DynamicHeightPrese
         customNavigationBar.delegate = self
 
         view.addSubview(dayFilterView)
+        if !viewModel.isStepEditMode {
+            view.addSubview(addToDayLabel)
+        }
         view.addSubview(titleLabel)
         view.addSubview(collectionView)
         view.addSubview(emptyStateLabel)
@@ -331,6 +360,9 @@ public class AddPlanTimeSelectionVC: TRPBaseUIViewController, DynamicHeightPrese
         soldOutBanner.addSubview(soldOutBannerIcon)
         soldOutBanner.addSubview(soldOutBannerLabel)
         view.addSubview(continueButton)
+        if isSavedPlansContext {
+            view.addSubview(removeFavouriteButton)
+        }
         view.addSubview(loadingIndicator)
 
         // Step edit mode is locked to the step's own day: hide the day filter and pin the title under the nav bar.
@@ -345,7 +377,11 @@ public class AddPlanTimeSelectionVC: TRPBaseUIViewController, DynamicHeightPrese
             ])
         } else {
             NSLayoutConstraint.activate([
-                dayFilterView.topAnchor.constraint(equalTo: customNavigationBar.bottomAnchor, constant: 16),
+                addToDayLabel.topAnchor.constraint(equalTo: customNavigationBar.bottomAnchor, constant: 16),
+                addToDayLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
+                addToDayLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
+
+                dayFilterView.topAnchor.constraint(equalTo: addToDayLabel.bottomAnchor, constant: 16),
                 dayFilterView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
                 dayFilterView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
                 dayFilterView.heightAnchor.constraint(equalToConstant: 74),
@@ -363,7 +399,6 @@ public class AddPlanTimeSelectionVC: TRPBaseUIViewController, DynamicHeightPrese
 
             continueButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
             continueButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
-            continueButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -16),
 
             loadingIndicator.centerXAnchor.constraint(equalTo: view.centerXAnchor),
             loadingIndicator.centerYAnchor.constraint(equalTo: view.centerYAnchor),
@@ -429,6 +464,19 @@ public class AddPlanTimeSelectionVC: TRPBaseUIViewController, DynamicHeightPrese
             equalTo: soldOutBanner.topAnchor, constant: -16
         )
         collectionViewBottomToContinue.isActive = true
+
+        // SavedPlans context: primary button becomes "Select" and a Remove button is stacked below it.
+        if isSavedPlansContext {
+            continueButton.updateTitle(CommonLocalizationKeys.localized(CommonLocalizationKeys.select))
+            NSLayoutConstraint.activate([
+                removeFavouriteButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
+                removeFavouriteButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
+                removeFavouriteButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -16),
+                continueButton.bottomAnchor.constraint(equalTo: removeFavouriteButton.topAnchor, constant: -12),
+            ])
+        } else {
+            continueButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -16).isActive = true
+        }
     }
 
     private func setupDayFilter() {
@@ -442,6 +490,9 @@ public class AddPlanTimeSelectionVC: TRPBaseUIViewController, DynamicHeightPrese
 
     private func setupActions() {
         continueButton.addTarget(self, action: #selector(continueTapped), for: .touchUpInside)
+        if isSavedPlansContext {
+            removeFavouriteButton.addTarget(self, action: #selector(removeFavouriteTapped), for: .touchUpInside)
+        }
     }
 
     // MARK: - Actions
@@ -464,6 +515,23 @@ public class AddPlanTimeSelectionVC: TRPBaseUIViewController, DynamicHeightPrese
         } else {
             viewModel.createReservedActivitySegment()
         }
+    }
+
+    @objc private func removeFavouriteTapped() {
+        showConfirmAlert(
+            title: TimelineLocalizationKeys.localized(TimelineLocalizationKeys.removeFavouriteTitle),
+            message: TimelineLocalizationKeys.localized(TimelineLocalizationKeys.removeFavouriteMessage),
+            confirmTitle: TimelineLocalizationKeys.localized(TimelineLocalizationKeys.remove),
+            cancelTitle: CommonLocalizationKeys.localized(CommonLocalizationKeys.cancel),
+            btnConfirmAction: { [weak self] in
+                guard let self = self else { return }
+                let baseId = self.viewModel.excludeFavouriteFromTimeline()
+                TRPCoreKit.shared.delegate?.trpCoreKitDidRemoveFavorite(activityId: baseId)
+                self.dismiss(animated: true) {
+                    self.onRemoveFavourite?()
+                }
+            }
+        )
     }
 
     /// Expand the slot grid on a "Show more" tap and refresh the sheet detent for the new rows.

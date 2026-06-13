@@ -506,9 +506,17 @@ extension TRPTimelineItineraryViewModel {
             }
         }
 
+        let excludedIds: Set<String>
+        if let tripHash = timeline?.tripHash {
+            excludedIds = TRPFavouriteExclusionStorage.excludedActivityIds(tripHash: tripHash)
+        } else {
+            excludedIds = []
+        }
+
         filteredFavoriteItems = favouriteItems.filter { item in
             guard let activityId = item.activityId else { return true }
-            return !bookedOrReservedActivityIds.contains(activityId.cleanedAsActivityId())
+            let baseId = activityId.cleanedAsActivityId()
+            return !bookedOrReservedActivityIds.contains(baseId) && !excludedIds.contains(baseId)
         }
     }
 

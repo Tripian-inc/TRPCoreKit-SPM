@@ -235,7 +235,9 @@ extension TRPTimelineItineraryVC: UICollectionViewDataSource, UICollectionViewDe
     }
 
     public func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAt indexPath: IndexPath) -> CGSize {
-        return CGSize(width: 300, height: 126)
+        // Full screen width minus a 24pt margin on each side.
+        let width = max(collectionView.bounds.width - 48, 0)
+        return CGSize(width: width, height: 126)
     }
 
     public func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
@@ -288,7 +290,6 @@ extension TRPTimelineItineraryVC: UICollectionViewDataSource, UICollectionViewDe
             // No-exact-location items use a city-center fallback coordinate; don't recenter the map for them.
             if !item.isNoLocation, let coordinate = item.coordinate, let mapView = map {
                 mapView.setCenter(coordinate, zoomLevel: 15)
-                isMarkerFocused = true
                 updateMainViewButtonVisibility()
             }
 
@@ -302,18 +303,14 @@ extension TRPTimelineItineraryVC: UICollectionViewDataSource, UICollectionViewDe
     public func scrollViewWillEndDragging(_ scrollView: UIScrollView, withVelocity velocity: CGPoint, targetContentOffset: UnsafeMutablePointer<CGPoint>) {
         guard scrollView == poiPreviewCollectionView else { return }
 
-        let cellWidth: CGFloat = 300
+        let cellWidth = scrollView.bounds.width - 48
         let spacing: CGFloat = 8
         let itemWidth = cellWidth + spacing
-        let leftInset: CGFloat = 16
 
-        let targetX = targetContentOffset.pointee.x + leftInset
-        var nearestIndex = round(targetX / itemWidth)
-
+        var nearestIndex = round(targetContentOffset.pointee.x / itemWidth)
         nearestIndex = max(0, min(nearestIndex, CGFloat(mapDisplayItems.count - 1)))
 
-        let newTargetX = nearestIndex * itemWidth - leftInset
-        targetContentOffset.pointee.x = newTargetX
+        targetContentOffset.pointee.x = nearestIndex * itemWidth
     }
 
     public func scrollViewDidEndDecelerating(_ scrollView: UIScrollView) {
@@ -327,12 +324,11 @@ extension TRPTimelineItineraryVC: UICollectionViewDataSource, UICollectionViewDe
     }
 
     private func syncMapSelectionWithVisibleCell() {
-        let cellWidth: CGFloat = 300
+        let cellWidth = poiPreviewCollectionView.bounds.width - 48
         let spacing: CGFloat = 8
         let itemWidth = cellWidth + spacing
-        let leftInset: CGFloat = 16
 
-        let currentIndex = Int(round((poiPreviewCollectionView.contentOffset.x + leftInset) / itemWidth))
+        let currentIndex = Int(round(poiPreviewCollectionView.contentOffset.x / itemWidth))
 
         guard currentIndex >= 0, currentIndex < mapDisplayItems.count else { return }
 
@@ -345,7 +341,6 @@ extension TRPTimelineItineraryVC: UICollectionViewDataSource, UICollectionViewDe
             map?.setCenter(coordinate, zoomLevel: 15)
         }
 
-        isMarkerFocused = true
         updateMainViewButtonVisibility()
 
         poiPreviewCollectionView.reloadData()

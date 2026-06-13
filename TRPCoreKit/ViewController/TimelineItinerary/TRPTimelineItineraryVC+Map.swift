@@ -111,7 +111,9 @@ extension TRPTimelineItineraryVC {
             guard let coordinate = item.item.coordinate else { return nil }
             return CLLocationCoordinate2D(latitude: coordinate.lat, longitude: coordinate.lon)
         }
-        map.fitCamera(to: allCoordinates)
+        // Open the map zoomed out with markers centered — cap the zoom so a tightly
+        // clustered single-city day doesn't snap in close on first load.
+        map.fitCamera(to: allCoordinates, maxZoom: 12)
 
         let segments = viewModel.getSegmentsWithPoisForSelectedDay()
 
@@ -459,7 +461,6 @@ extension TRPTimelineItineraryVC: TRPMapViewDelegate {
         if let index = itemIndex {
             let indexPath = IndexPath(item: index, section: 0)
 
-            isMarkerFocused = true
             updateMainViewButtonVisibility()
 
             expandCollectionView {
@@ -493,14 +494,12 @@ extension TRPTimelineItineraryVC: TRPMapViewDelegate {
             clearMapAnnotations()
             addAnnotationsForOrderedItems(orderedItems)
 
-            isMarkerFocused = true
             updateMainViewButtonVisibility()
         } else {
             clearMapAnnotations()
             addCityAnnotations()
             addSelectedStepAnnotation(orderedItems: orderedItems)
 
-            isMarkerFocused = false
             updateMainViewButtonVisibility()
         }
     }
@@ -517,12 +516,21 @@ extension TRPTimelineItineraryVC: TRPMapViewDelegate {
 
         let (_, _, _, item) = mapDisplayItems[firstIndex]
 
-        // Zoom to city coordinate only — do NOT change the selected step/marker.
+        // Zoom past the multi-city threshold so the tapped city's step markers reveal.
+        // Must be strictly above `multiCityZoomThreshold` — landing exactly on it would
+        // leave `zoomLevel > threshold` false and keep the city markers up.
         if let coordinate = item.coordinate {
-            map?.setCenter(coordinate, zoomLevel: 13)
+            map?.setCenter(coordinate, zoomLevel: Double(multiCityZoomThreshold) + 1)
         }
 
-        isMarkerFocused = true
+        // Swap to step markers immediately rather than waiting on the async camera
+        // callback — that callback no-ops at the exact threshold and can lag the tap.
+        if viewModel.hasMultipleCities() && !isShowingStepMarkersInMultiCity {
+            isShowingStepMarkersInMultiCity = true
+            clearMapAnnotations()
+            addAnnotationsForOrderedItems(viewModel.getOrderedItemsForMap())
+        }
+
         updateMainViewButtonVisibility()
     }
 }
@@ -530,9 +538,10 @@ extension TRPTimelineItineraryVC: TRPMapViewDelegate {
 // MARK: - Main View Button
 extension TRPTimelineItineraryVC {
 
-    /// Shows when: map mode + multiple cities + marker is focused.
+    /// Shows whenever the bottom POI list is visible in multi-city map mode.
+    /// Tied to the bottom list — collapsing/hiding the list hides the button, showing the list shows it again.
     internal func updateMainViewButtonVisibility() {
-        let shouldShow = isShowingMap && hasMultipleCitiesOnSelectedDay && isMarkerFocused
+        let shouldShow = isShowingMap && hasMultipleCitiesOnSelectedDay && isCollectionViewExpanded
         if shouldShow {
             mainViewButton.showAnimated()
         } else {
@@ -543,7 +552,6 @@ extension TRPTimelineItineraryVC {
     @objc internal func mainViewButtonTapped() {
         fitCameraToAllMarkers()
 
-        isMarkerFocused = false
         isShowingStepMarkersInMultiCity = false
         updateMainViewButtonVisibility()
 

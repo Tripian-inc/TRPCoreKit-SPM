@@ -137,7 +137,7 @@ public class TRPTimelineItineraryVC: TRPBaseUIViewController {
         let layout = UICollectionViewFlowLayout()
         layout.scrollDirection = .horizontal
         layout.minimumLineSpacing = 8
-        layout.sectionInset = UIEdgeInsets(top: 0, left: 16, bottom: 0, right: 16)
+        layout.sectionInset = UIEdgeInsets(top: 0, left: 24, bottom: 0, right: 24)
 
         let collectionView = UICollectionView(frame: .zero, collectionViewLayout: layout)
         collectionView.translatesAutoresizingMaskIntoConstraints = false
@@ -174,7 +174,6 @@ public class TRPTimelineItineraryVC: TRPBaseUIViewController {
 
     internal var isShowingMap: Bool = false
 
-    internal var isMarkerFocused: Bool = false
     internal var hasMultipleCitiesOnSelectedDay: Bool = false
 
     internal var isShowingStepMarkersInMultiCity: Bool = false
@@ -186,7 +185,8 @@ public class TRPTimelineItineraryVC: TRPBaseUIViewController {
     internal var segmentBeingEdited: TRPTimelineSegment?
 
     internal var isCollectionViewExpanded: Bool = false
-    internal let collectionViewHeight: CGFloat = 120
+    // 126pt card + 1pt breathing room top & bottom so the rounded corners/shadow aren't clipped.
+    internal let collectionViewHeight: CGFloat = 128
     internal let collapsedOffset: CGFloat = 60   // 50% visible (60pt of 120pt)
     internal let expandedOffset: CGFloat = -16   // Fully visible with margin
 
@@ -344,7 +344,6 @@ public class TRPTimelineItineraryVC: TRPBaseUIViewController {
         }
 
         isCollectionViewExpanded = false
-        isMarkerFocused = false
         selectedMarkerPoiIds.removeAll()
         updateMainViewButtonVisibility()
 
@@ -382,6 +381,8 @@ public class TRPTimelineItineraryVC: TRPBaseUIViewController {
         }
 
         poiPreviewCollectionView.reloadData()
+        // Re-sync after a refresh/day change: the map reset to overview (loadMapData cleared the zoom-into-city state), so the button should hide.
+        updateMainViewButtonVisibility()
     }
 
     // MARK: - Collection View Expand/Collapse
@@ -392,6 +393,7 @@ public class TRPTimelineItineraryVC: TRPBaseUIViewController {
             return
         }
         isCollectionViewExpanded = true
+        updateMainViewButtonVisibility()
 
         UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut, animations: {
             self.poiPreviewBottomConstraint?.constant = self.expandedOffset
@@ -405,8 +407,6 @@ public class TRPTimelineItineraryVC: TRPBaseUIViewController {
     internal func collapseCollectionView() {
         guard isCollectionViewExpanded else { return }
         isCollectionViewExpanded = false
-
-        isMarkerFocused = false
         updateMainViewButtonVisibility()
 
         UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut) {
@@ -422,8 +422,6 @@ public class TRPTimelineItineraryVC: TRPBaseUIViewController {
             collapseCollectionView()
         } else {
             expandCollectionView()
-            isMarkerFocused = true
-            updateMainViewButtonVisibility()
         }
     }
 

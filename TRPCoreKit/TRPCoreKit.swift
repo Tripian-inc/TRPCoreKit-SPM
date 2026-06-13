@@ -66,6 +66,10 @@ public protocol TRPCoreKitDelegate: AnyObject {
     /// - Parameter activityId: The unique identifier of the added activity
     func trpCoreKitDidAddActivity(activityId: String)
 
+    /// Called when a user removes a saved (favourited) activity from Saved Plans
+    /// - Parameter activityId: The base activity id of the removed favourite (e.g. "15423")
+    func trpCoreKitDidRemoveFavorite(activityId: String)
+
     /// Called when authentication fails (refresh token error)
     /// Host app should dismiss SDK and re-authenticate the user
     func trpCoreKitDidFailWithAuthError()
@@ -75,6 +79,7 @@ public protocol TRPCoreKitDelegate: AnyObject {
 public extension TRPCoreKitDelegate {
     func trpCoreKitDidFailWithAuthError() {}
     func trpCoreKitDidAddActivity(activityId: String) {}
+    func trpCoreKitDidRemoveFavorite(activityId: String) {}
 }
 
 public class TRPCoreKit {

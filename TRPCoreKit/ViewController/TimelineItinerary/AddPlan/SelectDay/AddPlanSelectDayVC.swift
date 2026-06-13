@@ -26,7 +26,7 @@ public class AddPlanSelectDayVC: TRPBaseUIViewController, AddPlanChildViewContro
     // MARK: - AddPlanChildViewController
     public var preferredContentHeight: CGFloat {
         let showCategories = (viewModel?.getSelectedMode() == .manual)
-        let showTravelers = showCategories && (viewModel?.getSelectedManualCategory() == "activities")
+        let showTravelers = showCategories
         let hasSingleCity = viewModel?.hasSingleCity() ?? false
         let cityOffset = hasSingleCity ? citySelectionHeight : 0
         var height = showCategories ? manualModeContentHeight : baseContentHeight
@@ -556,7 +556,7 @@ public class AddPlanSelectDayVC: TRPBaseUIViewController, AddPlanChildViewContro
     }
 
     private func updateTravelersSectionUI() {
-        let showTravelers = (selectedMode == .manual) && (viewModel.getSelectedManualCategory() == "activities")
+        let showTravelers = (selectedMode == .manual)
         travelersLabel.isHidden = !showTravelers
         travelersContainer.isHidden = !showTravelers
 

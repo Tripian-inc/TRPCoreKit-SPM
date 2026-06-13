@@ -76,7 +76,7 @@ public class TRPButton: UIButton {
 
     private func setupOutlinedStyle() {
         setTitleColor(ColorSet.primary.uiColor, for: .normal)
-        titleLabel?.font = FontSet.montserratSemiBold.font(16)
+        titleLabel?.font = FontSet.montserratMedium.font(16)
         backgroundColor = .white
         layer.borderWidth = 1
         layer.borderColor = ColorSet.primary.uiColor.cgColor

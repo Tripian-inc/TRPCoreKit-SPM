@@ -24,6 +24,10 @@ public struct TimelineLocalizationKeys {
     public static let removeActivityMessage = "timeline.removeActivity.message"
     public static let remove = "timeline.removeActivity.remove"
 
+    // MARK: - Remove Favourite Alert
+    public static let removeFavouriteTitle = "timeline.removeFavourite.title"
+    public static let removeFavouriteMessage = "timeline.removeFavourite.message"
+
     // MARK: - Remove Recommendations Alert
     public static let removeRecommendationsTitle = "timeline.removeRecommendations.title"
     public static let removeRecommendationsMessage = "timeline.removeRecommendations.message"
@@ -94,6 +98,8 @@ public struct TimelineLocalizationKeys {
         removeActivityTitle: "Remove Activity",
         removeActivityMessage: "Are you sure you want to remove this activity from your itinerary?",
         remove: "Remove",
+        removeFavouriteTitle: "Remove from Saved",
+        removeFavouriteMessage: "Are you sure you want to remove this activity from your saved plans?",
         removeRecommendationsTitle: "Remove Recommendations",
         removeRecommendationsMessage: "Are you sure you want to remove these recommendations from your itinerary?",
         noPlansYet: "No Plans Yet",

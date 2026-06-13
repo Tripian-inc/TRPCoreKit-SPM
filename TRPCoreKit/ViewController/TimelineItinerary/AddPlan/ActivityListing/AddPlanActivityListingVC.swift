@@ -166,20 +166,20 @@ public class AddPlanActivityListingVC: TRPBaseUIViewController {
             tableView.topAnchor.constraint(equalTo: searchBar.bottomAnchor, constant: 16),
             tableView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             tableView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            tableView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor),
+            tableView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
 
-            filterSortStackView.topAnchor.constraint(equalTo: headerContainerView.topAnchor, constant: 8),
-            filterSortStackView.leadingAnchor.constraint(equalTo: headerContainerView.leadingAnchor, constant: 16),
-            filterSortStackView.trailingAnchor.constraint(equalTo: headerContainerView.trailingAnchor, constant: -16),
-            filterSortStackView.heightAnchor.constraint(equalToConstant: 40),
-
-            // Flush with screen edges; the cell's sectionInset handles side padding.
-            categoryCollectionView.topAnchor.constraint(equalTo: filterSortStackView.bottomAnchor, constant: 16),
+            // Categories on top; flush with screen edges so the cell's sectionInset handles side padding.
+            categoryCollectionView.topAnchor.constraint(equalTo: headerContainerView.topAnchor, constant: 8),
             categoryCollectionView.leadingAnchor.constraint(equalTo: headerContainerView.leadingAnchor),
             categoryCollectionView.trailingAnchor.constraint(equalTo: headerContainerView.trailingAnchor),
             categoryCollectionView.heightAnchor.constraint(equalToConstant: 88),
 
-            activityCountLabel.topAnchor.constraint(equalTo: categoryCollectionView.bottomAnchor, constant: 22),
+            filterSortStackView.topAnchor.constraint(equalTo: categoryCollectionView.bottomAnchor, constant: 16),
+            filterSortStackView.leadingAnchor.constraint(equalTo: headerContainerView.leadingAnchor, constant: 16),
+            filterSortStackView.trailingAnchor.constraint(equalTo: headerContainerView.trailingAnchor, constant: -16),
+            filterSortStackView.heightAnchor.constraint(equalToConstant: 40),
+
+            activityCountLabel.topAnchor.constraint(equalTo: filterSortStackView.bottomAnchor, constant: 22),
             activityCountLabel.leadingAnchor.constraint(equalTo: headerContainerView.leadingAnchor, constant: 16),
             activityCountLabel.heightAnchor.constraint(equalToConstant: 16),
             activityCountLabel.bottomAnchor.constraint(equalTo: headerContainerView.bottomAnchor, constant: -8),

@@ -59,7 +59,7 @@ public class AddPlanCitySelectionVC: TRPBaseUIViewController, DynamicHeightPrese
     private lazy var titleLabel: UILabel = {
         let label = UILabel()
         label.translatesAutoresizingMaskIntoConstraints = false
-        label.text = AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.selectCity)
+        label.text = ""
         label.font = FontSet.montserratSemiBold.font(18)
         label.textColor = ColorSet.primaryText.uiColor
         label.textAlignment = .center

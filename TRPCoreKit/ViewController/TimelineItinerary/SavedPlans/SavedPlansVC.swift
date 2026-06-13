@@ -83,9 +83,9 @@ public class SavedPlansVC: TRPBaseUIViewController {
 
         NSLayoutConstraint.activate([
             tableView.topAnchor.constraint(equalTo: customNavigationBar.bottomAnchor),
-            tableView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
-            tableView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
-            tableView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor),
+            tableView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            tableView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            tableView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
 
             emptyStateView.topAnchor.constraint(equalTo: customNavigationBar.bottomAnchor),
             emptyStateView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
@@ -166,8 +166,8 @@ extension SavedPlansVC: UITableViewDelegate {
         headerView.addSubview(label)
 
         NSLayoutConstraint.activate([
-            label.leadingAnchor.constraint(equalTo: headerView.leadingAnchor),
-            label.trailingAnchor.constraint(equalTo: headerView.trailingAnchor),
+            label.leadingAnchor.constraint(equalTo: headerView.leadingAnchor, constant: 16),
+            label.trailingAnchor.constraint(equalTo: headerView.trailingAnchor, constant: -16),
             label.topAnchor.constraint(equalTo: headerView.topAnchor, constant: 16),
             label.bottomAnchor.constraint(equalTo: headerView.bottomAnchor, constant: -8)
         ])
@@ -214,6 +214,10 @@ extension SavedPlansVC: ActivityCardCellDelegate {
             self.viewModel.removeItem(matchingProductId: productId)
 
             self.onSegmentCreatedSilent?(selectedDay)
+        }
+
+        timeSelectionVC.onRemoveFavourite = { [weak self] in
+            self?.viewModel.removeItem(matchingProductId: productId)
         }
 
         presentVCWithDynamicHeight(timeSelectionVC, prefersGrabberVisible: true, isDimmed: true)

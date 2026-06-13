@@ -746,6 +746,17 @@ public class AddPlanTimeSelectionViewModel {
         selectedTimeSlot = TimeSlot(time: displaySlot.time, price: displaySlot.price)
     }
 
+    /// Record this favourite as removed for the current timeline (persisted, per tripHash)
+    /// and return its base activity id for the host-delegate callback.
+    @discardableResult
+    public func excludeFavouriteFromTimeline() -> String {
+        let baseId = tour.productId.cleanedAsActivityId()
+        if let tripHash = planData.tripHash {
+            TRPFavouriteExclusionStorage.addExcludedActivityId(baseId, tripHash: tripHash)
+        }
+        return baseId
+    }
+
     private func makeLocalizedError(code: Int, key: String) -> NSError {
         let message = AddPlanLocalizationKeys.localized(key)
         return NSError(domain: "AddPlanTimeSelection", code: code, userInfo: [NSLocalizedDescriptionKey: message])

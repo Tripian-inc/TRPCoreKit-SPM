@@ -340,10 +340,11 @@ extension TRPTimelineItineraryViewModel {
 
         var existingActivityIds = Set<String>()
 
+        // Normalize to the core id so format differences (plain vs `C_`-prefixed) don't re-add an already-present activity.
         if let segments = timeline.segments {
             for segment in segments {
                 if let activityId = segment.additionalData?.activityId {
-                    existingActivityIds.insert(activityId)
+                    existingActivityIds.insert(activityId.cleanedAsActivityId())
                 }
             }
         }
@@ -351,14 +352,14 @@ extension TRPTimelineItineraryViewModel {
         if let profileSegments = timeline.tripProfile?.segments {
             for segment in profileSegments {
                 if let activityId = segment.additionalData?.activityId {
-                    existingActivityIds.insert(activityId)
+                    existingActivityIds.insert(activityId.cleanedAsActivityId())
                 }
             }
         }
 
         let missingTripItems = tripItems.filter { tripItem in
             guard let activityId = tripItem.activityId else { return false }
-            return !existingActivityIds.contains(activityId)
+            return !existingActivityIds.contains(activityId.cleanedAsActivityId())
         }
 
         guard !missingTripItems.isEmpty else {
@@ -723,13 +724,14 @@ extension TRPTimelineItineraryViewModel {
         itinerary: TRPItineraryWithActivities
     ) -> [SegmentRemovalCandidate] {
         guard let tripItems = itinerary.tripItems, !tripItems.isEmpty else { return [] }
-        let bookedActivityIds = Set(tripItems.compactMap { $0.activityId })
+        // Normalize to the core id so a plain booked id ("11223") matches a `C_`-prefixed reserved id ("C_11223_15").
+        let bookedActivityIds = Set(tripItems.compactMap { $0.activityId?.cleanedAsActivityId() })
 
         var out: [SegmentRemovalCandidate] = []
         for (index, segment) in segments.enumerated() {
             guard segment.segmentType == .reservedActivity else { continue }
             guard let activityId = segment.additionalData?.activityId else { continue }
-            if bookedActivityIds.contains(activityId) {
+            if bookedActivityIds.contains(activityId.cleanedAsActivityId()) {
                 out.append(.init(index: index, segment: segment, reason: .reservedNowBooked))
             }
         }

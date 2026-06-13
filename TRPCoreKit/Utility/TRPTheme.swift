@@ -293,6 +293,7 @@ public enum ColorSet {
     case fgGray
     case fgTertiary
     case borderActive
+    case borderDefault
     case mainDark
     case errorIcon
     case errorBg
@@ -333,6 +334,8 @@ public enum ColorSet {
             return UIColor(red: 0, green: 130, blue: 91)
         case .line, .fgWeaker:
             return UIColor(red: 140, green: 140, blue: 140)
+        case .borderDefault:
+            return UIColor(red: 204, green: 204, blue: 204)
         case .lineWeak:
             return UIColor(red: 207, green: 207, blue: 207)
         case .bgOrange:

@@ -18,7 +18,7 @@ class AddPlanTimeSlotCell: UICollectionViewCell {
         view.translatesAutoresizingMaskIntoConstraints = false
         view.layer.cornerRadius = 20
         view.layer.borderWidth = 1
-        view.layer.borderColor = ColorSet.neutral200.uiColor.cgColor
+        view.layer.borderColor = ColorSet.borderDefault.uiColor.cgColor
         view.backgroundColor = .white
         return view
     }()
@@ -66,13 +66,14 @@ class AddPlanTimeSlotCell: UICollectionViewCell {
         // Disabled placeholder: previously-saved time no longer offered (sold out / past).
         if timeSlot.isDisabled {
             containerView.backgroundColor = ColorSet.bgDisabled.uiColor
-            containerView.layer.borderColor = UIColor.clear.cgColor
+            containerView.layer.borderWidth = 0
             timeLabel.textColor = .white
             return
         }
 
         containerView.backgroundColor = .white
         timeLabel.textColor = ColorSet.fg.uiColor
-        containerView.layer.borderColor = (isSelected ? ColorSet.fg.uiColor : ColorSet.neutral200.uiColor).cgColor
+        containerView.layer.borderWidth = isSelected ? 2 : 1
+        containerView.layer.borderColor = (isSelected ? ColorSet.fg.uiColor : ColorSet.borderDefault.uiColor).cgColor
     }
 }

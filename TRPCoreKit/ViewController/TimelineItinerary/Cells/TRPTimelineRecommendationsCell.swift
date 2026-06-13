@@ -593,9 +593,16 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
         cancellationLabel.isHidden = true
 
         var hasCancellation = false
-        if isActivity, let info = bookingProduct?.info, !info.isEmpty {
-            let cancellationInfo = info.first { $0.lowercased().contains("cancel") || $0.lowercased().contains("refund") }
-            if let cancellation = cancellationInfo {
+        if isActivity {
+            // Prefer the explicit `full_refundable` POI tag → standard "Free Cancellation" label.
+            if let tags = step.poi?.tags,
+               tags.contains(where: { $0.lowercased() == "full_refundable" }) {
+                cancellationLabel.text = CommonLocalizationKeys.localized(CommonLocalizationKeys.freeCancellation)
+                cancellationLabel.isHidden = false
+                hasCancellation = true
+            } else if let info = bookingProduct?.info, !info.isEmpty,
+                      let cancellation = info.first(where: { $0.lowercased().contains("cancel") || $0.lowercased().contains("refund") }) {
+                // Fallback: cancellation text carried in the booking product info.
                 cancellationLabel.text = cancellation
                 cancellationLabel.isHidden = false
                 hasCancellation = true

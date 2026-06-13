@@ -175,7 +175,7 @@ extension TRPTimelineItineraryVC: UITableViewDelegate {
             return 0
         }
 
-        return 60
+        return 12
     }
 
     public func tableView(_ tableView: UITableView, estimatedHeightForFooterInSection section: Int) -> CGFloat {
@@ -190,7 +190,7 @@ extension TRPTimelineItineraryVC: UITableViewDelegate {
             return 0
         }
 
-        return 60
+        return 12
     }
 
     public func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
