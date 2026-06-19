@@ -122,7 +122,7 @@ extension TRPTimelineItineraryVC {
         ])
 
         // cancelsTouchesInView = false so collection view cells still receive taps.
-        let tapGesture = UITapGestureRecognizer(target: self, action: #selector(handlePreviewContainerTap))
+        let tapGesture = UITapGestureRecognizer(target: self, action: #selector(handlePreviewContainerTap(_:)))
         tapGesture.cancelsTouchesInView = false
         poiPreviewContainerView.addGestureRecognizer(tapGesture)
 
@@ -130,10 +130,17 @@ extension TRPTimelineItineraryVC {
         poiPreviewContainerView.addGestureRecognizer(panGesture)
     }
 
-    @objc private func handlePreviewContainerTap() {
-        if !isCollectionViewExpanded {
-            expandCollectionView()
-        }
+    @objc private func handlePreviewContainerTap(_ gesture: UITapGestureRecognizer) {
+        guard !isCollectionViewExpanded else { return }
+
+        // A tap that lands on a preview cell is owned by `didSelectItemAt`, which expands
+        // the list (and suppresses navigation) itself. Handling it here too would flip
+        // `isCollectionViewExpanded` to true first and let that tap fall through to detail.
+        // So only expand for taps on the empty container margins.
+        let location = gesture.location(in: poiPreviewCollectionView)
+        if poiPreviewCollectionView.indexPathForItem(at: location) != nil { return }
+
+        expandCollectionView()
     }
 
     @objc private func handlePreviewContainerPan(_ gesture: UIPanGestureRecognizer) {

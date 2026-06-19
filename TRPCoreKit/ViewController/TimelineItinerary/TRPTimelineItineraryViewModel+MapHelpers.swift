@@ -155,21 +155,57 @@ extension TRPTimelineItineraryViewModel {
         return displayItems.count > 1
     }
 
-    /// Prefers `TRPCity.coordinate` (avoids colliding with the auto-selected step marker); falls back to the first item only when the city coordinate is zero.
+    /// Cities (for the selected day) paired with a coordinate to drop their map marker on.
+    /// A city is only omitted if NO usable coordinate can be found anywhere (see `resolveCityMarkerCoordinate`).
     public func getCitiesWithCoordinatesForSelectedDay() -> [(city: TRPCity, coordinate: TRPLocation)] {
         var result: [(city: TRPCity, coordinate: TRPLocation)] = []
 
         for cityGroup in displayItems {
             guard let city = cityGroup.city else { continue }
 
-            if city.coordinate.lat != 0 || city.coordinate.lon != 0 {
-                result.append((city: city, coordinate: city.coordinate))
-            } else if let firstItemCoordinate = cityGroup.items.first?.coordinate {
-                result.append((city: city, coordinate: firstItemCoordinate))
+            if let coordinate = resolveCityMarkerCoordinate(for: city, items: cityGroup.items) {
+                result.append((city: city, coordinate: coordinate))
             }
         }
 
         return result
+    }
+
+    /// Best-effort coordinate for a city's map marker, tried in priority order. Prevents a
+    /// city from losing its marker just because its first item is no-location (the old code
+    /// only looked at `items.first` and accepted a (0,0) coordinate). Returns nil only when
+    /// every source is exhausted.
+    private func resolveCityMarkerCoordinate(for city: TRPCity, items: [TRPMergedTimelineItem]) -> TRPLocation? {
+        // 1) The city's own coordinate.
+        if isUsableCoordinate(city.coordinate) { return city.coordinate }
+
+        // 2) The first item — any item, not just `items.first` — that carries a real coordinate.
+        //    No-location items expose a nil/zero coordinate, so they're skipped here.
+        if let itemCoordinate = items.compactMap({ $0.coordinate }).first(where: { isUsableCoordinate($0) }) {
+            return itemCoordinate
+        }
+
+        // 3) A plan for this city: its city coordinate, then any step POI coordinate.
+        if let plans = timeline?.plans {
+            for plan in plans where plan.city?.id == city.id {
+                if let planCity = plan.city?.coordinate, isUsableCoordinate(planCity) { return planCity }
+                if let stepCoordinate = plan.steps.compactMap({ $0.poi?.coordinate }).first(where: { isUsableCoordinate($0) }) {
+                    return stepCoordinate
+                }
+            }
+        }
+
+        // 4) Last resort: the shared city cache (resolved from the /cities API by id).
+        if let cached = TRPCityCache.shared.getCityCoordinate(cityId: city.id), isUsableCoordinate(cached) {
+            return cached
+        }
+
+        return nil
+    }
+
+    /// A coordinate is usable for a marker only if it isn't the (0,0) null-island placeholder.
+    private func isUsableCoordinate(_ coordinate: TRPLocation) -> Bool {
+        return coordinate.lat != 0 || coordinate.lon != 0
     }
 
     /// Cities for the selected day. They may lack coordinates — use getCitiesWithCoordinatesForSelectedDay() for markers.

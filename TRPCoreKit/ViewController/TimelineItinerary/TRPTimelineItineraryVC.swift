@@ -177,7 +177,10 @@ public class TRPTimelineItineraryVC: TRPBaseUIViewController {
     internal var hasMultipleCitiesOnSelectedDay: Bool = false
 
     internal var isShowingStepMarkersInMultiCity: Bool = false
-    internal let multiCityZoomThreshold: CGFloat = 13.0  // Above this = show step markers
+    // Above this = show step markers; at/below = show city markers. Kept low (regional
+    // zoom) so city markers only appear once you've zoomed well away from a city, and
+    // step markers stay visible across the whole metro/city range.
+    internal let multiCityZoomThreshold: CGFloat = 9.0
 
     internal var selectedMarkerPoiIds: Set<String> = []
 

@@ -54,7 +54,7 @@ public class AddPlanSelectDayVC: TRPBaseUIViewController, AddPlanChildViewContro
     private lazy var citySelectionField: TRPSelectionField = {
         let field = TRPSelectionField()
         field.translatesAutoresizingMaskIntoConstraints = false
-        field.title = AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.city)
+        field.title = AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.destination)
         field.onTap = { [weak self] in self?.citySelectionTapped() }
         return field
     }()

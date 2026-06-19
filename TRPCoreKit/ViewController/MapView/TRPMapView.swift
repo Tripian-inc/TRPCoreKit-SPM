@@ -506,7 +506,7 @@ extension TRPMapView {
 // MARK: calculateRoute
 extension TRPMapView {
     
-    public func drawRoute(_ route: Route, style: DrawRouteStyle? = nil, segmentId: String? = nil, segmentOrder: Int = 0) {
+    public func drawRoute(_ route: Route, style: DrawRouteStyle? = nil, segmentId: String? = nil, segmentOrder: Int = 0, fitsCamera: Bool = true) {
         guard let routeCoordinates = route.shape?.coordinates, routeCoordinates.count > 0 else {
             return
         }
@@ -528,8 +528,13 @@ extension TRPMapView {
 //            drawRouteDottedLine(route, tag: segmentId + "_line", color: ColorSet.getMapColor(segmentOrder))
         }
         
+        // Camera framing is opt-out: a multi-segment caller (e.g. the timeline, which
+        // draws one route per city) owns the overview camera itself and passes
+        // fitsCamera:false so each async route completion doesn't snap onto its own segment.
+        guard fitsCamera else { return }
+
         let referenceCamera = CameraOptions(zoom: zoomLevel, bearing: 0)
-        
+
         // Fit camera to the given coordinates.
         if let camera = try? mapView?.mapboxMap.camera(
             for: routeCoordinates,

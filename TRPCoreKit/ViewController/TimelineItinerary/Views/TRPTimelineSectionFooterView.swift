@@ -13,25 +13,27 @@ class TRPTimelineSectionFooterView: UITableViewHeaderFooterView {
     static let reuseIdentifier = "TRPTimelineSectionFooterView"
 
     // MARK: - UI Components
-    private let bandView: UIView = {
+
+    /// Separator between city sections: a top line + 10px neutral100 gap + bottom line.
+    private let topLine: UIView = {
         let view = UIView()
         view.translatesAutoresizingMaskIntoConstraints = false
-        view.backgroundColor = ColorSet.neutral100.uiColor
-        view.clipsToBounds = true
+        view.backgroundColor = ColorSet.neutral200.uiColor
         return view
     }()
-
-    /// Inner shadow at the top of the band — the city section above appears to sit on top of it.
-    private let topShadowView = GradientView(
-        colors: [UIColor.black.withAlphaComponent(0.18), .clear],
-        startPoint: CGPoint(x: 0.5, y: 0),
-        endPoint: CGPoint(x: 0.5, y: 1)
-    )
 
     private let bottomLine: UIView = {
         let view = UIView()
         view.translatesAutoresizingMaskIntoConstraints = false
         view.backgroundColor = ColorSet.neutral200.uiColor
+        return view
+    }()
+
+    /// Fill between the two lines (the previous band colour, not transparent).
+    private let gapFillView: UIView = {
+        let view = UIView()
+        view.translatesAutoresizingMaskIntoConstraints = false
+        view.backgroundColor = ColorSet.neutral100.uiColor
         return view
     }()
 
@@ -47,45 +49,32 @@ class TRPTimelineSectionFooterView: UITableViewHeaderFooterView {
 
     // MARK: - Setup
     private func setupView() {
+        // Transparent so the clear space above the divider matches the cells' (clear) bottom inset.
         contentView.backgroundColor = .clear
 
-        contentView.addSubview(bandView)
-        bandView.addSubview(topShadowView)
-        bandView.addSubview(bottomLine)
+        contentView.addSubview(gapFillView)
+        contentView.addSubview(topLine)
+        contentView.addSubview(bottomLine)
 
         NSLayoutConstraint.activate([
-            bandView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
-            bandView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
-            bandView.topAnchor.constraint(equalTo: contentView.topAnchor),
-            bandView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
+            // 8px clear space above the divider. Combined with the last cell's 16px bottom inset,
+            // the gap from the last item to the divider line totals 24px at a city-section boundary.
+            topLine.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 8),
+            topLine.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
+            topLine.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
+            topLine.heightAnchor.constraint(equalToConstant: 0.5),
 
-            topShadowView.leadingAnchor.constraint(equalTo: bandView.leadingAnchor),
-            topShadowView.trailingAnchor.constraint(equalTo: bandView.trailingAnchor),
-            topShadowView.topAnchor.constraint(equalTo: bandView.topAnchor),
-            topShadowView.heightAnchor.constraint(equalToConstant: 6),
+            // 10px neutral100 gap between the two lines.
+            gapFillView.topAnchor.constraint(equalTo: topLine.bottomAnchor),
+            gapFillView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
+            gapFillView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
+            gapFillView.heightAnchor.constraint(equalToConstant: 10),
 
-            bottomLine.leadingAnchor.constraint(equalTo: bandView.leadingAnchor),
-            bottomLine.trailingAnchor.constraint(equalTo: bandView.trailingAnchor),
-            bottomLine.bottomAnchor.constraint(equalTo: bandView.bottomAnchor),
+            bottomLine.topAnchor.constraint(equalTo: gapFillView.bottomAnchor),
+            bottomLine.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
+            bottomLine.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
+            bottomLine.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
             bottomLine.heightAnchor.constraint(equalToConstant: 0.5)
         ])
-    }
-}
-
-// MARK: - Gradient View
-private final class GradientView: UIView {
-    override class var layerClass: AnyClass { CAGradientLayer.self }
-
-    init(colors: [UIColor], startPoint: CGPoint, endPoint: CGPoint) {
-        super.init(frame: .zero)
-        translatesAutoresizingMaskIntoConstraints = false
-        guard let gradientLayer = layer as? CAGradientLayer else { return }
-        gradientLayer.colors = colors.map { $0.cgColor }
-        gradientLayer.startPoint = startPoint
-        gradientLayer.endPoint = endPoint
-    }
-
-    required init?(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
     }
 }

@@ -27,6 +27,7 @@ public class AddPlanContainerVC: TRPBaseUIViewController, DynamicHeightPresentab
     // MARK: - Constants
     private let headerHeight: CGFloat = 44
     private let headerTopPadding: CGFloat = 16
+    private let headerBottomPadding: CGFloat = 20
     private let footerHeight: CGFloat = 64
     private let safeAreaBottomPadding: CGFloat = 0
     
@@ -179,7 +180,7 @@ public class AddPlanContainerVC: TRPBaseUIViewController, DynamicHeightPresentab
         contentHeightConstraint = contentContainerView.heightAnchor.constraint(equalToConstant: 400)
 
         NSLayoutConstraint.activate([
-            contentScrollView.topAnchor.constraint(equalTo: headerView.bottomAnchor),
+            contentScrollView.topAnchor.constraint(equalTo: headerView.bottomAnchor, constant: headerBottomPadding),
             contentScrollView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             contentScrollView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             contentScrollView.bottomAnchor.constraint(equalTo: footerView.topAnchor),
@@ -228,7 +229,7 @@ public class AddPlanContainerVC: TRPBaseUIViewController, DynamicHeightPresentab
             contentHeight = 400
         }
 
-        let totalHeight = headerTopPadding + headerHeight + contentHeight + footerHeight + safeAreaBottomPadding
+        let totalHeight = headerTopPadding + headerHeight + headerBottomPadding + contentHeight + footerHeight + safeAreaBottomPadding
         return totalHeight
     }
 
@@ -305,7 +306,12 @@ public class AddPlanContainerVC: TRPBaseUIViewController, DynamicHeightPresentab
 
     // MARK: - Actions
     @objc private func backButtonTapped() {
-        viewModel.backStepAction()
+        // On the first step there is no previous step — back acts as close.
+        if viewModel.getCurrentStep().getPreviousStep() == nil {
+            closeButtonTapped()
+        } else {
+            viewModel.backStepAction()
+        }
     }
     
     @objc private func closeButtonTapped() {
@@ -381,7 +387,8 @@ public class AddPlanContainerVC: TRPBaseUIViewController, DynamicHeightPresentab
 
         titleLabel.text = currentStep.getTitle()
 
-        backButton.isHidden = (currentStep.getPreviousStep() == nil)
+        // Always show back; on the first step it acts as close (see backButtonTapped).
+        backButton.isHidden = false
 
         let isFirstScreen = (currentStep == .selectDayAndCity)
         clearSelectionButton.isHidden = isFirstScreen

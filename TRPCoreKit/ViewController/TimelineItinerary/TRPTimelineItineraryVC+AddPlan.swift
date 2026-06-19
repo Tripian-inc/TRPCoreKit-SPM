@@ -246,6 +246,12 @@ extension TRPTimelineItineraryVC: UICollectionViewDataSource, UICollectionViewDe
         let isAlreadySelected = selectedMarkerPoiIds.contains(item.itemId)
 
         if isAlreadySelected {
+            // Detail navigation only when the bottom list is fully visible. If it's
+            // collapsed (partially visible), a tap should first reveal the list fully.
+            guard isCollectionViewExpanded else {
+                expandCollectionView()
+                return
+            }
             switch item {
             case .poi(let manualPoi, _, let step):
                 // Recommendation step uses the step's poi; manual-POI segment has step == nil and its own manualPoi.

@@ -148,14 +148,14 @@ public class AddPlanActivityListingViewModel {
             selectedFacetCategoryIds.insert(id)
         }
         clearSearchTextOnCategoryChange()
-        performSearch(style: .bottomSheet)
+        performSearch(style: .skeleton)
     }
 
     public func selectAllCategories() {
         guard !selectedFacetCategoryIds.isEmpty else { return }
         selectedFacetCategoryIds.removeAll()
         clearSearchTextOnCategoryChange()
-        performSearch(style: .bottomSheet)
+        performSearch(style: .skeleton)
     }
 
     /// A persistent search query across category switches is rarely the intent and produces a confusing empty list.

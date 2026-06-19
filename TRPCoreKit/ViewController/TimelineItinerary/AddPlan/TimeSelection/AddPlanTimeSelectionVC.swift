@@ -17,13 +17,13 @@ public class AddPlanTimeSelectionVC: TRPBaseUIViewController, DynamicHeightPrese
         if viewModel?.isStepEditMode == true {
             chrome = 56 + 24 + 24
         } else {
-            // ...+ "Add to day" label (16) + gap (16) above the day filter.
-            chrome = 56 + 16 + 16 + 16 + 48 + 24 + 24
+            // ...+ "Add to day" label top (25) + label (16) + gap (16) above the day filter.
+            chrome = 56 + 25 + 16 + 16 + 48 + 24 + 24
         }
         // `safeAreaInsets` is 0 before the view is in a window; fall back to 34pt and refine post-layout.
         let safeAreaBottom = view.safeAreaInsets.bottom > 0 ? view.safeAreaInsets.bottom : 34
-        // SavedPlans context stacks a Remove button (48) + 12 spacing under the primary button.
-        let bottom: CGFloat = 16 + 52 + (isSavedPlansContext ? 60 : 0) + safeAreaBottom
+        // SavedPlans / change-time stacks a Remove button (48) + 12 spacing under the primary button.
+        let bottom: CGFloat = 16 + 52 + (showsRemoveButton ? 60 : 0) + safeAreaBottom
 
         let allDaysUnavailable = viewModel?.allDaysUnavailable() == true
         let isFlexible = !allDaysUnavailable && viewModel?.isSelectedDayFlexible() == true
@@ -110,7 +110,14 @@ public class AddPlanTimeSelectionVC: TRPBaseUIViewController, DynamicHeightPrese
     /// favourite has been removed so SavedPlans can drop it from its list.
     public var onRemoveFavourite: (() -> Void)?
 
+    /// Set by the change-time presenter (segment/step edit) to drive the host's
+    /// "remove from plan" flow when the Remove button is tapped.
+    public var onRemoveFromPlan: (() -> Void)?
+
     private var isSavedPlansContext: Bool { onRemoveFavourite != nil }
+
+    /// Remove button shows for SavedPlans (remove favourite) and change-time edit (remove from plan).
+    private var showsRemoveButton: Bool { isSavedPlansContext || viewModel.isEditMode }
 
     // MARK: - UI Components
     private var customNavigationBar: TRPTimelineCustomNavigationBar!
@@ -133,7 +140,6 @@ public class AddPlanTimeSelectionVC: TRPBaseUIViewController, DynamicHeightPrese
     private let addToDayLabel: UILabel = {
         let label = UILabel()
         label.translatesAutoresizingMaskIntoConstraints = false
-        label.text = AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.addToDay)
         label.font = FontSet.montserratLight.font(12)
         label.textColor = ColorSet.fg.uiColor
         return label
@@ -165,7 +171,7 @@ public class AddPlanTimeSelectionVC: TRPBaseUIViewController, DynamicHeightPrese
         return button
     }()
 
-    private lazy var removeFavouriteButton: TRPButton = {
+    private lazy var removeButton: TRPButton = {
         let button = TRPButton(
             title: TimelineLocalizationKeys.localized(TimelineLocalizationKeys.remove),
             style: .outlined
@@ -344,6 +350,9 @@ public class AddPlanTimeSelectionVC: TRPBaseUIViewController, DynamicHeightPrese
 
         view.addSubview(dayFilterView)
         if !viewModel.isStepEditMode {
+            addToDayLabel.text = AddPlanLocalizationKeys.localized(
+                viewModel.isEditMode ? AddPlanLocalizationKeys.moveDay : AddPlanLocalizationKeys.addToDay
+            )
             view.addSubview(addToDayLabel)
         }
         view.addSubview(titleLabel)
@@ -360,8 +369,8 @@ public class AddPlanTimeSelectionVC: TRPBaseUIViewController, DynamicHeightPrese
         soldOutBanner.addSubview(soldOutBannerIcon)
         soldOutBanner.addSubview(soldOutBannerLabel)
         view.addSubview(continueButton)
-        if isSavedPlansContext {
-            view.addSubview(removeFavouriteButton)
+        if showsRemoveButton {
+            view.addSubview(removeButton)
         }
         view.addSubview(loadingIndicator)
 
@@ -377,7 +386,7 @@ public class AddPlanTimeSelectionVC: TRPBaseUIViewController, DynamicHeightPrese
             ])
         } else {
             NSLayoutConstraint.activate([
-                addToDayLabel.topAnchor.constraint(equalTo: customNavigationBar.bottomAnchor, constant: 16),
+                addToDayLabel.topAnchor.constraint(equalTo: customNavigationBar.bottomAnchor, constant: 25),
                 addToDayLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
                 addToDayLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
 
@@ -465,14 +474,17 @@ public class AddPlanTimeSelectionVC: TRPBaseUIViewController, DynamicHeightPrese
         )
         collectionViewBottomToContinue.isActive = true
 
-        // SavedPlans context: primary button becomes "Select" and a Remove button is stacked below it.
+        // SavedPlans context: primary button becomes "Select".
         if isSavedPlansContext {
             continueButton.updateTitle(CommonLocalizationKeys.localized(CommonLocalizationKeys.select))
+        }
+        // SavedPlans (remove favourite) or change-time (remove from plan): stack a Remove button below.
+        if showsRemoveButton {
             NSLayoutConstraint.activate([
-                removeFavouriteButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
-                removeFavouriteButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
-                removeFavouriteButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -16),
-                continueButton.bottomAnchor.constraint(equalTo: removeFavouriteButton.topAnchor, constant: -12),
+                removeButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
+                removeButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
+                removeButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -16),
+                continueButton.bottomAnchor.constraint(equalTo: removeButton.topAnchor, constant: -12),
             ])
         } else {
             continueButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -16).isActive = true
@@ -490,8 +502,8 @@ public class AddPlanTimeSelectionVC: TRPBaseUIViewController, DynamicHeightPrese
 
     private func setupActions() {
         continueButton.addTarget(self, action: #selector(continueTapped), for: .touchUpInside)
-        if isSavedPlansContext {
-            removeFavouriteButton.addTarget(self, action: #selector(removeFavouriteTapped), for: .touchUpInside)
+        if showsRemoveButton {
+            removeButton.addTarget(self, action: #selector(removeButtonTapped), for: .touchUpInside)
         }
     }
 
@@ -517,18 +529,38 @@ public class AddPlanTimeSelectionVC: TRPBaseUIViewController, DynamicHeightPrese
         }
     }
 
-    @objc private func removeFavouriteTapped() {
+    @objc private func removeButtonTapped() {
+        if isSavedPlansContext {
+            showConfirmAlert(
+                title: TimelineLocalizationKeys.localized(TimelineLocalizationKeys.removeFavouriteTitle),
+                message: TimelineLocalizationKeys.localized(TimelineLocalizationKeys.removeFavouriteMessage),
+                confirmTitle: TimelineLocalizationKeys.localized(TimelineLocalizationKeys.remove),
+                cancelTitle: CommonLocalizationKeys.localized(CommonLocalizationKeys.cancel),
+                btnConfirmAction: { [weak self] in
+                    guard let self = self else { return }
+                    let baseId = self.viewModel.excludeFavouriteFromTimeline()
+                    TRPCoreKit.shared.delegate?.trpCoreKitDidRemoveFavorite(activityId: baseId)
+                    self.dismiss(animated: true) {
+                        self.onRemoveFavourite?()
+                    }
+                }
+            )
+            return
+        }
+
+        // Change-time (edit) mode: confirm over the still-open sheet, then dismiss and run the
+        // host's remove-from-plan flow (removeSegment / removeStep, no second confirm).
+        let isStep = viewModel.isStepEditMode
+        let titleKey = isStep ? TimelineLocalizationKeys.removeStepTitle : TimelineLocalizationKeys.removeActivityTitle
+        let messageKey = isStep ? TimelineLocalizationKeys.removeStepMessage : TimelineLocalizationKeys.removeActivityMessage
         showConfirmAlert(
-            title: TimelineLocalizationKeys.localized(TimelineLocalizationKeys.removeFavouriteTitle),
-            message: TimelineLocalizationKeys.localized(TimelineLocalizationKeys.removeFavouriteMessage),
+            title: TimelineLocalizationKeys.localized(titleKey),
+            message: TimelineLocalizationKeys.localized(messageKey),
             confirmTitle: TimelineLocalizationKeys.localized(TimelineLocalizationKeys.remove),
             cancelTitle: CommonLocalizationKeys.localized(CommonLocalizationKeys.cancel),
             btnConfirmAction: { [weak self] in
-                guard let self = self else { return }
-                let baseId = self.viewModel.excludeFavouriteFromTimeline()
-                TRPCoreKit.shared.delegate?.trpCoreKitDidRemoveFavorite(activityId: baseId)
-                self.dismiss(animated: true) {
-                    self.onRemoveFavourite?()
+                self?.dismiss(animated: true) {
+                    self?.onRemoveFromPlan?()
                 }
             }
         )

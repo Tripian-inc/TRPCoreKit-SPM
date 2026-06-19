@@ -13,8 +13,10 @@ public struct AddPlanLocalizationKeys {
     public static let addPlan = "addPlan.title.addPlan"
     public static let addActivity = "addPlan.title.addActivity"
     public static let addToDay = "addPlan.label.addToDay"
+    public static let moveDay = "addPlan.label.moveDay"
     public static let city = "addPlan.label.city"
     public static let selectCity = "addPlan.title.selectCity"
+    public static let destination = "trips.createNewTrip.destinationTips.destination.title"
     public static let citiesForSelectedDate = "addPlan.section.citiesForSelectedDate"
     public static let otherCities = "addPlan.section.otherCities"
     public static let startTime = "addPlan.label.startTime"
@@ -139,6 +141,7 @@ public struct AddPlanLocalizationKeys {
         addPlan: "Add Plan",
         addActivity: "Add Activity",
         addToDay: "Add to Day",
+        moveDay: "Move day",
         city: "City",
         selectCity: "Select City",
         citiesForSelectedDate: "Cities for this date",

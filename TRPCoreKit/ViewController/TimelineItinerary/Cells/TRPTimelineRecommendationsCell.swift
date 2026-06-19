@@ -33,6 +33,11 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
     private var currentIndexPath: IndexPath?
     private var hasAccommodation: Bool = false
 
+    /// Temporarily hide the starting-point row (accommodation / "City | City Center"). The leading
+    /// distance to the first step is still shown and still computed in the route — only the row is
+    /// hidden, so the list reads: distance → step 1 → … Flip back to `true` to restore the row.
+    private let showsStartingPoint = false
+
     // MARK: - UI Components
     private let containerView: UIStackView = {
         let stack = UIStackView()
@@ -69,7 +74,7 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
         let imageView = UIImageView()
         imageView.translatesAutoresizingMaskIntoConstraints = false
         imageView.image = TRPImageController().getImage(inFramework: "ic_recom_arrow", inApp: nil)?.withRenderingMode(.alwaysTemplate)
-        imageView.tintColor = ColorSet.fg.uiColor
+        imageView.tintColor = ColorSet.fgWeaker.uiColor
         imageView.contentMode = .scaleAspectFit
         return imageView
     }()
@@ -132,7 +137,7 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
             containerView.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 8),
             containerView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 12),
             containerView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -12),
-            containerView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -8),
+            containerView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -16),
 
             headerView.heightAnchor.constraint(equalToConstant: 44),
 
@@ -256,16 +261,18 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
             }
         }
 
-        if let displayName = startingPointName {
+        // Starting-point row is hidden for now (showsStartingPoint == false), but the leading
+        // distance (starting point → first step) is still drawn and still computed in the route.
+        if showsStartingPoint, let displayName = startingPointName {
             let startingPointView = createAccommodationView(name: displayName)
             recommendationsStackView.addArrangedSubview(startingPointView)
+        }
 
-            if !steps.isEmpty && startingPointCoordinate != nil {
-                let distanceView = createDistanceView(for: distanceIndex)
-                distanceViews[distanceIndex] = distanceView
-                recommendationsStackView.addArrangedSubview(distanceView)
-                distanceIndex += 1
-            }
+        if !steps.isEmpty && startingPointCoordinate != nil {
+            let distanceView = createDistanceView(for: distanceIndex)
+            distanceViews[distanceIndex] = distanceView
+            recommendationsStackView.addArrangedSubview(distanceView)
+            distanceIndex += 1
         }
 
         for (index, step) in steps.enumerated() {
@@ -337,16 +344,18 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
             }
         }
 
-        if let displayName = startingPointName {
+        // Starting-point row is hidden for now (showsStartingPoint == false), but the leading
+        // distance (starting point → first step) is still drawn and still computed in the route.
+        if showsStartingPoint, let displayName = startingPointName {
             let startingPointView = createAccommodationView(name: displayName)
             recommendationsStackView.addArrangedSubview(startingPointView)
+        }
 
-            if !cellData.steps.isEmpty && startingPointCoordinate != nil {
-                let distanceView = createDistanceView(for: distanceIndex)
-                distanceViews[distanceIndex] = distanceView
-                recommendationsStackView.addArrangedSubview(distanceView)
-                distanceIndex += 1
-            }
+        if !cellData.steps.isEmpty && startingPointCoordinate != nil {
+            let distanceView = createDistanceView(for: distanceIndex)
+            distanceViews[distanceIndex] = distanceView
+            recommendationsStackView.addArrangedSubview(distanceView)
+            distanceIndex += 1
         }
 
         for (index, step) in cellData.steps.enumerated() {

@@ -107,13 +107,24 @@ extension TRPTimelineItineraryVC {
 
         poiPreviewCollectionView.reloadData()
 
-        let allCoordinates = orderedItems.compactMap { item -> CLLocationCoordinate2D? in
-            guard let coordinate = item.item.coordinate else { return nil }
-            return CLLocationCoordinate2D(latitude: coordinate.lat, longitude: coordinate.lon)
-        }
         // Open the map zoomed out with markers centered — cap the zoom so a tightly
         // clustered single-city day doesn't snap in close on first load.
-        map.fitCamera(to: allCoordinates, maxZoom: 12)
+        let fitCoordinates: [CLLocationCoordinate2D]
+        if viewModel.hasMultipleCities() {
+            // Frame the city markers themselves so every city is on-screen at the overview —
+            // including cities whose steps are all no-location (no step coordinate to fit to).
+            fitCoordinates = viewModel.getCitiesWithCoordinatesForSelectedDay().map {
+                CLLocationCoordinate2D(latitude: $0.coordinate.lat, longitude: $0.coordinate.lon)
+            }
+        } else {
+            fitCoordinates = orderedItems.compactMap { item -> CLLocationCoordinate2D? in
+                guard let coordinate = item.item.coordinate else { return nil }
+                return CLLocationCoordinate2D(latitude: coordinate.lat, longitude: coordinate.lon)
+            }
+        }
+        // Multi-city opens to the all-cities overview: jump (no ease) so the camera
+        // doesn't animate down through the city-marker zoom band and flicker markers.
+        map.fitCamera(to: fitCoordinates, maxZoom: 12, animated: !viewModel.hasMultipleCities())
 
         let segments = viewModel.getSegmentsWithPoisForSelectedDay()
 
@@ -371,7 +382,9 @@ extension TRPTimelineItineraryVC {
                     hasError = true
                 } else if let route = route, let map = self.map {
                     DispatchQueue.main.async {
-                        map.drawRoute(route, segmentId: segmentId, segmentOrder: segmentIndex)
+                        // fitsCamera:false — loadMapData already framed the overview; each
+                        // route completes async and would otherwise snap the camera to its own city.
+                        map.drawRoute(route, segmentId: segmentId, segmentOrder: segmentIndex, fitsCamera: false)
                     }
                 } else {
                     hasError = true
@@ -505,30 +518,37 @@ extension TRPTimelineItineraryVC: TRPMapViewDelegate {
     }
 
     public func mapView(cityAnnotationPressed cityId: String) {
-        guard let firstIndex = mapDisplayItems.firstIndex(where: { (_, _, _, item) -> Bool in
-            switch item {
-            case .poi(_, let segment, _):
-                return "\(segment.city?.id ?? 0)" == cityId
-            case .activity(let segment):
-                return "\(segment.city?.id ?? 0)" == cityId
-            }
-        }) else { return }
-
-        let (_, _, _, item) = mapDisplayItems[firstIndex]
-
-        // Zoom past the multi-city threshold so the tapped city's step markers reveal.
-        // Must be strictly above `multiCityZoomThreshold` — landing exactly on it would
-        // leave `zoomLevel > threshold` false and keep the city markers up.
-        if let coordinate = item.coordinate {
-            map?.setCenter(coordinate, zoomLevel: Double(multiCityZoomThreshold) + 1)
-        }
-
         // Swap to step markers immediately rather than waiting on the async camera
         // callback — that callback no-ops at the exact threshold and can lag the tap.
         if viewModel.hasMultipleCities() && !isShowingStepMarkersInMultiCity {
             isShowingStepMarkersInMultiCity = true
             clearMapAnnotations()
             addAnnotationsForOrderedItems(viewModel.getOrderedItemsForMap())
+        }
+
+        // Frame ALL of the tapped city's steps (same as a single-city open) instead of
+        // snapping the camera onto the first step. Skip no-location items — their
+        // coordinate is just a city-center fallback.
+        let cityCoordinates: [CLLocationCoordinate2D] = mapDisplayItems.compactMap { (_, _, _, item) in
+            let belongsToCity: Bool
+            switch item {
+            case .poi(_, let segment, _):
+                belongsToCity = "\(segment.city?.id ?? 0)" == cityId
+            case .activity(let segment):
+                belongsToCity = "\(segment.city?.id ?? 0)" == cityId
+            }
+            guard belongsToCity, !item.isNoLocation, let coordinate = item.coordinate else { return nil }
+            return CLLocationCoordinate2D(latitude: coordinate.lat, longitude: coordinate.lon)
+        }
+
+        if !cityCoordinates.isEmpty {
+            // animated: false → jump instead of easing through the city-marker zoom band.
+            // The fit lands well above `multiCityZoomThreshold`, so the step markers stay up.
+            map?.fitCamera(to: cityCoordinates, maxZoom: 12, animated: false)
+        } else if let cityCoordinate = viewModel.getCitiesWithCoordinatesForSelectedDay()
+            .first(where: { "\($0.city.id)" == cityId })?.coordinate {
+            // No real pins for this city (all no-location) — just center on it above the threshold.
+            map?.setCenter(cityCoordinate, zoomLevel: Double(multiCityZoomThreshold) + 1)
         }
 
         updateMainViewButtonVisibility()
@@ -580,7 +600,10 @@ extension TRPTimelineItineraryVC {
         }
 
         guard !allCoordinates.isEmpty else { return }
-        map.fitCamera(to: allCoordinates)
+        // Jump (no ease): mainViewButtonTapped flips isShowingStepMarkersInMultiCity off
+        // right after this call, so an animated descent through the threshold band would
+        // briefly re-add step markers mid-flight and flicker.
+        map.fitCamera(to: allCoordinates, animated: false)
     }
 }
 

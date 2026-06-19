@@ -262,9 +262,19 @@ class TRPTimeRangeSelectionViewController: TRPBaseUIViewController, DynamicHeigh
             confirmButton.setEnabled(false)
             return
         }
-        // End time must be greater than start time
-        let isValid = toDate > fromDate
+        // Compare HH:mm only, NOT the full Date. The single time picker hands back
+        // Dates with inconsistent day components (the start keeps the planned day,
+        // a re-picked end is rebuilt on "today" by TimePickerBounds.defaultInitialEndTime),
+        // so `toDate > fromDate` can be false even when end-of-day > start-of-day.
+        // Mirrors the picker's own strict-minimum HH:mm comparison.
+        let isValid = minutesOfDay(toDate) > minutesOfDay(fromDate)
         confirmButton.setEnabled(isValid)
+    }
+
+    /// Minutes since midnight — the only meaningful axis for these time-of-day proxies.
+    private func minutesOfDay(_ date: Date) -> Int {
+        let comps = Calendar.current.dateComponents([.hour, .minute], from: date)
+        return (comps.hour ?? 0) * 60 + (comps.minute ?? 0)
     }
 
     // MARK: - Helper Methods
@@ -357,8 +367,9 @@ extension TRPTimeRangeSelectionViewController: TRPSingleTimePickerDelegate {
             fromDate = time
             updateStartTimeDisplay()
 
-            // Clear end time if it's now invalid (before new start time)
-            if let toDate = toDate, toDate <= time {
+            // Clear end time if it's now invalid (at or before the new start time).
+            // HH:mm comparison — see updateConfirmButtonState for why a full Date compare is wrong here.
+            if let toDate = toDate, minutesOfDay(toDate) <= minutesOfDay(time) {
                 self.toDate = nil
                 updateEndTimeDisplay()
             }

@@ -109,6 +109,11 @@ extension TRPTimelineItineraryVC: TRPTimelineReservedActivityCellDelegate {
             }
         }
 
+        // Confirm is shown by the sheet; here we just run the removal.
+        timeSelectionVC.onRemoveFromPlan = { [weak self] in
+            self?.viewModel.removeSegment(segment)
+        }
+
         presentVCWithDynamicHeight(timeSelectionVC, prefersGrabberVisible: true, isDimmed: true)
     }
 
@@ -330,6 +335,11 @@ extension TRPTimelineItineraryVC: TRPTimelineRecommendationsCellDelegate {
                     timeSelectionVC?.dismiss(animated: true)
                 }
             }
+        }
+
+        // Confirm is shown by the sheet; here we just run the removal.
+        timeSelectionVC.onRemoveFromPlan = { [weak self] in
+            self?.viewModel.removeStep(step)
         }
 
         presentVCWithDynamicHeight(timeSelectionVC, prefersGrabberVisible: true, isDimmed: true)
