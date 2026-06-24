@@ -132,5 +132,8 @@ extension TRPCreateEditTimelineSegmentProfile {
 
         // Manual POI properties
         self.poiId                 = base.poiId
+
+        // Segment type (CRITICAL: must preserve original type during updates)
+        self.segmentType           = base.segmentType
     }
 }

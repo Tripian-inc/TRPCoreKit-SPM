@@ -14,7 +14,7 @@ public class AddPlanCategorySelectionVC: TRPBaseUIViewController, AddPlanChildVi
 
     // MARK: - AddPlanChildViewController
     public var preferredContentHeight: CGFloat {
-        return 388 // Static height from design
+        return 284
     }
 
     // MARK: - Properties
@@ -38,14 +38,21 @@ public class AddPlanCategorySelectionVC: TRPBaseUIViewController, AddPlanChildVi
         return view
     }()
 
+    private let bottomSeparator: UIView = {
+        let view = UIView()
+        view.translatesAutoresizingMaskIntoConstraints = false
+        view.backgroundColor = ColorSet.neutral200.uiColor
+        return view
+    }()
+
     // MARK: - Lifecycle
     public override func setupViews() {
         super.setupViews()
         view.backgroundColor = .white
 
-        // Add all subviews directly to view (scroll is handled by container)
         view.addSubview(descriptionLabel)
         view.addSubview(gridContainer)
+        view.addSubview(bottomSeparator)
 
         NSLayoutConstraint.activate([
             descriptionLabel.topAnchor.constraint(equalTo: view.topAnchor, constant: 24),
@@ -55,6 +62,11 @@ public class AddPlanCategorySelectionVC: TRPBaseUIViewController, AddPlanChildVi
             gridContainer.topAnchor.constraint(equalTo: descriptionLabel.bottomAnchor, constant: 16),
             gridContainer.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 24),
             gridContainer.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -24),
+
+            bottomSeparator.topAnchor.constraint(equalTo: gridContainer.bottomAnchor, constant: 24),
+            bottomSeparator.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            bottomSeparator.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            bottomSeparator.heightAnchor.constraint(equalToConstant: 0.5),
         ])
 
         setupCategoryButtons()
@@ -62,31 +74,25 @@ public class AddPlanCategorySelectionVC: TRPBaseUIViewController, AddPlanChildVi
 
     // MARK: - Setup
     private func setupCategoryButtons() {
-        // Grid container already added to view
-        
         let itemsPerRow = 3
         let spacing: CGFloat = 8
         let buttonHeight: CGFloat = 96
-        
-        // Calculate button width based on screen width
+
         let screenWidth = UIScreen.main.bounds.width
-        let containerWidth = screenWidth - 48 // 24pt padding on each side
+        let containerWidth = screenWidth - 48
         let buttonWidth = (containerWidth - (CGFloat(itemsPerRow - 1) * spacing)) / CGFloat(itemsPerRow)
-        
-        // Calculate total rows
+
         let totalItems = viewModel.categories.count
         let itemsInLastRow = totalItems % itemsPerRow == 0 ? itemsPerRow : totalItems % itemsPerRow
         let totalRows = Int(ceil(CGFloat(totalItems) / CGFloat(itemsPerRow)))
         
         var previousRowView: UIView? = nil
-        
-        // Create rows
+
         for row in 0..<totalRows {
             let rowView = UIView()
             rowView.translatesAutoresizingMaskIntoConstraints = false
             gridContainer.addSubview(rowView)
-            
-            // Row constraints
+
             if let previousRow = previousRowView {
                 rowView.topAnchor.constraint(equalTo: previousRow.bottomAnchor, constant: spacing).isActive = true
             } else {
@@ -94,8 +100,7 @@ public class AddPlanCategorySelectionVC: TRPBaseUIViewController, AddPlanChildVi
             }
             rowView.centerXAnchor.constraint(equalTo: gridContainer.centerXAnchor).isActive = true
             rowView.heightAnchor.constraint(equalToConstant: buttonHeight).isActive = true
-            
-            // Add buttons to row
+
             let startIndex = row * itemsPerRow
             let endIndex = min(startIndex + itemsPerRow, totalItems)
             let itemsInThisRow = endIndex - startIndex
@@ -108,8 +113,7 @@ public class AddPlanCategorySelectionVC: TRPBaseUIViewController, AddPlanChildVi
                 button.tag = i
                 rowView.addSubview(button)
                 categoryButtons.append(button)
-                
-                // Button constraints
+
                 NSLayoutConstraint.activate([
                     button.topAnchor.constraint(equalTo: rowView.topAnchor),
                     button.bottomAnchor.constraint(equalTo: rowView.bottomAnchor),
@@ -144,15 +148,17 @@ public class AddPlanCategorySelectionVC: TRPBaseUIViewController, AddPlanChildVi
         button.layer.cornerRadius = 8
         button.layer.borderWidth = 1
         button.layer.borderColor = ColorSet.lineWeak.uiColor.cgColor
-        
-        // Icon container
+
+        let contentContainer = UIView()
+        contentContainer.translatesAutoresizingMaskIntoConstraints = false
+        contentContainer.isUserInteractionEnabled = false
+
         let iconImageView = UIImageView()
         iconImageView.translatesAutoresizingMaskIntoConstraints = false
-        iconImageView.image = TRPImageController().getImage(inFramework: category.iconName, inApp: nil)
-        iconImageView.tintColor = ColorSet.fgWeak.uiColor
+        iconImageView.image = TRPImageController().getImage(inFramework: category.iconName, inApp: nil, withTintColor: true)
+        iconImageView.tintColor = ColorSet.fg.uiColor
         iconImageView.contentMode = .scaleAspectFit
-        
-        // Label
+
         let label = UILabel()
         label.translatesAutoresizingMaskIntoConstraints = false
         label.text = category.name
@@ -161,26 +167,33 @@ public class AddPlanCategorySelectionVC: TRPBaseUIViewController, AddPlanChildVi
         label.textAlignment = .center
         label.numberOfLines = 2
         label.lineBreakMode = .byWordWrapping
-        
-        button.addSubview(iconImageView)
-        button.addSubview(label)
-        
+
+        contentContainer.addSubview(iconImageView)
+        contentContainer.addSubview(label)
+        button.addSubview(contentContainer)
+
         NSLayoutConstraint.activate([
-            iconImageView.centerXAnchor.constraint(equalTo: button.centerXAnchor),
-            iconImageView.topAnchor.constraint(equalTo: button.topAnchor, constant: 12),
+            contentContainer.centerXAnchor.constraint(equalTo: button.centerXAnchor),
+            contentContainer.centerYAnchor.constraint(equalTo: button.centerYAnchor),
+            contentContainer.leadingAnchor.constraint(greaterThanOrEqualTo: button.leadingAnchor, constant: 8),
+            contentContainer.trailingAnchor.constraint(lessThanOrEqualTo: button.trailingAnchor, constant: -8),
+
+            iconImageView.topAnchor.constraint(equalTo: contentContainer.topAnchor),
+            iconImageView.centerXAnchor.constraint(equalTo: contentContainer.centerXAnchor),
             iconImageView.widthAnchor.constraint(equalToConstant: 32),
             iconImageView.heightAnchor.constraint(equalToConstant: 32),
-            
-            label.bottomAnchor.constraint(equalTo: button.bottomAnchor, constant: -12),
-            label.leadingAnchor.constraint(equalTo: button.leadingAnchor, constant: 10),
-            label.trailingAnchor.constraint(equalTo: button.trailingAnchor, constant: -10),
+
+            label.topAnchor.constraint(equalTo: iconImageView.bottomAnchor, constant: 8),
+            label.leadingAnchor.constraint(equalTo: contentContainer.leadingAnchor),
+            label.trailingAnchor.constraint(equalTo: contentContainer.trailingAnchor),
+            label.bottomAnchor.constraint(equalTo: contentContainer.bottomAnchor),
+            label.widthAnchor.constraint(lessThanOrEqualToConstant: width - 16),
         ])
-        
+
         button.addTarget(self, action: #selector(categoryButtonTapped(_:)), for: .touchUpInside)
-        
-        // Set initial state
+
         updateCategoryButtonStyle(button, isSelected: category.isSelected)
-        
+
         return button
     }
     

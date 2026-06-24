@@ -9,14 +9,15 @@
 import Foundation
 import TRPFoundationKit
 
-public enum POIListingCategoryType: String {
-    case placesOfInterest = "places_of_interest"
-    case eatAndDrink = "eat_and_drink"
-}
-
 public protocol AddPlanPOIListingViewModelDelegate: ViewModelDelegate {
     func poisDidLoad()
     func segmentCreatedSuccessfully()
+    /// Fired when `loadingStyle` changes so the VC can swap loading UIs without a full reload.
+    func poiLoadingStateDidChange()
+}
+
+public extension AddPlanPOIListingViewModelDelegate {
+    func poiLoadingStateDidChange() {}
 }
 
 public class AddPlanPOIListingViewModel {
@@ -27,10 +28,13 @@ public class AddPlanPOIListingViewModel {
     public weak var delegate: AddPlanPOIListingViewModelDelegate?
 
     public var searchText: String = ""
+    public var selectedSortOption: SortOption = .popularity
+    public var filterData: POIFilterData = POIFilterData()
 
     private var allPois: [TRPPoi] = []
     private var filteredPois: [TRPPoi] = []
     private var categoryIds: [Int] = []
+    private var allCategoryIds: [Int] = []
 
     private var poiUseCases: TRPPoiUseCases
     private var timelineRepository: TRPTimelineRepository
@@ -38,15 +42,22 @@ public class AddPlanPOIListingViewModel {
     private var isLoadingMore: Bool = false
     private var currentPage: Int = 1
     private var totalPages: Int = 1
+    private var totalPoiCount: Int = 0
+    private var hasMorePages: Bool = false
+
+    /// Drives the listing's loading UI: `.lottie` for first open / heavy refetches, `.skeleton` for inline refetches, `.none` when idle.
+    private(set) public var loadingStyle: AddPlanLoadingStyle = .none
+
+    /// Held during the post-add regeneration poll; cleared when `allSegmentGenerated` fires so it doesn't leak across adds.
+    private var checkAllPlanUseCase: TRPTimelineCheckAllPlanUseCases?
 
     // MARK: - Initialization
     public init(planData: AddPlanData, categoryType: POIListingCategoryType) {
         self.planData = planData
         self.categoryType = categoryType
-        self.poiUseCases = TRPPoiUseCases()
+        self.poiUseCases = TRPPoiUseCases.shared
         self.timelineRepository = TRPTimelineRepository()
 
-        // Set city ID from planData
         if let cityId = planData.selectedCity?.id {
             self.poiUseCases.cityId = cityId
         }
@@ -86,9 +97,65 @@ public class AddPlanPOIListingViewModel {
         return filteredPois.count
     }
 
+    public func hasMorePoisAvailable() -> Bool {
+        return hasMorePages
+    }
+
+    public func getTotalPoiCount() -> Int {
+        return totalPoiCount
+    }
+
+    public func getPoiCountDisplayString() -> String {
+        let count = totalPoiCount > 0 ? totalPoiCount : filteredPois.count
+        let placeText = count == 1
+            ? AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.place)
+            : AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.places)
+
+        return "\(count) \(placeText)"
+    }
+
     public func updateSearchText(_ text: String) {
         searchText = text
         performSearchWithDebounce()
+    }
+
+    public func updateSortOption(_ option: SortOption) {
+        selectedSortOption = option
+
+        // Sort is server-side: reset pagination and refetch from page 1 (re-sorting the loaded subset would break pagination).
+        currentPage = 1
+        totalPages = 1
+        totalPoiCount = 0
+        hasMorePages = false
+        allPois = []
+        filteredPois = []
+
+        loadingStyle = .skeleton
+        delegate?.poiLoadingStateDidChange()
+        delegate?.poisDidLoad()
+        fetchPois()
+    }
+
+    public func updateFilterData(_ newFilterData: POIFilterData) {
+        filterData = newFilterData
+
+        if filterData.selectedCategoryIds.isEmpty {
+            categoryIds = allCategoryIds
+        } else {
+            categoryIds = Array(filterData.selectedCategoryIds)
+        }
+
+        currentPage = 1
+        totalPages = 1
+        totalPoiCount = 0
+        hasMorePages = false
+        allPois = []
+        filteredPois = []
+
+        loadingStyle = .skeleton
+        delegate?.poiLoadingStateDidChange()
+        delegate?.poisDidLoad()
+        fetchPois()
     }
 
     // MARK: - Data Fetching
@@ -97,61 +164,27 @@ public class AddPlanPOIListingViewModel {
     }
 
     private func fetchCategoriesAndPois() {
-        // Reset pagination
         currentPage = 1
         totalPages = 1
+        totalPoiCount = 0
+        hasMorePages = false
 
-        delegate?.viewModel(showPreloader: true)
+        loadingStyle = .lottie
+        delegate?.poiLoadingStateDidChange()
 
-        // First fetch categories to get the appropriate category IDs
-        poiUseCases.executeFetchPoiCategories { [weak self] result in
+        poiUseCases.fetchCategoryIdsIfNeeded(type: categoryType) { [weak self] ids in
             guard let self = self else { return }
-
-            switch result {
-            case .success(let categoryGroups):
-                self.categoryIds = self.extractCategoryIds(from: categoryGroups)
-                self.fetchPois()
-            case .failure(let error):
-                self.delegate?.viewModel(showPreloader: false)
-                self.delegate?.viewModel(error: error)
-            }
+            self.allCategoryIds = ids
+            self.categoryIds = ids
+            self.fetchPois()
         }
-    }
-
-    private func extractCategoryIds(from groups: [TRPPoiCategoyGroup]) -> [Int] {
-        // Category IDs that define Eat & Drink groups
-        let eatAndDrinkCategoryIds: Set<Int> = [3, 4, 24]
-
-        var ids: [Int] = []
-
-        for group in groups {
-            guard let categories = group.categories else { continue }
-
-            let categoryIds = categories.getIds()
-
-            // Check if this group contains any Eat & Drink category ID
-            let isEatAndDrinkGroup = categoryIds.contains { eatAndDrinkCategoryIds.contains($0) }
-
-            switch categoryType {
-            case .placesOfInterest:
-                // All groups that don't contain Eat & Drink category IDs (3, 4, 24)
-                if !isEatAndDrinkGroup {
-                    ids.append(contentsOf: categoryIds)
-                }
-            case .eatAndDrink:
-                // Only groups that contain category ID 3, 4, or 24
-                if isEatAndDrinkGroup {
-                    ids.append(contentsOf: categoryIds)
-                }
-            }
-        }
-
-        return ids
     }
 
     private func fetchPois(page: Int = 1) {
         guard let cityId = planData.selectedCity?.id else {
-            delegate?.viewModel(showPreloader: false)
+            // No city to fetch for — clear the loading style so the UI isn't stranded in skeleton/lottie.
+            loadingStyle = .none
+            delegate?.poiLoadingStateDidChange()
             delegate?.viewModel(error: GeneralError.customMessage("City not selected"))
             return
         }
@@ -160,9 +193,10 @@ public class AddPlanPOIListingViewModel {
             text: searchText,
             categories: categoryIds,
             cityId: cityId,
-            page: page
+            page: page,
+            sort: selectedSortOption.poiSortQuery
         ) { [weak self] result, pagination in
-            self?.handleSearchResult(result: result, pagination: pagination, isLoadMore: page > 1)
+            self?.handleSearchResult(result: result, pagination: pagination, isLoadMore: page > 1, requestedPage: page)
         }
     }
 
@@ -183,57 +217,75 @@ public class AddPlanPOIListingViewModel {
             return
         }
 
-        // Reset pagination for new search
         currentPage = 1
         totalPages = 1
+        totalPoiCount = 0
+        hasMorePages = false
+        filteredPois = []
 
-        delegate?.viewModel(showPreloader: true)
+        loadingStyle = .skeleton
+        delegate?.poiLoadingStateDidChange()
+        delegate?.poisDidLoad()
 
         poiUseCases.executeSearchPoi(
             text: searchText,
             categories: categoryIds,
             cityId: cityId,
-            page: 1
+            page: 1,
+            sort: selectedSortOption.poiSortQuery
         ) { [weak self] result, pagination in
-            self?.handleSearchResult(result: result, pagination: pagination, isLoadMore: false)
+            self?.handleSearchResult(result: result, pagination: pagination, isLoadMore: false, requestedPage: 1)
         }
     }
 
-    private func handleSearchResult(result: Result<[TRPPoi], Error>, pagination: TRPPagination?, isLoadMore: Bool = false) {
-        delegate?.viewModel(showPreloader: false)
+    private func handleSearchResult(result: Result<[TRPPoi], Error>, pagination: TRPPagination?, isLoadMore: Bool = false, requestedPage: Int = 1) {
+        loadingStyle = .none
+        delegate?.poiLoadingStateDidChange()
         isLoadingMore = false
 
         switch result {
         case .success(let pois):
             if isLoadMore {
-                // Append new POIs for load more
                 allPois.append(contentsOf: pois)
             } else {
-                // Replace POIs for initial load or new search
                 allPois = pois
             }
 
-            // Update pagination info from TRPPagination
+            // loadMore already increments currentPage.
+            if !isLoadMore {
+                currentPage = requestedPage
+            }
+
             if let pagination = pagination {
                 switch pagination {
                 case .completed:
                     totalPages = currentPage
-                case .continues:
-                    // There are more pages
-                    totalPages = currentPage + 1
+                    hasMorePages = false
+                    if !isLoadMore {
+                        totalPoiCount = pois.count
+                    }
+                case .continues(let paginationInfo):
+                    totalPages = paginationInfo.totalPages
+                    totalPoiCount = paginationInfo.total
+                    hasMorePages = paginationInfo.hasMore
                 }
+            } else {
+                hasMorePages = false
+                totalPoiCount = pois.count
             }
 
             filterPois()
             delegate?.poisDidLoad()
         case .failure(let error):
+            // Reload so the table flips out of skeleton mode and renders the previous state behind the alert.
+            delegate?.poisDidLoad()
             delegate?.viewModel(error: error)
         }
     }
 
     // MARK: - Pagination
     public func hasMorePois() -> Bool {
-        return currentPage < totalPages
+        return hasMorePages
     }
 
     public func loadMorePois() {
@@ -246,13 +298,13 @@ public class AddPlanPOIListingViewModel {
     }
 
     private func filterPois() {
-        if searchText.isEmpty {
+//        if searchText.isEmpty {
             filteredPois = allPois
-        } else {
-            filteredPois = allPois.filter { poi in
-                poi.name.localizedCaseInsensitiveContains(searchText)
-            }
-        }
+//        } else {
+//            filteredPois = allPois.filter { poi in
+//                poi.name.localizedCaseInsensitiveContains(searchText)
+//            }
+//        }
     }
 
     // MARK: - Segment Creation
@@ -266,33 +318,30 @@ public class AddPlanPOIListingViewModel {
             return
         }
 
-        delegate?.viewModel(showPreloader: true)
-
-        // Create segment profile
         let segment = TRPCreateEditTimelineSegmentProfile(tripHash: tripHash)
         segment.segmentType = .manualPoi
         segment.available = false
         segment.title = poi.name
         segment.poiId = poi.id
         segment.city = selectedCity
-        segment.coordinate = poi.coordinate
 
-        // Add POI id to includePoiIds
+        // Prefer the POI coordinate; fall back to the city's via `resolvedCoordinate()` (which consults TRPCityCache, since the in-memory city coord can be a (0,0) placeholder).
+        if let poiCoordinate = poi.coordinate, !poiCoordinate.isMissingOrZero {
+            segment.coordinate = poiCoordinate
+        } else if let cityCoordinate = selectedCity.resolvedCoordinate() {
+            segment.coordinate = cityCoordinate
+        } else {
+            segment.coordinate = poi.coordinate
+        }
+
         segment.includePoiIds = [poi.id]
 
-        // Combine selectedDay date with the time from startTime/endTime
         let calendar = Calendar.current
 
-        // Get date components from selectedDay (year, month, day)
         let dayComponents = calendar.dateComponents([.year, .month, .day], from: selectedDay)
-
-        // Get time components from startTime (hour, minute)
         let startTimeComponents = calendar.dateComponents([.hour, .minute], from: startTime)
-
-        // Get time components from endTime (hour, minute)
         let endTimeComponents = calendar.dateComponents([.hour, .minute], from: endTime)
 
-        // Combine date + start time
         var startDateComponents = DateComponents()
         startDateComponents.year = dayComponents.year
         startDateComponents.month = dayComponents.month
@@ -300,7 +349,6 @@ public class AddPlanPOIListingViewModel {
         startDateComponents.hour = startTimeComponents.hour
         startDateComponents.minute = startTimeComponents.minute
 
-        // Combine date + end time
         var endDateComponents = DateComponents()
         endDateComponents.year = dayComponents.year
         endDateComponents.month = dayComponents.month
@@ -311,23 +359,54 @@ public class AddPlanPOIListingViewModel {
         let combinedStartDate = calendar.date(from: startDateComponents) ?? selectedDay
         let combinedEndDate = calendar.date(from: endDateComponents) ?? selectedDay
 
-        // Format date as "yyyy-MM-dd HH:mm"
         let dateFormatter = DateFormatter()
         dateFormatter.dateFormat = "yyyy-MM-dd HH:mm"
         segment.startDate = dateFormatter.string(from: combinedStartDate)
         segment.endDate = dateFormatter.string(from: combinedEndDate)
 
-        // Call repository to create segment
+        // Create, then poll for regeneration before signaling success (VC keeps its loader up through both phases).
         timelineRepository.createEditTimelineSegment(profile: segment) { [weak self] result in
             guard let self = self else { return }
 
-            self.delegate?.viewModel(showPreloader: false)
+            DispatchQueue.main.async {
+                switch result {
+                case .success:
+                    self.waitForTimelineRefreshAfterCreation(tripHash: tripHash)
+                case .failure(let error):
+                    self.delegate?.viewModel(error: error)
+                }
+            }
+        }
+    }
 
-            switch result {
-            case .success:
+    /// Polls for segment-generation completion so the host's `TRPTimelineRefreshState` observer drives a silent refresh.
+    private func waitForTimelineRefreshAfterCreation(tripHash: String) {
+        TRPTimelineRefreshState.shared.setRefreshing()
+
+        let timelineRepo = TRPTimelineRepository()
+        let modelRepo = TRPTimelineModelRepository()
+        checkAllPlanUseCase = TRPTimelineCheckAllPlanUseCases(
+            timelineRepository: timelineRepo,
+            timelineModelRepository: modelRepo
+        )
+
+        checkAllPlanUseCase?.allSegmentGenerated.addObserver(self) { [weak self] isGenerated in
+            guard let self = self, isGenerated else { return }
+            DispatchQueue.main.async {
+                TRPTimelineRefreshState.shared.setCompleted()
+                self.checkAllPlanUseCase = nil
                 self.delegate?.segmentCreatedSuccessfully()
-            case .failure(let error):
-                self.delegate?.viewModel(error: error)
+            }
+        }
+
+        checkAllPlanUseCase?.executeFetchTimelineCheckAllPlanGenerate(tripHash: tripHash) { [weak self] result in
+            guard let self = self else { return }
+            if case .failure(let error) = result {
+                DispatchQueue.main.async {
+                    TRPTimelineRefreshState.shared.setFailed(error)
+                    self.checkAllPlanUseCase = nil
+                    self.delegate?.viewModel(error: error)
+                }
             }
         }
     }

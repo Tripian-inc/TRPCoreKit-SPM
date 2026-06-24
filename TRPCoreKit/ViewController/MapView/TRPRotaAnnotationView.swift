@@ -20,17 +20,19 @@ class TRPRotaAnnotationView: UIView {
 
     // MARK: - Initialization
 
-    /// Initialize with order number only (simplified version)
-    init(order: Int) {
+    /// Initialize with order number and selection state (always uses black color)
+    init(order: Int, cityIndex: Int = 0, isSelected: Bool = false) {
         super.init(frame: CGRect(x: 0, y: 0, width: Self.viewSize, height: Self.viewSize))
-        setupView(order: order)
+        // Always use black color regardless of cityIndex
+        setupView(order: order, isSelected: isSelected)
     }
 
     /// Legacy initializer for backward compatibility
-    init(reuseIdentifier: String?, imageName: String?, order: Int?, isOffer: Bool = false, annotationOrder: Int = 0) {
+    init(reuseIdentifier: String?, imageName: String?, order: Int?, isOffer: Bool = false, annotationOrder: Int = 0, isSelected: Bool = false) {
         super.init(frame: CGRect(x: 0, y: 0, width: Self.viewSize, height: Self.viewSize))
         let displayOrder = order ?? 0
-        setupView(order: displayOrder)
+        // Always use black color regardless of annotationOrder
+        setupView(order: displayOrder, isSelected: isSelected)
     }
 
     required init?(coder aDecoder: NSCoder) {
@@ -39,22 +41,39 @@ class TRPRotaAnnotationView: UIView {
 
     // MARK: - Setup
 
-    private func setupView(order: Int) {
+    private func setupView(order: Int, isSelected: Bool = false) {
+        // Always use black color
+        let badgeColor = ColorSet.fg.uiColor
+
         // Set content hugging to prevent expansion
         setContentHuggingPriority(.required, for: .horizontal)
         setContentHuggingPriority(.required, for: .vertical)
         setContentCompressionResistancePriority(.required, for: .horizontal)
         setContentCompressionResistancePriority(.required, for: .vertical)
 
-        // Circular background with fg color
-        backgroundColor = ColorSet.fg.uiColor
+        // Circular shape
         layer.cornerRadius = Self.viewSize / 2
         clipsToBounds = true
 
+        // Apply selected/unselected appearance
+        if isSelected {
+            // Selected: Black background, white text, no border
+            backgroundColor = badgeColor
+            layer.borderWidth = 0
+        } else {
+            // Unselected: White background, black border, black text
+            backgroundColor = .white
+            layer.borderWidth = 2
+            layer.borderColor = badgeColor.cgColor
+        }
+
         // Order label - centered using Auto Layout
+        // Non-positive orders (e.g. flexible-time activities) render as a centered
+        // minus sign (U+2212, math-axis aligned) instead of the ASCII hyphen so it
+        // optically centers in the digit-sized chip and matches the preview cell.
         orderLabel.translatesAutoresizingMaskIntoConstraints = false
-        orderLabel.text = "\(order)"
-        orderLabel.textColor = .white
+        orderLabel.text = order > 0 ? "\(order)" : "\u{2212}"
+        orderLabel.textColor = isSelected ? .white : badgeColor
         orderLabel.font = FontSet.montserratSemiBold.font(18)
         orderLabel.textAlignment = .center
         orderLabel.adjustsFontSizeToFitWidth = true

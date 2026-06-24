@@ -56,13 +56,13 @@ class TRPTimelineActivityStepCell: UITableViewCell {
         return label
     }()
     
-    private let activityBadge: UILabel = {
-        let label = UILabel()
+    private let activityBadge: TRPPaddingLabel = {
+        let label = TRPPaddingLabel(4, 4, 8, 8)  // top, bottom, left, right
         label.translatesAutoresizingMaskIntoConstraints = false
         label.text = TimelineLocalizationKeys.localized(TimelineLocalizationKeys.activityBadge)
-        label.font = FontSet.montserratMedium.font(12)
-        label.textColor = ColorSet.fgGreen.uiColor
-        label.backgroundColor = ColorSet.bgGreen.uiColor
+        label.font = FontSet.montserratMedium.font(10)
+        label.textColor = ColorSet.fgGray.uiColor
+        label.backgroundColor = ColorSet.neutral200.uiColor
         label.textAlignment = .center
         label.layer.cornerRadius = 4
         label.clipsToBounds = true
@@ -123,44 +123,34 @@ class TRPTimelineActivityStepCell: UITableViewCell {
     
     private func setupConstraints() {
         NSLayoutConstraint.activate([
-            // Time Badge View
             timeBadgeView.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 16),
             timeBadgeView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
 
-            // Container View
             containerView.topAnchor.constraint(equalTo: timeBadgeView.bottomAnchor),
             containerView.leadingAnchor.constraint(equalTo: timeBadgeView.leadingAnchor),
             containerView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
             containerView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -16),
-            
-            // Activity Image
+
             activityImageView.topAnchor.constraint(equalTo: containerView.topAnchor),
             activityImageView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
             activityImageView.widthAnchor.constraint(equalToConstant: 80),
             activityImageView.heightAnchor.constraint(equalToConstant: 80),
-            
-            // Title Label
+
             titleLabel.topAnchor.constraint(equalTo: containerView.topAnchor),
             titleLabel.leadingAnchor.constraint(equalTo: activityImageView.trailingAnchor, constant: 12),
             titleLabel.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -12),
-            
-            // Activity Badge
+
             activityBadge.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 4),
             activityBadge.leadingAnchor.constraint(equalTo: activityImageView.trailingAnchor, constant: 12),
-            activityBadge.widthAnchor.constraint(equalToConstant: 80),
-            activityBadge.heightAnchor.constraint(equalToConstant: 24),
-            
-            // Rating Stack
+
             ratingStack.topAnchor.constraint(equalTo: activityBadge.bottomAnchor, constant: 6),
             ratingStack.leadingAnchor.constraint(equalTo: activityBadge.leadingAnchor),
             ratingStack.trailingAnchor.constraint(lessThanOrEqualTo: containerView.trailingAnchor, constant: -12),
-            
-            // Description Label
+
             descriptionLabel.topAnchor.constraint(equalTo: ratingStack.bottomAnchor, constant: 4),
             descriptionLabel.leadingAnchor.constraint(equalTo: activityBadge.leadingAnchor),
             descriptionLabel.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -12),
 
-            // Reservation Button
             reservationButton.topAnchor.constraint(equalTo: descriptionLabel.bottomAnchor, constant: 12),
             reservationButton.leadingAnchor.constraint(equalTo: activityImageView.trailingAnchor, constant: 12),
             reservationButton.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
@@ -168,6 +158,23 @@ class TRPTimelineActivityStepCell: UITableViewCell {
         ])
     }
     
+    override func prepareForReuse() {
+        super.prepareForReuse()
+        resetTextAndBorderDefaults()
+        reservationButton.isHidden = false
+    }
+
+    private func resetTextAndBorderDefaults() {
+        titleLabel.textColor = ColorSet.fg.uiColor
+        descriptionLabel.textColor = ColorSet.fgWeak.uiColor
+        activityBadge.textColor = ColorSet.fgGray.uiColor
+    }
+
+    /// Past day: keep content colors, just hide the reservation CTA so the row isn't actionable.
+    func applyPastDayStyle() {
+        reservationButton.isHidden = true
+    }
+
     // MARK: - Configuration
     func configure(with step: TRPTimelineStep, order: Int) {
         self.step = step
@@ -176,33 +183,30 @@ class TRPTimelineActivityStepCell: UITableViewCell {
             return
         }
 
-        // Configure time badge
         if let startTime = step.getStartTime(), let endTime = step.getEndTime() {
             timeBadgeView.configure(order: order, startTime: startTime, endTime: endTime)
         }
 
-        // Configure title
         titleLabel.text = poi.name
-        
-        // Configure rating if available
+
         ratingStack.arrangedSubviews.forEach { $0.removeFromSuperview() }
-        
+
         if let rating = poi.rating {
             let ratingLabel = UILabel()
             ratingLabel.font = FontSet.montserratBold.font(14)
             ratingLabel.textColor = ColorSet.fg.uiColor
             ratingLabel.text = String(format: "%.1f", rating)
-            
+
             let starIcon = UIImageView()
             starIcon.image = TRPImageController().getImage(inFramework: "ic_rating_star", inApp: nil)
             starIcon.tintColor = ColorSet.ratingStar.uiColor
             starIcon.translatesAutoresizingMaskIntoConstraints = false
             starIcon.widthAnchor.constraint(equalToConstant: 12).isActive = true
             starIcon.heightAnchor.constraint(equalToConstant: 12).isActive = true
-            
+
             ratingStack.addArrangedSubview(ratingLabel)
             ratingStack.addArrangedSubview(starIcon)
-            
+
             if let reviewCount = poi.ratingCount {
                 let reviewLabel = UILabel()
                 reviewLabel.font = FontSet.montserratLight.font(14)
@@ -212,16 +216,14 @@ class TRPTimelineActivityStepCell: UITableViewCell {
                 ratingStack.addArrangedSubview(reviewLabel)
             }
         }
-        
-        // Configure description
+
         if let description = poi.description {
             descriptionLabel.text = description
             descriptionLabel.isHidden = false
         } else {
             descriptionLabel.isHidden = true
         }
-        
-        // Configure image
+
         if let image = poi.image {
             activityImageView.sd_setImage(with: URL(string: image.url), placeholderImage: nil)
         } else if let gallery = poi.gallery, let firstImage = gallery.compactMap({ $0 }).first {

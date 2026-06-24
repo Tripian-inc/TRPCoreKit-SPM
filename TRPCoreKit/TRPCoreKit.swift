@@ -45,13 +45,41 @@ public protocol TRPCoreKitDelegate: AnyObject {
     /// - Parameter activityId: The unique identifier of the activity to display
     func trpCoreKitDidRequestActivityDetail(activityId: String)
 
+    /// Called when the SDK needs to open a booking detail screen for an already-booked activity
+    /// - Parameter bookingId: The unique identifier of the booking to display
+    func trpCoreKitDidRequestBookingDetail(bookingId: String)
+
     /// Called when the SDK needs to open an activity reservation screen
-    /// - Parameter activityId: The unique identifier of the activity to reserve
-    func trpCoreKitDidRequestActivityReservation(activityId: String)
+    /// - Parameters:
+    ///   - activityId: The unique identifier of the activity to reserve
+    ///   - date: The date and start time of the reservation. Time component reflects
+    ///           the source segment/step start time; flexible activities always carry
+    ///           a 00:00 time. Falls back to the timeline's selected day at 00:00 when
+    ///           no source datetime is available.
+    func trpCoreKitDidRequestActivityReservation(activityId: String, date: Date)
 
     /// Called when a timeline has been successfully created
     /// - Parameter tripHash: The trip hash of the newly created timeline
     func trpCoreKitDidCreateTimeline(tripHash: String)
+
+    /// Called when a user manually adds an activity to the timeline
+    /// - Parameter activityId: The unique identifier of the added activity
+    func trpCoreKitDidAddActivity(activityId: String)
+
+    /// Called when a user removes a saved (favourited) activity from Saved Plans
+    /// - Parameter activityId: The base activity id of the removed favourite (e.g. "15423")
+    func trpCoreKitDidRemoveFavorite(activityId: String)
+
+    /// Called when authentication fails (refresh token error)
+    /// Host app should dismiss SDK and re-authenticate the user
+    func trpCoreKitDidFailWithAuthError()
+}
+
+// MARK: - TRPCoreKitDelegate Default Implementations
+public extension TRPCoreKitDelegate {
+    func trpCoreKitDidFailWithAuthError() {}
+    func trpCoreKitDidAddActivity(activityId: String) {}
+    func trpCoreKitDidRemoveFavorite(activityId: String) {}
 }
 
 public class TRPCoreKit {
@@ -76,11 +104,13 @@ public class TRPCoreKit {
     ///   - environment: Environment to use (predev, dev, test, production)
     ///   - apiKey: API key for authentication
     ///   - language: Language code (e.g., "en", "es", "tr"). Defaults to "en"
+    ///   - currency: Currency code (e.g., "USD", "EUR", "TRY"). Defaults to "USD"
     ///   - delegate: Delegate to receive SDK callbacks
     public static func initialize(
         environment: TRPEnvironment,
         apiKey: String,
         language: String = "en",
+        currency: String = "USD",
         delegate: TRPCoreKitDelegate? = nil
     ) {
         // Set delegate
@@ -88,7 +118,12 @@ public class TRPCoreKit {
 
         // Initialize TRPClient (RestKit)
         let baseUrl = environment.baseUrlCreater
-        TRPClient.start(baseUrl: baseUrl, apiKey: apiKey, language: language)
+        TRPClient.start(baseUrl: baseUrl, apiKey: apiKey, language: language, currency: currency)
+
+        TRPUserAgentURLProtocol.register(host: baseUrl.baseUrl)
+
+        // Prefetch languages - async, non-blocking
+        TRPLanguagesController.shared.prefetchLanguagesIfNeeded()
     }
 
     /// Initialize TRPCoreKit SDK with custom base URL (for advanced use cases)
@@ -97,12 +132,14 @@ public class TRPCoreKit {
     ///   - basePath: Base path for the API
     ///   - apiKey: API key for authentication
     ///   - language: Language code (e.g., "en", "es", "tr"). Defaults to "en"
+    ///   - currency: Currency code (e.g., "USD", "EUR", "TRY"). Defaults to "USD"
     ///   - delegate: Delegate to receive SDK callbacks
     public static func initialize(
         baseUrl: String,
         basePath: String,
         apiKey: String,
         language: String = "en",
+        currency: String = "USD",
         delegate: TRPCoreKitDelegate? = nil
     ) {
         // Set delegate
@@ -110,7 +147,12 @@ public class TRPCoreKit {
 
         // Initialize TRPClient (RestKit)
         let url = BaseUrlCreater(baseUrl: baseUrl, basePath: basePath)
-        TRPClient.start(baseUrl: url, apiKey: apiKey, language: language)
+        TRPClient.start(baseUrl: url, apiKey: apiKey, language: language, currency: currency)
+
+        TRPUserAgentURLProtocol.register(host: url.baseUrl)
+
+        // Prefetch languages - async, non-blocking
+        TRPLanguagesController.shared.prefetchLanguagesIfNeeded()
     }
 
     // MARK: - Start SDK
@@ -181,11 +223,13 @@ public class TRPCoreKit {
     /// - Parameters:
     ///   - itinerary: Itinerary model with activities and trip details
     ///   - tripHash: Optional trip hash. If provided, fetches existing timeline instead of creating new one
+    ///   - uniqueId: Optional unique identifier. If not provided, uses device's identifierForVendor
     ///   - viewController: View controller to present SDK from
     ///   - canBack: Whether back button is enabled. Defaults to true
     public static func startWithItinerary(
         _ itinerary: TRPItineraryWithActivities,
         tripHash: String? = nil,
+        uniqueId: String? = nil,
         from viewController: UIViewController,
         canBack: Bool = true
     ) {
@@ -195,7 +239,7 @@ public class TRPCoreKit {
         let coordinator = TRPSDKCoordinater(navigationController: tripianNav, canBack: canBack)
         shared.sdkCoordinator = coordinator
 
-        coordinator.startWithItinerary(itinerary, tripHash: tripHash)
+        coordinator.startWithItinerary(itinerary, tripHash: tripHash, uniqueId: uniqueId)
         viewController.present(tripianNav, animated: true)
     }
 
@@ -204,5 +248,32 @@ public class TRPCoreKit {
     public static func dismiss(animated: Bool = true) {
         shared.sdkCoordinator?.remove()
         shared.sdkCoordinator = nil
+    }
+
+    // MARK: - Language & Currency
+
+    /// Change SDK language after initialization
+    /// - Parameter language: Language code (e.g., "en", "es", "fr")
+    public static func changeLanguage(_ language: String) {
+        TRPClient.changeLanguage(language)
+        TRPLanguagesController.shared.applyLanguageChange()
+    }
+
+    /// Change SDK currency after initialization
+    /// - Parameter currency: Currency code (e.g., "USD", "EUR")
+    public static func changeCurrency(_ currency: String) {
+        TRPClient.changeCurrency(currency)
+    }
+
+    /// Get current SDK language
+    /// - Returns: Current language code
+    public static func getLanguage() -> String {
+        return TRPClient.getLanguage()
+    }
+
+    /// Get current SDK currency
+    /// - Returns: Current currency code
+    public static func getCurrency() -> String {
+        return TRPClient.getCurrency()
     }
 }

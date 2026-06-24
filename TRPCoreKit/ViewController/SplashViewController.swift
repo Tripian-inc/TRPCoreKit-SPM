@@ -18,7 +18,7 @@ class SplashViewController: TRPBaseUIViewController {
     var uniqueId: String? = nil
     var email: String? = nil
     var password: String? = nil
-    
+
     private var loginSuccess: Bool = false
     private var languagesFetched: Bool = false
 
@@ -31,11 +31,24 @@ class SplashViewController: TRPBaseUIViewController {
         TRPFonts.registerAll()
 //        TRPFonts.debugRegisterAndReport()
     }
-    
+
     override func viewDidAppear(_ animated: Bool) {
-        self.viewModel(showPreloader: true)
+        super.viewDidAppear(animated)
+        showLottieLoader()
     }
-    
+
+    private func showLottieLoader() {
+        // Splash → first GetTimeline are part of the same "opening the app" moment,
+        // so use the same localized message as the timeline initial fetch — the
+        // window-attached loader carries through without a flicker between them.
+        let message = LoadingLocalizationKeys.localized(LoadingLocalizationKeys.gettingYourItineraryPlan)
+        viewModel(showLottie: .fullScreen, textMode: .single(message))
+    }
+
+    private func hideLottieLoader() {
+        viewModel(hideLottie: .fullScreen)
+    }
+
     func start() {
         if let uniqueId {
             startForLightLogin()
@@ -51,50 +64,50 @@ class SplashViewController: TRPBaseUIViewController {
         }
         startForGuest()
     }
-    
+
     private func startForLightLogin() {
         TRPLoginHelper.shared.lightLogin(uniqueId: uniqueId!) { [weak self] (result) in
-            self?.viewModel(showPreloader: false)
             if result {
                 self?.loginSuccess = true
                 self?.checkAllDatasFetched()
             } else {
+                self?.hideLottieLoader()
                 self?.delegate?.datasFetchFailed()
             }
         }
     }
-    
+
     private func startForGuest() {
         TRPLoginHelper.shared.guestLogin { [weak self] (result) in
-            self?.viewModel(showPreloader: false)
             if result {
                 self?.loginSuccess = true
                 self?.checkAllDatasFetched()
             } else {
+                self?.hideLottieLoader()
                 self?.delegate?.datasFetchFailed()
             }
         }
     }
-    
+
     public func startWithEmail(_ email: String) {
         TRPLoginHelper.shared.login(email: email) { [weak self] (result) in
-            self?.viewModel(showPreloader: false)
             if result {
                 self?.loginSuccess = true
                 self?.checkAllDatasFetched()
             } else {
+                self?.hideLottieLoader()
                 self?.delegate?.datasFetchFailed()
             }
         }
     }
-    
+
     public func startWithEmailAndPassword(_ email: String, _ password: String) {
         TRPLoginHelper.shared.login(email: email, password: password) { [weak self] (result) in
-            self?.viewModel(showPreloader: false)
             if result {
                 self?.loginSuccess = true
                 self?.checkAllDatasFetched()
             } else {
+                self?.hideLottieLoader()
                 self?.delegate?.datasFetchFailed()
             }
         }
@@ -113,6 +126,8 @@ class SplashViewController: TRPBaseUIViewController {
         // Fetch cities in background after login success (non-blocking)
         TRPCityCache.shared.fetchCitiesIfNeeded()
 
+        // Don't hide here — the Lottie loader is window-attached, so the next VC's
+        // `showOnWindow(...)` simply refreshes the text mode without a flicker.
         delegate?.datasFetchCompleted()
         navigationController?.popViewController(animated: false)
     }

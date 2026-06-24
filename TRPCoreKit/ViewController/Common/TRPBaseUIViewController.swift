@@ -8,7 +8,7 @@
 
 import Foundation
 import UIKit
-
+import TRPRestKit
 
 public class TRPBaseUIViewController: UIViewController {
     
@@ -19,6 +19,19 @@ public class TRPBaseUIViewController: UIViewController {
     
     //MARK: UI
     public var loader: TRPLoaderView?
+    /// Active bottom-sheet Lottie loader presented by the current screen (one at a time).
+    /// Tracked as a weak reference so dismissal cleans itself up if anything else dismissed
+    /// the sheet first.
+    private weak var activeLottieBottomSheet: TRPLottieLoadingVC?
+    /// Active embedded (child VC) Lottie loader inside the current screen's view.
+    private weak var activeEmbeddedLottie: TRPLottieLoadingVC?
+
+    /// Captured `isModalInPresentation` value from before an `.inView` Lottie was shown,
+    /// so we can restore the host sheet's swipe-to-dismiss state after the loader hides.
+    private var preEmbedIsModalInPresentation: Bool?
+    /// Captured grabber visibility from before an `.inView` Lottie was shown.
+    private var preEmbedPrefersGrabberVisible: Bool?
+
     private var isPopupOnView = false
     
     public var applyButton: UIButton = {
@@ -141,7 +154,29 @@ extension TRPBaseUIViewController {
         let barButtonItem = UIBarButtonItem(customView: view)
         self.navigationItem.rightBarButtonItem = barButtonItem
     }
-    
+
+    /// Sets up a custom navigation bar with title and back button
+    /// - Parameters:
+    ///   - title: The title to display
+    ///   - height: Navigation bar height (default: 56)
+    /// - Returns: The configured navigation bar (set delegate on it for back button action)
+    @discardableResult
+    func setupCustomNavigationBar(title: String, height: CGFloat = 56) -> TRPTimelineCustomNavigationBar {
+        let navBar = TRPTimelineCustomNavigationBar()
+        navBar.translatesAutoresizingMaskIntoConstraints = false
+        navBar.setTitle(title)
+
+        view.addSubview(navBar)
+        NSLayoutConstraint.activate([
+            navBar.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
+            navBar.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            navBar.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            navBar.heightAnchor.constraint(equalToConstant: height)
+        ])
+
+        return navBar
+    }
+
     public func showConfirmAlert(title: String, message: String, confirmTitle: String, cancelTitle: String = "Cancel", attributedMessage: NSAttributedString? = nil, btnConfirmAction: (() -> Void)? = nil, btnCancelAction: (() -> Void)? = nil) {
         if !isPopupOnView {
             self.alertView.configForConfirm(title: title, message: message, btnTitle: confirmTitle, btnCancelTitle: cancelTitle, attributedMessage: attributedMessage, btnConfirmAction: btnConfirmAction, btnCancelAction: btnCancelAction)
@@ -157,12 +192,35 @@ extension TRPBaseUIViewController {
             isPopupOnView = true
         }
     }
+
+    public func showOkAlertWithCompletion(title: String = "", message: String, subContent: String = "", btnTitle: String? = nil, completion: @escaping () -> Void) {
+        if !isPopupOnView {
+            self.alertView.configWithCompletion(title: title, message: message, subContent: subContent, btnTitle: btnTitle, completion: completion)
+            self.alertView.show()
+            isPopupOnView = true
+        }
+    }
     
 }
 
 extension TRPBaseUIViewController:  ViewModelDelegate {
     
     @objc nonisolated public func viewModel(error: Error) {
+        // Check for refresh token error - notify host app and dismiss SDK
+        if let trpError = error as? TRPErrors {
+            switch trpError {
+            case .refreshTokenError:
+                DispatchQueue.main.async {
+                    // Notify host app
+                    TRPCoreKit.shared.delegate?.trpCoreKitDidFailWithAuthError()
+                    // Dismiss SDK
+                    TRPCoreKit.dismiss(animated: true)
+                }
+                return
+            default:
+                break
+            }
+        }
         EvrAlertView.showAlert(contentText: error.localizedDescription, type: .error)
     }
     
@@ -171,6 +229,86 @@ extension TRPBaseUIViewController:  ViewModelDelegate {
             loader?.show()
         }else {
             loader?.remove()
+        }
+    }
+
+    /// Show a Lottie loader at the requested `presentation` (full-screen window overlay,
+    /// modal bottom sheet, or embedded child VC). The `textMode` controls what (if
+    /// anything) is rendered next to the animation. Marshals to the main thread since
+    /// callers are typically on a network completion. `completion` fires after the show
+    /// animation begins.
+    public func viewModel(showLottie presentation: LottieLoaderPresentation,
+                          textMode: LottieLoadingTextMode,
+                          completion: (() -> Void)?) {
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { completion?(); return }
+            switch presentation {
+            case .fullScreen:
+                TRPLottieLoadingVC.shared.showOnWindow(textMode: textMode)
+                completion?()
+            case .bottomSheet:
+                self.activeLottieBottomSheet = TRPLottieLoadingVC.showAsSheet(
+                    over: self,
+                    textMode: textMode
+                )
+                completion?()
+            case .inView:
+                // Lock the host sheet (if any) while the embedded loader is up:
+                //   • disable swipe-to-dismiss (`isModalInPresentation = true`)
+                //   • hide the grabber so the sheet reads as non-interactive
+                // The previous values are captured here and restored in `hideLottie`.
+                self.preEmbedIsModalInPresentation = self.isModalInPresentation
+                self.isModalInPresentation = true
+                if #available(iOS 15.0, *), let sheet = self.sheetPresentationController {
+                    self.preEmbedPrefersGrabberVisible = sheet.prefersGrabberVisible
+                    sheet.prefersGrabberVisible = false
+                }
+                self.activeEmbeddedLottie = TRPLottieLoadingVC.embed(
+                    in: self,
+                    textMode: textMode
+                )
+                completion?()
+            }
+        }
+    }
+
+    /// Hide the active Lottie loader at the requested `presentation`. No-op if no loader
+    /// of that kind is currently showing — `completion` still fires.
+    public func viewModel(hideLottie presentation: LottieLoaderPresentation,
+                          completion: (() -> Void)?) {
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { completion?(); return }
+            switch presentation {
+            case .fullScreen:
+                TRPLottieLoadingVC.shared.hideFromWindow(completion: completion)
+            case .bottomSheet:
+                if let sheet = self.activeLottieBottomSheet {
+                    self.activeLottieBottomSheet = nil
+                    sheet.hide(completion: completion)
+                } else {
+                    completion?()
+                }
+            case .inView:
+                // Restore the host sheet's interaction state captured by `showLottie`.
+                // No-op if the loader was never shown.
+                if let previous = self.preEmbedIsModalInPresentation {
+                    self.isModalInPresentation = previous
+                    self.preEmbedIsModalInPresentation = nil
+                }
+                if #available(iOS 15.0, *),
+                   let previous = self.preEmbedPrefersGrabberVisible,
+                   let sheet = self.sheetPresentationController {
+                    sheet.prefersGrabberVisible = previous
+                }
+                self.preEmbedPrefersGrabberVisible = nil
+
+                if let lottie = self.activeEmbeddedLottie {
+                    self.activeEmbeddedLottie = nil
+                    lottie.unembed(completion: completion)
+                } else {
+                    completion?()
+                }
+            }
         }
     }
     

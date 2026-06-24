@@ -17,6 +17,38 @@ public protocol AddPlanPOISelectionViewModelDelegate: AnyObject {
     func viewModel(showPreloader: Bool)
 }
 
+public enum SavedItem {
+    case bookedActivity(TRPTimelineSegment)
+    case favouriteActivity(TRPSegmentFavoriteItem)
+
+    var title: String {
+        switch self {
+        case .bookedActivity(let segment):
+            return segment.title ?? segment.additionalData?.title ?? ""
+        case .favouriteActivity(let item):
+            return item.title
+        }
+    }
+
+    var cityName: String? {
+        switch self {
+        case .bookedActivity(let segment):
+            return segment.city?.name
+        case .favouriteActivity(let item):
+            return item.cityName
+        }
+    }
+
+    var coordinate: TRPLocation? {
+        switch self {
+        case .bookedActivity(let segment):
+            return segment.coordinate
+        case .favouriteActivity(let item):
+            return item.coordinate
+        }
+    }
+}
+
 public class AddPlanPOISelectionViewModel {
 
     // MARK: - Properties
@@ -26,11 +58,11 @@ public class AddPlanPOISelectionViewModel {
     private let cityId: Int?
     private let cityCenterPOI: TRPPoi?
     private let bookedActivities: [TRPTimelineSegment]
+    private let favouriteItems: [TRPSegmentFavoriteItem]
+    private let cityCoordinate: TRPLocation?
 
-    // Filtered activities for selected city
-    private var filteredActivities: [TRPTimelineSegment] = []
+    private var filteredSavedItems: [SavedItem] = []
 
-    // Google Places Search
     private var googleApiKey: String?
     private var boundarySW: TRPLocation?
     private var boundaryNE: TRPLocation?
@@ -42,42 +74,60 @@ public class AddPlanPOISelectionViewModel {
                 cityId: Int? = nil,
                 cityCenterPOI: TRPPoi?,
                 bookedActivities: [TRPTimelineSegment],
+                favouriteItems: [TRPSegmentFavoriteItem] = [],
                 boundarySW: TRPLocation? = nil,
-                boundaryNE: TRPLocation? = nil) {
+                boundaryNE: TRPLocation? = nil,
+                cityCoordinate: TRPLocation? = nil) {
         self.cityName = cityName
         self.cityId = cityId
         self.cityCenterPOI = cityCenterPOI
         self.bookedActivities = bookedActivities
+        self.favouriteItems = favouriteItems
         self.boundarySW = boundarySW
         self.boundaryNE = boundaryNE
+        self.cityCoordinate = cityCoordinate ?? cityCenterPOI?.coordinate
 
-        // Get Google API key
         if let key = TRPApiKeyController.getKey(TRPApiKeys.trpGooglePlace) {
             googleApiKey = key
         }
 
-        // Filter activities by selected city
-        filterActivitiesByCity()
+        filterItemsByCity()
     }
 
-    private func filterActivitiesByCity() {
-        // If no cityId or cityName provided, show all activities
-        guard cityId != nil || cityName != nil else {
-            filteredActivities = bookedActivities
-            return
+    private func filterItemsByCity() {
+        var items: [SavedItem] = []
+
+        for segment in bookedActivities {
+            let matchesCity = matchesCityFilter(cityId: segment.city?.id, cityName: segment.city?.name)
+            if matchesCity {
+                items.append(.bookedActivity(segment))
+            }
         }
 
-        filteredActivities = bookedActivities.filter { segment in
-            // Filter by cityId if available
-            if let cityId = self.cityId, let segmentCityId = segment.city?.id {
-                return segmentCityId == cityId
+        for item in favouriteItems {
+            let matchesCity = matchesCityFilter(cityId: item.cityId, cityName: item.cityName)
+            if matchesCity {
+                items.append(.favouriteActivity(item))
             }
-            // Fallback to city name matching
-            if let cityName = self.cityName, let segmentCityName = segment.city?.name {
-                return segmentCityName.lowercased() == cityName.lowercased()
-            }
-            return false
         }
+
+        filteredSavedItems = items
+    }
+
+    private func matchesCityFilter(cityId itemCityId: Int?, cityName itemCityName: String?) -> Bool {
+        guard self.cityId != nil || self.cityName != nil else {
+            return true
+        }
+
+        if let filterCityId = self.cityId, let itemCityId = itemCityId {
+            return filterCityId == itemCityId
+        }
+
+        if let filterCityName = self.cityName, let itemCityName = itemCityName {
+            return filterCityName.lowercased() == itemCityName.lowercased()
+        }
+
+        return false
     }
 
     // MARK: - City Center Methods
@@ -98,41 +148,42 @@ public class AddPlanPOISelectionViewModel {
         return "\(city) | \(AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.cityCenter))"
     }
 
-    // MARK: - Booked Activities Methods
-    public func getFilteredActivitiesCount() -> Int {
-        return filteredActivities.count
+    // MARK: - Saved Items Methods (Booked Activities + Favourite Items)
+    public func getSavedItemsCount() -> Int {
+        return filteredSavedItems.count
     }
 
-    public func getFilteredActivity(at index: Int) -> TRPTimelineSegment? {
-        guard index < filteredActivities.count else { return nil }
-        return filteredActivities[index]
+    public func getSavedItem(at index: Int) -> SavedItem? {
+        guard index < filteredSavedItems.count else { return nil }
+        return filteredSavedItems[index]
     }
 
-    public func getFilteredActivities() -> [TRPTimelineSegment] {
-        return filteredActivities
+    public func getSavedItems() -> [SavedItem] {
+        return filteredSavedItems
     }
 
-    public func hasFilteredActivities() -> Bool {
-        return !filteredActivities.isEmpty
+    public func hasSavedItems() -> Bool {
+        return !filteredSavedItems.isEmpty
     }
 
-    // Keep old methods for backward compatibility
     public func getBookedActivitiesCount() -> Int {
-        return filteredActivities.count
+        return filteredSavedItems.count
     }
 
     public func getBookedActivity(at index: Int) -> TRPTimelineSegment? {
-        guard index < filteredActivities.count else { return nil }
-        return filteredActivities[index]
+        guard index < filteredSavedItems.count else { return nil }
+        if case .bookedActivity(let segment) = filteredSavedItems[index] {
+            return segment
+        }
+        return nil
     }
 
-    public func getBookedActivities() -> [TRPTimelineSegment] {
-        return filteredActivities
+    public func hasFilteredActivities() -> Bool {
+        return !filteredSavedItems.isEmpty
     }
 
     // MARK: - Google Places Search
     public func searchAddress(text: String) {
-        // Cancel previous search
         searchWorkItem?.cancel()
 
         let searchText = text.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -145,7 +196,6 @@ public class AddPlanPOISelectionViewModel {
             return
         }
 
-        // Debounce search by 650ms
         let workItem = DispatchWorkItem { [weak self] in
             self?.performSearch(text: searchText, apiKey: apiKey)
         }

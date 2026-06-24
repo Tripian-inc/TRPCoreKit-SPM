@@ -21,6 +21,23 @@ public struct TRPTimelineStep: Codable, Hashable {
     public var attention: String?
     public var alternatives: [String]?
     public var warningMessage: [String]?
+
+    // MARK: - Conflict Detection (not encoded/decoded)
+    public var hasConflict: Bool = false
+    public var showTimeOverlapText: Bool = false
+
+    // MARK: - Availability (not encoded/decoded)
+    /// Transient runtime flag set by the post-load availability sweep when the
+    /// provider's schedule for this step's date no longer contains its
+    /// `startDateTimes` slot. Rebuilt on every cold load.
+    public var isAvailabilityExpired: Bool = false
+
+    // Custom coding keys to exclude conflict properties from JSON
+    private enum CodingKeys: String, CodingKey {
+        case id, poi, score, planId, scoreDetails, order
+        case startDateTimes, endDateTimes, stepType, attention
+        case alternatives, warningMessage
+    }
 }
 
 extension TRPTimelineStep: Equatable {

@@ -43,12 +43,13 @@ final class TourMapper {
         // Convert duration from Double (minutes) to Int
         let duration = restModel.duration != nil ? Int(restModel.duration!) : nil
 
-        // Convert price: prefer currentPrice over price, convert to Int
-        let price: Int?
+        // Prefer currentPrice over price; preserve decimal precision so the
+        // UI can show the exact fractional value the API returned.
+        let price: Double?
         if let currentPrice = restModel.currentPrice {
-            price = Int(currentPrice)
+            price = Double(currentPrice)
         } else if let regularPrice = restModel.price {
-            price = Int(regularPrice)
+            price = Double(regularPrice)
         } else {
             price = nil
         }
@@ -65,6 +66,14 @@ final class TourMapper {
         // Use default icon for tours
         let icon = "tour"
 
+        // Map per-product slots from search response. `date` is required; `time` may be
+        // nil to indicate a flexible (any-time) slot for that day — we keep those so
+        // the time-selection screen can render a flexible-time card instead of a grid.
+        let slots: [TRPTourSlot]? = restModel.slots?.compactMap { slotModel in
+            guard let date = slotModel.date else { return nil }
+            return TRPTourSlot(date: date, time: slotModel.time, price: slotModel.price)
+        }
+
         let tour = TRPTourProduct(id: restModel.id,
                                   productId: restModel.productId,
                                   cityId: restModel.cityId,
@@ -73,6 +82,7 @@ final class TourMapper {
                                   gallery: gallery,
                                   duration: duration,
                                   price: price,
+                                  currency: restModel.currency,
                                   rating: rating,
                                   ratingCount: restModel.ratingCount,
                                   description: restModel.description,
@@ -87,7 +97,8 @@ final class TourMapper {
                                   distance: nil,
                                   status: status,
                                   offers: [],
-                                  additionalData: nil)
+                                  additionalData: nil,
+                                  slots: slots)
         return tour
     }
 
@@ -101,32 +112,94 @@ final class TourMapper {
         restModels.compactMap{ map($0) }
     }
 
-    // Map TRPTourSearchDataModel to extract products
-    func mapDataModel(_ dataModel: TRPTourSearchDataModel) -> [TRPTourProduct] {
-        guard let products = dataModel.products else { return [] }
-        return map(products)
+    // Map TRPTourSearchDataModel to a domain outcome (products + facets)
+    func mapDataModel(_ dataModel: TRPTourSearchDataModel) -> TRPTourSearchOutcome {
+        let products = map(dataModel.products ?? [])
+        let facets = mapFacets(dataModel.facets)
+        return TRPTourSearchOutcome(products: products, facets: facets)
     }
 
-    // Extract pagination from TRPTourSearchDataModel
-    func mapPagination(_ dataModel: TRPTourSearchDataModel) -> TRPTourPagination? {
-        guard let total = dataModel.total,
-              let limit = dataModel.limit,
-              let offset = dataModel.offset else {
-            return nil
-        }
-        return TRPTourPagination(total: total, limit: limit, offset: offset)
-    }
+    // Map first facet entry (single provider; providerId = 15) to domain TRPTourFacets
+    func mapFacets(_ facetModels: [TRPTourFacetModel]?) -> TRPTourFacets? {
+        guard let facet = facetModels?.first else { return nil }
 
-    // Map TRPTourScheduleModel to TRPTourSchedule
-    func mapSchedule(_ scheduleModel: TRPTourScheduleModel) -> TRPTourSchedule {
-        let slots = (scheduleModel.slots ?? []).compactMap { slotModel -> TRPTourScheduleSlot? in
-            guard let time = slotModel.time else { return nil }
-            return TRPTourScheduleSlot(time: time)
+        let categories: [TRPTourCategoryFacet] = (facet.categories ?? []).compactMap { model in
+            guard let id = model.id, let label = model.label else { return nil }
+            return TRPTourCategoryFacet(
+                id: id,
+                key: model.key,
+                label: label,
+                count: model.count ?? 0
+            )
         }
 
-        return TRPTourSchedule(
-            title: scheduleModel.title ?? "",
-            slots: slots
+        var priceRange: TRPTourPriceRangeFacet?
+        if let minMoney = facet.priceRange?.minimum,
+           let maxMoney = facet.priceRange?.maximum,
+           let minAmount = minMoney.amount,
+           let maxAmount = maxMoney.amount {
+            priceRange = TRPTourPriceRangeFacet(
+                minAmount: Double(minAmount) / 100.0,
+                maxAmount: Double(maxAmount) / 100.0,
+                currency: minMoney.currency ?? maxMoney.currency ?? ""
+            )
+        }
+
+        var durationRange: TRPTourDurationRangeFacet?
+        if let minMinutes = facet.durationRange?.minimumMinutes,
+           let maxMinutes = facet.durationRange?.maximumMinutes {
+            durationRange = TRPTourDurationRangeFacet(
+                minMinutes: minMinutes,
+                maxMinutes: maxMinutes
+            )
+        }
+
+        return TRPTourFacets(
+            categories: categories,
+            priceRange: priceRange,
+            durationRange: durationRange
         )
+    }
+
+    // Map TRPTourScheduleModel to TRPTourSchedule. `time` on individual slots may be
+    // nil to indicate a flexible (any-time) slot — preserved so the booking flow can
+    // render a flexible-time card instead of a time grid.
+    //
+    // The domain `TRPTourSchedule.dates` always carries per-day buckets — range
+    // queries (`to` set) populate the SDK's `dates[]` directly; single-day responses
+    // are synthesized into a 1-entry list from the top-level `date` + flat `slots`
+    // so callers iterate the same shape regardless.
+    func mapSchedule(_ scheduleModel: TRPTourScheduleModel) -> TRPTourSchedule {
+        let title = scheduleModel.title
+
+        // Range path: server populated `dates[]`.
+        if let dateModels = scheduleModel.dates, !dateModels.isEmpty {
+            let mappedDays: [TRPTourScheduleDay] = dateModels.compactMap { dayModel in
+                guard let date = dayModel.date else { return nil }
+                let slots = (dayModel.slots ?? []).map { slot in
+                    TRPTourScheduleSlot(time: slot.time, price: slot.price)
+                }
+                return TRPTourScheduleDay(date: date, slots: slots)
+            }
+            return TRPTourSchedule(title: title, dates: mappedDays)
+        }
+
+        // Single-day fallback: synthesize one TRPTourScheduleDay from the response's
+        // top-level `date` + flat `slots`.
+        let slots = (scheduleModel.slots ?? []).map { slot in
+            TRPTourScheduleSlot(time: slot.time, price: slot.price)
+        }
+        let day = TRPTourScheduleDay(date: scheduleModel.date, slots: slots)
+        return TRPTourSchedule(title: title, dates: [day])
+    }
+
+    /// Map the batch `tour-api/schedule-availability` response. Missing or empty
+    /// schedules are preserved as `TRPTourScheduleAvailability(schedule: nil)` so
+    /// callers can distinguish "sold out / unavailable" from "not requested".
+    func mapAvailability(_ dataModel: TRPTourScheduleAvailabilityDataModel) -> [TRPTourScheduleAvailability] {
+        return (dataModel.schedules ?? []).map { itemModel in
+            let schedule: TRPTourSchedule? = itemModel.schedule.map { mapSchedule($0) }
+            return TRPTourScheduleAvailability(activityId: itemModel.id, schedule: schedule)
+        }
     }
 }

@@ -15,6 +15,10 @@ public struct TRPPointAnnotation: Codable {
     var isOffer: Bool = false
     var lat: Double?
     var lon: Double?
+    var cityIndex: Int = 0  // City index for multi-city marker coloring
+    var isSelected: Bool = false  // Selection state for marker appearance
+    var isCityMarker: Bool = false  // True for city markers on multi-destination days
+    var cityId: String?  // City ID for city markers
 }
 
 extension TRPPointAnnotation {
@@ -36,9 +40,40 @@ extension TRPPointAnnotation {
             return ViewAnnotation(coordinate: CLLocationCoordinate2D(latitude: 0, longitude: 0), view: UIView())
         }
 
-        // Use simplified annotation view with order only (24x24)
+        let coordinate = CLLocationCoordinate2D(latitude: lat, longitude: lon)
+
+        // City marker - use TRPCityMarkerAnnotationView with 40x40 size
+        if isCityMarker {
+            let cityMarkerView = TRPCityMarkerAnnotationView()
+            cityMarkerView.cityId = cityId
+            cityMarkerView.onTapHandler = tapHandler
+
+            // Wrap in a container with explicit size constraints for Mapbox
+            let containerView = UIView()
+            containerView.backgroundColor = .clear
+            containerView.isUserInteractionEnabled = true
+            containerView.translatesAutoresizingMaskIntoConstraints = false
+            cityMarkerView.translatesAutoresizingMaskIntoConstraints = false
+
+            containerView.addSubview(cityMarkerView)
+
+            NSLayoutConstraint.activate([
+                containerView.widthAnchor.constraint(equalToConstant: 40),
+                containerView.heightAnchor.constraint(equalToConstant: 40),
+                cityMarkerView.widthAnchor.constraint(equalToConstant: 40),
+                cityMarkerView.heightAnchor.constraint(equalToConstant: 40),
+                cityMarkerView.centerXAnchor.constraint(equalTo: containerView.centerXAnchor),
+                cityMarkerView.centerYAnchor.constraint(equalTo: containerView.centerYAnchor)
+            ])
+
+            let pointAnnotation = ViewAnnotation(coordinate: coordinate, view: containerView)
+            pointAnnotation.allowOverlap = true
+            return pointAnnotation
+        }
+
+        // Step marker - use simplified annotation view with order (24x24)
         let displayOrder = order ?? 0
-        let annotationView = TRPRotaAnnotationView(order: displayOrder)
+        let annotationView = TRPRotaAnnotationView(order: displayOrder, cityIndex: cityIndex, isSelected: isSelected)
         annotationView.poiId = poiId
         annotationView.onTapHandler = tapHandler
 
@@ -62,7 +97,6 @@ extension TRPPointAnnotation {
         ])
 
         // Create ViewAnnotation
-        let coordinate = CLLocationCoordinate2D(latitude: lat, longitude: lon)
         let pointAnnotation = ViewAnnotation(coordinate: coordinate, view: containerView)
         pointAnnotation.allowOverlap = true
 

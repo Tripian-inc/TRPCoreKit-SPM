@@ -15,7 +15,6 @@ public struct TimelineLocalizationKeys {
     // MARK: - Booked Activity Cell
     public static let reservation = "timeline.bookedActivity.reservation"
     public static let confirmed = "timeline.bookedActivity.confirmed"
-    public static let freeCancellation = "timeline.bookedActivity.freeCancellation"
     public static let adults = "timeline.bookedActivity.adults"
     public static let child = "timeline.bookedActivity.child"
     public static let children = "timeline.bookedActivity.children"
@@ -24,23 +23,57 @@ public struct TimelineLocalizationKeys {
     public static let removeActivityTitle = "timeline.removeActivity.title"
     public static let removeActivityMessage = "timeline.removeActivity.message"
     public static let remove = "timeline.removeActivity.remove"
-    public static let cancel = "timeline.removeActivity.cancel"
+
+    // MARK: - Remove Favourite Alert
+    public static let removeFavouriteTitle = "timeline.removeFavourite.title"
+    public static let removeFavouriteMessage = "timeline.removeFavourite.message"
 
     // MARK: - Remove Recommendations Alert
     public static let removeRecommendationsTitle = "timeline.removeRecommendations.title"
     public static let removeRecommendationsMessage = "timeline.removeRecommendations.message"
 
+    // MARK: - Remove Step Alert
+    public static let removeStepTitle = "timeline.removeStep.title"
+    public static let removeStepMessage = "timeline.removeStep.message"
+
     // MARK: - Empty State
     public static let noPlansYet = "timeline.emptyState.noPlansYet"
     public static let noPlansDescription = "timeline.emptyState.noPlansDescription"
+    public static let addPlansButton = "timeline.emptyState.addPlansButton"
+
+    // MARK: - No City Empty State
+    public static let noCityTitle = "timeline.noCity.title"
+    public static let noCityDescription = "timeline.noCity.description"
+    public static let noCityButton = "timeline.noCity.button"
+
+    // MARK: - Partial Unavailable Cities Alert
+    public static let partialUnavailableTitle = "timeline.partialUnavailable.title"
+    public static let partialUnavailableDescription = "timeline.partialUnavailable.description"
+    public static let partialUnavailableButton = "timeline.partialUnavailable.button"
 
     // MARK: - Segment/Cell Labels
     public static let recommendations = "timeline.label.recommendations"
     public static let activityBadge = "timeline.label.activityBadge"
+    public static let noExactLocation = "timeline.label.noExactLocation"
     public static let pointOfInterest = "timeline.label.pointOfInterest"
     public static let unknown = "timeline.label.unknown"
     public static let unknownLocation = "timeline.label.unknownLocation"
-    public static let from = "timeline.label.from"
+    public static let changeTime = "timeline.label.changeTime"
+
+    // MARK: - Map
+    public static let mapMainView = "timeline.map.mainView"
+
+    // MARK: - Time Conflict
+    public static let timeOverlap = "timeline.timeOverlap"
+    public static let conflictWarning = "timeline.conflictWarning"
+
+    // MARK: - Availability
+    public static let notAvailable = "timeline.notAvailable"
+
+    // MARK: - Flexible Activity
+    public static let flexibleEntryTitle = "timeline.flexibleActivity.entryTitle"
+    public static let flexibleEntrySubtitle = "timeline.flexibleActivity.entrySubtitle"
+    public static let flexibleShort = "timeline.flexibleActivity.short"
 
     // MARK: - Duration & Distance Formats
     public static let durationHours = "timeline.format.hours"
@@ -59,24 +92,32 @@ public struct TimelineLocalizationKeys {
         navigationTitle: "Plan Your Itinerary",
         reservation: "Reservation",
         confirmed: "Confirmed",
-        freeCancellation: "Free cancellation",
         adults: "Adults",
         child: "Child",
         children: "Children",
         removeActivityTitle: "Remove Activity",
         removeActivityMessage: "Are you sure you want to remove this activity from your itinerary?",
         remove: "Remove",
-        cancel: "Cancel",
+        removeFavouriteTitle: "Remove from Saved",
+        removeFavouriteMessage: "Are you sure you want to remove this activity from your saved plans?",
         removeRecommendationsTitle: "Remove Recommendations",
         removeRecommendationsMessage: "Are you sure you want to remove these recommendations from your itinerary?",
         noPlansYet: "No Plans Yet",
         noPlansDescription: "Add must see attractions, restaurants and cafes or block time to rest and recharge.",
+        addPlansButton: "Add Plans",
+        noCityTitle: "We haven't landed in these cities yet",
+        noCityDescription: "This feature is not available in your current destinations. We're working to land there very soon!",
+        noCityButton: "Go to My Trip",
+        partialUnavailableTitle: "This feature is not available in %@",
+        partialUnavailableDescription: "We're working to add this city to our planner very soon.\n\nYou can continue planning your trip with the other cities.",
+        partialUnavailableButton: "Understood",
         recommendations: "Recommendations",
         activityBadge: "Activity",
+        noExactLocation: "No exact location",
         pointOfInterest: "Point of interest",
         unknown: "Unknown",
         unknownLocation: "Unknown Location",
-        from: "From",
+        changeTime: "Change Time",
         durationHours: "%dh",
         durationMinutes: "%dm",
         durationCombined: "%dh %dm",
@@ -84,14 +125,20 @@ public struct TimelineLocalizationKeys {
         error: "Error",
         errorSomethingWentWrong: "Something went wrong. Please try again.",
         errorGenerationFailed: "Failed to generate your itinerary. Please try again.",
-        errorTimeout: "Request timed out. Please try again."
+        errorTimeout: "Request timed out. Please try again.",
+        mapMainView: "Main View",
+        timeOverlap: "Time Overlap",
+        conflictWarning: "Some of your planned activities overlap. Please review the timing to resolve any conflicts.",
+        notAvailable: "Not available",
+        flexibleEntryTitle: "Flexible entry",
+        flexibleEntrySubtitle: "Check the timetable",
+        flexibleShort: "Flexible"
     ]
 
     // MARK: - Helper Methods
     public static func localized(_ key: String) -> String {
         let localizedValue = TRPLanguagesController.shared.getLanguageValue(for: key)
 
-        // If the localization returns the key itself or is empty, use default English value
         if localizedValue.isEmpty || localizedValue == key {
             return defaultValues[key] ?? key
         }
@@ -101,7 +148,6 @@ public struct TimelineLocalizationKeys {
 
     // MARK: - Format Helpers
 
-    /// Formats duration in minutes to localized string (e.g., "2h 30m" or "45m")
     public static func formatDuration(minutes: Int) -> String {
         let hours = minutes / 60
         let mins = minutes % 60
@@ -118,7 +164,6 @@ public struct TimelineLocalizationKeys {
         }
     }
 
-    /// Formats distance with walking time (e.g., "5 min (0.4 km)")
     public static func formatDistance(minutes: Int, kilometers: String) -> String {
         let format = localized(distanceFormat)
         return String(format: format, minutes, kilometers)

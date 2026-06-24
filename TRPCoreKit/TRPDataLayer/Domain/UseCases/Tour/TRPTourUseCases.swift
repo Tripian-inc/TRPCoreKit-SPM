@@ -36,41 +36,40 @@ extension TRPTourUseCases: SearchTourUseCase {
         }
 
 
-        let onComplete = completion ?? { result, pagination in }
+        let onComplete = completion ?? { _, _ in }
 
         var params = TourParameters(search: text)
         params.tourCategories = categories.isEmpty ? nil : categories
         params.date = date
 
-        tourRepository.fetchTours(cityId: cityId, parameters: params) { result, pagination in
-
+        tourRepository.fetchTours(cityId: cityId, parameters: params) { result in
             switch result {
-            case .success(let result):
-                onComplete(.success(result), pagination)
+            case .success(let outcome):
+                onComplete(.success(outcome.products), nil)
             case .failure(let error):
-                onComplete(.failure(error), pagination)
+                onComplete(.failure(error), nil)
             }
         }
     }
-    
+
     public func executeSearchTour(text: String,
                                   categories: [String],
                                   userLocation: TRPLocation,
                                   completion: ((Result<[TRPTourProduct], Error>, TRPTourPagination?) -> Void)?) {
-        
-        let onComplete = completion ?? { result, pagination in }
-        
+
+        let onComplete = completion ?? { _, _ in }
+
         if ReachabilityUseCases.shared.isOnline {
             var params = TourParameters(search: text)
             params.cityId = cityId
             params.tourCategories = categories.isEmpty ? nil : categories
             params.distance = 50
-            tourRepository.fetchTours(coordinate: userLocation, parameters: params) { result, pagination in
+            tourRepository.fetchTours(coordinate: userLocation, parameters: params) { result in
                 switch result {
-                case .success(let result):
-                    onComplete(.success(result), pagination)
+                case .success(let outcome):
+                    onComplete(.success(outcome.products), nil)
                 case .failure(let error):
-                    onComplete(.failure(error), pagination)
+                    onComplete(.failure(error), nil)
                 }
             }
         } else {
@@ -78,14 +77,74 @@ extension TRPTourUseCases: SearchTourUseCase {
             onComplete(.failure(GeneralError.customMessage("Tours require online connection")), nil)
         }
     }
-    
+
+}
+
+extension TRPTourUseCases: LookupTourProductUseCase {
+
+    public func executeLookupTourProduct(providerId: Int,
+                                         productId: String,
+                                         completion: @escaping (TourResultValue) -> Void) {
+
+        guard ReachabilityUseCases.shared.isOnline else {
+            completion(.failure(GeneralError.customMessage("Tours require online connection")))
+            return
+        }
+
+        tourRepository.lookupTourProduct(providerId: providerId,
+                                         productId: productId,
+                                         completion: completion)
+    }
+
+    /// Convenience overload for callers that already have a `TRPAdditionalData`
+    /// (e.g. `step.additionalData` for activity-type timeline steps, or
+    /// `segment.additionalData` for booked/reserved activities).
+    public func executeLookupTourProduct(additionalData: TRPAdditionalData?,
+                                         completion: @escaping (TourResultValue) -> Void) {
+
+        guard let providerId = additionalData?.providerId,
+              let productId = additionalData?.productId, !productId.isEmpty else {
+            completion(.failure(GeneralError.customMessage("Missing providerId/productId")))
+            return
+        }
+
+        executeLookupTourProduct(providerId: providerId,
+                                 productId: productId,
+                                 completion: completion)
+    }
+}
+
+extension TRPTourUseCases: TourScheduleAvailabilityUseCase {
+
+    public func executeGetTourScheduleAvailability(items: [String],
+                                                   date: String,
+                                                   currency: String? = nil,
+                                                   lang: String? = nil,
+                                                   completion: @escaping (Result<[TRPTourScheduleAvailability], Error>) -> Void) {
+
+        guard ReachabilityUseCases.shared.isOnline else {
+            completion(.failure(GeneralError.customMessage("Tours require online connection")))
+            return
+        }
+
+        guard !items.isEmpty else {
+            completion(.success([]))
+            return
+        }
+
+        tourRepository.getTourScheduleAvailability(items: items,
+                                                   date: date,
+                                                   currency: currency,
+                                                   lang: lang,
+                                                   completion: completion)
+    }
 }
 
 extension TRPTourUseCases: FetchTourUseCase {
 
     public func executeFetchTours(completion: ((Result<[TRPTourProduct], Error>, TRPTourPagination?) -> Void)?) {
 
-        let onComplete = completion ?? { result, pagination in }
+        let onComplete = completion ?? { _, _ in }
 
         guard let cityId = cityId else {
             onComplete(.failure(GeneralError.customMessage("City id is null")), nil)
@@ -95,12 +154,12 @@ extension TRPTourUseCases: FetchTourUseCase {
         let params = TourParameters()
 
         if ReachabilityUseCases.shared.isOnline {
-            tourRepository.fetchTours(cityId: cityId, parameters: params) { result, pagination in
+            tourRepository.fetchTours(cityId: cityId, parameters: params) { result in
                 switch result {
-                case .success(let result):
-                    onComplete(.success(result), pagination)
+                case .success(let outcome):
+                    onComplete(.success(outcome.products), nil)
                 case .failure(let error):
-                    onComplete(.failure(error), pagination)
+                    onComplete(.failure(error), nil)
                 }
             }
         } else {

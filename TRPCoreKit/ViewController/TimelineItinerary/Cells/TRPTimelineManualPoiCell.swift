@@ -23,6 +23,8 @@ class TRPTimelineManualPoiCell: UITableViewCell {
     weak var delegate: TRPTimelineManualPoiCellDelegate?
 
     private var segment: TRPTimelineSegment?
+
+    private var isPastDayMode: Bool = false
     private var poi: TRPPoi?
 
     // MARK: - UI Components
@@ -33,7 +35,6 @@ class TRPTimelineManualPoiCell: UITableViewCell {
         return view
     }()
 
-    // Content container (horizontal layout: image | info)
     private let contentContainer: UIView = {
         let view = UIView()
         view.translatesAutoresizingMaskIntoConstraints = false
@@ -51,18 +52,16 @@ class TRPTimelineManualPoiCell: UITableViewCell {
         return imageView
     }()
 
-    // Right side info container - using stack view for auto height adjustment
     private let infoStackView: UIStackView = {
         let stack = UIStackView()
         stack.translatesAutoresizingMaskIntoConstraints = false
         stack.axis = .vertical
-        stack.spacing = 4
+        stack.spacing = 8
         stack.alignment = .leading
         stack.distribution = .fill
         return stack
     }()
 
-    // Title row (title + action buttons)
     private let titleRow: UIView = {
         let view = UIView()
         view.translatesAutoresizingMaskIntoConstraints = false
@@ -78,7 +77,6 @@ class TRPTimelineManualPoiCell: UITableViewCell {
         return label
     }()
 
-    // Action buttons container
     private let actionButtonsStack: UIStackView = {
         let stack = UIStackView()
         stack.translatesAutoresizingMaskIntoConstraints = false
@@ -96,7 +94,7 @@ class TRPTimelineManualPoiCell: UITableViewCell {
         button.tintColor = ColorSet.primary.uiColor
         button.imageView?.contentMode = .scaleAspectFit
         button.contentVerticalAlignment = .center
-        button.contentHorizontalAlignment = .center
+        button.contentHorizontalAlignment = .trailing
         button.addTarget(self, action: #selector(changeTimeButtonTapped), for: .touchUpInside)
         return button
     }()
@@ -114,7 +112,6 @@ class TRPTimelineManualPoiCell: UITableViewCell {
         return button
     }()
 
-    // Rating stack - bold 14px for rating, light 14px for reviewCount
     private let ratingStackView: UIStackView = {
         let stack = UIStackView()
         stack.translatesAutoresizingMaskIntoConstraints = false
@@ -164,7 +161,7 @@ class TRPTimelineManualPoiCell: UITableViewCell {
     private let categoryBadge: UIView = {
         let view = UIView()
         view.translatesAutoresizingMaskIntoConstraints = false
-        view.backgroundColor = ColorSet.bgBlue.uiColor
+        view.backgroundColor = ColorSet.neutral200.uiColor
         view.layer.cornerRadius = 4
         view.clipsToBounds = true
         return view
@@ -173,8 +170,8 @@ class TRPTimelineManualPoiCell: UITableViewCell {
     private let categoryLabel: UILabel = {
         let label = UILabel()
         label.translatesAutoresizingMaskIntoConstraints = false
-        label.font = FontSet.montserratMedium.font(10)
-        label.textColor = ColorSet.fgBlue.uiColor
+        label.font = FontSet.montserratMedium.font(12)
+        label.textColor = ColorSet.fgGray.uiColor
         return label
     }()
 
@@ -199,25 +196,20 @@ class TRPTimelineManualPoiCell: UITableViewCell {
         contentContainer.addSubview(poiImageView)
         contentContainer.addSubview(infoStackView)
 
-        // Build title row
         titleRow.addSubview(titleLabel)
         titleRow.addSubview(actionButtonsStack)
 
-        // Build action buttons stack
         actionButtonsStack.addArrangedSubview(changeTimeButton)
         actionButtonsStack.addArrangedSubview(removeButton)
 
-        // Build rating stack
         ratingStackView.addArrangedSubview(ratingLabel)
         ratingStackView.addArrangedSubview(ratingSpacer1)
         ratingStackView.addArrangedSubview(starIcon)
         ratingStackView.addArrangedSubview(ratingSpacer2)
         ratingStackView.addArrangedSubview(reviewLabel)
 
-        // Build category badge
         categoryBadge.addSubview(categoryLabel)
 
-        // Build info stack view
         infoStackView.addArrangedSubview(titleRow)
         infoStackView.addArrangedSubview(ratingStackView)
         infoStackView.addArrangedSubview(categoryBadge)
@@ -228,75 +220,86 @@ class TRPTimelineManualPoiCell: UITableViewCell {
 
     private func setupConstraints() {
         NSLayoutConstraint.activate([
-            // Time Badge View
             timeBadgeView.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 16),
             timeBadgeView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
 
-            // Content Container
             contentContainer.topAnchor.constraint(equalTo: timeBadgeView.bottomAnchor),
             contentContainer.leadingAnchor.constraint(equalTo: timeBadgeView.leadingAnchor),
             contentContainer.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
             contentContainer.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -16),
 
-            // POI Image - 80x80
             poiImageView.topAnchor.constraint(equalTo: contentContainer.topAnchor),
             poiImageView.leadingAnchor.constraint(equalTo: contentContainer.leadingAnchor),
             poiImageView.widthAnchor.constraint(equalToConstant: 80),
             poiImageView.heightAnchor.constraint(equalToConstant: 80),
 
-            // Info stack view - 16px from imageView, 12px from right
             infoStackView.topAnchor.constraint(equalTo: contentContainer.topAnchor),
             infoStackView.leadingAnchor.constraint(equalTo: poiImageView.trailingAnchor, constant: 16),
             infoStackView.trailingAnchor.constraint(equalTo: contentContainer.trailingAnchor, constant: -12),
 
-            // Title row - full width
             titleRow.widthAnchor.constraint(equalTo: infoStackView.widthAnchor),
 
-            // Title label inside title row - 8px margin to buttons
             titleLabel.topAnchor.constraint(equalTo: titleRow.topAnchor),
             titleLabel.leadingAnchor.constraint(equalTo: titleRow.leadingAnchor),
             titleLabel.trailingAnchor.constraint(equalTo: actionButtonsStack.leadingAnchor, constant: -8),
             titleLabel.bottomAnchor.constraint(equalTo: titleRow.bottomAnchor),
 
-            // Action buttons stack inside title row
             actionButtonsStack.topAnchor.constraint(equalTo: titleRow.topAnchor),
-            actionButtonsStack.trailingAnchor.constraint(equalTo: titleRow.trailingAnchor),
+            actionButtonsStack.trailingAnchor.constraint(equalTo: titleRow.trailingAnchor, constant: 12),
 
-            // Button sizes - 32x32
-            changeTimeButton.widthAnchor.constraint(equalToConstant: 32),
+            changeTimeButton.widthAnchor.constraint(equalToConstant: 44),
             changeTimeButton.heightAnchor.constraint(equalToConstant: 32),
-            removeButton.widthAnchor.constraint(equalToConstant: 32),
+            removeButton.widthAnchor.constraint(equalToConstant: 44),
             removeButton.heightAnchor.constraint(equalToConstant: 32),
 
-            // Rating spacers
             ratingSpacer1.widthAnchor.constraint(equalToConstant: 2),
             ratingSpacer2.widthAnchor.constraint(equalToConstant: 4),
 
-            // Star icon size
             starIcon.widthAnchor.constraint(equalToConstant: 14),
             starIcon.heightAnchor.constraint(equalToConstant: 14),
 
-            // Category label inside badge
             categoryLabel.topAnchor.constraint(equalTo: categoryBadge.topAnchor, constant: 4),
             categoryLabel.bottomAnchor.constraint(equalTo: categoryBadge.bottomAnchor, constant: -4),
             categoryLabel.leadingAnchor.constraint(equalTo: categoryBadge.leadingAnchor, constant: 8),
             categoryLabel.trailingAnchor.constraint(equalTo: categoryBadge.trailingAnchor, constant: -8),
         ])
 
-        // Dynamic height constraints - content container expands to fit the taller of imageView or infoStackView
-        // Minimum height constraint (80px for imageView)
         contentContainer.heightAnchor.constraint(greaterThanOrEqualToConstant: 80).isActive = true
 
-        // Info stack bottom constraint - when info is taller than 80px, it defines the height
-        let infoBottomConstraint = infoStackView.bottomAnchor.constraint(equalTo: contentContainer.bottomAnchor)
-        infoBottomConstraint.priority = UILayoutPriority(999)
-        infoBottomConstraint.isActive = true
+        contentContainer.bottomAnchor.constraint(greaterThanOrEqualTo: infoStackView.bottomAnchor).isActive = true
     }
 
     private func setupTapGesture() {
         let tapGesture = UITapGestureRecognizer(target: self, action: #selector(cellTapped))
+        tapGesture.delegate = TRPDisabledControlAwareTapDelegate.shared
         contentContainer.addGestureRecognizer(tapGesture)
         contentContainer.isUserInteractionEnabled = true
+    }
+
+    override func prepareForReuse() {
+        super.prepareForReuse()
+        resetTextAndBorderDefaults()
+        resetPastDayState()
+    }
+
+    private func resetTextAndBorderDefaults() {
+        titleLabel.textColor = ColorSet.primaryText.uiColor
+        ratingLabel.textColor = ColorSet.primaryText.uiColor
+        reviewLabel.textColor = ColorSet.fgWeak.uiColor
+        categoryLabel.textColor = ColorSet.fgGray.uiColor
+    }
+
+    /// Greys out action buttons but keeps them tappable; `isPastDayMode` makes their handlers no-op.
+    func applyPastDayStyle() {
+        isPastDayMode = true
+        changeTimeButton.setPastDayDisabled(true, originalTint: ColorSet.primary.uiColor)
+        removeButton.setPastDayDisabled(true, originalTint: ColorSet.primary.uiColor)
+    }
+
+    private func resetPastDayState() {
+        isPastDayMode = false
+        changeTimeButton.setPastDayDisabled(false, originalTint: ColorSet.primary.uiColor)
+        removeButton.setPastDayDisabled(false, originalTint: ColorSet.primary.uiColor)
     }
 
     // MARK: - Configuration
@@ -304,39 +307,35 @@ class TRPTimelineManualPoiCell: UITableViewCell {
         self.segment = segment
         self.poi = poi
 
-        // Configure title from POI or segment
         titleLabel.text = poi?.name ?? segment.title ?? ""
 
-        // Configure time badge from segment (with unified order)
         if let startDate = segment.startDate, let endDate = segment.endDate {
             let startTime = formatTime(from: startDate)
             let endTime = formatTime(from: endDate)
             timeBadgeView.configure(order: order, startTime: startTime, endTime: endTime)
         }
 
-        // Configure image from POI
         if let imageUrl = poi?.image?.url {
             poiImageView.sd_setImage(with: URL(string: imageUrl), placeholderImage: nil)
         } else {
             poiImageView.image = nil
         }
 
-        // Configure rating
-        if let rating = poi?.rating {
-            ratingLabel.text = String(format: "%.1f", rating).replacingOccurrences(of: ".", with: ",")
-            ratingStackView.isHidden = false
+        ratingStackView.isHidden = true
+//        if let rating = poi?.rating {
+//            ratingLabel.text = String(format: "%.1f", rating).replacingOccurrences(of: ".", with: ",")
+//            ratingStackView.isHidden = false
+//
+//            if let ratingCount = poi?.ratingCount {
+//                let opinionsText = AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.opinions)
+//                reviewLabel.text = "\(ratingCount.formattedWithSeparator) \(opinionsText)"
+//            } else {
+//                reviewLabel.text = ""
+//            }
+//        } else {
+//            ratingStackView.isHidden = true
+//        }
 
-            if let ratingCount = poi?.ratingCount {
-                let opinionsText = AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.opinions)
-                reviewLabel.text = "\(ratingCount.formattedWithSeparator) \(opinionsText)"
-            } else {
-                reviewLabel.text = ""
-            }
-        } else {
-            ratingStackView.isHidden = true
-        }
-
-        // Configure category
         if let firstCategory = poi?.categories.first {
             categoryLabel.text = firstCategory.name
             categoryBadge.isHidden = false
@@ -348,44 +347,44 @@ class TRPTimelineManualPoiCell: UITableViewCell {
 
     // MARK: - Configuration with Pre-computed Data
 
-    /// Configure cell with pre-computed ManualPoiCellData
     func configure(with cellData: ManualPoiCellData) {
         self.segment = cellData.segment
         self.poi = cellData.poi
 
-        // Title (pre-computed)
         titleLabel.text = cellData.title
 
-        // Time badge with order and time range (using .poi style)
-        // Parse time range from "HH:mm - HH:mm" format
         let timeParts = cellData.timeRange.components(separatedBy: " - ")
         let startTime = timeParts.first ?? ""
         let endTime = timeParts.count > 1 ? timeParts[1] : ""
-        timeBadgeView.configure(order: cellData.order, startTime: startTime, endTime: endTime)
+        timeBadgeView.configure(
+            order: cellData.order,
+            startTime: startTime,
+            endTime: endTime,
+            hasConflict: cellData.hasConflict,
+            showTimeOverlapText: cellData.showTimeOverlapText
+        )
 
-        // Image
         if let imageUrl = cellData.imageUrl {
             poiImageView.sd_setImage(with: URL(string: imageUrl), placeholderImage: nil)
         } else {
             poiImageView.image = nil
         }
 
-        // Configure rating
-        if let rating = cellData.rating {
-            ratingLabel.text = String(format: "%.1f", rating).replacingOccurrences(of: ".", with: ",")
-            ratingStackView.isHidden = false
+        ratingStackView.isHidden = true
+//        if let rating = cellData.rating {
+//            ratingLabel.text = String(format: "%.1f", rating).replacingOccurrences(of: ".", with: ",")
+//            ratingStackView.isHidden = false
+//
+//            if let ratingCount = cellData.ratingCount {
+//                let opinionsText = AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.opinions)
+//                reviewLabel.text = "\(ratingCount.formattedWithSeparator) \(opinionsText)"
+//            } else {
+//                reviewLabel.text = ""
+//            }
+//        } else {
+//            ratingStackView.isHidden = true
+//        }
 
-            if let ratingCount = cellData.ratingCount {
-                let opinionsText = AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.opinions)
-                reviewLabel.text = "\(ratingCount.formattedWithSeparator) \(opinionsText)"
-            } else {
-                reviewLabel.text = ""
-            }
-        } else {
-            ratingStackView.isHidden = true
-        }
-
-        // Configure category
         if let categoryName = cellData.categoryName, !categoryName.isEmpty {
             categoryLabel.text = categoryName
             categoryBadge.isHidden = false
@@ -396,7 +395,6 @@ class TRPTimelineManualPoiCell: UITableViewCell {
     }
 
     private func formatTime(from dateString: String) -> String {
-        // Try format with seconds first, then without seconds
         let date = Date.fromString(dateString, format: "yyyy-MM-dd HH:mm:ss")
                    ?? Date.fromString(dateString, format: "yyyy-MM-dd HH:mm")
 
@@ -408,12 +406,12 @@ class TRPTimelineManualPoiCell: UITableViewCell {
 
     // MARK: - Actions
     @objc private func changeTimeButtonTapped() {
-        guard let segment = segment else { return }
+        guard !isPastDayMode, let segment = segment else { return }
         delegate?.manualPoiCellDidTapChangeTime(self, segment: segment)
     }
 
     @objc private func removeButtonTapped() {
-        guard let segment = segment else { return }
+        guard !isPastDayMode, let segment = segment else { return }
         delegate?.manualPoiCellDidTapRemove(self, segment: segment)
     }
 

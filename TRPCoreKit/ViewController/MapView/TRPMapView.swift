@@ -158,6 +158,18 @@ public class TRPMapView: UIView {
         let viewAnnotations = self.addViewAnnotations(annotations, annotationOrder: annotationOrder)
         addedAnnotations[segmentId] = viewAnnotations
     }
+
+    /// Add city marker annotations for multi-destination days
+    /// Uses TRPCityMarkerAnnotationView with ic_map_city_marker image
+    public func addCityAnnotations(_ annotations: [TRPPointAnnotation], segmentId: String) {
+        let viewAnnotations = annotations.map { annotation -> ViewAnnotation in
+            annotation.asViewAnnotation(tapHandler: { [weak self] cityId in
+                self?.delegate?.mapView(cityAnnotationPressed: cityId)
+            })
+        }
+        addAnnotationToMap(viewAnnotations)
+        addedAnnotations[segmentId] = viewAnnotations
+    }
     
     public func cleanAllAnnotations() {
         addedAnnotations.removeAll()
@@ -238,6 +250,37 @@ public class TRPMapView: UIView {
             mapView.setMapCenter(latitude: location.lat, longitude: location.lon, zoomLevel: zoom)
         }
     }
+
+    /// Fit the camera to show all given coordinates with padding
+    public func fitCamera(to coordinates: [CLLocationCoordinate2D], padding: UIEdgeInsets = UIEdgeInsets(top: 160, left: 60, bottom: 220, right: 60), maxZoom: Double? = nil, singleCoordinateZoom: Double = 13, animated: Bool = true) {
+        guard let mapView = mapView, coordinates.count > 0 else { return }
+
+        if coordinates.count == 1 {
+            // A lone marker has no spread to frame, so honour the caller's cap directly.
+            let zoom = min(singleCoordinateZoom, maxZoom ?? singleCoordinateZoom)
+            let camera = CameraOptions(center: coordinates.first, zoom: zoom)
+            if animated {
+                mapView.camera.ease(to: camera, duration: 0.5)
+            } else {
+                mapView.mapboxMap.setCamera(to: camera)
+            }
+            return
+        }
+
+        let referenceCamera = CameraOptions(bearing: 0)
+        if let camera = try? mapView.mapboxMap.camera(
+            for: coordinates,
+            camera: referenceCamera,
+            coordinatesPadding: padding,
+            maxZoom: maxZoom,
+            offset: nil) {
+            if animated {
+                mapView.camera.ease(to: camera, duration: 0.5)
+            } else {
+                mapView.mapboxMap.setCamera(to: camera)
+            }
+        }
+    }
     
     public func setZoomLevel(_ zoomLevel: Double) {
         if let map = mapView {
@@ -288,6 +331,13 @@ extension TRPMapView {
             self?.hidePOILayers()
         }.store(in: &cancelables)
 
+        // Observe camera changes for zoom level tracking
+        mapView.mapboxMap.onCameraChanged.observe { [weak self] event in
+            guard let self = self else { return }
+            let newZoom = CGFloat(event.cameraState.zoom)
+            self.delegate?.mapViewChangedZoomLevel(self, zoomLevel: newZoom)
+        }.store(in: &cancelables)
+
         addClickPropetyForAnnotations()
         addSubview(mapView)
     }
@@ -330,10 +380,30 @@ extension TRPMapView {
     }
     
     @objc fileprivate func handleMapTap(sender: UITapGestureRecognizer) {
-        delegate?.mapViewCloseAnnotation(self)
         guard let mapView = mapView else {return}
-        let coordinate = mapView.mapboxMap.coordinate(for: sender.location(in: mapView))
+        let location = sender.location(in: mapView)
+
+        // A tap on a view annotation is handled by that annotation's own tap handler — don't
+        // also fire the background-map behavior (which collapses the preview list / closes callouts).
+        if let hitView = mapView.hitTest(location, with: nil), hitView.isInsideTRPMapAnnotation {
+            return
+        }
+
+        delegate?.mapViewCloseAnnotation(self)
+        let coordinate = mapView.mapboxMap.coordinate(for: location)
         delegate?.mapView(clickedLocation: TRPLocation(lat: coordinate.latitude, lon: coordinate.longitude))
+    }
+}
+
+private extension UIView {
+    /// True when this view or any ancestor is a TRP map marker view (city or step annotation).
+    var isInsideTRPMapAnnotation: Bool {
+        var current: UIView? = self
+        while let view = current {
+            if view is TRPCityMarkerAnnotationView || view is TRPRotaAnnotationView { return true }
+            current = view.superview
+        }
+        return false
     }
 }
 
@@ -436,7 +506,7 @@ extension TRPMapView {
 // MARK: calculateRoute
 extension TRPMapView {
     
-    public func drawRoute(_ route: Route, style: DrawRouteStyle? = nil, segmentId: String? = nil, segmentOrder: Int = 0) {
+    public func drawRoute(_ route: Route, style: DrawRouteStyle? = nil, segmentId: String? = nil, segmentOrder: Int = 0, fitsCamera: Bool = true) {
         guard let routeCoordinates = route.shape?.coordinates, routeCoordinates.count > 0 else {
             return
         }
@@ -458,8 +528,13 @@ extension TRPMapView {
 //            drawRouteDottedLine(route, tag: segmentId + "_line", color: ColorSet.getMapColor(segmentOrder))
         }
         
+        // Camera framing is opt-out: a multi-segment caller (e.g. the timeline, which
+        // draws one route per city) owns the overview camera itself and passes
+        // fitsCamera:false so each async route completion doesn't snap onto its own segment.
+        guard fitsCamera else { return }
+
         let referenceCamera = CameraOptions(zoom: zoomLevel, bearing: 0)
-        
+
         // Fit camera to the given coordinates.
         if let camera = try? mapView?.mapboxMap.camera(
             for: routeCoordinates,

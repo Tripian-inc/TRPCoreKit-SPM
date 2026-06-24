@@ -11,7 +11,7 @@ import TRPFoundationKit
 
 public typealias TourResultValue = (Result<TRPTourProduct, Error>)
 
-public typealias TourResultsValue = (Result<[TRPTourProduct], Error>, TRPTourPagination?)
+public typealias TourResultsValue = Result<TRPTourSearchOutcome, Error>
 
 
 public protocol TourRepository {
@@ -34,9 +34,20 @@ public protocol TourRepository {
 
     func getTourSchedule(productId: String,
                         date: String,
+                        to: String?,
                         currency: String,
                         lang: String,
                         completion: @escaping (Result<TRPTourSchedule, Error>) -> Void)
+
+    func lookupTourProduct(providerId: Int,
+                           productId: String,
+                           completion: @escaping (TourResultValue) -> Void)
+
+    func getTourScheduleAvailability(items: [String],
+                                     date: String,
+                                     currency: String?,
+                                     lang: String?,
+                                     completion: @escaping (Result<[TRPTourScheduleAvailability], Error>) -> Void)
 }
 
 
@@ -44,17 +55,21 @@ public struct TourParameters: Hashable {
     public var cityId: Int?
     public var search: String?
     public var tourCategories: [String]?
+    public var categoryIds: [String]?
     public var distance: Float?
     public var limit: Int?
     public var offset: Int?
     public var date: String? // Format: "yyyy-MM-dd"
-    public var minPrice: Double?
-    public var maxPrice: Double?
+    public var dateTo: String? // Format: "yyyy-MM-dd"
+    public var minPrice: Int?
+    public var maxPrice: Int?
     public var minRating: Double?
-    public var minDuration: Double?
-    public var maxDuration: Double?
+    public var minDuration: Int?
+    public var maxDuration: Int?
     public var sortingBy: String?
     public var sortingType: String?
+    public var currency: String? // Currency code (e.g., "EUR")
+    public var adults: Int? // Number of adults
 
     public init(search: String? = nil) {
         self.search = search

@@ -49,11 +49,13 @@ public struct TRPSegmentDestinationItem: Codable {
     public var title: String
     public var coordinate: String
     public var cityId: Int?
+    public var dates: [String]?  // Date mapping in "yyyy-MM-dd" format
 
-    public init(title: String, coordinate: String, cityId: Int? = nil) {
+    public init(title: String, coordinate: String, cityId: Int? = nil, dates: [String]? = nil) {
         self.title = title
         self.coordinate = coordinate
         self.cityId = cityId
+        self.dates = dates
     }
 
 }
@@ -141,8 +143,27 @@ public struct TRPSegmentActivityItem: Codable {
     public var duration: Double?
     public var price: TRPSegmentActivityPrice?
     public var cityId: Int?
+    /// `true` when the activity is valid any time on its date (no specific start time).
+    /// Surfaces the flexible-time slot that backend marks with `time = null`.
+    public var isFlexible: Bool?
+    /// Average user rating (1.0–5.0). Carried from the source product so the
+    /// timeline can render rating + review count without re-fetching the product.
+    public var rating: Float?
+    /// Number of ratings backing `rating`.
+    public var ratingCount: Int?
+    /// `true` when the source activity has no precise coordinate and the segment
+    /// was created using the city's coordinate as a fallback. UI uses this to
+    /// surface a "no exact location" tag and to skip rendering the activity on
+    /// the map. Defaults to `false` for legacy / coordinate-bearing activities.
+    public var isNoLocation: Bool = false
 
-    public init(activityId: String?, bookingId: String?, title: String?, imageUrl: String?, description: String?, startDatetime: String?, endDatetime: String?, coordinate: TRPLocation, cancellation: String?, adultCount: Int, childCount: Int, bookingUrl: String? = nil, duration: Double? = nil, price: TRPSegmentActivityPrice? = nil, cityId: Int? = nil) {
+    /// Transient runtime flag set by the post-load availability sweep when the
+    /// provider's schedule for this activity's date no longer contains its
+    /// `startDatetime` slot (or the schedule is empty for a flexible activity).
+    /// Not encoded — rebuilt on each cold load by the availability check.
+    public var isAvailabilityExpired: Bool = false
+
+    public init(activityId: String?, bookingId: String?, title: String?, imageUrl: String?, description: String?, startDatetime: String?, endDatetime: String?, coordinate: TRPLocation, cancellation: String?, adultCount: Int, childCount: Int, bookingUrl: String? = nil, duration: Double? = nil, price: TRPSegmentActivityPrice? = nil, cityId: Int? = nil, isFlexible: Bool? = nil, rating: Float? = nil, ratingCount: Int? = nil, isNoLocation: Bool = false) {
         self.activityId = activityId
         self.bookingId = bookingId
         self.title = title
@@ -158,6 +179,10 @@ public struct TRPSegmentActivityItem: Codable {
         self.duration = duration
         self.price = price
         self.cityId = cityId
+        self.isFlexible = isFlexible
+        self.rating = rating
+        self.ratingCount = ratingCount
+        self.isNoLocation = isNoLocation
     }
 
     enum CodingKeys: String, CodingKey {
@@ -176,8 +201,48 @@ public struct TRPSegmentActivityItem: Codable {
         case duration
         case price
         case cityId
+        case isFlexible
+        case rating
+        case ratingCount
+        case isNoLocation
     }
 
+}
+
+// MARK: - Tour Product Lookup Helpers
+
+/// Default providerId used when an activity id doesn't encode one. `15` is Civitatis,
+/// which is the only host-app provider for this branch. Lives in one place so a future
+/// non-Civitatis integration only has to change this constant (or move it to config).
+private let trpDefaultLookupProviderId = 15
+
+extension TRPSegmentActivityItem {
+    /// True when the activity arrived without a real coordinate — either the host
+    /// marked it explicitly via `isNoLocation`, or the lat/lon are `(0, 0)`.
+    public var lacksLocation: Bool {
+        return isNoLocation || (coordinate.lat == 0 && coordinate.lon == 0)
+    }
+
+    /// `(productId, providerId)` pair suitable for `lookupTourProduct`. Falls back to
+    /// `15` (Civitatis) when the id isn't in `C_{productId}_{providerId}` shape — the
+    /// raw `activityId` is then treated as the productId directly.
+    public var tourLookupKeys: (productId: String, providerId: Int)? {
+        guard let raw = activityId, !raw.isEmpty else { return nil }
+        return (raw.cleanedAsActivityId(), raw.trp_parsedProviderId() ?? trpDefaultLookupProviderId)
+    }
+}
+
+extension TRPSegmentFavoriteItem {
+    /// True when the favourite arrived without a real coordinate.
+    public var lacksLocation: Bool {
+        return coordinate.lat == 0 && coordinate.lon == 0
+    }
+
+    /// `(productId, providerId)` pair suitable for `lookupTourProduct`.
+    public var tourLookupKeys: (productId: String, providerId: Int)? {
+        guard let raw = activityId, !raw.isEmpty else { return nil }
+        return (raw.cleanedAsActivityId(), raw.trp_parsedProviderId() ?? trpDefaultLookupProviderId)
+    }
 }
 
 public struct TRPSegmentActivityPrice: Codable {
@@ -216,9 +281,10 @@ extension TRPItineraryWithActivities {
         timelineProfile.children = children
         timelineProfile.pets = 0
 
-        // Set cityId from first destinationItem (for timeline creation)
-        if let firstCityId = destinationItems.first?.cityId {
-            timelineProfile.cityId = firstCityId
+        // Set cityId from first valid destinationItem (for timeline creation)
+        // Find first destination with valid cityId (> 0)
+        if let firstValidCityId = destinationItems.first(where: { ($0.cityId ?? 0) > 0 })?.cityId {
+            timelineProfile.cityId = firstValidCityId
         }
 
         // Create segments from tripItems (booking products)
@@ -234,44 +300,21 @@ extension TRPItineraryWithActivities {
             return timelineProfile
         }
 
-        // Get city from first destinationItem (if no tripItems, use this for empty segments)
+        // Get city from first destinationItem (if no tripItems, use this for TimelineDate segment)
         let city = createCityFromDestination()
 
-        // Check if there's a tripItem on the start date
-        let hasItemOnStartDate = tripItems?.contains { item in
-            guard let itemDate = item.startDatetime else { return false }
-            return extractDateString(from: itemDate) == startDateStr
-        } ?? false
-
-        // Check if there's a tripItem on the end date
-        let hasItemOnEndDate = tripItems?.contains { item in
-            guard let itemDate = item.startDatetime else { return false }
-            return extractDateString(from: itemDate) == endDateStr
-        } ?? false
-
-        // Add empty segment for start date if needed
-        if !hasItemOnStartDate {
-            let emptyStartSegment = createEmptySegment(
-                date: startDateStr,
-                title: "Empty",
-                adults: adults,
-                children: children,
-                city: city
-            )
-            segments.insert(emptyStartSegment, at: 0)
-        }
-
-        // Add empty segment for end date if needed (and different from start)
-        if !hasItemOnEndDate && startDateStr != endDateStr {
-            let emptyEndSegment = createEmptySegment(
-                date: endDateStr,
-                title: "Empty",
-                adults: adults,
-                children: children,
-                city: city
-            )
-            segments.append(emptyEndSegment)
-        }
+        // ✅ ALWAYS create TimelineDate segment (no conditions)
+        // This segment spans the full trip duration and replaces the old two-segment "Empty" system
+        // Unlike Empty segments, this is ALWAYS created regardless of whether activities exist on these dates
+        let timelineDateSegment = createTimelineDateSegment(
+            startDate: startDateStr,
+            endDate: endDateStr,
+            adults: adults,
+            children: children,
+            city: city
+        )
+        // Insert at beginning to maintain segment indexing
+        segments.insert(timelineDateSegment, at: 0)
 
         timelineProfile.segments = segments
 
@@ -289,6 +332,8 @@ extension TRPItineraryWithActivities {
     }
 
     /// Creates an empty segment for a given date
+    /// ⚠️ DEPRECATED: This method is used for backward compatibility only.
+    /// New timelines should use createTimelineDateSegment() instead.
     /// Used to ensure timeline covers the full trip date range even when there are no tripItems on certain days
     private func createEmptySegment(date: String, title: String, adults: Int, children: Int, city: TRPCity?) -> TRPTimelineSegment {
         let segment = TRPTimelineSegment()
@@ -306,10 +351,36 @@ extension TRPItineraryWithActivities {
         return segment
     }
 
-    /// Creates a TRPCity from the first destinationItem if cityId is available
+    /// Creates a TimelineDate segment spanning the full trip duration
+    /// This replaces the old two-segment "Empty" system with a single segment
+    /// - Parameters:
+    ///   - startDate: Trip start date in "yyyy-MM-dd" format
+    ///   - endDate: Trip end date in "yyyy-MM-dd" format
+    ///   - adults: Number of adults
+    ///   - children: Number of children
+    ///   - city: City for the segment
+    /// - Returns: TRPTimelineSegment configured as TimelineDate
+    private func createTimelineDateSegment(startDate: String, endDate: String, adults: Int, children: Int, city: TRPCity?) -> TRPTimelineSegment {
+        let segment = TRPTimelineSegment()
+        segment.segmentType = .itinerary
+        segment.title = "TimelineDate"
+        segment.available = false
+        segment.distinctPlan = true
+        segment.startDate = "\(startDate) 00:00"
+        segment.endDate = "\(endDate) 23:59"
+        segment.adults = adults
+        segment.children = children
+        segment.pets = 0
+        segment.city = city
+        segment.doNotGenerate = 1
+        return segment
+    }
+
+    /// Creates a TRPCity from the first destinationItem with valid cityId
     /// Used to populate city info in empty segments when no tripItems exist
     private func createCityFromDestination() -> TRPCity? {
-        guard let destination = destinationItems.first,
+        // Find first destination with valid cityId (> 0)
+        guard let destination = destinationItems.first(where: { ($0.cityId ?? 0) > 0 }),
               let cityId = destination.cityId else {
             return nil
         }

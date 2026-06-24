@@ -8,7 +8,6 @@
 
 import UIKit
 import TRPFoundationKit
-import CoreLocation
 import TRPRestKit
 
 @objc(SPMAddPlanPOISelectionVC)
@@ -18,12 +17,10 @@ public class AddPlanPOISelectionVC: TRPBaseUIViewController {
     public var viewModel: AddPlanPOISelectionViewModel!
     public var onLocationSelected: ((TRPLocation, String, TRPAccommodation?) -> Void)?
 
-    private let locationManager = CLLocationManager()
     private var isSearchActive = false
 
     // MARK: - UI Components
 
-    // Navigation Area
     private lazy var backButton: UIButton = {
         let button = UIButton(type: .system)
         button.translatesAutoresizingMaskIntoConstraints = false
@@ -42,7 +39,6 @@ public class AddPlanPOISelectionVC: TRPBaseUIViewController {
         return searchBar
     }()
 
-    // Default Content View (shown when not searching)
     private lazy var defaultContentView: UIView = {
         let view = UIView()
         view.translatesAutoresizingMaskIntoConstraints = false
@@ -50,20 +46,10 @@ public class AddPlanPOISelectionVC: TRPBaseUIViewController {
         return view
     }()
 
-    private lazy var nearMeButton: UIView = {
-        let view = createOptionRow(
-            icon: "ic_near_me",
-            title: AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.nearMe)
-        )
-        let tapGesture = UITapGestureRecognizer(target: self, action: #selector(nearMeButtonTapped))
-        view.addGestureRecognizer(tapGesture)
-        return view
-    }()
-
     private lazy var cityCenterButton: UIView = {
         let view = createOptionRow(
             icon: "ic_city_center",
-            title: "" // Will be set dynamically
+            title: ""
         )
         let tapGesture = UITapGestureRecognizer(target: self, action: #selector(cityCenterButtonTapped))
         view.addGestureRecognizer(tapGesture)
@@ -84,23 +70,24 @@ public class AddPlanPOISelectionVC: TRPBaseUIViewController {
         tableView.translatesAutoresizingMaskIntoConstraints = false
         tableView.delegate = self
         tableView.dataSource = self
-        tableView.tag = 1 // Tag to identify this table
+        tableView.tag = 1
         tableView.register(POISelectionCell.self, forCellReuseIdentifier: "POISelectionCell")
         tableView.separatorStyle = .none
         tableView.backgroundColor = .white
+        tableView.showsVerticalScrollIndicator = false
         return tableView
     }()
 
-    // Search Results View (shown when searching)
     private lazy var searchResultsTableView: UITableView = {
         let tableView = UITableView()
         tableView.translatesAutoresizingMaskIntoConstraints = false
         tableView.delegate = self
         tableView.dataSource = self
-        tableView.tag = 2 // Tag to identify this table
+        tableView.tag = 2
         tableView.register(POISelectionCell.self, forCellReuseIdentifier: "POISelectionCell")
         tableView.separatorStyle = .none
         tableView.backgroundColor = .white
+        tableView.showsVerticalScrollIndicator = false
         tableView.isHidden = true
         return tableView
     }()
@@ -113,7 +100,6 @@ public class AddPlanPOISelectionVC: TRPBaseUIViewController {
         setupNavigationArea()
         setupDefaultContentView()
         setupSearchResultsView()
-        setupLocationManager()
 
         viewModel.delegate = self
         updateCityCenterButton()
@@ -140,7 +126,6 @@ public class AddPlanPOISelectionVC: TRPBaseUIViewController {
     private func setupDefaultContentView() {
         view.addSubview(defaultContentView)
 
-        defaultContentView.addSubview(nearMeButton)
         defaultContentView.addSubview(cityCenterButton)
         defaultContentView.addSubview(sectionTitleLabel)
         defaultContentView.addSubview(activitiesTableView)
@@ -151,12 +136,7 @@ public class AddPlanPOISelectionVC: TRPBaseUIViewController {
             defaultContentView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             defaultContentView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
 
-            nearMeButton.topAnchor.constraint(equalTo: defaultContentView.topAnchor),
-            nearMeButton.leadingAnchor.constraint(equalTo: defaultContentView.leadingAnchor, constant: 24),
-            nearMeButton.trailingAnchor.constraint(equalTo: defaultContentView.trailingAnchor, constant: -16),
-            nearMeButton.heightAnchor.constraint(equalToConstant: 56),
-
-            cityCenterButton.topAnchor.constraint(equalTo: nearMeButton.bottomAnchor),
+            cityCenterButton.topAnchor.constraint(equalTo: defaultContentView.topAnchor),
             cityCenterButton.leadingAnchor.constraint(equalTo: defaultContentView.leadingAnchor, constant: 24),
             cityCenterButton.trailingAnchor.constraint(equalTo: defaultContentView.trailingAnchor, constant: -16),
             cityCenterButton.heightAnchor.constraint(equalToConstant: 56),
@@ -184,11 +164,6 @@ public class AddPlanPOISelectionVC: TRPBaseUIViewController {
         ])
     }
 
-    private func setupLocationManager() {
-        locationManager.delegate = self
-        locationManager.desiredAccuracy = kCLLocationAccuracyBest
-    }
-
     private func createOptionRow(icon: String, title: String) -> UIView {
         let container = UIView()
         container.translatesAutoresizingMaskIntoConstraints = false
@@ -200,14 +175,14 @@ public class AddPlanPOISelectionVC: TRPBaseUIViewController {
         iconImageView.tintColor = ColorSet.primaryText.uiColor
         iconImageView.contentMode = .scaleAspectFit
 
-        iconImageView.image = TRPImageController().getImage(inFramework: icon, inApp: nil)?.withRenderingMode(.alwaysTemplate)
+        iconImageView.image = TRPImageController().getImage(inFramework: icon, inApp: nil, withTintColor: true)
 
         let titleLabel = UILabel()
         titleLabel.translatesAutoresizingMaskIntoConstraints = false
         titleLabel.text = title
         titleLabel.font = FontSet.montserratMedium.font(16)
         titleLabel.textColor = ColorSet.primaryText.uiColor
-        titleLabel.tag = 100 // Tag to find it later for updates
+        titleLabel.tag = 100
 
         container.addSubview(iconImageView)
         container.addSubview(titleLabel)
@@ -235,7 +210,7 @@ public class AddPlanPOISelectionVC: TRPBaseUIViewController {
     }
 
     private func updateActivitiesSectionVisibility() {
-        let hasActivities = viewModel.hasFilteredActivities()
+        let hasActivities = viewModel.hasSavedItems()
         sectionTitleLabel.isHidden = !hasActivities
         activitiesTableView.isHidden = !hasActivities
     }
@@ -258,20 +233,6 @@ public class AddPlanPOISelectionVC: TRPBaseUIViewController {
         dismiss(animated: true)
     }
 
-    @objc private func nearMeButtonTapped() {
-        let status = locationManager.authorizationStatus
-        switch status {
-        case .notDetermined:
-            locationManager.requestWhenInUseAuthorization()
-        case .authorizedWhenInUse, .authorizedAlways:
-            locationManager.requestLocation()
-        case .denied, .restricted:
-            showLocationPermissionAlert()
-        @unknown default:
-            break
-        }
-    }
-
     @objc private func cityCenterButtonTapped() {
         if let coordinate = viewModel.getCityCenterLocation(),
            let name = viewModel.getCityCenterDisplayName() {
@@ -279,31 +240,14 @@ public class AddPlanPOISelectionVC: TRPBaseUIViewController {
             dismiss(animated: true)
         }
     }
-
-    private func showLocationPermissionAlert() {
-        let alert = UIAlertController(
-            title: "Location Access Required",
-            message: "Please enable location access in Settings to use Near Me feature.",
-            preferredStyle: .alert
-        )
-        alert.addAction(UIAlertAction(title: "Settings", style: .default) { _ in
-            if let url = URL(string: UIApplication.openSettingsURLString) {
-                UIApplication.shared.open(url)
-            }
-        })
-        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
-        present(alert, animated: true)
-    }
 }
 
 // MARK: - UITableViewDataSource
 extension AddPlanPOISelectionVC: UITableViewDataSource {
     public func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         if tableView.tag == 1 {
-            // Activities table
-            return viewModel.getBookedActivitiesCount()
+            return viewModel.getSavedItemsCount()
         } else {
-            // Search results table
             return viewModel.getSearchResultsCount()
         }
     }
@@ -314,12 +258,10 @@ extension AddPlanPOISelectionVC: UITableViewDataSource {
         }
 
         if tableView.tag == 1 {
-            // Activities table
-            if let segment = viewModel.getBookedActivity(at: indexPath.row) {
-                cell.configureWithSegment(segment)
+            if let savedItem = viewModel.getSavedItem(at: indexPath.row) {
+                cell.configureWithSavedItem(savedItem)
             }
         } else {
-            // Search results table
             if let place = viewModel.getSearchResult(at: indexPath.row) {
                 cell.configureWithGooglePlace(place)
             }
@@ -335,15 +277,12 @@ extension AddPlanPOISelectionVC: UITableViewDelegate {
         tableView.deselectRow(at: indexPath, animated: true)
 
         if tableView.tag == 1 {
-            // Activities table - use segment coordinate
-            if let segment = viewModel.getBookedActivity(at: indexPath.row),
-               let coordinate = segment.coordinate {
-                let name = segment.title ?? segment.additionalData?.title ?? ""
-                onLocationSelected?(coordinate, name, nil)
+            if let savedItem = viewModel.getSavedItem(at: indexPath.row),
+               let coordinate = savedItem.coordinate {
+                onLocationSelected?(coordinate, savedItem.title, nil)
                 dismiss(animated: true)
             }
         } else {
-            // Search results table - fetch place details
             if let place = viewModel.getSearchResult(at: indexPath.row) {
                 viewModel.searchPlace(withId: place.id)
             }
@@ -384,30 +323,6 @@ extension AddPlanPOISelectionVC: AddPlanPOISelectionViewModelDelegate {
     }
 
     public func searchDidFail(error: Error) {
-        // Show error if needed
-    }
-}
-
-// MARK: - CLLocationManagerDelegate
-extension AddPlanPOISelectionVC: CLLocationManagerDelegate {
-    public func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
-        guard let location = locations.first else { return }
-
-        let trpLocation = TRPLocation(lat: location.coordinate.latitude, lon: location.coordinate.longitude)
-        let name = AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.nearMe)
-        onLocationSelected?(trpLocation, name, nil)
-        dismiss(animated: true)
-    }
-
-    public func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
-        // Handle location error
-    }
-
-    public func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
-        if manager.authorizationStatus == .authorizedWhenInUse ||
-           manager.authorizationStatus == .authorizedAlways {
-            manager.requestLocation()
-        }
     }
 }
 
@@ -446,6 +361,9 @@ private class POISelectionCell: UITableViewCell {
         return label
     }()
 
+    private var nameLabelTopConstraint: NSLayoutConstraint?
+    private var nameLabelCenterYConstraint: NSLayoutConstraint?
+
     override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
         super.init(style: style, reuseIdentifier: reuseIdentifier)
         setupViews()
@@ -455,59 +373,88 @@ private class POISelectionCell: UITableViewCell {
         fatalError("init(coder:) has not been implemented")
     }
 
+    override func prepareForReuse() {
+        super.prepareForReuse()
+        locationLabel.isHidden = false
+        nameLabelTopConstraint?.isActive = true
+        nameLabelCenterYConstraint?.isActive = false
+        nameLabel.numberOfLines = 1
+        nameLabel.font = FontSet.montserratSemiBold.font(16)
+        nameLabel.textColor = ColorSet.primaryText.uiColor
+    }
+
     private func setupViews() {
         contentView.addSubview(iconContainerView)
         iconContainerView.addSubview(iconImageView)
         contentView.addSubview(nameLabel)
         contentView.addSubview(locationLabel)
 
+        nameLabelTopConstraint = nameLabel.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 8)
+        nameLabelCenterYConstraint = nameLabel.centerYAnchor.constraint(equalTo: contentView.centerYAnchor)
+
         NSLayoutConstraint.activate([
-            // Icon container (40x40 with background)
             iconContainerView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
             iconContainerView.centerYAnchor.constraint(equalTo: contentView.centerYAnchor),
             iconContainerView.widthAnchor.constraint(equalToConstant: 40),
             iconContainerView.heightAnchor.constraint(equalToConstant: 40),
 
-            // Icon image with 8pt inset (24x24)
             iconImageView.topAnchor.constraint(equalTo: iconContainerView.topAnchor, constant: 8),
             iconImageView.leadingAnchor.constraint(equalTo: iconContainerView.leadingAnchor, constant: 8),
             iconImageView.trailingAnchor.constraint(equalTo: iconContainerView.trailingAnchor, constant: -8),
             iconImageView.bottomAnchor.constraint(equalTo: iconContainerView.bottomAnchor, constant: -8),
 
             nameLabel.leadingAnchor.constraint(equalTo: iconContainerView.trailingAnchor, constant: 12),
-            nameLabel.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 8),
             nameLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
 
             locationLabel.leadingAnchor.constraint(equalTo: nameLabel.leadingAnchor),
             locationLabel.topAnchor.constraint(equalTo: nameLabel.bottomAnchor, constant: 2),
             locationLabel.trailingAnchor.constraint(equalTo: nameLabel.trailingAnchor),
         ])
+
+        nameLabelTopConstraint?.isActive = true
+    }
+
+    func configureWithSavedItem(_ item: SavedItem) {
+        if let customImage = TRPImageController().getImage(inFramework: "ic_pin", inApp: nil, withTintColor: true) {
+            iconImageView.image = customImage
+        } else {
+            iconImageView.image = UIImage(systemName: "mappin.circle.fill")
+        }
+
+        nameLabel.text = item.title
+        nameLabel.numberOfLines = 2
+        nameLabel.font = FontSet.montserratMedium.font(16)
+        nameLabel.textColor = ColorSet.fg.uiColor
+
+        locationLabel.isHidden = true
+        nameLabelTopConstraint?.isActive = false
+        nameLabelCenterYConstraint?.isActive = true
     }
 
     func configureWithSegment(_ segment: TRPTimelineSegment) {
-        // Set icon
-        if let customImage = TRPImageController().getImage(inFramework: "ic_pin", inApp: nil) {
-            iconImageView.image = customImage.withRenderingMode(.alwaysTemplate)
+        if let customImage = TRPImageController().getImage(inFramework: "ic_pin", inApp: nil, withTintColor: true) {
+            iconImageView.image = customImage
         } else {
             iconImageView.image = UIImage(systemName: "mappin.circle.fill")
         }
 
-        // Set title
         nameLabel.text = segment.title ?? segment.additionalData?.title ?? ""
+        nameLabel.numberOfLines = 2
+        nameLabel.font = FontSet.montserratMedium.font(16)
+        nameLabel.textColor = ColorSet.fg.uiColor
 
-        // Set location
-        locationLabel.text = segment.city?.name ?? ""
+        locationLabel.isHidden = true
+        nameLabelTopConstraint?.isActive = false
+        nameLabelCenterYConstraint?.isActive = true
     }
 
     func configureWithGooglePlace(_ place: TRPGooglePlace) {
-        // Set icon
-        if let customImage = TRPImageController().getImage(inFramework: "ic_pin", inApp: nil) {
-            iconImageView.image = customImage.withRenderingMode(.alwaysTemplate)
+        if let customImage = TRPImageController().getImage(inFramework: "ic_pin", inApp: nil, withTintColor: true) {
+            iconImageView.image = customImage
         } else {
             iconImageView.image = UIImage(systemName: "mappin.circle.fill")
         }
 
-        // Set title and location
         nameLabel.text = place.mainAddress
         locationLabel.text = place.secondaryAddress
     }

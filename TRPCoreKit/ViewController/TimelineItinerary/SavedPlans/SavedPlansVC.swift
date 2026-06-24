@@ -14,9 +14,13 @@ public class SavedPlansVC: TRPBaseUIViewController {
 
     // MARK: - Properties
     private var viewModel: SavedPlansViewModel!
+    private var customNavigationBar: TRPTimelineCustomNavigationBar!
 
-    // Callback when segment is created successfully
-    public var onSegmentCreated: (() -> Void)?
+    /// Legacy "dismiss everything" path; internal flow prefers the silent variant below.
+    public var onSegmentCreated: ((Date?) -> Void)?
+
+    /// Fired after add + regeneration poll; Saved Plans stays open, host refreshes silently.
+    public var onSegmentCreatedSilent: ((Date?) -> Void)?
 
     // MARK: - UI Components
     private lazy var tableView: UITableView = {
@@ -24,6 +28,7 @@ public class SavedPlansVC: TRPBaseUIViewController {
         tableView.translatesAutoresizingMaskIntoConstraints = false
         tableView.backgroundColor = .white
         tableView.separatorStyle = .none
+        tableView.showsVerticalScrollIndicator = false
         tableView.delegate = self
         tableView.dataSource = self
         tableView.estimatedRowHeight = 120
@@ -33,6 +38,17 @@ public class SavedPlansVC: TRPBaseUIViewController {
             tableView.sectionHeaderTopPadding = 0
         }
         return tableView
+    }()
+
+    /// "All done" placeholder shown once every saved activity is added and the list empties.
+    private lazy var emptyStateView: SavedPlansEmptyStateView = {
+        let view = SavedPlansEmptyStateView()
+        view.translatesAutoresizingMaskIntoConstraints = false
+        view.isHidden = true
+        view.onViewItineraryTapped = { [weak self] in
+            self?.dismiss(animated: true)
+        }
+        return view
     }()
 
     // MARK: - Initialization
@@ -48,41 +64,8 @@ public class SavedPlansVC: TRPBaseUIViewController {
     // MARK: - Lifecycle
     public override func viewDidLoad() {
         super.viewDidLoad()
-        setupNavigationBar()
+        navigationController?.setNavigationBarHidden(true, animated: false)
         viewModel.delegate = self
-    }
-
-    // MARK: - Setup
-    private func setupNavigationBar() {
-        title = AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.savedPlans)
-        navigationController?.navigationBar.prefersLargeTitles = false
-
-        // Add back button
-        let backButton = UIBarButtonItem(
-            image: TRPImageController().getImage(inFramework: "ic_back", inApp: nil),
-            style: .plain,
-            target: self,
-            action: #selector(backButtonTapped)
-        )
-        backButton.tintColor = ColorSet.primaryText.uiColor
-        navigationItem.leftBarButtonItem = backButton
-
-        // Navigation bar appearance
-        let appearance = UINavigationBarAppearance()
-        appearance.configureWithOpaqueBackground()
-        appearance.backgroundColor = .white
-        appearance.titleTextAttributes = [
-            .foregroundColor: ColorSet.primaryText.uiColor,
-            .font: FontSet.montserratSemiBold.font(18)
-        ]
-        appearance.shadowColor = ColorSet.lineWeak.uiColor
-
-        navigationController?.navigationBar.standardAppearance = appearance
-        navigationController?.navigationBar.scrollEdgeAppearance = appearance
-    }
-
-    @objc private func backButtonTapped() {
-        dismiss(animated: true)
     }
 
     // MARK: - Setup Views
@@ -90,14 +73,41 @@ public class SavedPlansVC: TRPBaseUIViewController {
         super.setupViews()
         view.backgroundColor = .white
 
+        customNavigationBar = setupCustomNavigationBar(
+            title: AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.savedPlans)
+        )
+        customNavigationBar.delegate = self
+
         view.addSubview(tableView)
+        view.addSubview(emptyStateView)
 
         NSLayoutConstraint.activate([
-            tableView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
-            tableView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
-            tableView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
-            tableView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor)
+            tableView.topAnchor.constraint(equalTo: customNavigationBar.bottomAnchor),
+            tableView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            tableView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            tableView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+
+            emptyStateView.topAnchor.constraint(equalTo: customNavigationBar.bottomAnchor),
+            emptyStateView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            emptyStateView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            emptyStateView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor)
         ])
+
+        updateEmptyState()
+    }
+
+    private func updateEmptyState() {
+        let isEmpty = viewModel.getTotalItemCount() == 0
+        emptyStateView.isHidden = !isEmpty
+        tableView.isHidden = isEmpty
+    }
+}
+
+// MARK: - TRPTimelineCustomNavigationBarDelegate
+extension SavedPlansVC: TRPTimelineCustomNavigationBarDelegate {
+
+    func customNavigationBarDidTapBack(_ navigationBar: TRPTimelineCustomNavigationBar) {
+        dismiss(animated: true)
     }
 }
 
@@ -121,7 +131,6 @@ extension SavedPlansVC: UITableViewDataSource {
 
         if let item = viewModel.getItem(at: indexPath),
            let tourProduct = viewModel.convertToTourProduct(from: item) {
-            // Use the new configure method that shows cancellation and proper price formatting
             cell.configure(with: item, tourProduct: tourProduct)
         }
 
@@ -135,10 +144,10 @@ extension SavedPlansVC: UITableViewDelegate {
     public func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         tableView.deselectRow(at: indexPath, animated: true)
 
-        // Open activity detail
+        // activityId may be raw or `C_{id}_{provider}` form — normalize to the bare product id.
         if let item = viewModel.getItem(at: indexPath),
            let activityId = item.activityId {
-            TRPCoreKit.shared.delegate?.trpCoreKitDidRequestActivityDetail(activityId: activityId)
+            TRPCoreKit.shared.delegate?.trpCoreKitDidRequestActivityDetail(activityId: activityId.cleanedAsActivityId())
         }
     }
 
@@ -157,8 +166,8 @@ extension SavedPlansVC: UITableViewDelegate {
         headerView.addSubview(label)
 
         NSLayoutConstraint.activate([
-            label.leadingAnchor.constraint(equalTo: headerView.leadingAnchor),
-            label.trailingAnchor.constraint(equalTo: headerView.trailingAnchor),
+            label.leadingAnchor.constraint(equalTo: headerView.leadingAnchor, constant: 16),
+            label.trailingAnchor.constraint(equalTo: headerView.trailingAnchor, constant: -16),
             label.topAnchor.constraint(equalTo: headerView.topAnchor, constant: 16),
             label.bottomAnchor.constraint(equalTo: headerView.bottomAnchor, constant: -8)
         ])
@@ -187,25 +196,31 @@ extension SavedPlansVC: UITableViewDelegate {
 extension SavedPlansVC: ActivityCardCellDelegate {
 
     func activityCardCellDidTapAdd(_ cell: ActivityCardCell, tour: TRPTourProduct) {
-        // Create time selection screen
-        let planData = viewModel.createAddPlanData()
+        let planData = viewModel.createAddPlanData(cityId: tour.cityId)
         let timeSelectionVC = AddPlanTimeSelectionVC(tour: tour, planData: planData)
 
-        timeSelectionVC.onTimeSelected = { [weak self] selectedDate, selectedTimeSlot in
-            print("Selected date: \(selectedDate), time: \(selectedTimeSlot.time)")
+        timeSelectionVC.onTimeSelected = { _, _ in }
+
+        let activityName = tour.name
+        let productId = tour.productId
+        timeSelectionVC.onSegmentCreated = { [weak self] selectedDay in
+            guard let self = self else { return }
+
+            let dayLabel = selectedDay?.weekdayWithDayMonth() ?? ""
+            let template = AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.activityAddedToast)
+            let message = String(format: template, activityName, dayLabel)
+            TRPSuccessToast.show(over: self, message: message)
+
+            self.viewModel.removeItem(matchingProductId: productId)
+
+            self.onSegmentCreatedSilent?(selectedDay)
         }
 
-        // Set segment creation callback
-        timeSelectionVC.onSegmentCreated = { [weak self] in
-            // First dismiss time selection, then dismiss saved plans
-            self?.dismiss(animated: true) { [weak self] in
-                // Trigger parent callback to refresh timeline
-                self?.onSegmentCreated?()
-            }
+        timeSelectionVC.onRemoveFavourite = { [weak self] in
+            self?.viewModel.removeItem(matchingProductId: productId)
         }
 
-        // Present as bottom sheet
-        presentVCWithModal(timeSelectionVC, onlyLarge: true, prefersGrabberVisible: false)
+        presentVCWithDynamicHeight(timeSelectionVC, prefersGrabberVisible: true, isDimmed: true)
     }
 }
 
@@ -214,7 +229,9 @@ extension SavedPlansVC: SavedPlansViewModelDelegate {
 
     public func savedPlansDidLoad() {
         DispatchQueue.main.async { [weak self] in
-            self?.tableView.reloadData()
+            guard let self = self else { return }
+            self.tableView.reloadData()
+            self.updateEmptyState()
         }
     }
 }

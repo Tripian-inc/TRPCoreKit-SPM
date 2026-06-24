@@ -10,18 +10,20 @@ import Foundation
 import TRPRestKit
 
 final class PaginationMapper {
-    
+
     func map(_ restModel: Pagination) -> TRPPagination {
         switch restModel {
         case .completed:
             return TRPPagination.completed
-        case .continues(let model):
-            if model.currentPage >= model.totalPages {
-                return TRPPagination.completed
-            }
-            return TRPPagination.continues("")
+        case .continues(let paginationJsonModel):
+            let info = TRPPaginationInfo(
+                total: paginationJsonModel.total,
+                count: paginationJsonModel.count,
+                perPage: paginationJsonModel.perPage,
+                currentPage: paginationJsonModel.currentPage,
+                totalPages: paginationJsonModel.totalPages
+            )
+            return TRPPagination.continues(info)
         }
     }
-    
-    
 }

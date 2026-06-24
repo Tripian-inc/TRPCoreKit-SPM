@@ -11,23 +11,18 @@ import TRPFoundationKit
 
 // MARK: - Protocol
 
-/// Base protocol for all cell data types.
-/// Provides segment index for API operations (DELETE/EDIT).
 public protocol TimelineCellData {
-    /// Original segment index for API operations (captured on first fetch)
+    /// Segment index for API operations (captured on first fetch)
     var segmentIndex: Int { get }
 }
 
 // MARK: - Booked/Reserved Activity Cell Data
 
-/// Cell data for booked and reserved activity cells.
-/// Contains all pre-computed display data from TRPMergedTimelineItem.
 public struct BookedActivityCellData: TimelineCellData {
     // MARK: - Core
     public let segmentIndex: Int
 
     // MARK: - Order
-    /// Unified day order (1-based, sequential across all cell types)
     public let order: Int
 
     // MARK: - Display Data
@@ -45,8 +40,25 @@ public struct BookedActivityCellData: TimelineCellData {
     public let price: TRPSegmentActivityPrice?
     public let cancellation: String?
 
+    // MARK: - Rating
+    public let rating: Float?
+    public let ratingCount: Int?
+
+    // MARK: - Location
+    /// `true` when the activity has no precise coordinate (segment uses the city fallback). Drives the "No exact location" tag.
+    public let isNoLocation: Bool
+
     // MARK: - Raw Data (for delegate callbacks)
     public let segment: TRPTimelineSegment
+
+    // MARK: - Conflict Detection
+    public var hasConflict: Bool = false
+    /// Booked-activity cells hard-code this to false; reserved-activity cells honour it.
+    public var showTimeOverlapText: Bool = false
+
+    // MARK: - Availability
+    /// Set by the post-load availability sweep when the provider no longer offers the scheduled slot.
+    public var isAvailabilityExpired: Bool = false
 
     // MARK: - Initialization
 
@@ -62,7 +74,13 @@ public struct BookedActivityCellData: TimelineCellData {
         duration: Double?,
         price: TRPSegmentActivityPrice?,
         cancellation: String?,
-        segment: TRPTimelineSegment
+        rating: Float? = nil,
+        ratingCount: Int? = nil,
+        isNoLocation: Bool = false,
+        segment: TRPTimelineSegment,
+        hasConflict: Bool = false,
+        showTimeOverlapText: Bool = false,
+        isAvailabilityExpired: Bool = false
     ) {
         self.segmentIndex = segmentIndex
         self.order = order
@@ -75,10 +93,15 @@ public struct BookedActivityCellData: TimelineCellData {
         self.duration = duration
         self.price = price
         self.cancellation = cancellation
+        self.rating = rating
+        self.ratingCount = ratingCount
+        self.isNoLocation = isNoLocation
         self.segment = segment
+        self.hasConflict = hasConflict
+        self.showTimeOverlapText = showTimeOverlapText
+        self.isAvailabilityExpired = isAvailabilityExpired
     }
 
-    /// Create from TRPMergedTimelineItem with unified order
     public init(from item: TRPMergedTimelineItem, order: Int) {
         self.segmentIndex = item.originalSegmentIndex
         self.order = order
@@ -91,20 +114,52 @@ public struct BookedActivityCellData: TimelineCellData {
         self.duration = item.duration
         self.price = item.price
         self.cancellation = item.cancellation
+        self.rating = item.rating
+        self.ratingCount = item.ratingCount
+        self.isNoLocation = item.isNoLocation
+        self.segment = item.segment
+        self.hasConflict = item.hasConflict
+        self.showTimeOverlapText = item.showTimeOverlapText
+        self.isAvailabilityExpired = item.isAvailabilityExpired
+    }
+}
+
+// MARK: - Flexible Activity Cell Data
+
+/// Reserved activities (duration == -1, times in {00:00, 23:59}). No order number, pinned to top of day.
+public struct FlexibleActivityCellData: TimelineCellData {
+    public let segmentIndex: Int
+    public let title: String
+    public let imageUrl: String?
+    public let adultCount: Int
+    public let childCount: Int
+    public let duration: Double?
+    public let price: TRPSegmentActivityPrice?
+    public let cancellation: String?
+    public let isNoLocation: Bool
+    public let segment: TRPTimelineSegment
+
+    public init(from item: TRPMergedTimelineItem) {
+        self.segmentIndex = item.originalSegmentIndex
+        self.title = item.title ?? ""
+        self.imageUrl = item.imageUrl
+        self.adultCount = item.adultCount
+        self.childCount = item.childCount
+        self.duration = item.duration
+        self.price = item.price
+        self.cancellation = item.cancellation
+        self.isNoLocation = item.isNoLocation
         self.segment = item.segment
     }
 }
 
 // MARK: - Manual POI Cell Data
 
-/// Cell data for manual POI cells.
-/// Contains all pre-computed display data from TRPMergedTimelineItem.
 public struct ManualPoiCellData: TimelineCellData {
     // MARK: - Core
     public let segmentIndex: Int
 
     // MARK: - Order
-    /// Unified day order (1-based, sequential across all cell types)
     public let order: Int
 
     // MARK: - Display Data
@@ -121,6 +176,10 @@ public struct ManualPoiCellData: TimelineCellData {
     public let segment: TRPTimelineSegment
     public let poi: TRPPoi?
 
+    // MARK: - Conflict Detection
+    public var hasConflict: Bool = false
+    public var showTimeOverlapText: Bool = false
+
     // MARK: - Initialization
 
     public init(
@@ -133,7 +192,9 @@ public struct ManualPoiCellData: TimelineCellData {
         ratingCount: Int?,
         categoryName: String?,
         segment: TRPTimelineSegment,
-        poi: TRPPoi?
+        poi: TRPPoi?,
+        hasConflict: Bool = false,
+        showTimeOverlapText: Bool = false
     ) {
         self.segmentIndex = segmentIndex
         self.order = order
@@ -145,9 +206,10 @@ public struct ManualPoiCellData: TimelineCellData {
         self.categoryName = categoryName
         self.segment = segment
         self.poi = poi
+        self.hasConflict = hasConflict
+        self.showTimeOverlapText = showTimeOverlapText
     }
 
-    /// Create from TRPMergedTimelineItem with unified order
     public init(from item: TRPMergedTimelineItem, order: Int) {
         self.segmentIndex = item.originalSegmentIndex
         self.order = order
@@ -159,26 +221,29 @@ public struct ManualPoiCellData: TimelineCellData {
         self.categoryName = item.manualPoi?.categories.first?.name
         self.segment = item.segment
         self.poi = item.manualPoi
+        self.hasConflict = item.hasConflict
+        self.showTimeOverlapText = item.showTimeOverlapText
     }
 }
 
 // MARK: - Recommendations Cell Data
 
-/// Cell data for recommendations/itinerary cells.
-/// Contains all pre-computed display data from TRPMergedTimelineItem.
 public struct RecommendationsCellData: TimelineCellData {
     // MARK: - Core
     public let segmentIndex: Int
 
     // MARK: - Order
-    /// Starting order for first step (1-based, sequential across all cell types)
-    /// Each subsequent step uses startingOrder + stepIndex
+    /// Starting order for first step; each subsequent step uses startingOrder + stepIndex.
     public let startingOrder: Int
 
     // MARK: - Display Data
     public let title: String
     public let steps: [TRPTimelineStep]
     public var isExpanded: Bool
+
+    // MARK: - Location Data
+    /// City for this segment; used for city-center fallback when accommodation is nil.
+    public let city: TRPCity?
 
     // MARK: - Raw Data (for delegate callbacks)
     public let segment: TRPTimelineSegment
@@ -191,7 +256,8 @@ public struct RecommendationsCellData: TimelineCellData {
         title: String,
         steps: [TRPTimelineStep],
         isExpanded: Bool,
-        segment: TRPTimelineSegment
+        segment: TRPTimelineSegment,
+        city: TRPCity? = nil
     ) {
         self.segmentIndex = segmentIndex
         self.startingOrder = startingOrder
@@ -199,23 +265,33 @@ public struct RecommendationsCellData: TimelineCellData {
         self.steps = steps
         self.isExpanded = isExpanded
         self.segment = segment
+        self.city = city ?? segment.city
     }
 
-    /// Create from TRPMergedTimelineItem with unified starting order
+    /// For itinerary segments, use the customTitle init for dynamic numbering.
     public init(from item: TRPMergedTimelineItem, startingOrder: Int, isExpanded: Bool = true) {
         self.segmentIndex = item.originalSegmentIndex
         self.startingOrder = startingOrder
-        self.title = item.title ?? TimelineLocalizationKeys.localized(TimelineLocalizationKeys.recommendations)
+        self.title = TimelineLocalizationKeys.localized(TimelineLocalizationKeys.recommendations)
         self.steps = item.steps
         self.isExpanded = isExpanded
         self.segment = item.segment
+        self.city = item.city
+    }
+
+    public init(from item: TRPMergedTimelineItem, startingOrder: Int, isExpanded: Bool = true, customTitle: String) {
+        self.segmentIndex = item.originalSegmentIndex
+        self.startingOrder = startingOrder
+        self.title = customTitle
+        self.steps = item.steps
+        self.isExpanded = isExpanded
+        self.segment = item.segment
+        self.city = item.city
     }
 }
 
 // MARK: - Activity Step Cell Data
 
-/// Cell data for individual activity step cells.
-/// Used when activity steps are displayed separately from recommendations.
 public struct ActivityStepCellData: TimelineCellData {
     // MARK: - Core
     public let segmentIndex: Int
@@ -261,34 +337,23 @@ public struct ActivityStepCellData: TimelineCellData {
 
 // MARK: - Unified Cell Type Enum
 
-/// Unified cell type for timeline display.
-/// Each case contains pre-computed cell data ready for display.
 public enum TimelineCellType {
-    /// Booked activity (paid, confirmed)
     case bookedActivity(BookedActivityCellData)
-
-    /// Reserved activity (pending payment)
     case reservedActivity(BookedActivityCellData)
-
-    /// Manual POI added by user
+    /// Reserved activity with a flexible-time slot (no specific start time, pinned to top).
+    case flexibleActivity(FlexibleActivityCellData)
     case manualPoi(ManualPoiCellData)
-
-    /// Individual activity step (from recommendations)
     case activityStep(ActivityStepCellData)
-
-    /// AI recommendations (grouped POI steps)
     case recommendations(RecommendationsCellData)
-
-    /// Empty state (no items for selected day)
     case emptyState
 
     // MARK: - Convenience Properties
 
-    /// Get the segment index for API operations
     public var segmentIndex: Int? {
         switch self {
         case .bookedActivity(let data): return data.segmentIndex
         case .reservedActivity(let data): return data.segmentIndex
+        case .flexibleActivity(let data): return data.segmentIndex
         case .manualPoi(let data): return data.segmentIndex
         case .activityStep(let data): return data.segmentIndex
         case .recommendations(let data): return data.segmentIndex
@@ -296,11 +361,11 @@ public enum TimelineCellType {
         }
     }
 
-    /// Get the raw segment for delegate callbacks
     public var segment: TRPTimelineSegment? {
         switch self {
         case .bookedActivity(let data): return data.segment
         case .reservedActivity(let data): return data.segment
+        case .flexibleActivity(let data): return data.segment
         case .manualPoi(let data): return data.segment
         case .activityStep(let data): return data.segment
         case .recommendations(let data): return data.segment
@@ -313,18 +378,16 @@ public enum TimelineCellType {
 
 extension TimelineCellType {
 
-    /// Create TimelineCellType from TRPMergedTimelineItem with unified order
-    /// - Parameters:
-    ///   - item: The merged timeline item
-    ///   - order: Unified day order (for booked/reserved/manualPoi) or starting order (for recommendations)
-    ///   - isExpanded: Whether recommendations cell should be expanded (default: true)
-    /// - Returns: Appropriate TimelineCellType for the item's segment type
+    /// `order` is the unified day order for booked/reserved/manualPoi, or starting order for recommendations.
     public static func from(_ item: TRPMergedTimelineItem, order: Int, isExpanded: Bool = true) -> TimelineCellType {
         switch item.segmentType {
         case .bookedActivity:
             return .bookedActivity(BookedActivityCellData(from: item, order: order))
 
         case .reservedActivity:
+            if item.isFlexibleActivity {
+                return .flexibleActivity(FlexibleActivityCellData(from: item))
+            }
             return .reservedActivity(BookedActivityCellData(from: item, order: order))
 
         case .manualPoi:

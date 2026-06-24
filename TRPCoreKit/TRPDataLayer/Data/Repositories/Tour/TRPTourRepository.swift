@@ -16,7 +16,6 @@ final public class TRPTourRepository: TourRepository {
     public var tours: [TRPTourProduct] = []
 
     public var toursWithParameters: [TourParameters : [TRPTourProduct]] = [:]
-    public var toursParametersNextLink: [TourParameters : TRPTourPagination?] = [:]
 
     public var remoteApi: TourRemoteApi
 
@@ -36,25 +35,23 @@ final public class TRPTourRepository: TourRepository {
         let checkWithParams = checkParameters(parametersWithCity)
 
         if let toursInCache = checkWithParams.tours, checkWithParams.continue == false {
-            completion((.success(toursInCache), checkNextLink(parametersWithCity)))
+            completion(.success(TRPTourSearchOutcome(products: toursInCache, facets: nil)))
             return
         }
 
         remoteApi.fetchTours(cityId: cityId, parameters: parametersWithCity) { [weak self] result in
-            switch result.0 {
-            case .success(let apiTours):
-                guard let strongSelf = self else {return}
-                strongSelf.tours.append(contentsOf: apiTours)
+            switch result {
+            case .success(let outcome):
+                guard let strongSelf = self else { return }
+                let uniqueProducts = outcome.products.unique()
+                strongSelf.tours.append(contentsOf: outcome.products)
 
-                if strongSelf.USE_CACHE, !strongSelf.toursWithParameters.contains(where: {$0.key == parametersWithCity}) {
-                    if let pagination = result.1, pagination.hasMore {
-                        strongSelf.toursParametersNextLink[parametersWithCity] = pagination
-                    }
-                    strongSelf.toursWithParameters[parametersWithCity] = apiTours.unique()
+                if strongSelf.USE_CACHE, !strongSelf.toursWithParameters.contains(where: { $0.key == parametersWithCity }) {
+                    strongSelf.toursWithParameters[parametersWithCity] = uniqueProducts
                 }
-                completion((.success(apiTours.unique()), result.1))
+                completion(.success(TRPTourSearchOutcome(products: uniqueProducts, facets: outcome.facets)))
             case .failure(let error):
-                completion((.failure(error), result.1))
+                completion(.failure(error))
             }
         }
     }
@@ -64,30 +61,28 @@ final public class TRPTourRepository: TourRepository {
                            parameters: TourParameters,
                            completion: @escaping (TourResultsValue) -> Void) {
 
-        var parametersWithCity = parameters
+        let parametersWithCity = parameters
 
         let checkWithParams = checkParameters(parametersWithCity)
 
         if let toursInCache = checkWithParams.tours, checkWithParams.continue == false {
-            completion((.success(toursInCache), checkNextLink(parametersWithCity)))
+            completion(.success(TRPTourSearchOutcome(products: toursInCache, facets: nil)))
             return
         }
 
         remoteApi.fetchTours(coordinate: coordinate, parameters: parametersWithCity) { [weak self] result in
-            switch result.0 {
-            case .success(let apiTours):
-                guard let strongSelf = self else {return}
-                strongSelf.tours.append(contentsOf: apiTours)
+            switch result {
+            case .success(let outcome):
+                guard let strongSelf = self else { return }
+                let uniqueProducts = outcome.products.unique()
+                strongSelf.tours.append(contentsOf: outcome.products)
 
-                if strongSelf.USE_CACHE, !strongSelf.toursWithParameters.contains(where: {$0.key == parametersWithCity}) {
-                    if let pagination = result.1, pagination.hasMore {
-                        strongSelf.toursParametersNextLink[parametersWithCity] = pagination
-                    }
-                    strongSelf.toursWithParameters[parametersWithCity] = apiTours.unique()
+                if strongSelf.USE_CACHE, !strongSelf.toursWithParameters.contains(where: { $0.key == parametersWithCity }) {
+                    strongSelf.toursWithParameters[parametersWithCity] = uniqueProducts
                 }
-                completion((.success(apiTours.unique()), result.1))
+                completion(.success(TRPTourSearchOutcome(products: uniqueProducts, facets: outcome.facets)))
             case .failure(let error):
-                completion((.failure(error), result.1))
+                completion(.failure(error))
             }
         }
     }
@@ -98,14 +93,36 @@ final public class TRPTourRepository: TourRepository {
 
     public func getTourSchedule(productId: String,
                                 date: String,
+                                to: String?,
                                 currency: String,
                                 lang: String,
                                 completion: @escaping (Result<TRPTourSchedule, Error>) -> Void) {
         remoteApi.getTourSchedule(productId: productId,
                                  date: date,
+                                 to: to,
                                  currency: currency,
                                  lang: lang,
                                  completion: completion)
+    }
+
+    public func lookupTourProduct(providerId: Int,
+                                  productId: String,
+                                  completion: @escaping (TourResultValue) -> Void) {
+        remoteApi.lookupTourProduct(providerId: providerId,
+                                    productId: productId,
+                                    completion: completion)
+    }
+
+    public func getTourScheduleAvailability(items: [String],
+                                            date: String,
+                                            currency: String?,
+                                            lang: String?,
+                                            completion: @escaping (Result<[TRPTourScheduleAvailability], Error>) -> Void) {
+        remoteApi.getTourScheduleAvailability(items: items,
+                                              date: date,
+                                              currency: currency,
+                                              lang: lang,
+                                              completion: completion)
     }
 }
 
@@ -117,9 +134,5 @@ extension TRPTourRepository {
             return (toursWithParameters[parameters] ?? [], false)
         }
         return (nil, true)
-    }
-
-    private func checkNextLink(_ parameters: TourParameters) -> TRPTourPagination? {
-        return toursParametersNextLink[parameters] ?? nil
     }
 }
