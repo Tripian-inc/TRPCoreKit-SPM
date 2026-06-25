@@ -211,10 +211,10 @@ public struct TRPSegmentActivityItem: Codable {
 
 // MARK: - Tour Product Lookup Helpers
 
-/// Default providerId used when an activity id doesn't encode one. `15` is Civitatis,
-/// which is the only host-app provider for this branch. Lives in one place so a future
-/// non-Civitatis integration only has to change this constant (or move it to config).
-private let trpDefaultLookupProviderId = 15
+/// Default providerId used when an activity id doesn't encode one — the active
+/// provider's id (Civitatis 15, Nexus/Juniper 7), so non-Civitatis hosts no longer
+/// fall back to Civitatis.
+private var trpDefaultLookupProviderId: Int { TRPCoreKit.shared.provider.id }
 
 extension TRPSegmentActivityItem {
     /// True when the activity arrived without a real coordinate — either the host
@@ -436,9 +436,16 @@ extension TRPItineraryWithActivities {
         // Set additional data (this is CRITICAL for booked activities)
         segment.additionalData = tripItem
 
-        // City will be populated from timeline.plans using index-based mapping
-        // tripProfile.segments[i] corresponds to plans[i]
-        segment.city = nil
+        // Carry the resolved cityId onto the segment so the booked activity is
+        // created in the right city. Nexus resolves it from the reservation's
+        // destinationId up front; when no cityId is known it stays nil and is
+        // populated from timeline.plans (index-based) after fetch, as before.
+        if let cityId = tripItem.cityId, cityId > 0 {
+            segment.city = TRPCityCache.shared.getCity(byId: cityId)
+                ?? TRPCity(id: cityId, name: "", coordinate: tripItem.coordinate)
+        } else {
+            segment.city = nil
+        }
 
         return segment
     }

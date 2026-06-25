@@ -489,7 +489,7 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
         ratingStack.spacing = 0
         ratingStack.alignment = .center
 
-        if isActivity, let poi = step.poi, let rating = poi.rating {
+        if isActivity, let poi = step.poi, let rating = poi.rating, (rating > 0 || (poi.ratingCount ?? 0) > 0) {
             let ratingLabel = UILabel()
             ratingLabel.font = FontSet.montserratBold.font(14)
             ratingLabel.textColor = ColorSet.primaryText.uiColor

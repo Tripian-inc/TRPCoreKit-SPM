@@ -154,10 +154,12 @@ extension TRPTimelineItineraryViewModel {
     private func buildReservedActivityId(segment: TRPTimelineSegment,
                                          additional: TRPSegmentActivityItem) -> String? {
         guard let raw = additional.activityId, !raw.isEmpty else { return nil }
-        if raw.hasPrefix("C_") {
+        let provider = TRPCoreKit.shared.provider
+        let prefix = provider.activityIdPrefix
+        if !prefix.isEmpty, raw.hasPrefix(prefix) {
             return raw
         }
-        var id = "C_\(raw)_15"
+        var id = "\(prefix)\(raw)_\(provider.id)"
         if let cityId = segment.city?.id {
             id += "_\(cityId)"
         }
@@ -170,7 +172,7 @@ extension TRPTimelineItineraryViewModel {
               let providerId = step.poi?.additionalData?.providerId else {
             return nil
         }
-        var id = "C_\(productId)_\(providerId)"
+        var id = "\(TRPCoreKit.shared.provider.activityIdPrefix)\(productId)_\(providerId)"
         if let cityId = plan.city?.id {
             id += "_\(cityId)"
         }

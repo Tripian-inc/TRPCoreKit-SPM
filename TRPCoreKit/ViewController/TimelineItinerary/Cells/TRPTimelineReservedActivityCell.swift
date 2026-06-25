@@ -159,7 +159,9 @@ class TRPTimelineReservedActivityCell: UITableViewCell {
     private lazy var removeButton: UIButton = {
         let button = UIButton(type: .custom)
         button.translatesAutoresizingMaskIntoConstraints = false
-        button.setImage(TRPImageController().getImage(inFramework: "ic_remove_step", inApp: nil), for: .normal)
+        let icon = TRPImageController().getImage(inFramework: "ic_remove_step", inApp: nil)?.withRenderingMode(.alwaysTemplate)
+        button.setImage(icon, for: .normal)
+        button.tintColor = ColorSet.primary.uiColor
         button.contentHorizontalAlignment = .center
         button.addTarget(self, action: #selector(removeButtonTapped), for: .touchUpInside)
         return button
@@ -333,13 +335,26 @@ class TRPTimelineReservedActivityCell: UITableViewCell {
 
         // Desaturate to grayscale when the activity is no longer available for its slot.
         let shouldDesaturate = cellData.isAvailabilityExpired
-        if let imageUrlString = cellData.imageUrl, let url = URL(string: imageUrlString) {
-            activityImageView.sd_setImage(with: url, placeholderImage: nil) { [weak self] image, _, _, _ in
-                guard let self = self, let image = image else { return }
+        let imageFallback = NexusHelper.activityImageFallbackImage
+        if let imageUrlString = cellData.imageUrl, !imageUrlString.isEmpty, let url = URL(string: imageUrlString) {
+            activityImageView.contentMode = .scaleAspectFill
+            activityImageView.sd_setImage(with: url, placeholderImage: imageFallback) { [weak self] image, _, _, _ in
+                guard let self = self else { return }
+                guard let image = image else {
+                    if let fallback = imageFallback {
+                        self.activityImageView.contentMode = .scaleAspectFit
+                        self.activityImageView.image = fallback
+                    }
+                    return
+                }
+                self.activityImageView.contentMode = .scaleAspectFill
                 self.activityImageView.image = shouldDesaturate
                     ? (image.convertToGrayScale() ?? image)
                     : image
             }
+        } else if let fallback = imageFallback {
+            activityImageView.contentMode = .scaleAspectFit
+            activityImageView.image = fallback
         } else {
             activityImageView.image = nil
         }
@@ -369,7 +384,7 @@ class TRPTimelineReservedActivityCell: UITableViewCell {
     private func configureRating(rating: Float?, ratingCount: Int?) {
         ratingStack.arrangedSubviews.forEach { $0.removeFromSuperview() }
 
-        guard let rating = rating else {
+        guard let rating = rating, (rating > 0 || (ratingCount ?? 0) > 0) else {
             ratingStack.isHidden = true
             return
         }

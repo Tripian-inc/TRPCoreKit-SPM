@@ -97,7 +97,10 @@ public class AddPlanActivityListingVC: TRPBaseUIViewController {
         collectionView.register(CategoryFilterCell.self, forCellWithReuseIdentifier: CategoryFilterCell.reuseIdentifier)
         return collectionView
     }()
-    
+
+    private var categoryHeightConstraint: NSLayoutConstraint!
+    private var filterSortTopConstraint: NSLayoutConstraint!
+
     private lazy var activityCountLabel: UILabel = {
         let label = UILabel()
         label.translatesAutoresizingMaskIntoConstraints = false
@@ -157,6 +160,9 @@ public class AddPlanActivityListingVC: TRPBaseUIViewController {
         headerContainerView.addSubview(activityCountLabel)
         headerContainerView.addSubview(infoImageView)
 
+        categoryHeightConstraint = categoryCollectionView.heightAnchor.constraint(equalToConstant: 88)
+        filterSortTopConstraint = filterSortStackView.topAnchor.constraint(equalTo: categoryCollectionView.bottomAnchor, constant: 16)
+
         NSLayoutConstraint.activate([
             searchBar.topAnchor.constraint(equalTo: customNavigationBar.bottomAnchor, constant: 8),
             searchBar.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
@@ -172,9 +178,9 @@ public class AddPlanActivityListingVC: TRPBaseUIViewController {
             categoryCollectionView.topAnchor.constraint(equalTo: headerContainerView.topAnchor, constant: 8),
             categoryCollectionView.leadingAnchor.constraint(equalTo: headerContainerView.leadingAnchor),
             categoryCollectionView.trailingAnchor.constraint(equalTo: headerContainerView.trailingAnchor),
-            categoryCollectionView.heightAnchor.constraint(equalToConstant: 88),
+            categoryHeightConstraint,
 
-            filterSortStackView.topAnchor.constraint(equalTo: categoryCollectionView.bottomAnchor, constant: 16),
+            filterSortTopConstraint,
             filterSortStackView.leadingAnchor.constraint(equalTo: headerContainerView.leadingAnchor, constant: 16),
             filterSortStackView.trailingAnchor.constraint(equalTo: headerContainerView.trailingAnchor, constant: -16),
             filterSortStackView.heightAnchor.constraint(equalToConstant: 40),
@@ -189,6 +195,12 @@ public class AddPlanActivityListingVC: TRPBaseUIViewController {
             infoImageView.heightAnchor.constraint(equalToConstant: 16),
             infoImageView.widthAnchor.constraint(equalToConstant: 16),
         ])
+
+        if !TRPCoreKit.shared.provider.showsActivityCategories {
+            categoryCollectionView.isHidden = true
+            categoryHeightConstraint.constant = 0
+            filterSortTopConstraint.constant = 0
+        }
 
         tableView.tableHeaderView = headerContainerView
 

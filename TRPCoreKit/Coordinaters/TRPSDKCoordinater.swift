@@ -24,8 +24,7 @@ public class TRPSDKCoordinater {
     private var tripCreateCoordinater: TRPCreateTripCoordinater?
     private var userProfileCoordinater: TRPUserProfileCoordinater?
     private var tripModeCoordinater: TRPTripModeCoordinater?
-    private var userProfileAnswers = [Int]()
-    
+
     private var canBackFromMyTrip = true
 
     // Timeline-related properties
@@ -35,6 +34,14 @@ public class TRPSDKCoordinater {
     // Store itinerary data for opening after splash completes
     private var pendingItineraryModel: TRPItineraryWithActivities?
     private var pendingTripHash: String?
+
+    // Nexus flow: kept so back from a freshly-created timeline can land on My Plans.
+    private var nexusMyPlansVC: NexusMyPlansVC?
+    // Nexus flow: set before the splash so datasFetchCompleted() routes Nexus data
+    // processing instead of the default My-Trips opening. Login is the splash's
+    // light-login; the plugin performs no login/register itself.
+    private var nexusFlow = false
+    private var pendingNexusReservations: String?
     
     private var alertMessage: (title: String?, message: String)? {
         didSet {
@@ -138,7 +145,7 @@ public class TRPSDKCoordinater {
     ///   - uniqueId: Optional unique identifier. If not provided, uses device's identifierForVendor
     public func startWithItinerary(_ itineraryModel: TRPItineraryWithActivities, tripHash: String? = nil, uniqueId: String? = nil) {
         checkAllApiKey()
-        // Note: userProfile() moved to datasFetchCompleted() - must be called after lightLogin
+        // Note: get-user is not fetched anywhere — there is no profile screen in this SDK.
         // Fetch cities for coordinate-based city lookup (async, no auth required)
         TRPCityCache.shared.fetchCitiesIfNeeded()
 
@@ -162,7 +169,7 @@ public class TRPSDKCoordinater {
 
     public func start() {
         checkAllApiKey()
-        // Note: userProfile() moved to datasFetchCompleted() - must be called after lightLogin
+        // Note: get-user is not fetched anywhere — there is no profile screen in this SDK.
         // Fetch cities for coordinate-based city lookup (async, no auth required)
         TRPCityCache.shared.fetchCitiesIfNeeded()
         // Prefetch POI categories for filtering (async, no auth required)
@@ -185,7 +192,7 @@ public class TRPSDKCoordinater {
     
     public func startForNexus(bookingDetailUrl: String, startDate: String?, endDate: String?, meetingPoint: String?, numberOfAdults: Int?, numberOfChildren: Int?, bookingReferenceId: String? = nil, reservations: String? = nil) {
         checkAllApiKey()
-        // Note: userProfile() moved to datasFetchCompleted() - must be called after lightLogin
+        // Note: get-user is not fetched anywhere — there is no profile screen in this SDK.
         // Fetch cities for coordinate-based city lookup (async, no auth required)
         TRPCityCache.shared.fetchCitiesIfNeeded()
         let vc = myTrip
@@ -215,16 +222,6 @@ public class TRPSDKCoordinater {
     
     public func addAlertMessage(title: String?, message: String) {
         alertMessage = (title: title, message: message)
-    }
-    
-    private func userProfile() {
-        userInfoUseCases.executeFetchUserInfo { [weak self] result in
-            switch result {
-            case .success(let userInfo):
-                self?.userProfileAnswers = userInfo.answers ?? []
-            case .failure(_): ()
-            }
-        }
     }
     
     internal var isLoaderOnView = false
@@ -274,8 +271,16 @@ public class TRPSDKCoordinater {
 
 extension TRPSDKCoordinater: SplashViewControllerDelegate {
     func datasFetchCompleted() {
-        // Fetch user profile after successful login (async, non-blocking)
-        userProfile()
+        // Nexus flow: run Nexus data processing (reservations → route) instead of
+        // the default My-Trips opening. Onboarding is intentionally skipped for Nexus.
+        if nexusFlow {
+            nexusFlow = false
+            routeNexusEntry()
+            return
+        }
+
+        // Note: get-user (userProfile) is intentionally not fetched — there is no
+        // profile screen in this SDK, so the user info is not needed on any flow.
 
         // Show onboarding first (if needed), then proceed with flow
         showOnboardingThenProceed { [weak self] in
@@ -311,6 +316,175 @@ extension TRPSDKCoordinater: SplashViewControllerDelegate {
         pendingTripHash = nil
     }
 
+}
+
+// MARK: - Nexus create-trip flow
+// Built from scratch; does NOT use MyTripVC / TRPCreateTripCoordinater. The host
+// (TripianPlugin) has already logged in + fetched languages before calling this,
+// so we route directly without re-entering the splash login (which would re-auth
+// by uniqueId and could switch away from the host's session). This reuses the
+// same create path that startWithItinerary funnels into post-splash.
+extension TRPSDKCoordinater {
+
+    /// Single Nexus entry. With reservations → parse → create a timeline. Without
+    /// reservations → show the user's not-past timelines (My Plans), or the
+    /// create-from-scratch flow when there are none.
+    public func startForNexusFlow(reservations: String?, uniqueId: String?) {
+        // The plugin only forwards data. The SDK splash does the light-login
+        // (uniqueId) + languages, exactly like startWithItinerary; afterwards
+        // datasFetchCompleted() calls routeNexusEntry(). No register/plain login.
+        pendingNexusReservations = reservations
+        nexusFlow = true
+        NexusTripStore.isNexusFlow = true
+        // Nexus uses the Juniper provider (id 7, "J_" activity-id prefix); all
+        // provider-dependent code reads TRPCoreKit.shared.provider.
+        TRPCoreKit.shared.provider = .nexus
+        startWithSplashVC(uniqueId: uniqueId)
+    }
+
+    /// Nexus-specific data processing, run after the splash's light-login. Parses
+    /// the host-sent reservations, then:
+    ///  - no reservations → My Plans / create-from-scratch;
+    ///  - reservations + a stored timeline whose booked/reserved segments share at
+    ///    least one activityId with the incoming reservations → RESUME it (the
+    ///    fetch+reconcile path syncs: adds new, drops out-of-range/removed-city);
+    ///  - otherwise (no stored timeline, unreachable, or zero overlap) → CREATE new.
+    private func routeNexusEntry() {
+        let reservations = pendingNexusReservations
+        pendingNexusReservations = nil
+        NexusItineraryBuilder.build(reservationsJson: reservations) { [weak self] itinerary in
+            guard let self = self else { return }
+            guard let itinerary = itinerary,
+                  !(itinerary.destinationItems.isEmpty && (itinerary.tripItems ?? []).isEmpty) else {
+                self.routeNexusEmptyEntry()
+                return
+            }
+            guard let storedHash = NexusTripStore.tripHash else {
+                self.openNexusTimeline(itinerary: itinerary, tripHash: nil, keepMyPlansRoot: false)
+                return
+            }
+            TRPTimelineRepository().fetchTimeline(tripHash: storedHash) { [weak self] result in
+                guard let self = self else { return }
+                DispatchQueue.main.async {
+                    switch result {
+                    case .success(let existing) where self.reservationsOverlap(itinerary: itinerary, existing: existing):
+                        self.openNexusTimeline(itinerary: itinerary, tripHash: storedHash, keepMyPlansRoot: false)
+                    default:
+                        self.openNexusTimeline(itinerary: itinerary, tripHash: nil, keepMyPlansRoot: false)
+                    }
+                }
+            }
+        }
+    }
+
+    /// Resume gate: true when ≥1 incoming reservation activityId is already a
+    /// booked/reserved segment in the stored timeline.
+    private func reservationsOverlap(itinerary: TRPItineraryWithActivities, existing: TRPTimeline) -> Bool {
+        let incoming = Set((itinerary.tripItems ?? []).compactMap { $0.activityId?.cleanedAsActivityId() })
+        guard !incoming.isEmpty else { return false }
+
+        var existingIds = Set<String>()
+        for segment in (existing.segments ?? []) {
+            if let id = segment.additionalData?.activityId { existingIds.insert(id.cleanedAsActivityId()) }
+        }
+        for segment in (existing.tripProfile?.segments ?? []) {
+            if let id = segment.additionalData?.activityId { existingIds.insert(id.cleanedAsActivityId()) }
+        }
+        return !incoming.isDisjoint(with: existingIds)
+    }
+
+    private func routeNexusEmptyEntry() {
+        let useCase = TRPUserTimelineUseCases()
+        useCase.executeUpcomingTimeline { [weak self] result in
+            DispatchQueue.main.async {
+                guard let self = self else { return }
+                let trips = (try? result.get()) ?? []
+                print("[NexusSDK] routeNexusEmptyEntry upcoming trips=\(trips.count)")
+                if trips.isEmpty {
+                    self.presentNexusCitySelection(asRoot: true)
+                } else {
+                    self.presentNexusMyPlans()
+                }
+            }
+        }
+    }
+
+    private func presentNexusMyPlans() {
+        let vc = NexusMyPlansVC()
+        nexusMyPlansVC = vc
+        vc.onClose = { [weak self] in self?.remove() }
+        vc.onAddTrip = { [weak self] in self?.presentNexusCitySelection(asRoot: false) }
+        vc.onSelectTrip = { [weak self] trip in self?.openNexusTimeline(forExisting: trip) }
+        navigationController.setViewControllers([vc], animated: true)
+    }
+
+    private func presentNexusCitySelection(asRoot: Bool) {
+        // City selection manages its own loader (only when the city cache is cold),
+        // so drop the entry overlay here to avoid a stuck loader on the warm path.
+        TRPLottieLoadingVC.shared.hideFromWindow(completion: nil)
+        let vc = NexusCitySelectionVC()
+        vc.onBack = { [weak self] in
+            guard let self = self else { return }
+            if asRoot { self.remove() } else { self.navigationController.popViewController(animated: true) }
+        }
+        vc.onNext = { [weak self] city in self?.presentNexusDateSelection(city: city) }
+        if asRoot {
+            navigationController.setViewControllers([vc], animated: true)
+        } else {
+            navigationController.pushViewController(vc, animated: true)
+        }
+    }
+
+    private func presentNexusDateSelection(city: TRPCity) {
+        let vc = NexusDateSelectionVC()
+        vc.city = city
+        vc.onBack = { [weak self] in self?.navigationController.popViewController(animated: true) }
+        vc.onComplete = { [weak self] itinerary in
+            self?.openNexusTimeline(itinerary: itinerary, tripHash: nil, keepMyPlansRoot: true)
+        }
+        navigationController.pushViewController(vc, animated: true)
+    }
+
+    private func openNexusTimeline(itinerary: TRPItineraryWithActivities, tripHash: String?, keepMyPlansRoot: Bool) {
+        // The timeline view model shows its own loader on init; drop the entry overlay.
+        TRPLottieLoadingVC.shared.hideFromWindow(completion: nil)
+        let viewModel = TRPTimelineItineraryViewModel(itineraryModel: itinerary, tripHash: tripHash)
+        let vc = TRPTimelineItineraryVC(viewModel: viewModel)
+        vc.delegate = self
+        if keepMyPlansRoot, let myPlans = nexusMyPlansVC {
+            // Back from the timeline returns to My Plans.
+            navigationController.setViewControllers([myPlans, vc], animated: true)
+        } else {
+            navigationController.setViewControllers([vc], animated: true)
+        }
+    }
+
+    /// Open an existing timeline (My Plans tap) by building a minimal itinerary
+    /// from the trip and passing its tripHash so the VM fetches instead of creating.
+    private func openNexusTimeline(forExisting trip: TRPTimeline) {
+        let destination = TRPSegmentDestinationItem(
+            title: trip.city.name,
+            coordinate: "\(trip.city.coordinate.lat),\(trip.city.coordinate.lon)",
+            cityId: trip.city.id,
+            dates: nil
+        )
+        let start = trip.tripProfile?.getOldestStartDate() ?? Date()
+        let end = trip.tripProfile?.getMaxEndDate() ?? start
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "yyyy-MM-dd HH:mm"
+        let itinerary = TRPItineraryWithActivities(
+            tripName: nil,
+            startDatetime: formatter.string(from: start),
+            endDatetime: formatter.string(from: end),
+            uniqueId: "",
+            tripianHash: trip.tripHash,
+            destinationItems: [destination],
+            favouriteItems: nil,
+            tripItems: []
+        )
+        openNexusTimeline(itinerary: itinerary, tripHash: trip.tripHash, keepMyPlansRoot: true)
+    }
 }
 
 //extension TRPSDKCoordinater: ExperienceDetailViewControllerDelegate, ExperienceAvailabilityViewControllerDelegate {

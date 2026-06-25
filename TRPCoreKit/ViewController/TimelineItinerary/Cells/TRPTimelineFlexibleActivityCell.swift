@@ -137,7 +137,9 @@ class TRPTimelineFlexibleActivityCell: UITableViewCell {
     private lazy var removeButton: UIButton = {
         let button = UIButton(type: .custom)
         button.translatesAutoresizingMaskIntoConstraints = false
-        button.setImage(TRPImageController().getImage(inFramework: "ic_remove_step", inApp: nil), for: .normal)
+        let icon = TRPImageController().getImage(inFramework: "ic_remove_step", inApp: nil)?.withRenderingMode(.alwaysTemplate)
+        button.setImage(icon, for: .normal)
+        button.tintColor = ColorSet.primary.uiColor
         button.contentHorizontalAlignment = .center
         button.addTarget(self, action: #selector(removeButtonTapped), for: .touchUpInside)
         return button
@@ -295,8 +297,17 @@ class TRPTimelineFlexibleActivityCell: UITableViewCell {
             subtitle: TimelineLocalizationKeys.localized(TimelineLocalizationKeys.flexibleEntrySubtitle)
         )
 
-        if let imageUrl = cellData.imageUrl {
-            activityImageView.sd_setImage(with: URL(string: imageUrl), placeholderImage: nil)
+        let imageFallback = NexusHelper.activityImageFallbackImage
+        if let imageUrl = cellData.imageUrl, !imageUrl.isEmpty, let url = URL(string: imageUrl) {
+            activityImageView.contentMode = .scaleAspectFill
+            activityImageView.sd_setImage(with: url, placeholderImage: imageFallback) { [weak self] image, _, _, _ in
+                guard image == nil, let fallback = imageFallback else { return }
+                self?.activityImageView.contentMode = .scaleAspectFit
+                self?.activityImageView.image = fallback
+            }
+        } else if let fallback = imageFallback {
+            activityImageView.contentMode = .scaleAspectFit
+            activityImageView.image = fallback
         } else {
             activityImageView.image = nil
         }

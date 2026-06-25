@@ -245,8 +245,17 @@ class TRPTimelineBookedActivityCell: UITableViewCell {
             showTimeOverlapText: false  // BookedActivity never shows "Time Overlap" text
         )
 
-        if let imageUrl = cellData.imageUrl {
-            activityImageView.sd_setImage(with: URL(string: imageUrl), placeholderImage: nil)
+        let imageFallback = NexusHelper.activityImageFallbackImage
+        if let imageUrl = cellData.imageUrl, !imageUrl.isEmpty, let url = URL(string: imageUrl) {
+            activityImageView.contentMode = .scaleAspectFill
+            activityImageView.sd_setImage(with: url, placeholderImage: imageFallback) { [weak self] image, _, _, _ in
+                guard image == nil, let fallback = imageFallback else { return }
+                self?.activityImageView.contentMode = .scaleAspectFit
+                self?.activityImageView.image = fallback
+            }
+        } else if let fallback = imageFallback {
+            activityImageView.contentMode = .scaleAspectFit
+            activityImageView.image = fallback
         } else {
             activityImageView.image = nil
         }

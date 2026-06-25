@@ -384,9 +384,8 @@ public class TimelinePoiDetailViewModel {
     public func hasProducts() -> Bool {
         guard let bookings = poi.bookings else { return false }
 
-        // provider ID 15 = Civitatis
         return bookings.contains { booking in
-            guard booking.providerId == 15,
+            guard booking.providerId == TRPCoreKit.shared.provider.id,
                   let products = booking.products,
                   !products.isEmpty else { return false }
             return true
@@ -396,15 +395,13 @@ public class TimelinePoiDetailViewModel {
     public func getProducts() -> [TRPBookingProduct] {
         guard let bookings = poi.bookings else { return [] }
 
-        // provider ID 15 = Civitatis
-        var civittatisProducts: [TRPBookingProduct] = []
+        var providerProducts: [TRPBookingProduct] = []
         bookings.forEach { booking in
-            if booking.providerId == 15, let products = booking.products {
-//            if let products = booking.products {
-                civittatisProducts.append(contentsOf: products)
+            if booking.providerId == TRPCoreKit.shared.provider.id, let products = booking.products {
+                providerProducts.append(contentsOf: products)
             }
         }
 
-        return civittatisProducts
+        return providerProducts
     }
 }

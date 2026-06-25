@@ -23,7 +23,7 @@ public class TRPTourRemoteApi: TourRemoteApi {
         var request = TRPTourSearchRequestModel(cityId: cityId)
 
         // Set provider ID
-        request.providerId = 15
+        request.providerId = TRPCoreKit.shared.provider.id
 
         // Always require instant availability
         request.instantAvailability = 1
@@ -109,7 +109,7 @@ public class TRPTourRemoteApi: TourRemoteApi {
         var request = TRPTourSearchRequestModel(cityId: cityId)
 
         // Set provider ID
-        request.providerId = 15
+        request.providerId = TRPCoreKit.shared.provider.id
 
         // Always require instant availability
         request.instantAvailability = 1

@@ -290,15 +290,19 @@ extension TRPTimelineItineraryVC: TRPTimelineRecommendationsCellDelegate {
     func recommendationsCellDidSelectStep(_ cell: TRPTimelineRecommendationsCell, step: TRPTimelineStep) {
         guard let poi = step.poi else { return }
 
-        if step.stepType == "activity" {
-            let activityId = extractActivityId(from: poi)
-            TRPCoreKit.shared.delegate?.trpCoreKitDidRequestActivityDetail(activityId: activityId)
+        // Mirror Android: only "poi" steps open the internal POI detail screen;
+        // every other step type (e.g. "activity") notifies the host for its
+        // product detail. (Gating on `== "activity"` wrongly routed non-"poi"
+        // product steps to the internal screen → "activity not found".)
+        if step.stepType == "poi" {
+            let viewModel = TimelinePoiDetailViewModel(poi: poi)
+            let detailVC = TimelinePoiDetailViewController(viewModel: viewModel)
+            navigationController?.pushViewController(detailVC, animated: true)
             return
         }
 
-        let viewModel = TimelinePoiDetailViewModel(poi: poi)
-        let detailVC = TimelinePoiDetailViewController(viewModel: viewModel)
-        navigationController?.pushViewController(detailVC, animated: true)
+        let activityId = extractActivityId(from: poi)
+        TRPCoreKit.shared.delegate?.trpCoreKitDidRequestActivityDetail(activityId: activityId)
     }
 
     func recommendationsCellDidTapChangeTime(_ cell: TRPTimelineRecommendationsCell, step: TRPTimelineStep) {

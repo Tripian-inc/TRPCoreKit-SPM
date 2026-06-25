@@ -94,14 +94,20 @@ public class AddPlanSelectDayVC: TRPBaseUIViewController, AddPlanChildViewContro
         view.layer.borderWidth = 1
         view.layer.borderColor = ColorSet.lineWeak.uiColor.cgColor
         
+        let iconCircle = UIView()
+        iconCircle.translatesAutoresizingMaskIntoConstraints = false
+        iconCircle.backgroundColor = ColorSet.bgPink.uiColor
+        iconCircle.layer.cornerRadius = 26
+
         let iconView = UIImageView()
         iconView.translatesAutoresizingMaskIntoConstraints = false
         iconView.tintColor = ColorSet.primary.uiColor
         iconView.contentMode = .scaleAspectFit
         if let image = TRPImageController().getImage(inFramework: iconImageName, inApp: nil) {
-            iconView.image = image
+            iconView.image = image.withRenderingMode(.alwaysTemplate)
         }
-        
+        iconCircle.addSubview(iconView)
+
         let titleLabel = UILabel()
         titleLabel.translatesAutoresizingMaskIntoConstraints = false
         titleLabel.text = title
@@ -115,17 +121,22 @@ public class AddPlanSelectDayVC: TRPBaseUIViewController, AddPlanChildViewContro
         descLabel.textColor = ColorSet.fgWeak.uiColor
         descLabel.numberOfLines = 0
         
-        view.addSubview(iconView)
+        view.addSubview(iconCircle)
         view.addSubview(titleLabel)
         view.addSubview(descLabel)
-        
+
         NSLayoutConstraint.activate([
-            iconView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
-            iconView.topAnchor.constraint(equalTo: view.topAnchor, constant: 18),
-            iconView.widthAnchor.constraint(equalToConstant: 52),
-            iconView.heightAnchor.constraint(equalToConstant: 52),
-            
-            titleLabel.leadingAnchor.constraint(equalTo: iconView.trailingAnchor, constant: 12),
+            iconCircle.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
+            iconCircle.topAnchor.constraint(equalTo: view.topAnchor, constant: 18),
+            iconCircle.widthAnchor.constraint(equalToConstant: 52),
+            iconCircle.heightAnchor.constraint(equalToConstant: 52),
+
+            iconView.centerXAnchor.constraint(equalTo: iconCircle.centerXAnchor),
+            iconView.centerYAnchor.constraint(equalTo: iconCircle.centerYAnchor),
+            iconView.widthAnchor.constraint(equalToConstant: 24),
+            iconView.heightAnchor.constraint(equalToConstant: 24),
+
+            titleLabel.leadingAnchor.constraint(equalTo: iconCircle.trailingAnchor, constant: 12),
             titleLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
             titleLabel.topAnchor.constraint(equalTo: view.topAnchor, constant: 16),
             titleLabel.heightAnchor.constraint(equalToConstant: 20),

@@ -46,6 +46,9 @@ extension TRPTimelineItineraryViewModel {
 
             switch result {
             case .success(let createdTimeline):
+                // Persist for the Nexus flow so the next reservations open can resume
+                // this timeline instead of creating a new one (no-op for other hosts).
+                NexusTripStore.onTimelineCreated(createdTimeline.tripHash)
                 self.waitForTimelineGeneration(tripHash: createdTimeline.tripHash, itineraryModel: itineraryModel)
 
             case .failure(let error):
@@ -67,12 +70,17 @@ extension TRPTimelineItineraryViewModel {
         let allItems = mutableItinerary.destinationItems.enumerated()
             .map { (index: $0.offset, item: $0.element) }
 
-        if allItems.isEmpty {
+        // Destinations the host already resolved (cityId > 0 — e.g. Nexus resolves
+        // each reservation's destinationId to a cityId up front) keep their cityId;
+        // only the rest fall back to coordinate-based cities/resolve.
+        let pending = allItems.filter { ($0.item.cityId ?? 0) <= 0 }
+
+        if pending.isEmpty {
             completion(mutableItinerary)
             return
         }
 
-        let coordinates = allItems.map { parseCoordinate(from: $0.item.coordinate) }
+        let coordinates = pending.map { parseCoordinate(from: $0.item.coordinate) }
 
         let cityRemoteApi = TRPCityRemoteApi()
         cityRemoteApi.resolveCities(coordinates: coordinates) { [weak self] result in
@@ -80,7 +88,7 @@ extension TRPTimelineItineraryViewModel {
 
             switch result {
             case .success(let cityIds):
-                for (i, (index, _)) in allItems.enumerated() {
+                for (i, (index, _)) in pending.enumerated() {
                     if i < cityIds.count && cityIds[i] > 0 {
                         mutableItinerary.destinationItems[index].cityId = cityIds[i]
                     } else {
@@ -89,8 +97,8 @@ extension TRPTimelineItineraryViewModel {
                 }
                 completion(mutableItinerary)
 
-            case .failure(let error):
-                self.resolveCityIdsFromCache(items: allItems, itinerary: &mutableItinerary)
+            case .failure:
+                self.resolveCityIdsFromCache(items: pending, itinerary: &mutableItinerary)
                 completion(mutableItinerary)
             }
         }
@@ -209,8 +217,12 @@ extension TRPTimelineItineraryViewModel {
         }
 
         let indexed = tripItems.enumerated().map { (index: $0.offset, item: $0.element) }
-        let withLocation = indexed.filter { !$0.item.lacksLocation }
-        let noLocation = indexed.filter { $0.item.lacksLocation }
+        // tripItems the host already resolved (cityId > 0 — e.g. Nexus resolves the
+        // reservation's destinationId to a cityId up front) keep their cityId: no
+        // cities/resolve and no tour-api product-lookup needed for them.
+        let needsResolve = indexed.filter { ($0.item.cityId ?? 0) <= 0 }
+        let withLocation = needsResolve.filter { !$0.item.lacksLocation }
+        let noLocation = needsResolve.filter { $0.item.lacksLocation }
 
         let group = DispatchGroup()
         let resultsQueue = DispatchQueue(label: "com.tripian.timeline.tripItems.cityResolve")

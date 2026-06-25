@@ -304,16 +304,28 @@ public enum ColorSet {
     case warningBorder
     case civiOrange
 
+    private static var brandPrimary: UIColor {
+        TRPCoreKit.shared.provider == .nexus
+            ? UIColor(red: 255, green: 98, blue: 29)
+            : UIColor(red: 234, green: 5, blue: 88)
+    }
+
+    private static var brandPrimaryBg: UIColor {
+        TRPCoreKit.shared.provider == .nexus
+            ? UIColor(red: 255, green: 236, blue: 228)
+            : UIColor(red: 255, green: 234, blue: 241)
+    }
+
     public var uiColor: UIColor {
         switch self {
         case .primary, .ratingStar, .fgSecondary:
-            return UIColor(red: 234, green: 5, blue: 88)
+            return Self.brandPrimary
         case .neutral100:
             return UIColor(red: 247, green: 247, blue: 247)
         case .neutral200:
             return UIColor(red: 234, green: 234, blue: 234)
         case .bgPink:
-            return UIColor(red: 255, green: 234, blue: 241)
+            return Self.brandPrimaryBg
         case .bgGreen:
             return UIColor(red: 218, green: 250, blue: 235)
         case .bgDisabled:
@@ -343,13 +355,13 @@ public enum ColorSet {
         case .fgOrange:
             return UIColor(red: 125, green: 41, blue: 35)
         case .fgPink:
-            return UIColor(red: 194, green: 4, blue: 75)
+            return Self.brandPrimary
         case .fgBlue:
             return UIColor(red: 5, green: 90, blue: 128)
         case .mainDark:
             return UIColor(red: 36, green: 35, blue: 35)
         case .fgTertiary:
-            return UIColor(red: 234, green: 5, blue: 88)
+            return Self.brandPrimary
         case .fgGray:
             return UIColor(red: 33, green: 32, blue: 32)
         case .bgPurple:

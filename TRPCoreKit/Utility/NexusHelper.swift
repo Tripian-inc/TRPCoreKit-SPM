@@ -6,10 +6,20 @@
 //
 
 import Foundation
+import UIKit
 import TRPRestKit
 
 public class NexusHelper {
-    
+
+    /// Brand fallback image for Nexus activities that have no (or a failed) cover
+    /// image — mirrors Android's NexusHostStrategy.activityImageFallback
+    /// (ic_nexus_logo). Returns nil for non-Nexus hosts so other hosts (e.g.
+    /// Civitatis) keep their existing blank behavior untouched.
+    public static var activityImageFallbackImage: UIImage? {
+        guard NexusTripStore.isNexusFlow else { return nil }
+        return TRPImageController().getImage(inFramework: "ic_nexus_logo", inApp: nil)
+    }
+
     public static func getCustomPoiUrl(url: String, startDate: String) -> URL? {
         return createCustomPoiUrl(url: url, customQueryItems: getStaticQueryItems(startDate: startDate))
     }

@@ -90,6 +90,11 @@ public class TRPCoreKit {
     // MARK: - Properties
     public weak var delegate: TRPCoreKitDelegate?
 
+    /// Active tour-api content provider — the single source of truth for the
+    /// numeric provider id and activity-id prefix. Defaults to `.civitatis`
+    /// (original behavior); the Nexus entry sets `.nexus`.
+    public var provider: TripianProvider = .civitatis
+
     // Keep reference to SDK coordinator
     private var sdkCoordinator: TRPSDKCoordinater?
 
