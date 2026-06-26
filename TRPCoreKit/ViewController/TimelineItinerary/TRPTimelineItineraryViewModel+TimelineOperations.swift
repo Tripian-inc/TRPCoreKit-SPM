@@ -470,8 +470,6 @@ extension TRPTimelineItineraryViewModel {
 
         profile.additionalData = enrichedTripItem
 
-        profile.doNotGenerate = 1
-
         return profile
     }
 

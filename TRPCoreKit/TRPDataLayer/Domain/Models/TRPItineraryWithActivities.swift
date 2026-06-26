@@ -347,7 +347,6 @@ extension TRPItineraryWithActivities {
         segment.children = children
         segment.pets = 0
         segment.city = city
-        segment.doNotGenerate = 1
         return segment
     }
 
@@ -372,7 +371,6 @@ extension TRPItineraryWithActivities {
         segment.children = children
         segment.pets = 0
         segment.city = city
-        segment.doNotGenerate = 1
         return segment
     }
 
@@ -431,8 +429,6 @@ extension TRPItineraryWithActivities {
         segment.adults = tripItem.adultCount
         segment.children = tripItem.childCount
         segment.pets = 0
-        segment.doNotGenerate = 1
-
         // Set additional data (this is CRITICAL for booked activities)
         segment.additionalData = tripItem
 
