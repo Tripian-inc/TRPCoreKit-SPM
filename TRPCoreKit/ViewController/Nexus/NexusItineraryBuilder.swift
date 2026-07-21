@@ -9,8 +9,9 @@
 //   - destinationID → cityId via TripianCommonApi.getCityIdFromDestination, then the
 //     city centre coordinate from TRPCityCache;
 //   - one destination per unique city + one booked activity per reservation;
-//   - the trip range targets the EARLIEST start … LATEST end across reservations
-//     (each reservation also contributes its own start/service date as a fallback).
+//   - the trip range starts at the EARLIEST start across reservations and ends at
+//     the LATEST end/service date across reservations PLUS 5 days, so ancillary
+//     services can be planned after the last booked reservation.
 //
 //  Activity coordinates are not resolved here (no single-product lookup), so booked
 //  activities are marked `isNoLocation` and anchored to the city. Completion runs
@@ -102,8 +103,8 @@ enum NexusItineraryBuilder {
 
         for p in parsed {
             let serviceDate = p.reservation.date.flatMap { $0.count >= 10 ? String($0.prefix(10)) : nil }
-            if let s = p.startDate ?? serviceDate { startDates.append(s) }
-            if let e = p.endDate ?? p.startDate ?? serviceDate { endDates.append(e) }
+            if let s = p.startDate ?? serviceDate ?? p.endDate { startDates.append(s) }
+            if let e = p.endDate ?? serviceDate ?? p.startDate { endDates.append(e) }
 
             guard let dest = p.destinationId,
                   let cityId = cityIdByDestination[dest],
@@ -144,7 +145,8 @@ enum NexusItineraryBuilder {
         if destinations.isEmpty && activities.isEmpty { return nil }
 
         let start = startDates.min()
-        let end = endDates.max() ?? start
+        let latestEnd = endDates.max() ?? start
+        let end = addDays(to: latestEnd, days: 5) ?? latestEnd
         return TRPItineraryWithActivities(
             tripName: nil,
             startDatetime: toDatetime(start, "00:00"),
@@ -166,9 +168,24 @@ enum NexusItineraryBuilder {
         return "\(d.prefix(10)) \(time)"
     }
 
+    /// Shifts a "yyyy-MM-dd" date string by `days`, preserving the format. Returns the input unchanged when it can't be parsed.
+    private static func addDays(to date: String?, days: Int) -> String? {
+        guard let d = date, d.count >= 10 else { return date }
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "UTC")!
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = TimeZone(identifier: "UTC")
+        formatter.dateFormat = "yyyy-MM-dd"
+        guard let parsed = formatter.date(from: String(d.prefix(10))),
+              let shifted = calendar.date(byAdding: .day, value: days, to: parsed) else { return date }
+        return formatter.string(from: shifted)
+    }
+
     private static func today() -> String {
         let f = DateFormatter()
         f.locale = Locale(identifier: "en_US_POSIX")
+        f.timeZone = TimeZone(identifier: "UTC")
         f.dateFormat = "yyyy-MM-dd"
         return f.string(from: Date())
     }
