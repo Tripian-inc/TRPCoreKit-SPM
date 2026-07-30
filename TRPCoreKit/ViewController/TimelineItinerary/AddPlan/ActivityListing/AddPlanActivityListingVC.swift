@@ -602,7 +602,9 @@ private class CategoryFilterCell: UICollectionViewCell {
 extension AddPlanActivityListingVC: ActivityCardCellDelegate {
 
     func activityCardCellDidTapAdd(_ cell: ActivityCardCell, tour: TRPTourProduct) {
-        let timeSelectionVC = AddPlanTimeSelectionVC(tour: tour, planData: viewModel.planData)
+        let timeSelectionVC = AddPlanTimeSelectionVC(tour: tour,
+                                                     planData: viewModel.planData,
+                                                     alreadyAddedDays: viewModel.alreadyAddedDays(for: tour))
 
         timeSelectionVC.onTimeSelected = { [weak self] selectedDate, selectedTimeSlot in
             print("Selected date: \(selectedDate), time: \(selectedTimeSlot.time)")
@@ -611,6 +613,8 @@ extension AddPlanActivityListingVC: ActivityCardCellDelegate {
         let activityName = tour.name
         timeSelectionVC.onSegmentCreated = { [weak self] selectedDay in
             guard let self = self else { return }
+
+            self.viewModel.markActivityAdded(tour, on: selectedDay)
 
             let dayLabel = selectedDay?.weekdayWithDayMonth() ?? ""
             let template = AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.activityAddedToast)

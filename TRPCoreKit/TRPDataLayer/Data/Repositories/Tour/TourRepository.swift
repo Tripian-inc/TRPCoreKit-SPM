@@ -53,6 +53,9 @@ public protocol TourRepository {
 
 public struct TourParameters: Hashable {
     public var cityId: Int?
+    /// Restricts the search to a single POI's products. When set, the request is sent
+    /// without coordinates or radius.
+    public var poiId: String?
     public var search: String?
     public var tourCategories: [String]?
     public var categoryIds: [String]?

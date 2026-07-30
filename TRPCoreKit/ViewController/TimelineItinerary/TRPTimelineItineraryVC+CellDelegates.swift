@@ -239,7 +239,10 @@ extension TRPTimelineItineraryVC: TRPTimelineManualPoiCellDelegate {
 
     func manualPoiCellDidTapCell(_ cell: TRPTimelineManualPoiCell, segment: TRPTimelineSegment, poi: TRPPoi?) {
         if let poi = poi {
-            let detailVM = TimelinePoiDetailViewModel(poi: poi)
+            let dateRange = viewModel.getTripDateRange()
+            let detailVM = TimelinePoiDetailViewModel(poi: poi,
+                                                      tripStartDate: dateRange?.start,
+                                                      tripEndDate: dateRange?.end)
             let detailVC = TimelinePoiDetailViewController(viewModel: detailVM)
             navigationController?.pushViewController(detailVC, animated: true)
         }
@@ -296,8 +299,11 @@ extension TRPTimelineItineraryVC: TRPTimelineRecommendationsCellDelegate {
             return
         }
 
-        let viewModel = TimelinePoiDetailViewModel(poi: poi)
-        let detailVC = TimelinePoiDetailViewController(viewModel: viewModel)
+        let dateRange = viewModel.getTripDateRange()
+        let detailViewModel = TimelinePoiDetailViewModel(poi: poi,
+                                                        tripStartDate: dateRange?.start,
+                                                        tripEndDate: dateRange?.end)
+        let detailVC = TimelinePoiDetailViewController(viewModel: detailViewModel)
         navigationController?.pushViewController(detailVC, animated: true)
     }
 

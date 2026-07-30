@@ -17,6 +17,10 @@ final public class TRPTourRepository: TourRepository {
 
     public var toursWithParameters: [TourParameters : [TRPTourProduct]] = [:]
 
+    /// Cached alongside `toursWithParameters` so a cache hit can still report whether
+    /// another page exists.
+    private var paginationWithParameters: [TourParameters : TRPTourPagination] = [:]
+
     public var remoteApi: TourRemoteApi
 
 
@@ -35,7 +39,9 @@ final public class TRPTourRepository: TourRepository {
         let checkWithParams = checkParameters(parametersWithCity)
 
         if let toursInCache = checkWithParams.tours, checkWithParams.continue == false {
-            completion(.success(TRPTourSearchOutcome(products: toursInCache, facets: nil)))
+            completion(.success(TRPTourSearchOutcome(products: toursInCache,
+                                                    facets: nil,
+                                                    pagination: paginationWithParameters[parametersWithCity])))
             return
         }
 
@@ -48,8 +54,11 @@ final public class TRPTourRepository: TourRepository {
 
                 if strongSelf.USE_CACHE, !strongSelf.toursWithParameters.contains(where: { $0.key == parametersWithCity }) {
                     strongSelf.toursWithParameters[parametersWithCity] = uniqueProducts
+                    strongSelf.paginationWithParameters[parametersWithCity] = outcome.pagination
                 }
-                completion(.success(TRPTourSearchOutcome(products: uniqueProducts, facets: outcome.facets)))
+                completion(.success(TRPTourSearchOutcome(products: uniqueProducts,
+                                                        facets: outcome.facets,
+                                                        pagination: outcome.pagination)))
             case .failure(let error):
                 completion(.failure(error))
             }

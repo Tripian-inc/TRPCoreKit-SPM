@@ -10,14 +10,38 @@ import Foundation
 import TRPFoundationKit
 import TRPRestKit
 
+public protocol TimelinePoiDetailViewModelDelegate: AnyObject {
+    func poiDetailProductsDidLoad()
+    func poiDetailProductsLoadingStateDidChange()
+}
+
 public class TimelinePoiDetailViewModel {
 
     // MARK: - Properties
     public let poi: TRPPoi
+    public weak var delegate: TimelinePoiDetailViewModelDelegate?
+
+    private let tripStartDate: Date?
+    private let tripEndDate: Date?
+    private let tourUseCases: TRPTourUseCases
+
+    private(set) public var products: [TRPTourProduct] = []
+    private(set) public var isLoadingProducts: Bool = false
+    private(set) public var isLoadingMoreProducts: Bool = false
+    private var hasMoreProducts: Bool = false
+    private var currentOffset: Int = 0
+
+    private static let productsPageSize: Int = 10
 
     // MARK: - Initialization
-    public init(poi: TRPPoi) {
+    public init(poi: TRPPoi,
+                tripStartDate: Date? = nil,
+                tripEndDate: Date? = nil,
+                tourUseCases: TRPTourUseCases = TRPTourUseCases()) {
         self.poi = poi
+        self.tripStartDate = tripStartDate
+        self.tripEndDate = tripEndDate
+        self.tourUseCases = tourUseCases
     }
 
     // MARK: - Public Methods
@@ -382,29 +406,92 @@ public class TimelinePoiDetailViewModel {
     }
 
     public func hasProducts() -> Bool {
-        guard let bookings = poi.bookings else { return false }
+        return !products.isEmpty
+    }
 
-        // provider ID 15 = Civitatis
-        return bookings.contains { booking in
-            guard booking.providerId == 15,
-                  let products = booking.products,
-                  !products.isEmpty else { return false }
-            return true
+    public func getProducts() -> [TRPTourProduct] {
+        return products
+    }
+}
+
+// MARK: - Products
+
+extension TimelinePoiDetailViewModel {
+
+    /// The section stays on screen while the first page is in flight so the skeleton has a host.
+    public var shouldShowProductsSection: Bool {
+        return poi.hasBookings == true && (isLoadingProducts || !products.isEmpty)
+    }
+
+    public func loadProducts() {
+        guard poi.hasBookings == true, poi.cityId > 0, !isLoadingProducts else { return }
+
+        isLoadingProducts = true
+        delegate?.poiDetailProductsLoadingStateDidChange()
+
+        fetchProducts(offset: 0)
+    }
+
+    public func loadMoreProducts() {
+        guard hasMoreProducts, !isLoadingProducts, !isLoadingMoreProducts else { return }
+
+        isLoadingMoreProducts = true
+        delegate?.poiDetailProductsLoadingStateDidChange()
+
+        fetchProducts(offset: currentOffset + Self.productsPageSize)
+    }
+
+    private func fetchProducts(offset: Int) {
+        var parameters = TourParameters()
+        parameters.poiId = poi.id
+        parameters.date = tripStartDate.map { PoiDetailDateFormat.shared.string(from: $0) }
+        parameters.dateTo = tripEndDate.map { PoiDetailDateFormat.shared.string(from: $0) }
+        parameters.limit = Self.productsPageSize
+        parameters.offset = offset
+        parameters.currency = TRPClient.getCurrency()
+
+        tourUseCases.tourRepository.fetchTours(cityId: poi.cityId, parameters: parameters) { [weak self] result in
+            DispatchQueue.main.async {
+                self?.handleProductsResult(result, offset: offset)
+            }
         }
     }
 
-    public func getProducts() -> [TRPBookingProduct] {
-        guard let bookings = poi.bookings else { return [] }
+    private func handleProductsResult(_ result: TourResultsValue, offset: Int) {
+        isLoadingProducts = false
+        isLoadingMoreProducts = false
 
-        // provider ID 15 = Civitatis
-        var civittatisProducts: [TRPBookingProduct] = []
-        bookings.forEach { booking in
-            if booking.providerId == 15, let products = booking.products {
-//            if let products = booking.products {
-                civittatisProducts.append(contentsOf: products)
+        switch result {
+        case .success(let outcome):
+            if offset == 0 {
+                products = outcome.products
+            } else {
+                products.append(contentsOf: outcome.products)
             }
+            currentOffset = offset
+            hasMoreProducts = outcome.pagination?.hasMore ?? false
+        case .failure:
+            hasMoreProducts = false
         }
 
-        return civittatisProducts
+        delegate?.poiDetailProductsDidLoad()
+    }
+}
+
+/// Shared `yyyy-MM-dd` formatter (recreating DateFormatters is expensive).
+private final class PoiDetailDateFormat {
+    static let shared = PoiDetailDateFormat()
+    private let formatter: DateFormatter
+
+    private init() {
+        let f = DateFormatter()
+        f.calendar = Calendar(identifier: .gregorian)
+        f.locale = Locale(identifier: "en_US_POSIX")
+        f.dateFormat = "yyyy-MM-dd"
+        self.formatter = f
+    }
+
+    func string(from date: Date) -> String {
+        return formatter.string(from: date)
     }
 }

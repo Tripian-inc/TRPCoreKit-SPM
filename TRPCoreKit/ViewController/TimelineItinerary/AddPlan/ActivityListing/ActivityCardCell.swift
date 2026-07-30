@@ -371,15 +371,12 @@ class ActivityCardCell: UITableViewCell {
         }
     }
 
+    /// Renders "FREE" when the value is missing or non-positive — the tour API omits the price
+    /// field for free products instead of sending zero.
     private func updatePrice(value: Double?, currency: String, convertFromCents: Bool = false) {
-        guard let value = value else {
-            priceLabel.attributedText = nil
-            return
-        }
+        let displayValue = value.map { convertFromCents ? $0 / 100.0 : $0 }
 
-        let displayValue = convertFromCents ? value / 100.0 : value
-
-        if displayValue == 0 {
+        guard let displayValue = displayValue, displayValue > 0 else {
             priceLabel.attributedText = NSAttributedString(
                 string: CommonLocalizationKeys.localized(CommonLocalizationKeys.free),
                 attributes: [

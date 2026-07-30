@@ -417,7 +417,6 @@ extension TRPItineraryWithActivities {
 
         // Set basic properties
         segment.title = tripItem.title
-        segment.description = tripItem.description
         segment.available = false // Booking products are fixed activities
         segment.distinctPlan = true
 

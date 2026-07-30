@@ -28,8 +28,11 @@ public class TRPTourRemoteApi: TourRemoteApi {
         // Always require instant availability
         request.instantAvailability = 1
 
-        // Set city center coordinates from cache
-        if let cityCoordinate = TRPCityCache.shared.getCityCoordinate(cityId: cityId) {
+        request.poiId = parameters.poiId
+
+        // A poiId search targets one POI, so location filters would only narrow it further
+        if parameters.poiId == nil,
+           let cityCoordinate = TRPCityCache.shared.getCityCoordinate(cityId: cityId) {
             request.lat = cityCoordinate.lat
             request.lng = cityCoordinate.lon
         }
@@ -48,7 +51,7 @@ public class TRPTourRemoteApi: TourRemoteApi {
         }
 
         // Map distance to radius (convert Float to Double if needed)
-        if let distance = parameters.distance {
+        if parameters.poiId == nil, let distance = parameters.distance {
             request.radius = Double(distance)
         }
 
@@ -56,8 +59,9 @@ public class TRPTourRemoteApi: TourRemoteApi {
         request.date = parameters.date
         request.to = parameters.dateTo
 
-        // Hardcoded request limit (server requires it; pagination still disabled client-side)
-        request.limit = 10
+        // Server requires an explicit limit
+        request.limit = parameters.limit ?? 10
+        request.offset = parameters.offset ?? 0
 
         // Map price filters
         request.minPrice = parameters.minPrice

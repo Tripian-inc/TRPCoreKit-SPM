@@ -331,15 +331,17 @@ extension TimelinePoiDetailViewController {
         }
     }
 
-    private func configureProductsSection() {
-        let hasProducts = viewModel.hasProducts()
-        productsSectionView.isHidden = !hasProducts
+    func configureProductsSection() {
+        let shouldShow = viewModel.shouldShowProductsSection
+        productsSectionView.isHidden = !shouldShow
 
-        if hasProducts {
+        if shouldShow {
             productsHeaderView.isHidden = false
             productsCollectionView.isHidden = false
             productsCollectionView.reloadData()
         }
+
+        configureSeparators()
     }
 
     private func configureKeyDataSection() {
@@ -408,7 +410,7 @@ extension TimelinePoiDetailViewController {
         featuresHeaderLabel.isHidden = true
     }
 
-    private func configureSeparators() {
+    func configureSeparators() {
         separator1.isHidden = productsSectionView.isHidden
         separator2.isHidden = keyDataSectionView.isHidden
         separator3.isHidden = addressSectionView.isHidden

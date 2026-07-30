@@ -322,12 +322,9 @@ class TRPTimelineFlexibleActivityCell: UITableViewCell {
         configurePriceRow(with: cellData.price)
     }
 
+    /// A missing or non-positive price renders as "FREE" — the tour API omits the price for
+    /// free products instead of sending zero.
     private func configurePriceRow(with priceData: TRPSegmentActivityPrice?) {
-        guard let price = priceData else {
-            priceRowContainer.isHidden = true
-            return
-        }
-
         priceRowContainer.subviews.forEach { $0.removeFromSuperview() }
 
         let priceRow = UIStackView()
@@ -336,47 +333,35 @@ class TRPTimelineFlexibleActivityCell: UITableViewCell {
         priceRow.spacing = 4
         priceRow.alignment = .center
 
-        if price.value == 0 {
+        if let price = priceData, price.value > 0 {
+            let fromLabel = UILabel()
+            fromLabel.font = FontSet.montserratMedium.font(14)
+            fromLabel.textColor = ColorSet.primaryText.uiColor
+            fromLabel.text = CommonLocalizationKeys.localized(CommonLocalizationKeys.from)
+
+            let priceLabel = UILabel()
+            priceLabel.font = FontSet.montserratBold.font(16)
+            priceLabel.textColor = ColorSet.primaryText.uiColor
+            priceLabel.text = TRPCurrencyHelper.formatPrice(price.value, currency: price.currency)
+
+            priceRow.addArrangedSubview(fromLabel)
+            priceRow.addArrangedSubview(priceLabel)
+        } else {
             let freeLabel = UILabel()
             freeLabel.font = FontSet.montserratBold.font(16)
             freeLabel.textColor = ColorSet.primaryText.uiColor
             freeLabel.text = CommonLocalizationKeys.localized(CommonLocalizationKeys.free)
+
             priceRow.addArrangedSubview(freeLabel)
-
-            priceRowContainer.addSubview(priceRow)
-            NSLayoutConstraint.activate([
-                priceRow.topAnchor.constraint(equalTo: priceRowContainer.topAnchor),
-                priceRow.bottomAnchor.constraint(equalTo: priceRowContainer.bottomAnchor),
-                priceRow.trailingAnchor.constraint(equalTo: priceRowContainer.trailingAnchor),
-            ])
-            priceRowContainer.isHidden = false
-            return
         }
 
-        let fromLabel = UILabel()
-        fromLabel.font = FontSet.montserratMedium.font(14)
-        fromLabel.textColor = ColorSet.primaryText.uiColor
-        fromLabel.text = CommonLocalizationKeys.localized(CommonLocalizationKeys.from)
-
-        let priceLabel = UILabel()
-        priceLabel.font = FontSet.montserratBold.font(16)
-        priceLabel.textColor = ColorSet.primaryText.uiColor
-
-        let priceText = TRPCurrencyHelper.formatPrice(price.value, currency: price.currency)
-
-        if !priceText.isEmpty {
-            priceLabel.text = priceText
-            priceRow.addArrangedSubview(fromLabel)
-            priceRow.addArrangedSubview(priceLabel)
-
-            priceRowContainer.addSubview(priceRow)
-            NSLayoutConstraint.activate([
-                priceRow.topAnchor.constraint(equalTo: priceRowContainer.topAnchor),
-                priceRow.bottomAnchor.constraint(equalTo: priceRowContainer.bottomAnchor),
-                priceRow.trailingAnchor.constraint(equalTo: priceRowContainer.trailingAnchor),
-            ])
-            priceRowContainer.isHidden = false
-        }
+        priceRowContainer.addSubview(priceRow)
+        NSLayoutConstraint.activate([
+            priceRow.topAnchor.constraint(equalTo: priceRowContainer.topAnchor),
+            priceRow.bottomAnchor.constraint(equalTo: priceRowContainer.bottomAnchor),
+            priceRow.trailingAnchor.constraint(equalTo: priceRowContainer.trailingAnchor),
+        ])
+        priceRowContainer.isHidden = false
     }
 
     // MARK: - Actions

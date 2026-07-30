@@ -36,7 +36,7 @@ public class AddPlanTimeSelectionVC: TRPBaseUIViewController, DynamicHeightPrese
 
         let middle: CGFloat
         if allDaysUnavailable {
-            let bannerText = AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.activityNotAvailableForTrip)
+            let bannerText = viewModel?.unavailableBannerText() ?? ""
             let bannerLabelHeight = Self.textHeight(for: bannerText, font: labelFont, maxWidth: cardLabelMaxWidth)
             let bannerHeight = 16 + max(20, bannerLabelHeight) + 16
             middle = 16 + bannerHeight + 16
@@ -303,9 +303,12 @@ public class AddPlanTimeSelectionVC: TRPBaseUIViewController, DynamicHeightPrese
     private var collectionViewBottomToSoldOutBanner: NSLayoutConstraint!
 
     // MARK: - Initialization
-    public init(tour: TRPTourProduct, planData: AddPlanData) {
+    /// - Parameter alreadyAddedDays: "yyyy-MM-dd" days already holding this activity; rendered unselectable.
+    public init(tour: TRPTourProduct, planData: AddPlanData, alreadyAddedDays: Set<String> = []) {
         super.init(nibName: nil, bundle: nil)
-        self.viewModel = AddPlanTimeSelectionViewModel(tour: tour, planData: planData)
+        self.viewModel = AddPlanTimeSelectionViewModel(tour: tour,
+                                                       planData: planData,
+                                                       alreadyAddedDays: alreadyAddedDays)
         self.viewModel.delegate = self
     }
 
@@ -682,6 +685,7 @@ extension AddPlanTimeSelectionVC: AddPlanTimeSelectionViewModelDelegate {
         let hasTimeSlots = !allDaysUnavailable && !viewModel.getDisplayedTimeSlots().isEmpty
 
         unavailableBanner.isHidden = !allDaysUnavailable
+        unavailableBannerLabel.text = viewModel.unavailableBannerText()
 
         flexibleInfoCard.isHidden = allDaysUnavailable || !isFlexible
         flexibleSubtitleLabel.isHidden = allDaysUnavailable || !isFlexible

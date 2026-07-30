@@ -73,7 +73,7 @@ public class TRPTimelineItineraryViewModel {
     /// Pending day index to navigate to after segment creation/refresh.
     internal var pendingNavigationDayIndex: Int?
 
-    /// Excludes items that are already booked or reserved.
+    /// Excludes items already in the plan (booked, reserved or recommended) and hand-removed ones.
     internal var filteredFavoriteItems: [TRPSegmentFavoriteItem] = []
 
     internal var destinationItems: [TRPSegmentDestinationItem] = []
@@ -90,6 +90,8 @@ public class TRPTimelineItineraryViewModel {
     internal var availabilityCheckGeneration: Int = 0
     /// Re-applied synchronously on every `processTimelineData()` so a "Not available" badge survives refreshes without re-hitting the network (`isAvailabilityExpired` is transient).
     internal var expiredAvailabilityKeys: Set<String> = []
+    /// Slot prices read from the availability sweep, keyed like `expiredAvailabilityKeys`. Re-applied on every `processTimelineData()` so a refresh doesn't fall back to the timeline's stale price.
+    internal var refreshedActivityPrices: [String: TRPSegmentActivityPrice] = [:]
 
     // MARK: - Public Methods
 

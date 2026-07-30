@@ -115,6 +115,9 @@ public struct AddPlanLocalizationKeys {
     /// Format: activity name as %1$@, day display string as %2$@.
     public static let activityAddedToast = "addPlan.toast.activityAdded"
 
+    // MARK: - Activity Listing
+    public static let activityAlreadyAddedEveryDay = "addPlan.time.activityAlreadyAddedEveryDay"
+
     // MARK: - Saved Plans Screen
     public static let savedPlans = "addPlan.title.savedPlans"
 
@@ -221,7 +224,8 @@ public struct AddPlanLocalizationKeys {
         showMoreTimeSlots: "More",
         soldOutWarning: "Your selected time is sold out. Choose a new time for accurate availability, or keep this as a placeholder.",
         endTimeBeforeStartWarning: "Choose an end time within today",
-        activityAddedToast: "%1$@ has been added to %2$@"
+        activityAddedToast: "%1$@ has been added to %2$@",
+        activityAlreadyAddedEveryDay: "This activity is already in your plan on every day of your trip."
     ]
     
     // MARK: - Helper Methods

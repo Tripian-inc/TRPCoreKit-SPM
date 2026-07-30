@@ -53,9 +53,15 @@ public class AddPlanActivityListingViewModel {
 
     private var tourUseCases: TRPTourUseCases?
 
+    /// Bare product id → "yyyy-MM-dd" days the activity already occupies anywhere in the trip.
+    private var addedActivityDays: [String: Set<String>]
+
     // MARK: - Initialization
-    public init(planData: AddPlanData, tourUseCases: TRPTourUseCases? = nil) {
+    public init(planData: AddPlanData,
+                addedActivityDays: [String: Set<String>] = [:],
+                tourUseCases: TRPTourUseCases? = nil) {
         self.planData = planData
+        self.addedActivityDays = addedActivityDays
         self.tourUseCases = tourUseCases ?? TRPTourUseCases()
 
         if let cityId = planData.selectedCity?.id {
@@ -220,6 +226,18 @@ public class AddPlanActivityListingViewModel {
 
     public func getActivityCount() -> Int {
         return filteredTours.count
+    }
+
+    /// Days this activity already occupies; the time-selection sheet renders them unselectable.
+    public func alreadyAddedDays(for tour: TRPTourProduct) -> Set<String> {
+        return addedActivityDays[tour.productId.cleanedAsActivityId()] ?? []
+    }
+
+    /// Records a day just taken by `tour` so re-opening the sheet blocks it without a timeline round-trip.
+    public func markActivityAdded(_ tour: TRPTourProduct, on day: Date?) {
+        guard let day = day else { return }
+        addedActivityDays[tour.productId.cleanedAsActivityId(), default: []]
+            .insert(TRPDateHelper.formatDateString(day))
     }
 
     // MARK: - Search Logic

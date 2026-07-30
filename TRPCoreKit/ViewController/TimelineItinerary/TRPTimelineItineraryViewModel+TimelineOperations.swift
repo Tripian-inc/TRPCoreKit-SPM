@@ -412,7 +412,6 @@ extension TRPTimelineItineraryViewModel {
         profile.segmentType = .bookedActivity
 
         profile.title = tripItem.title
-        profile.description = tripItem.description
         profile.available = false
         profile.distinctPlan = true
 

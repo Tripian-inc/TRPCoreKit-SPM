@@ -224,26 +224,35 @@ extension TRPTimelineItineraryViewModel {
         return groups
     }
 
-    /// Excludes flexible reserved activities; `.bookedActivity` participates but with text suppressed.
+    /// A 24h/48h ticket's duration is a validity window, not an occupancy block — including it
+    /// would flag every other item on the day as overlapping.
+    private func spansFullDayOrLonger(start: Date, end: Date) -> Bool {
+        return end.timeIntervalSince(start) >= 24 * 60 * 60
+    }
+
+    /// Excludes flexible reserved activities and full-day-or-longer spans; `.bookedActivity` participates but with text suppressed.
     private func collectTimeRanges(from items: [TRPMergedTimelineItem]) -> [TimeRangeInfo] {
         var timeRanges: [TimeRangeInfo] = []
 
         for (itemIndex, item) in items.enumerated() {
             switch item.segmentType {
             case .bookedActivity:
-                guard let startDate = item.startDate, let endDate = item.endDate else { break }
+                guard let startDate = item.startDate, let endDate = item.endDate,
+                      !spansFullDayOrLonger(start: startDate, end: endDate) else { break }
                 timeRanges.append(TimeRangeInfo(startTime: startDate, endTime: endDate,
                                                 itemIndex: itemIndex, stepIndex: nil))
 
             case .reservedActivity:
                 // Skip flexible activities — 00:00/23:59 placeholders would falsely overlap everything.
                 if item.isFlexibleActivity { break }
-                guard let startDate = item.startDate, let endDate = item.endDate else { break }
+                guard let startDate = item.startDate, let endDate = item.endDate,
+                      !spansFullDayOrLonger(start: startDate, end: endDate) else { break }
                 timeRanges.append(TimeRangeInfo(startTime: startDate, endTime: endDate,
                                                 itemIndex: itemIndex, stepIndex: nil))
 
             case .manualPoi:
-                guard let startDate = item.startDate, let endDate = item.endDate else { break }
+                guard let startDate = item.startDate, let endDate = item.endDate,
+                      !spansFullDayOrLonger(start: startDate, end: endDate) else { break }
                 timeRanges.append(TimeRangeInfo(startTime: startDate, endTime: endDate,
                                                 itemIndex: itemIndex, stepIndex: nil))
 
@@ -254,7 +263,8 @@ extension TRPTimelineItineraryViewModel {
                     guard let startStr = step.startDateTimes,
                           let endStr = step.endDateTimes,
                           let startDate = TRPDateHelper.parseDateTime(startStr),
-                          let endDate = TRPDateHelper.parseDateTime(endStr) else {
+                          let endDate = TRPDateHelper.parseDateTime(endStr),
+                          !spansFullDayOrLonger(start: startDate, end: endDate) else {
                         continue
                     }
                     timeRanges.append(TimeRangeInfo(startTime: startDate, endTime: endDate,
@@ -477,34 +487,17 @@ extension TRPTimelineItineraryViewModel {
 
     // MARK: - Favorite Items
 
-    /// Compares on the bare product id (`cleanedAsActivityId()`) so `"12345"` matches `"C_12345_15"`; otherwise a just-added favourite reappears in Saved Plans.
+    /// Drops favourites that are already in the plan — as a booked/reserved segment or as an itinerary
+    /// activity step — plus the ones the user removed by hand. Compares on the bare product id
+    /// (`cleanedAsActivityId()`) so `"12345"` matches `"C_12345_15"`; otherwise a just-added favourite
+    /// reappears in Saved Plans.
     internal func filterFavoriteItems() {
         guard let favouriteItems = timeline?.favouriteItems else {
             filteredFavoriteItems = []
             return
         }
 
-        var bookedOrReservedActivityIds = Set<String>()
-
-        if let segments = timeline?.segments {
-            for segment in segments {
-                if segment.segmentType == .bookedActivity || segment.segmentType == .reservedActivity {
-                    if let activityId = segment.additionalData?.activityId {
-                        bookedOrReservedActivityIds.insert(activityId.cleanedAsActivityId())
-                    }
-                }
-            }
-        }
-
-        if let profileSegments = timeline?.tripProfile?.segments {
-            for segment in profileSegments {
-                if segment.segmentType == .bookedActivity || segment.segmentType == .reservedActivity {
-                    if let activityId = segment.additionalData?.activityId {
-                        bookedOrReservedActivityIds.insert(activityId.cleanedAsActivityId())
-                    }
-                }
-            }
-        }
+        let plannedActivityIds = Set(plannedActivities().map { $0.productId })
 
         let excludedIds: Set<String>
         if let tripHash = timeline?.tripHash {
@@ -516,7 +509,7 @@ extension TRPTimelineItineraryViewModel {
         filteredFavoriteItems = favouriteItems.filter { item in
             guard let activityId = item.activityId else { return true }
             let baseId = activityId.cleanedAsActivityId()
-            return !bookedOrReservedActivityIds.contains(baseId) && !excludedIds.contains(baseId)
+            return !plannedActivityIds.contains(baseId) && !excludedIds.contains(baseId)
         }
     }
 

@@ -544,7 +544,6 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
         } else {
             categoryBadge.backgroundColor = ColorSet.neutral200.uiColor
             categoryLabel.textColor = ColorSet.fgGray.uiColor
-            categoryLabel.font = FontSet.montserratMedium.font(12)
             if let poi = step.poi, let firstCategory = poi.categories.first {
                 categoryLabel.text = firstCategory.name
             } else {
@@ -629,30 +628,13 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
         priceRow.alignment = .center
 
         if isActivity {
-            var isFreeActivity = false
-            if let price = step.poi?.additionalData?.price, price == 0 {
-                isFreeActivity = true
-            } else if let price = bookingProduct?.price, price == 0 {
-                isFreeActivity = true
-            } else if let poiPrice = step.poi?.price, poiPrice == 0 {
-                isFreeActivity = true
-            }
+            let resolvedPrice: Double? = step.poi?.additionalData?.price
+                ?? bookingProduct?.price
+                ?? step.poi?.price.map { Double($0) }
 
-            if isFreeActivity {
-                let freeLabel = UILabel()
-                freeLabel.font = FontSet.montserratBold.font(16)
-                freeLabel.textColor = ColorSet.primaryText.uiColor
-                freeLabel.text = CommonLocalizationKeys.localized(CommonLocalizationKeys.free)
-                priceRow.addArrangedSubview(freeLabel)
+            if let price = resolvedPrice, price > 0 {
+                let currency = step.poi?.additionalData?.currency ?? bookingProduct?.currency ?? "EUR"
 
-                priceRowContainer.addSubview(priceRow)
-                NSLayoutConstraint.activate([
-                    priceRow.topAnchor.constraint(equalTo: priceRowContainer.topAnchor),
-                    priceRow.bottomAnchor.constraint(equalTo: priceRowContainer.bottomAnchor),
-                    priceRow.trailingAnchor.constraint(equalTo: priceRowContainer.trailingAnchor),
-                ])
-                priceRowContainer.isHidden = false
-            } else {
                 let fromLabel = UILabel()
                 fromLabel.font = FontSet.montserratMedium.font(14)
                 fromLabel.textColor = ColorSet.primaryText.uiColor
@@ -661,30 +643,26 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
                 let priceLabel = UILabel()
                 priceLabel.font = FontSet.montserratBold.font(16)
                 priceLabel.textColor = ColorSet.primaryText.uiColor
+                priceLabel.text = TRPCurrencyHelper.formatPrice(price, currency: currency)
 
-                var priceText: String? = nil
-                if let price = step.poi?.additionalData?.price, let currency = step.poi?.additionalData?.currency {
-                    priceText = TRPCurrencyHelper.formatPrice(price, currency: currency)
-                } else if let price = bookingProduct?.price, let currency = bookingProduct?.currency {
-                    priceText = TRPCurrencyHelper.formatPrice(price, currency: currency)
-                } else if let poiPrice = step.poi?.price, poiPrice > 0 {
-                    priceText = TRPCurrencyHelper.formatPrice(poiPrice, currency: "EUR")
-                }
+                priceRow.addArrangedSubview(fromLabel)
+                priceRow.addArrangedSubview(priceLabel)
+            } else {
+                let freeLabel = UILabel()
+                freeLabel.font = FontSet.montserratBold.font(16)
+                freeLabel.textColor = ColorSet.primaryText.uiColor
+                freeLabel.text = CommonLocalizationKeys.localized(CommonLocalizationKeys.free)
 
-                if let priceText = priceText {
-                    priceLabel.text = priceText
-                    priceRow.addArrangedSubview(fromLabel)
-                    priceRow.addArrangedSubview(priceLabel)
-
-                    priceRowContainer.addSubview(priceRow)
-                    NSLayoutConstraint.activate([
-                        priceRow.topAnchor.constraint(equalTo: priceRowContainer.topAnchor),
-                        priceRow.bottomAnchor.constraint(equalTo: priceRowContainer.bottomAnchor),
-                        priceRow.trailingAnchor.constraint(equalTo: priceRowContainer.trailingAnchor),
-                    ])
-                    priceRowContainer.isHidden = false
-                }
+                priceRow.addArrangedSubview(freeLabel)
             }
+
+            priceRowContainer.addSubview(priceRow)
+            NSLayoutConstraint.activate([
+                priceRow.topAnchor.constraint(equalTo: priceRowContainer.topAnchor),
+                priceRow.bottomAnchor.constraint(equalTo: priceRowContainer.bottomAnchor),
+                priceRow.trailingAnchor.constraint(equalTo: priceRowContainer.trailingAnchor),
+            ])
+            priceRowContainer.isHidden = false
         }
 
         let reservationButton = TRPButton(title: TimelineLocalizationKeys.localized(TimelineLocalizationKeys.reservation), style: .primary, height: 40)
