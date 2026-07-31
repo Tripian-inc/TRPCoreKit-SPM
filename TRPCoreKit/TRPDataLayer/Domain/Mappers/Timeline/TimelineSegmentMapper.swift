@@ -35,7 +35,7 @@ final class TimelineSegmentMapper {
         profile.adults = restModel.adults
         profile.children = restModel.children
         profile.pets = restModel.pets
-//        profile.cityId = restModel.cityId
+        profile.cityId = restModel.cityId
         profile.generatedStatus = restModel.generatedStatus
         profile.answerIds = restModel.answerIds
         profile.doNotRecommend = restModel.doNotRecommend

@@ -53,15 +53,15 @@ public class AddPlanActivityListingViewModel {
 
     private var tourUseCases: TRPTourUseCases?
 
-    /// Bare product id → "yyyy-MM-dd" days the activity already occupies anywhere in the trip.
-    private var addedActivityDays: [String: Set<String>]
+    /// "yyyy-MM-dd" → activity ids that day already holds; forwarded to the time-selection sheet.
+    private var activityIdsByDay: [String: [String]]
 
     // MARK: - Initialization
     public init(planData: AddPlanData,
-                addedActivityDays: [String: Set<String>] = [:],
+                activityIdsByDay: [String: [String]] = [:],
                 tourUseCases: TRPTourUseCases? = nil) {
         self.planData = planData
-        self.addedActivityDays = addedActivityDays
+        self.activityIdsByDay = activityIdsByDay
         self.tourUseCases = tourUseCases ?? TRPTourUseCases()
 
         if let cityId = planData.selectedCity?.id {
@@ -228,16 +228,25 @@ public class AddPlanActivityListingViewModel {
         return filteredTours.count
     }
 
-    /// Days this activity already occupies; the time-selection sheet renders them unselectable.
-    public func alreadyAddedDays(for tour: TRPTourProduct) -> Set<String> {
-        return addedActivityDays[tour.productId.cleanedAsActivityId()] ?? []
+    /// What each day already holds; the time-selection sheet blocks matching days and sends the
+    /// picked day's ids as `excludedActivityIds`.
+    public func plannedActivityIdsByDay() -> [String: [String]] {
+        return activityIdsByDay
     }
 
-    /// Records a day just taken by `tour` so re-opening the sheet blocks it without a timeline round-trip.
+    /// Records a day just taken by `tour` so re-opening the sheet reflects it without a timeline round-trip.
     public func markActivityAdded(_ tour: TRPTourProduct, on day: Date?) {
         guard let day = day else { return }
-        addedActivityDays[tour.productId.cleanedAsActivityId(), default: []]
-            .insert(TRPDateHelper.formatDateString(day))
+
+        let id = TRPActivityIdFormat.make(
+            tour.productId,
+            providerId: tour.productId.trp_parsedProviderId() ?? TRPActivityIdFormat.defaultProviderId,
+            cityId: tour.cityId > 0 ? tour.cityId : nil
+        )
+        let dayKey = TRPDateHelper.formatDateString(day)
+
+        guard !(activityIdsByDay[dayKey]?.contains(id) ?? false) else { return }
+        activityIdsByDay[dayKey, default: []].append(id)
     }
 
     // MARK: - Search Logic

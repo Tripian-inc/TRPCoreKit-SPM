@@ -64,18 +64,18 @@ public class AddPlanTimeSelectionViewModel {
     /// "HH:mm" of the activity being edited; when absent from the schedule response the grid injects a disabled placeholder.
     private var editingTimeString: String?
 
-    /// "yyyy-MM-dd" days already holding this activity. Add flow only — edit modes pass none so the
-    /// activity's own day stays selectable.
-    private let alreadyAddedDays: Set<String>
+    /// "yyyy-MM-dd" → activity ids that day already holds. Add flow only — edit modes pass none so the
+    /// activity's own day stays selectable and its update doesn't exclude itself.
+    private let plannedActivityIdsByDay: [String: [String]]
 
     // MARK: - Initialization
     public init(tour: TRPTourProduct,
                 planData: AddPlanData,
-                alreadyAddedDays: Set<String> = [],
+                plannedActivityIdsByDay: [String: [String]] = [:],
                 tourRepository: TourRepository = TRPTourRepository()) {
         self.tour = tour
         self.planData = planData
-        self.alreadyAddedDays = alreadyAddedDays
+        self.plannedActivityIdsByDay = plannedActivityIdsByDay
         self.tourRepository = tourRepository
         self.selectedDate = planData.selectedDay
 
@@ -90,7 +90,7 @@ public class AddPlanTimeSelectionViewModel {
     public init(segment: TRPTimelineSegment, planData: AddPlanData, tourRepository: TourRepository = TRPTourRepository()) {
         self.segment = segment
         self.planData = planData
-        self.alreadyAddedDays = []
+        self.plannedActivityIdsByDay = [:]
         self.tourRepository = tourRepository
         // Seed selectedDate from the segment's own saved date (timezone-robust).
         let savedYMD = TRPDateHelper.extractDateOnly(from: segment.startDate)
@@ -147,7 +147,7 @@ public class AddPlanTimeSelectionViewModel {
     public init(step: TRPTimelineStep, planData: AddPlanData, tourRepository: TourRepository = TRPTourRepository()) {
         self.step = step
         self.planData = planData
-        self.alreadyAddedDays = []
+        self.plannedActivityIdsByDay = [:]
         self.tourRepository = tourRepository
         // Seed selectedDate from the step's own saved date (timezone-robust).
         let savedYMD = TRPDateHelper.extractDateOnly(from: step.startDateTimes)
@@ -348,12 +348,18 @@ public class AddPlanTimeSelectionViewModel {
     }
 
     private func isDayAlreadyAdded(_ date: Date) -> Bool {
-        return alreadyAddedDays.contains(TRPDateHelper.formatDateString(date))
+        let target = tour.productId.cleanedAsActivityId()
+        return plannedActivityIds(on: date).contains { $0.cleanedAsActivityId() == target }
+    }
+
+    /// Ids the day already holds — sent as `excludedActivityIds` so the server knows what's booked there.
+    private func plannedActivityIds(on date: Date) -> [String] {
+        return plannedActivityIdsByDay[TRPDateHelper.formatDateString(date)] ?? []
     }
 
     /// Copy for the "no day can take this" banner — distinguishes sold out from already planned.
     public func unavailableBannerText() -> String {
-        let allAlreadyAdded = !alreadyAddedDays.isEmpty
+        let allAlreadyAdded = !plannedActivityIdsByDay.isEmpty
             && !planData.availableDays.isEmpty
             && planData.availableDays.allSatisfy { isDayAlreadyAdded($0) }
 
@@ -577,6 +583,11 @@ public class AddPlanTimeSelectionViewModel {
         profile.children = 0
         profile.pets = 0
         profile.additionalData = activityItem
+
+        let excludedActivityIds = plannedActivityIds(on: selectedDate)
+        if !excludedActivityIds.isEmpty {
+            profile.excludedActivityIds = excludedActivityIds
+        }
 
         let loadingText = LoadingLocalizationKeys.localized(LoadingLocalizationKeys.addingToItinerary)
         delegate?.viewModel(showLottie: .inView, textMode: .single(loadingText))

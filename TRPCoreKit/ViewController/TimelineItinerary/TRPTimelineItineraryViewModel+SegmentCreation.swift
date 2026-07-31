@@ -26,19 +26,6 @@ extension TRPTimelineItineraryViewModel {
         return latMatch && lonMatch
     }
 
-    /// Converts a plain or `C_`-prefixed activity ID to "C_{id}_{providerId}_{cityId}".
-    internal func formatActivityId(_ activityId: String, cityId: Int, providerId: Int = 15) -> String {
-        let coreId: String
-        if activityId.hasPrefix("C_") {
-            let withoutPrefix = String(activityId.dropFirst(2))
-            let components = withoutPrefix.split(separator: "_")
-            coreId = components.first.map(String.init) ?? activityId
-        } else {
-            coreId = activityId
-        }
-        return "C_\(coreId)_\(providerId)_\(cityId)"
-    }
-
     /// Activity ids the engine must not suggest: booked/reserved activities anywhere in the trip,
     /// activity steps already planned on `date`, and favourites the user removed from the timeline.
     /// - Parameter date: "yyyy-MM-dd" or "yyyy-MM-dd HH:mm"; only the day part is compared.
@@ -55,32 +42,19 @@ extension TRPTimelineItineraryViewModel {
         }
 
         for activity in plannedActivities() where activity.source == .booking || activity.day == targetDay {
-            append(formatActivityId(activity.productId,
-                                    cityId: activity.cityId ?? city.id,
-                                    providerId: activity.providerId))
+            append(TRPActivityIdFormat.make(activity.productId,
+                                            providerId: activity.providerId,
+                                            cityId: activity.cityId ?? city.id))
         }
 
         for baseId in TRPFavouriteExclusionStorage.excludedActivityIds(tripHash: timeline.tripHash) {
             let favouriteCityId = timeline.favouriteItems?.first(where: {
                 $0.activityId?.cleanedAsActivityId() == baseId
             })?.cityId
-            append(formatActivityId(baseId, cityId: favouriteCityId ?? city.id))
+            append(TRPActivityIdFormat.make(baseId, cityId: favouriteCityId ?? city.id))
         }
 
         return ids
-    }
-
-    /// Bare product id → the "yyyy-MM-dd" days it already occupies. Feeds the AddPlan flow so a day
-    /// can't take the same activity twice.
-    public func addedActivityDaysByProductId() -> [String: Set<String>] {
-        var daysByProductId: [String: Set<String>] = [:]
-
-        for activity in plannedActivities() {
-            guard let day = activity.day else { continue }
-            daysByProductId[activity.productId, default: []].insert(day)
-        }
-
-        return daysByProductId
     }
 
     /// "Recommendations", "Recommendations 2", … unique per day/city. Only applies to `.itinerary` segments.
@@ -215,7 +189,7 @@ extension TRPTimelineItineraryViewModel {
             profile.activityIds = filteredFavoriteItems.compactMap { item in
                 guard let activityId = item.activityId else { return nil }
                 guard item.cityId == cityId else { return nil }
-                return formatActivityId(activityId, cityId: cityId)
+                return TRPActivityIdFormat.make(activityId, cityId: cityId)
             }
         }
 

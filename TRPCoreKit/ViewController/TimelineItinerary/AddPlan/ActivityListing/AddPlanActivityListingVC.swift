@@ -604,7 +604,7 @@ extension AddPlanActivityListingVC: ActivityCardCellDelegate {
     func activityCardCellDidTapAdd(_ cell: ActivityCardCell, tour: TRPTourProduct) {
         let timeSelectionVC = AddPlanTimeSelectionVC(tour: tour,
                                                      planData: viewModel.planData,
-                                                     alreadyAddedDays: viewModel.alreadyAddedDays(for: tour))
+                                                     plannedActivityIdsByDay: viewModel.plannedActivityIdsByDay())
 
         timeSelectionVC.onTimeSelected = { [weak self] selectedDate, selectedTimeSlot in
             print("Selected date: \(selectedDate), time: \(selectedTimeSlot.time)")

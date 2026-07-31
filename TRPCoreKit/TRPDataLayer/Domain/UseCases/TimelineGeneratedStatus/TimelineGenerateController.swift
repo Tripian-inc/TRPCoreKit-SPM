@@ -48,23 +48,8 @@ class TimelineGenerateController {
                         self?.fetchTimeline(hash: hash, completion: completion)
                     }
                 }
-                
-                // Find first non-date-boundary itinerary segment to check generation status
-                // Skip both "Empty" (old system) and "TimelineDate" (new system) segments
-                if let firstNotEmptyItineraryIndex = trip.tripProfile?.segments.firstIndex(where: {
-                    $0.title != "Empty" && $0.title != "TimelineDate" && $0.segmentType == .itinerary
-                }) {
-                    let firstStatus = generated[firstNotEmptyItineraryIndex]
-                    completion?(.success(trip))
-//                    if firstStatus > 0 {
-//                        completion?(.success(trip))
-//                    } else if firstStatus < 0 {
-//                        let errorMessage = TimelineLocalizationKeys.localized(TimelineLocalizationKeys.errorGenerationFailed)
-//                        completion?(.failure(GeneralError.customMessage(errorMessage)))
-//                    }
-                } else {
-                    completion?(.success(trip))
-                }
+
+                completion?(.success(trip))
 
             case .failure(let error):
                 completion?(.failure(error))

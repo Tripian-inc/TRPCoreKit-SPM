@@ -457,25 +457,22 @@ extension TRPTimelineItineraryViewModel {
 
         profile.additionalData = enrichedTripItem
 
-        profile.doNotGenerate = 1
-
         return profile
     }
 
-    /// Populates segment cities by index-mapping plans. CRITICAL: only tripProfile.segments[i] matches plans[i] — timeline.segments has different order/content, so it's matched by unique ID instead.
+    /// Populates segment cities. `tripProfile.segments` resolves via `resolveSegmentCity`; `timeline.segments` then copies from the `tripProfile.segments` entry with the matching unique ID (the two arrays have different order and content).
     internal func populateCitiesInSegments(_ timeline: inout TRPTimeline, destinationItems: [TRPSegmentDestinationItem] = []) {
-        guard let plans = timeline.plans, !plans.isEmpty else {
-            return
-        }
+        let plans = timeline.plans ?? []
+        let timelineCity = timeline.city
 
         if let profileSegments = timeline.tripProfile?.segments, !profileSegments.isEmpty {
-            for (index, segment) in profileSegments.enumerated() {
+            for segment in profileSegments {
                 if let existingCity = segment.city, existingCity.id > 0, !existingCity.name.isEmpty {
                     continue
                 }
 
-                if index < plans.count, let planCity = plans[index].city, planCity.id > 0 {
-                    segment.city = planCity
+                if let resolved = resolveSegmentCity(segment, plans: plans, timelineCity: timelineCity) {
+                    segment.city = resolved
                 }
             }
         }
@@ -502,6 +499,27 @@ extension TRPTimelineItineraryViewModel {
                 }
             }
         }
+    }
+
+    /// Resolves a segment's city: `dayIds` → plan first (the only reliable segment↔plan link — booked and reserved activities produce no plan, so the two arrays never line up positionally), then the segment's own `cityId` against the plans, the trip city and the city cache.
+    private func resolveSegmentCity(
+        _ segment: TRPTimelineSegment,
+        plans: [TRPTimelinePlan],
+        timelineCity: TRPCity
+    ) -> TRPCity? {
+        if let planCity = findMatchingPlan(for: segment, in: plans)?.city, planCity.id > 0 {
+            return planCity
+        }
+
+        guard let cityId = segment.cityId, cityId > 0 else { return nil }
+
+        if let planCity = plans.compactMap({ $0.city }).first(where: { $0.id == cityId }) {
+            return planCity
+        }
+        if timelineCity.id == cityId {
+            return timelineCity
+        }
+        return TRPCityCache.shared.getCity(byId: cityId)
     }
 
     // MARK: - Initial Load (GetTimeline)
@@ -737,7 +755,12 @@ extension TRPTimelineItineraryViewModel {
         return out
     }
 
-    /// Segments whose city is missing/invalid or not in the host's incoming destinations. Pure: no mutation, no I/O.
+    /// Segments whose city is known and no longer in the host's incoming destinations. Pure: no mutation, no I/O.
+    ///
+    /// A segment with no resolvable city is never a candidate: `populateCitiesInSegments` maps
+    /// `tripProfile.segments[i]` onto `plans[i]`, and the two arrays don't line up (booked activities
+    /// produce no plan), so every segment past `plans.count` legitimately ends up city-less. An unknown
+    /// city is not a removed city — deleting on it destroys valid server data.
     internal func collectSegmentsForRemovedCities(
         in segments: [TRPTimelineSegment],
         itinerary: TRPItineraryWithActivities
@@ -747,15 +770,14 @@ extension TRPTimelineItineraryViewModel {
             return cityId
         })
 
+        // Without a resolved destination list there is nothing to compare against.
+        guard !itineraryCityIds.isEmpty else { return [] }
+
         var out: [SegmentRemovalCandidate] = []
         for (index, segment) in segments.enumerated() {
             guard isSegmentEligibleForRemoval(segment) else { continue }
+            guard let city = segment.city, city.id > 0 else { continue }
 
-            // An eligible segment with no valid city is also removed (city removed implicitly).
-            guard let city = segment.city, city.id > 0 else {
-                out.append(.init(index: index, segment: segment, reason: .cityRemoved))
-                continue
-            }
             if !itineraryCityIds.contains(city.id) {
                 out.append(.init(index: index, segment: segment, reason: .cityRemoved))
             }

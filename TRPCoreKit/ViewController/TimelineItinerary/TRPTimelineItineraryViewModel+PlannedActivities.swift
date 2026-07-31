@@ -75,6 +75,24 @@ extension TRPTimelineItineraryViewModel {
         return activities
     }
 
+    /// "yyyy-MM-dd" → the activity ids that day already holds, in API form. Threaded into the AddPlan
+    /// flow: it both blocks a day that already has the activity and tells the server what the day
+    /// holds when a new segment is created for it.
+    public func plannedActivityIdsByDay() -> [String: [String]] {
+        var idsByDay: [String: [String]] = [:]
+
+        for activity in plannedActivities() {
+            guard let day = activity.day else { continue }
+            let id = TRPActivityIdFormat.make(activity.productId,
+                                              providerId: activity.providerId,
+                                              cityId: activity.cityId)
+            guard !(idsByDay[day]?.contains(id) ?? false) else { continue }
+            idsByDay[day, default: []].append(id)
+        }
+
+        return idsByDay
+    }
+
     private func dayPart(of value: String?) -> String? {
         guard let value = value, value.count >= 10 else { return nil }
         return String(value.prefix(10))

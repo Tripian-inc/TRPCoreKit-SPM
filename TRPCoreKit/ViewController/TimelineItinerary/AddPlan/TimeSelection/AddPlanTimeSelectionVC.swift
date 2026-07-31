@@ -303,12 +303,15 @@ public class AddPlanTimeSelectionVC: TRPBaseUIViewController, DynamicHeightPrese
     private var collectionViewBottomToSoldOutBanner: NSLayoutConstraint!
 
     // MARK: - Initialization
-    /// - Parameter alreadyAddedDays: "yyyy-MM-dd" days already holding this activity; rendered unselectable.
-    public init(tour: TRPTourProduct, planData: AddPlanData, alreadyAddedDays: Set<String> = []) {
+    /// - Parameter plannedActivityIdsByDay: "yyyy-MM-dd" → ids that day already holds. Days holding
+    ///   this activity render unselectable, and the picked day's ids ship as `excludedActivityIds`.
+    public init(tour: TRPTourProduct,
+                planData: AddPlanData,
+                plannedActivityIdsByDay: [String: [String]] = [:]) {
         super.init(nibName: nil, bundle: nil)
         self.viewModel = AddPlanTimeSelectionViewModel(tour: tour,
                                                        planData: planData,
-                                                       alreadyAddedDays: alreadyAddedDays)
+                                                       plannedActivityIdsByDay: plannedActivityIdsByDay)
         self.viewModel.delegate = self
     }
 

@@ -78,7 +78,7 @@ extension TRPTimelineItineraryVC: AddPlanContainerVCDelegate {
     public func addPlanContainerShouldShowActivityListing(_ viewController: AddPlanContainerVC, data: AddPlanData) {
         let activityListingViewModel = AddPlanActivityListingViewModel(
             planData: data,
-            addedActivityDays: viewModel.addedActivityDaysByProductId()
+            activityIdsByDay: viewModel.plannedActivityIdsByDay()
         )
         let activityListingVC = AddPlanActivityListingVC()
         activityListingVC.viewModel = activityListingViewModel

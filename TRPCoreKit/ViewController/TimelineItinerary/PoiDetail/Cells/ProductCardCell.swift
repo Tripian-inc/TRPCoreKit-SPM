@@ -275,36 +275,8 @@ class ProductCardCell: UICollectionViewCell {
 
         freeCancellationLabel.isHidden = !product.tags.contains { $0.lowercased() == "full_refundable" }
 
-        guard let price = product.price, price > 0 else {
-            priceLabel.attributedText = NSAttributedString(
-                string: CommonLocalizationKeys.localized(CommonLocalizationKeys.free),
-                attributes: [
-                    .font: FontSet.montserratBold.font(16),
-                    .foregroundColor: ColorSet.primaryText.uiColor
-                ]
-            )
-            return
-        }
-
-        let fromText = CommonLocalizationKeys.localized(CommonLocalizationKeys.from) + " "
-        let priceText = TRPCurrencyHelper.formatPrice(price, currency: product.currency ?? "EUR")
-
-        let attributedString = NSMutableAttributedString()
-        attributedString.append(NSAttributedString(
-            string: fromText,
-            attributes: [
-                .font: FontSet.montserratMedium.font(14),
-                .foregroundColor: ColorSet.primaryText.uiColor
-            ]
-        ))
-        attributedString.append(NSAttributedString(
-            string: priceText,
-            attributes: [
-                .font: FontSet.montserratBold.font(16),
-                .foregroundColor: ColorSet.primaryText.uiColor
-            ]
-        ))
-        priceLabel.attributedText = attributedString
+        priceLabel.attributedText = TRPActivityPriceFormat.attributedText(value: product.price,
+                                                                         currency: product.currency)
     }
 
     /// Render the cell as a shimmering placeholder while a page is in flight.

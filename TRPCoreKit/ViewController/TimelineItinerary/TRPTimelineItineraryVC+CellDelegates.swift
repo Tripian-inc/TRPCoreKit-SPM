@@ -45,31 +45,35 @@ extension TRPTimelineItineraryVC: TRPTimelineDayFilterViewDelegate {
     }
 }
 
-// MARK: - TRPTimelineBookedActivityCellDelegate
+// MARK: - TRPTimelineActivityCellDelegate
 
-extension TRPTimelineItineraryVC: TRPTimelineBookedActivityCellDelegate {
+extension TRPTimelineItineraryVC: TRPTimelineActivityCellDelegate {
 
-    func bookedActivityCellDidTapCell(_ cell: TRPTimelineBookedActivityCell, segment: TRPTimelineSegment) {
-        // Booked activity → host opens booking detail. `cleanedAsActivityId()` normalizes any `C_{id}_{provider}` form.
-        guard let bookingId = segment.additionalData?.bookingId else { return }
-        TRPCoreKit.shared.delegate?.trpCoreKitDidRequestBookingDetail(bookingId: bookingId.cleanedAsActivityId())
+    /// A booked activity opens the host's booking detail; reserved and flexible ones the activity detail.
+    /// `cleanedAsActivityId()` normalizes any `C_{id}_{provider}` form.
+    func activityCellDidTapCell(_ cell: TRPTimelineActivityCell, segment: TRPTimelineSegment, kind: TRPTimelineActivityCellKind) {
+        switch kind {
+        case .booked:
+            guard let bookingId = segment.additionalData?.bookingId else { return }
+            TRPCoreKit.shared.delegate?.trpCoreKitDidRequestBookingDetail(bookingId: bookingId.cleanedAsActivityId())
+
+        case .reserved, .flexible:
+            guard let activityId = segment.additionalData?.activityId else { return }
+            TRPCoreKit.shared.delegate?.trpCoreKitDidRequestActivityDetail(activityId: activityId.cleanedAsActivityId())
+        }
     }
-}
 
-// MARK: - TRPTimelineReservedActivityCellDelegate
-
-extension TRPTimelineItineraryVC: TRPTimelineReservedActivityCellDelegate {
-
-    func reservedActivityCellDidTapReservation(_ cell: TRPTimelineReservedActivityCell, segment: TRPTimelineSegment) {
+    func activityCellDidTapReservation(_ cell: TRPTimelineActivityCell, segment: TRPTimelineSegment, kind: TRPTimelineActivityCellKind) {
         guard let activityId = segment.additionalData?.activityId else { return }
         let cleanedId = activityId.cleanedAsActivityId()
-        let isFlexible = segment.additionalData?.isFlexible == true
+        // A flexible row carries no specific slot, so the host gets the day at 00:00.
+        let isFlexible = kind == .flexible || segment.additionalData?.isFlexible == true
         let preferred = segment.additionalData?.startDatetime ?? segment.startDate
         let reservationDate = resolveReservationDate(preferred: preferred, isFlexible: isFlexible)
         TRPCoreKit.shared.delegate?.trpCoreKitDidRequestActivityReservation(activityId: cleanedId, date: reservationDate)
     }
 
-    func reservedActivityCellDidTapRemove(_ cell: TRPTimelineReservedActivityCell, segment: TRPTimelineSegment) {
+    func activityCellDidTapRemove(_ cell: TRPTimelineActivityCell, segment: TRPTimelineSegment) {
         showConfirmAlert(
             title: TimelineLocalizationKeys.localized(TimelineLocalizationKeys.removeActivityTitle),
             message: TimelineLocalizationKeys.localized(TimelineLocalizationKeys.removeActivityMessage),
@@ -81,7 +85,7 @@ extension TRPTimelineItineraryVC: TRPTimelineReservedActivityCellDelegate {
         )
     }
 
-    func reservedActivityCellDidTapChangeTime(_ cell: TRPTimelineReservedActivityCell, segment: TRPTimelineSegment) {
+    func activityCellDidTapChangeTime(_ cell: TRPTimelineActivityCell, segment: TRPTimelineSegment) {
         var planData = AddPlanData()
         planData.tripHash = viewModel.getTripHash()
         planData.availableDays = viewModel.getDayDates()
@@ -115,43 +119,6 @@ extension TRPTimelineItineraryVC: TRPTimelineReservedActivityCellDelegate {
         }
 
         presentVCWithDynamicHeight(timeSelectionVC, prefersGrabberVisible: true, isDimmed: true)
-    }
-
-    func reservedActivityCellDidTapCell(_ cell: TRPTimelineReservedActivityCell, segment: TRPTimelineSegment) {
-        guard let activityId = segment.additionalData?.activityId else { return }
-        let cleanedId = activityId.cleanedAsActivityId()
-        TRPCoreKit.shared.delegate?.trpCoreKitDidRequestActivityDetail(activityId: cleanedId)
-    }
-}
-
-// MARK: - TRPTimelineFlexibleActivityCellDelegate
-
-extension TRPTimelineItineraryVC: TRPTimelineFlexibleActivityCellDelegate {
-
-    func flexibleActivityCellDidTapReservation(_ cell: TRPTimelineFlexibleActivityCell, segment: TRPTimelineSegment) {
-        guard let activityId = segment.additionalData?.activityId else { return }
-        let cleanedId = activityId.cleanedAsActivityId()
-        let preferred = segment.additionalData?.startDatetime ?? segment.startDate
-        let reservationDate = resolveReservationDate(preferred: preferred, isFlexible: true)
-        TRPCoreKit.shared.delegate?.trpCoreKitDidRequestActivityReservation(activityId: cleanedId, date: reservationDate)
-    }
-
-    func flexibleActivityCellDidTapRemove(_ cell: TRPTimelineFlexibleActivityCell, segment: TRPTimelineSegment) {
-        showConfirmAlert(
-            title: TimelineLocalizationKeys.localized(TimelineLocalizationKeys.removeActivityTitle),
-            message: TimelineLocalizationKeys.localized(TimelineLocalizationKeys.removeActivityMessage),
-            confirmTitle: TimelineLocalizationKeys.localized(TimelineLocalizationKeys.remove),
-            cancelTitle: CommonLocalizationKeys.localized(CommonLocalizationKeys.cancel),
-            btnConfirmAction: { [weak self] in
-                self?.viewModel.removeSegment(segment)
-            }
-        )
-    }
-
-    func flexibleActivityCellDidTapCell(_ cell: TRPTimelineFlexibleActivityCell, segment: TRPTimelineSegment) {
-        guard let activityId = segment.additionalData?.activityId else { return }
-        let cleanedId = activityId.cleanedAsActivityId()
-        TRPCoreKit.shared.delegate?.trpCoreKitDidRequestActivityDetail(activityId: cleanedId)
     }
 }
 
