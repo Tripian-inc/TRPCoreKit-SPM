@@ -30,13 +30,16 @@ final public class TRPCityRemoteApi: CityRemoteApi {
             }
             
             if let resultCities = result as? [TRPCityInfoModel] {
-                
-                let convertedModels = CityMapper().map(resultCities)
-                cities.append(contentsOf: convertedModels)
-                
-                if let pag = pagination, pag == Pagination.completed{
-                    completion(.success(cities))
-                }
+                cities.append(contentsOf: CityMapper().map(resultCities))
+            }
+
+            guard let pagination = pagination else {
+                completion(.success(cities))
+                return
+            }
+
+            if pagination == Pagination.completed {
+                completion(.success(cities))
             }
         }
     }

@@ -9,6 +9,14 @@
 import Foundation
 import TRPFoundationKit
 
+/// One item awaiting city resolution: its position in the caller's array, its `product-lookup` keys when the
+/// activity id carries them, and its coordinate when it has a real one.
+internal struct TRPCityResolutionRequest {
+    let index: Int
+    let lookupKeys: (productId: String, providerId: Int)?
+    let coordinate: TRPLocation?
+}
+
 // MARK: - Timeline Creation/Fetch Methods
 
 extension TRPTimelineItineraryViewModel {
@@ -198,7 +206,7 @@ extension TRPTimelineItineraryViewModel {
 
     // MARK: - CityId Resolution
 
-    /// Resolves cityIds for tripItems: items with a coordinate via cities/resolve, items without via tour-api/product-lookup (`activityId`) so they still land in the right city instead of `cityId = 0`.
+    /// Resolves cityIds for tripItems via `resolveCityIds`; anything left unresolved gets `cityId = 0`.
     internal func resolveTripItemsCityIds(
         tripItems: [TRPSegmentActivityItem],
         completion: @escaping ([TRPSegmentActivityItem]) -> Void
@@ -208,86 +216,95 @@ extension TRPTimelineItineraryViewModel {
             return
         }
 
-        let indexed = tripItems.enumerated().map { (index: $0.offset, item: $0.element) }
-        let withLocation = indexed.filter { !$0.item.lacksLocation }
-        let noLocation = indexed.filter { $0.item.lacksLocation }
-
-        let group = DispatchGroup()
-        let resultsQueue = DispatchQueue(label: "com.tripian.timeline.tripItems.cityResolve")
-        var resolved: [Int: Int] = [:]  // index -> cityId
-
-        // With-location: cities-resolve + cache fallback.
-        if !withLocation.isEmpty {
-            group.enter()
-            let coordinates = withLocation.map { $0.item.coordinate }
-            TRPCityRemoteApi().resolveCities(coordinates: coordinates) { result in
-                switch result {
-                case .success(let cityIds):
-                    resultsQueue.async {
-                        for (i, entry) in withLocation.enumerated() where i < cityIds.count {
-                            resolved[entry.index] = cityIds[i] > 0 ? cityIds[i] : 0
-                        }
-                        group.leave()
-                    }
-                case .failure:
-                    resultsQueue.async {
-                        for entry in withLocation {
-                            let coord = entry.item.coordinate
-                            if let city = TRPCityCache.shared.getCityByCoordinate(coord) {
-                                resolved[entry.index] = city.id
-                            } else {
-                                resolved[entry.index] = 0
-                            }
-                        }
-                        group.leave()
-                    }
-                }
-            }
+        let requests = tripItems.enumerated().map { offset, item in
+            TRPCityResolutionRequest(
+                index: offset,
+                lookupKeys: item.tourLookupKeys,
+                coordinate: item.lacksLocation ? nil : item.coordinate
+            )
         }
 
-        // No-location: lookup-by-product per item.
-        var lookupTriples: [(index: Int, productId: String, providerId: Int)] = []
-        var unlookableIndices: [Int] = []
-        for entry in noLocation {
-            if let keys = entry.item.tourLookupKeys {
-                lookupTriples.append((entry.index, keys.productId, keys.providerId))
-            } else {
-                unlookableIndices.append(entry.index)
-            }
-        }
-
-        if !unlookableIndices.isEmpty {
-            group.enter()
-            resultsQueue.async {
-                for idx in unlookableIndices { resolved[idx] = 0 }
-                group.leave()
-            }
-        }
-
-        if !lookupTriples.isEmpty {
-            group.enter()
-            lookupCityIds(for: lookupTriples) { lookupResults in
-                resultsQueue.async {
-                    for triple in lookupTriples {
-                        resolved[triple.index] = lookupResults[triple.index] ?? 0
-                    }
-                    group.leave()
-                }
-            }
-        }
-
-        group.notify(queue: .main) {
+        resolveCityIds(for: requests) { resolved in
             var updated = tripItems
-            resultsQueue.sync {
-                for (index, cityId) in resolved where index < updated.count {
-                    updated[index].cityId = cityId
-                }
+            for index in updated.indices {
+                updated[index].cityId = resolved[index] ?? 0
             }
             completion(updated)
         }
     }
 
-    /// Fans out `lookupTourProduct` and returns cityIds keyed by input index. Missing keys (lookup failed or `cityId == 0`) should be defaulted to `0` by callers.
+    /// Resolves cityIds with `tour-api/product-lookup` as the primary source — our product records carry the
+    /// authoritative cityId — and a single `cities/resolve` batch (then the coordinate cache) only for the items
+    /// the lookup couldn't answer. Completes on the main queue with just the indices resolved to a positive cityId.
+    internal func resolveCityIds(
+        for requests: [TRPCityResolutionRequest],
+        completion: @escaping ([Int: Int]) -> Void
+    ) {
+        guard !requests.isEmpty else {
+            DispatchQueue.main.async { completion([:]) }
+            return
+        }
+
+        let lookupTriples = requests.compactMap { request -> (index: Int, productId: String, providerId: Int)? in
+            guard let keys = request.lookupKeys else { return nil }
+            return (request.index, keys.productId, keys.providerId)
+        }
+
+        lookupCityIds(for: lookupTriples) { [weak self] lookupResults in
+            let unresolved = requests.filter { lookupResults[$0.index] == nil }
+
+            guard let self = self, !unresolved.isEmpty else {
+                DispatchQueue.main.async { completion(lookupResults) }
+                return
+            }
+
+            self.resolveCityIdsByCoordinate(for: unresolved) { coordinateResults in
+                DispatchQueue.main.async {
+                    completion(lookupResults.merging(coordinateResults) { lookup, _ in lookup })
+                }
+            }
+        }
+    }
+
+    /// Batched `cities/resolve` for requests carrying a real coordinate, falling back to the local city cache when the request fails.
+    private func resolveCityIdsByCoordinate(
+        for requests: [TRPCityResolutionRequest],
+        completion: @escaping ([Int: Int]) -> Void
+    ) {
+        let located = requests.compactMap { request -> (index: Int, coordinate: TRPLocation)? in
+            guard let coordinate = request.coordinate else { return nil }
+            return (request.index, coordinate)
+        }
+
+        guard !located.isEmpty else {
+            completion([:])
+            return
+        }
+
+        TRPCityRemoteApi().resolveCities(coordinates: located.map { $0.coordinate }) { result in
+            var resolved: [Int: Int] = [:]
+
+            switch result {
+            case .success(let cityIds):
+                for (offset, entry) in located.enumerated() where offset < cityIds.count && cityIds[offset] > 0 {
+                    resolved[entry.index] = cityIds[offset]
+                }
+                Log.i("resolveCityIds: cities/resolve covered \(resolved.count)/\(located.count) leftovers")
+            case .failure(let error):
+                Log.e("resolveCityIds: cities/resolve failed — \(error.localizedDescription)")
+                for entry in located {
+                    if let city = TRPCityCache.shared.getCityByCoordinate(entry.coordinate) {
+                        resolved[entry.index] = city.id
+                    }
+                }
+            }
+
+            completion(resolved)
+        }
+    }
+
+    /// Fans out `lookupTourProduct` and returns cityIds keyed by input index. Indices missing from the result
+    /// (lookup failed or `cityId == 0`) are left for the caller's coordinate fallback.
     internal func lookupCityIds(
         for items: [(index: Int, productId: String, providerId: Int)],
         completion: @escaping ([Int: Int]) -> Void
