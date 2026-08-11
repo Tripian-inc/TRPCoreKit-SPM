@@ -70,16 +70,16 @@ public class SavedPlansViewModel {
         return sections.reduce(0) { $0 + $1.items.count }
     }
 
-    /// `productId` may be raw, `C_` or city-suffixed form; all reduce to the same core id for matching.
+    /// `productId` may be raw, provider-prefixed or city-suffixed form; all reduce to the same core id for matching.
     @discardableResult
     public func removeItem(matchingProductId productId: String) -> Bool {
-        let target = coreActivityId(productId)
+        let target = productId.cleanedAsActivityId()
         var didRemove = false
 
         for sectionIndex in sections.indices {
             sections[sectionIndex].items.removeAll { item in
                 guard let activityId = item.activityId else { return false }
-                if coreActivityId(activityId) == target {
+                if activityId.cleanedAsActivityId() == target {
                     didRemove = true
                     return true
                 }
@@ -95,18 +95,10 @@ public class SavedPlansViewModel {
         return didRemove
     }
 
-    /// Strip `C_` prefix and provider/city suffixes for id comparison. `"C_12345_15_109"` → `"12345"`.
-    private func coreActivityId(_ id: String) -> String {
-        guard id.hasPrefix("C_") else { return id }
-        let withoutPrefix = id.dropFirst(2)
-        let parts = withoutPrefix.split(separator: "_")
-        return parts.first.map(String.init) ?? id
-    }
-
     public func convertToTourProduct(from item: TRPSegmentFavoriteItem) -> TRPTourProduct? {
         guard let activityId = item.activityId else { return nil }
 
-        let formattedActivityId = activityId.hasPrefix("C_") ? activityId : "C_\(activityId)_15"
+        let formattedActivityId = TRPActivityIdFormat.normalized(activityId)
 
         let location: TRPLocation? = item.coordinate
 

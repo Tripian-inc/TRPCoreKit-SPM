@@ -102,15 +102,9 @@ public class AddPlanTimeSelectionViewModel {
             fatalError("Reserved activity segment must have additionalData")
         }
 
-        // Non-"C_" activityId is formatted as "C_{activityId}_15_{cityId}".
         let activityId = additionalData.activityId ?? ""
         let cityId = segment.city?.id ?? planData.selectedCity?.id ?? 0
-        let formattedProductId: String
-        if activityId.hasPrefix("C_") {
-            formattedProductId = activityId
-        } else {
-            formattedProductId = "C_\(activityId)_15_\(cityId)"
-        }
+        let formattedProductId = TRPActivityIdFormat.normalized(activityId, cityId: cityId)
 
         let tourImage: TRPImage? = additionalData.imageUrl != nil
             ? TRPImage(url: additionalData.imageUrl!, imageOwner: nil, width: nil, height: nil)
@@ -168,14 +162,8 @@ public class AddPlanTimeSelectionViewModel {
             productId = poi.id
         }
 
-        // Non-"C_" productId is formatted as "C_{productId}_15_{cityId}".
         let cityId = planData.selectedCity?.id ?? poi.cityId
-        let formattedProductId: String
-        if productId.hasPrefix("C_") {
-            formattedProductId = productId
-        } else {
-            formattedProductId = "C_\(productId)_15_\(cityId)"
-        }
+        let formattedProductId = TRPActivityIdFormat.normalized(productId, cityId: cityId)
 
         self.tour = TRPTourProduct(
             id: formattedProductId,

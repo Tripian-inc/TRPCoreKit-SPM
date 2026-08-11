@@ -25,4 +25,13 @@ internal enum TRPActivityIdFormat {
         }
         return id
     }
+
+    /// Passes `activityId` through untouched when it already carries the active provider's
+    /// prefix — including its own provider/city suffixes — and wraps it via `make` otherwise.
+    static func normalized(_ activityId: String, cityId: Int? = nil) -> String {
+        guard !activityId.hasPrefix(TRPCoreKit.shared.provider.activityIdPrefix) else {
+            return activityId
+        }
+        return make(activityId, cityId: cityId)
+    }
 }
