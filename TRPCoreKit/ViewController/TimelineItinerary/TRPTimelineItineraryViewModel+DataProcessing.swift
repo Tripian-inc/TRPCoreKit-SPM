@@ -224,26 +224,35 @@ extension TRPTimelineItineraryViewModel {
         return groups
     }
 
-    /// Excludes flexible reserved activities; `.bookedActivity` participates but with text suppressed.
+    /// A 24h/48h ticket's duration is a validity window, not an occupancy block — including it
+    /// would flag every other item on the day as overlapping.
+    private func spansFullDayOrLonger(start: Date, end: Date) -> Bool {
+        return end.timeIntervalSince(start) >= 24 * 60 * 60
+    }
+
+    /// Excludes flexible reserved activities and full-day-or-longer spans; `.bookedActivity` participates but with text suppressed.
     private func collectTimeRanges(from items: [TRPMergedTimelineItem]) -> [TimeRangeInfo] {
         var timeRanges: [TimeRangeInfo] = []
 
         for (itemIndex, item) in items.enumerated() {
             switch item.segmentType {
             case .bookedActivity:
-                guard let startDate = item.startDate, let endDate = item.endDate else { break }
+                guard let startDate = item.startDate, let endDate = item.endDate,
+                      !spansFullDayOrLonger(start: startDate, end: endDate) else { break }
                 timeRanges.append(TimeRangeInfo(startTime: startDate, endTime: endDate,
                                                 itemIndex: itemIndex, stepIndex: nil))
 
             case .reservedActivity:
                 // Skip flexible activities — 00:00/23:59 placeholders would falsely overlap everything.
                 if item.isFlexibleActivity { break }
-                guard let startDate = item.startDate, let endDate = item.endDate else { break }
+                guard let startDate = item.startDate, let endDate = item.endDate,
+                      !spansFullDayOrLonger(start: startDate, end: endDate) else { break }
                 timeRanges.append(TimeRangeInfo(startTime: startDate, endTime: endDate,
                                                 itemIndex: itemIndex, stepIndex: nil))
 
             case .manualPoi:
-                guard let startDate = item.startDate, let endDate = item.endDate else { break }
+                guard let startDate = item.startDate, let endDate = item.endDate,
+                      !spansFullDayOrLonger(start: startDate, end: endDate) else { break }
                 timeRanges.append(TimeRangeInfo(startTime: startDate, endTime: endDate,
                                                 itemIndex: itemIndex, stepIndex: nil))
 
@@ -254,7 +263,8 @@ extension TRPTimelineItineraryViewModel {
                     guard let startStr = step.startDateTimes,
                           let endStr = step.endDateTimes,
                           let startDate = TRPDateHelper.parseDateTime(startStr),
-                          let endDate = TRPDateHelper.parseDateTime(endStr) else {
+                          let endDate = TRPDateHelper.parseDateTime(endStr),
+                          !spansFullDayOrLonger(start: startDate, end: endDate) else {
                         continue
                     }
                     timeRanges.append(TimeRangeInfo(startTime: startDate, endTime: endDate,
@@ -477,34 +487,17 @@ extension TRPTimelineItineraryViewModel {
 
     // MARK: - Favorite Items
 
-    /// Compares on the bare product id (`cleanedAsActivityId()`) so `"12345"` matches `"C_12345_15"`; otherwise a just-added favourite reappears in Saved Plans.
+    /// Drops favourites that are already in the plan — as a booked/reserved segment or as an itinerary
+    /// activity step — plus the ones the user removed by hand. Compares on the bare product id
+    /// (`cleanedAsActivityId()`) so `"12345"` matches `"C_12345_15"`; otherwise a just-added favourite
+    /// reappears in Saved Plans.
     internal func filterFavoriteItems() {
         guard let favouriteItems = timeline?.favouriteItems else {
             filteredFavoriteItems = []
             return
         }
 
-        var bookedOrReservedActivityIds = Set<String>()
-
-        if let segments = timeline?.segments {
-            for segment in segments {
-                if segment.segmentType == .bookedActivity || segment.segmentType == .reservedActivity {
-                    if let activityId = segment.additionalData?.activityId {
-                        bookedOrReservedActivityIds.insert(activityId.cleanedAsActivityId())
-                    }
-                }
-            }
-        }
-
-        if let profileSegments = timeline?.tripProfile?.segments {
-            for segment in profileSegments {
-                if segment.segmentType == .bookedActivity || segment.segmentType == .reservedActivity {
-                    if let activityId = segment.additionalData?.activityId {
-                        bookedOrReservedActivityIds.insert(activityId.cleanedAsActivityId())
-                    }
-                }
-            }
-        }
+        let plannedActivityIds = Set(plannedActivities().map { $0.productId })
 
         let excludedIds: Set<String>
         if let tripHash = timeline?.tripHash {
@@ -516,82 +509,42 @@ extension TRPTimelineItineraryViewModel {
         filteredFavoriteItems = favouriteItems.filter { item in
             guard let activityId = item.activityId else { return true }
             let baseId = activityId.cleanedAsActivityId()
-            return !bookedOrReservedActivityIds.contains(baseId) && !excludedIds.contains(baseId)
+            return !plannedActivityIds.contains(baseId) && !excludedIds.contains(baseId)
         }
     }
 
     // MARK: - Favourite Items City Resolution
 
-    /// Items with a coordinate go through cities/resolve; items at (0,0) fall through to product-lookup by activityId.
+    /// Fills in cityIds for favourites that don't have one yet, via `resolveCityIds` (product-lookup first).
     internal func resolveFavouriteItemCities(completion: @escaping () -> Void) {
         guard let initial = timeline?.favouriteItems, !initial.isEmpty else {
             completion()
             return
         }
 
-        let itemsNeedingResolution = initial.enumerated().filter { ($0.element.cityId ?? 0) <= 0 }
+        let requests = initial.enumerated().compactMap { offset, item -> TRPCityResolutionRequest? in
+            guard (item.cityId ?? 0) <= 0 else { return nil }
+            return TRPCityResolutionRequest(
+                index: offset,
+                lookupKeys: item.tourLookupKeys,
+                coordinate: item.lacksLocation ? nil : item.coordinate
+            )
+        }
 
-        guard !itemsNeedingResolution.isEmpty else {
+        guard !requests.isEmpty else {
             completion()
             return
         }
 
-        let withLocation = itemsNeedingResolution.filter { !$0.element.lacksLocation }
-        let noLocation = itemsNeedingResolution.filter { $0.element.lacksLocation }
-
-        let group = DispatchGroup()
-        let resultsQueue = DispatchQueue(label: "com.tripian.timeline.favourites.cityResolve")
-        var resolved: [Int: Int] = [:]  // index -> cityId
-
-        if !withLocation.isEmpty {
-            group.enter()
-            let coordinates = withLocation.map { $0.element.coordinate }
-            TRPCityRemoteApi().resolveCities(coordinates: coordinates) { result in
-                switch result {
-                case .success(let cityIds):
-                    resultsQueue.async {
-                        for (i, entry) in withLocation.enumerated() where i < cityIds.count {
-                            resolved[entry.offset] = cityIds[i]
-                        }
-                        Log.i("resolveFavouriteItemCities: Resolved \(cityIds.count) city IDs via cities/resolve")
-                        group.leave()
-                    }
-                case .failure(let error):
-                    resultsQueue.async {
-                        Log.e("resolveFavouriteItemCities: cities/resolve failed - \(error.localizedDescription)")
-                        group.leave()
-                    }
-                }
-            }
-        }
-
-        let lookupTriples: [(index: Int, productId: String, providerId: Int)] = noLocation.compactMap { entry in
-            guard let keys = entry.element.tourLookupKeys else { return nil }
-            return (index: entry.offset, productId: keys.productId, providerId: keys.providerId)
-        }
-
-        if !lookupTriples.isEmpty {
-            group.enter()
-            lookupCityIds(for: lookupTriples) { lookupResults in
-                resultsQueue.async {
-                    for (idx, cityId) in lookupResults {
-                        resolved[idx] = cityId
-                    }
-                    group.leave()
-                }
-            }
-        }
-
-        group.notify(queue: .main) { [weak self] in
+        resolveCityIds(for: requests) { [weak self] resolved in
             guard let self = self else {
                 completion()
                 return
             }
+
             var favouriteItems = self.timeline?.favouriteItems ?? initial
-            resultsQueue.sync {
-                for (index, cityId) in resolved where index < favouriteItems.count {
-                    favouriteItems[index].cityId = cityId
-                }
+            for (index, cityId) in resolved where index < favouriteItems.count {
+                favouriteItems[index].cityId = cityId
             }
             self.timeline?.favouriteItems = favouriteItems
             completion()

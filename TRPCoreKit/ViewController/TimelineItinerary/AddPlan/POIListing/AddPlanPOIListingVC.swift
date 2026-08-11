@@ -327,7 +327,10 @@ extension AddPlanPOIListingVC: UITableViewDataSource, UITableViewDelegate {
     }
 
     private func openPoiDetail(poi: TRPPoi) {
-        let detailVM = TimelinePoiDetailViewModel(poi: poi)
+        let availableDays = viewModel.planData.availableDays
+        let detailVM = TimelinePoiDetailViewModel(poi: poi,
+                                                  tripStartDate: availableDays.first,
+                                                  tripEndDate: availableDays.last)
         let detailVC = TimelinePoiDetailViewController(viewModel: detailVM)
         navigationController?.pushViewController(detailVC, animated: true)
     }

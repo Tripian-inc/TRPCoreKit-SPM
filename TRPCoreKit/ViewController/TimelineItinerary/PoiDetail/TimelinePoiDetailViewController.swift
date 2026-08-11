@@ -22,6 +22,8 @@ public class TimelinePoiDetailViewController: TRPBaseUIViewController {
     var currentImageIndex: Int = 0
     var isDescriptionExpanded: Bool = false
 
+    static let skeletonProductCount: Int = 3
+
     var basicInfoSectionView: BasicInfoSectionView!
     var cuisinesSectionView: CuisinesSectionView!
     var productsSectionView: ProductsSectionView!
@@ -448,6 +450,7 @@ public class TimelinePoiDetailViewController: TRPBaseUIViewController {
     public init(viewModel: TimelinePoiDetailViewModel) {
         self.viewModel = viewModel
         super.init(nibName: nil, bundle: nil)
+        self.viewModel.delegate = self
     }
 
     required init?(coder: NSCoder) {
@@ -460,6 +463,7 @@ public class TimelinePoiDetailViewController: TRPBaseUIViewController {
         overrideUserInterfaceStyle = .light
         setupUI()
         configureContent()
+        viewModel.loadProducts()
     }
 
     public override func viewWillAppear(_ animated: Bool) {
@@ -527,6 +531,19 @@ public class TimelinePoiDetailViewController: TRPBaseUIViewController {
 
     @objc private func backButtonTapped() {
         navigationController?.popViewController(animated: true)
+    }
+}
+
+// MARK: - TimelinePoiDetailViewModelDelegate
+
+extension TimelinePoiDetailViewController: TimelinePoiDetailViewModelDelegate {
+
+    public func poiDetailProductsDidLoad() {
+        configureProductsSection()
+    }
+
+    public func poiDetailProductsLoadingStateDidChange() {
+        configureProductsSection()
     }
 }
 

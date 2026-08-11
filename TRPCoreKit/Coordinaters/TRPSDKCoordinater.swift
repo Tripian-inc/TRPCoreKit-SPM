@@ -875,7 +875,10 @@ extension TRPSDKCoordinater: TRPTimelineItineraryVCDelegate {
 
     public func timelineItineraryDidSelectStep(_ viewController: TRPTimelineItineraryVC, step: TRPTimelineStep) {
         guard let poi = step.poi else { return }
-        let detailVM = TimelinePoiDetailViewModel(poi: poi)
+        let dateRange = viewController.viewModel.getTripDateRange()
+        let detailVM = TimelinePoiDetailViewModel(poi: poi,
+                                                  tripStartDate: dateRange?.start,
+                                                  tripEndDate: dateRange?.end)
         let detailVC = TimelinePoiDetailViewController(viewModel: detailVM)
         viewController.navigationController?.pushViewController(detailVC, animated: true)
     }

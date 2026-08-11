@@ -19,15 +19,15 @@ public class TRPLanguagesController {
         return TRPLanguagesUseCases()
     }()
 
-    private var allTranslations: [String: Any] = [:]
+    private var translationsByLanguage: [String: [String: Any]] = [:]
+    private var fetchedAtByLanguage: [String: Date] = [:]
     private var languageResult: [String: Any] = [:]
-    private var lastFetchedAt: Date?
-    private var isFetching: Bool = false
-    private var pendingCompletions: [(Result<Bool, Error>) -> Void] = []
+    private var fetchingLanguages: Set<String> = []
+    private var pendingCompletions: [String: [(Result<Bool, Error>) -> Void]] = [:]
     private let syncQueue = DispatchQueue(label: "com.tripian.languages.sync")
 
     public var isFetched: Bool {
-        return syncQueue.sync { lastFetchedAt != nil }
+        return syncQueue.sync { !languageResult.isEmpty }
     }
 
     public init() {
@@ -35,53 +35,54 @@ public class TRPLanguagesController {
     }
 
     private func loadFromCache() {
-        guard let cached = TRPLanguagesStorage.shared.getCachedTranslations() else { return }
+        let cached = TRPLanguagesStorage.shared.getCachedTranslations()
+        guard !cached.translations.isEmpty else { return }
         syncQueue.sync {
-            self.allTranslations = cached.translations
-            self.lastFetchedAt = cached.fetchedAt
+            self.translationsByLanguage = cached.translations
+            self.fetchedAtByLanguage = cached.fetchedAt
             self.applyCurrentLanguageLocked()
         }
     }
 
     /// Must be called from inside `syncQueue`.
     private func applyCurrentLanguageLocked() {
-        let current = TRPClient.getLanguage()
-        self.languageResult = (allTranslations[current] as? [String: Any]) ?? [:]
+        self.languageResult = translationsByLanguage[TRPClient.getLanguage()] ?? [:]
     }
 
-    /// Prefetch languages — called from TRPCoreKit.initialize().
-    /// No-op when cache is fresh (within TTL).
+    /// Prefetch translations — called from TRPCoreKit.initialize().
+    /// Hits the API only when the current language has never been cached; a stale
+    /// cache is refreshed later by `getLanguages()` when the SDK is actually opened.
     public func prefetchLanguagesIfNeeded() {
+        let hasCache = syncQueue.sync { translationsByLanguage[TRPClient.getLanguage()]?.isEmpty == false }
+        guard !hasCache else { return }
         getLanguages(completion: nil)
     }
 
     public func getLanguages(completion: ((Result<Bool, Error>) -> Void)? = nil) {
+        let language = TRPClient.getLanguage()
         enum Action { case alreadyFresh, queued, startFetch }
         var action: Action = .startFetch
 
         syncQueue.sync {
-            if let lastAt = lastFetchedAt,
-               Date().timeIntervalSince(lastAt) < Self.cacheTTL,
-               !allTranslations.isEmpty,
-               !isFetching {
+            if !fetchingLanguages.contains(language),
+               let fetchedAt = fetchedAtByLanguage[language],
+               Date().timeIntervalSince(fetchedAt) < Self.cacheTTL,
+               translationsByLanguage[language]?.isEmpty == false {
                 applyCurrentLanguageLocked()
                 action = .alreadyFresh
                 return
             }
 
-            if isFetching {
-                if let completion = completion {
-                    pendingCompletions.append(completion)
-                }
+            if let completion = completion {
+                pendingCompletions[language, default: []].append(completion)
+            }
+
+            if fetchingLanguages.contains(language) {
                 action = .queued
                 return
             }
 
-            isFetching = true
-            pendingCompletions.removeAll()
-            if let completion = completion {
-                pendingCompletions.append(completion)
-            }
+            fetchingLanguages.insert(language)
             action = .startFetch
         }
 
@@ -91,32 +92,30 @@ public class TRPLanguagesController {
         case .queued:
             return
         case .startFetch:
-            performFetch()
+            performFetch(for: language)
         }
     }
 
-    private func performFetch() {
-        languagesUseCases.executeFetchLanguages { [weak self] result in
+    private func performFetch(for language: String) {
+        languagesUseCases.executeFetchCurrentLanguageTranslations { [weak self] result in
             guard let self = self else { return }
             var callbacks: [(Result<Bool, Error>) -> Void] = []
             var finalResult: Result<Bool, Error> = .success(true)
 
             self.syncQueue.sync {
                 switch result {
-                case .success(let info):
-                    let translations = info.translations
+                case .success(let translations):
                     let now = Date()
-                    self.allTranslations = translations
-                    self.lastFetchedAt = now
+                    self.translationsByLanguage[language] = translations
+                    self.fetchedAtByLanguage[language] = now
                     self.applyCurrentLanguageLocked()
-                    TRPLanguagesStorage.shared.saveTranslations(translations, at: now)
+                    TRPLanguagesStorage.shared.saveTranslations(translations, for: language, at: now)
                     finalResult = .success(true)
                 case .failure(let error):
                     finalResult = .failure(error)
                 }
-                self.isFetching = false
-                callbacks = self.pendingCompletions
-                self.pendingCompletions.removeAll()
+                self.fetchingLanguages.remove(language)
+                callbacks = self.pendingCompletions.removeValue(forKey: language) ?? []
             }
 
             DispatchQueue.main.async {
@@ -125,12 +124,15 @@ public class TRPLanguagesController {
         }
     }
 
-    /// Called by TRPCoreKit.changeLanguage(_:). Switches in-memory translations
-    /// to the new current language WITHOUT making an API request.
+    /// Called by TRPCoreKit.changeLanguage(_:). Applies the cached translations of the
+    /// new language, and fetches them only when that language has never been cached.
     public func applyLanguageChange() {
-        syncQueue.sync {
+        let hasCache: Bool = syncQueue.sync {
             applyCurrentLanguageLocked()
+            return !languageResult.isEmpty
         }
+        guard !hasCache else { return }
+        getLanguages(completion: nil)
     }
 
     private func getLanguageValueWithKey(_ key: String) -> String {

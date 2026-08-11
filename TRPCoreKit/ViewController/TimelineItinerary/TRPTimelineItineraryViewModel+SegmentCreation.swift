@@ -26,17 +26,35 @@ extension TRPTimelineItineraryViewModel {
         return latMatch && lonMatch
     }
 
-    /// Converts a plain or `C_`-prefixed activity ID to "C_{id}_15_{cityId}".
-    internal func formatActivityId(_ activityId: String, cityId: Int) -> String {
-        let coreId: String
-        if activityId.hasPrefix("C_") {
-            let withoutPrefix = String(activityId.dropFirst(2))
-            let components = withoutPrefix.split(separator: "_")
-            coreId = components.first.map(String.init) ?? activityId
-        } else {
-            coreId = activityId
+    /// Activity ids the engine must not suggest: booked/reserved activities anywhere in the trip,
+    /// activity steps already planned on `date`, and favourites the user removed from the timeline.
+    /// - Parameter date: "yyyy-MM-dd" or "yyyy-MM-dd HH:mm"; only the day part is compared.
+    internal func collectExcludedActivityIds(for city: TRPCity, on date: String) -> [String] {
+        guard let timeline = timeline else { return [] }
+
+        let targetDay = String(date.prefix(10))
+        var ids: [String] = []
+        var seen = Set<String>()
+
+        func append(_ id: String) {
+            guard seen.insert(id).inserted else { return }
+            ids.append(id)
         }
-        return "C_\(coreId)_15_\(cityId)"
+
+        for activity in plannedActivities() where activity.source == .booking || activity.day == targetDay {
+            append(TRPActivityIdFormat.make(activity.productId,
+                                            providerId: activity.providerId,
+                                            cityId: activity.cityId ?? city.id))
+        }
+
+        for baseId in TRPFavouriteExclusionStorage.excludedActivityIds(tripHash: timeline.tripHash) {
+            let favouriteCityId = timeline.favouriteItems?.first(where: {
+                $0.activityId?.cleanedAsActivityId() == baseId
+            })?.cityId
+            append(TRPActivityIdFormat.make(baseId, cityId: favouriteCityId ?? city.id))
+        }
+
+        return ids
     }
 
     /// "Recommendations", "Recommendations 2", … unique per day/city. Only applies to `.itinerary` segments.
@@ -171,17 +189,13 @@ extension TRPTimelineItineraryViewModel {
             profile.activityIds = filteredFavoriteItems.compactMap { item in
                 guard let activityId = item.activityId else { return nil }
                 guard item.cityId == cityId else { return nil }
-                return formatActivityId(activityId, cityId: cityId)
+                return TRPActivityIdFormat.make(activityId, cityId: cityId)
             }
         }
 
-        if let segments = timeline.tripProfile?.segments {
-            profile.excludedActivityIds = segments.compactMap { segment in
-                guard segment.segmentType == .bookedActivity || segment.segmentType == .reservedActivity else { return nil }
-                guard let activityId = segment.additionalData?.activityId else { return nil }
-                let cityId = segment.city?.id ?? city.id
-                return formatActivityId(activityId, cityId: cityId)
-            }
+        let excludedActivityIds = collectExcludedActivityIds(for: city, on: profile.startDate ?? "")
+        if !excludedActivityIds.isEmpty {
+            profile.excludedActivityIds = excludedActivityIds
         }
 
         let repository = TRPTimelineRepository()

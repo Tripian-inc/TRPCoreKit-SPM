@@ -36,7 +36,7 @@ public class AddPlanTimeSelectionVC: TRPBaseUIViewController, DynamicHeightPrese
 
         let middle: CGFloat
         if allDaysUnavailable {
-            let bannerText = AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.activityNotAvailableForTrip)
+            let bannerText = viewModel?.unavailableBannerText() ?? ""
             let bannerLabelHeight = Self.textHeight(for: bannerText, font: labelFont, maxWidth: cardLabelMaxWidth)
             let bannerHeight = 16 + max(20, bannerLabelHeight) + 16
             middle = 16 + bannerHeight + 16
@@ -303,9 +303,15 @@ public class AddPlanTimeSelectionVC: TRPBaseUIViewController, DynamicHeightPrese
     private var collectionViewBottomToSoldOutBanner: NSLayoutConstraint!
 
     // MARK: - Initialization
-    public init(tour: TRPTourProduct, planData: AddPlanData) {
+    /// - Parameter plannedActivityIdsByDay: "yyyy-MM-dd" → ids that day already holds. Days holding
+    ///   this activity render unselectable, and the picked day's ids ship as `excludedActivityIds`.
+    public init(tour: TRPTourProduct,
+                planData: AddPlanData,
+                plannedActivityIdsByDay: [String: [String]] = [:]) {
         super.init(nibName: nil, bundle: nil)
-        self.viewModel = AddPlanTimeSelectionViewModel(tour: tour, planData: planData)
+        self.viewModel = AddPlanTimeSelectionViewModel(tour: tour,
+                                                       planData: planData,
+                                                       plannedActivityIdsByDay: plannedActivityIdsByDay)
         self.viewModel.delegate = self
     }
 
@@ -682,6 +688,7 @@ extension AddPlanTimeSelectionVC: AddPlanTimeSelectionViewModelDelegate {
         let hasTimeSlots = !allDaysUnavailable && !viewModel.getDisplayedTimeSlots().isEmpty
 
         unavailableBanner.isHidden = !allDaysUnavailable
+        unavailableBannerLabel.text = viewModel.unavailableBannerText()
 
         flexibleInfoCard.isHidden = allDaysUnavailable || !isFlexible
         flexibleSubtitleLabel.isHidden = allDaysUnavailable || !isFlexible

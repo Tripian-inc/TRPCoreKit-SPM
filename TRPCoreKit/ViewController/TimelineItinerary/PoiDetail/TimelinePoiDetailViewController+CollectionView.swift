@@ -19,7 +19,10 @@ extension TimelinePoiDetailViewController: UICollectionViewDataSource {
         if collectionView == imageCollectionView {
             return viewModel.getImageUrls().count
         } else if collectionView == productsCollectionView {
-            return viewModel.getProducts().count
+            if viewModel.isLoadingProducts {
+                return Self.skeletonProductCount
+            }
+            return viewModel.getProducts().count + (viewModel.isLoadingMoreProducts ? 1 : 0)
         }
         return 0
     }
@@ -39,8 +42,12 @@ extension TimelinePoiDetailViewController: UICollectionViewDataSource {
                 return UICollectionViewCell()
             }
 
-            let product = viewModel.getProducts()[indexPath.item]
-            cell.configure(with: product)
+            let products = viewModel.getProducts()
+            if indexPath.item < products.count {
+                cell.configure(with: products[indexPath.item])
+            } else {
+                cell.configureSkeleton()
+            }
 
             return cell
         }
@@ -65,7 +72,7 @@ extension TimelinePoiDetailViewController: UICollectionViewDelegateFlowLayout {
 
     public func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         if collectionView == productsCollectionView {
-            let product = viewModel.getProducts()[indexPath.item]
+            guard let product = viewModel.getProducts()[safe: indexPath.item] else { return }
             // `product.id` is the `C_{id}_{provider}` form; strip to the bare product id like every other callsite.
             TRPCoreKit.shared.delegate?.trpCoreKitDidRequestActivityDetail(activityId: product.id.cleanedAsActivityId())
         }
@@ -77,6 +84,18 @@ extension TimelinePoiDetailViewController: UICollectionViewDelegateFlowLayout {
 extension TimelinePoiDetailViewController: UIScrollViewDelegate {
 
     public func scrollViewDidScroll(_ scrollView: UIScrollView) {
+        if scrollView == productsCollectionView {
+            let paginationThreshold: CGFloat = 100
+            let offsetX = scrollView.contentOffset.x
+            let frameWidth = scrollView.frame.width
+            let contentWidth = scrollView.contentSize.width
+
+            if contentWidth > 0, offsetX + frameWidth >= contentWidth - paginationThreshold {
+                viewModel.loadMoreProducts()
+            }
+            return
+        }
+
         guard scrollView == imageCollectionView else { return }
 
         let pageWidth = scrollView.bounds.width

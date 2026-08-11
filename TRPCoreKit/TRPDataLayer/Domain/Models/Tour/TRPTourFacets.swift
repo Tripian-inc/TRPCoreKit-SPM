@@ -61,9 +61,13 @@ public struct TRPTourDurationRangeFacet: Hashable {
 public struct TRPTourSearchOutcome {
     public let products: [TRPTourProduct]
     public let facets: TRPTourFacets?
+    public let pagination: TRPTourPagination?
 
-    public init(products: [TRPTourProduct], facets: TRPTourFacets?) {
+    public init(products: [TRPTourProduct],
+                facets: TRPTourFacets?,
+                pagination: TRPTourPagination? = nil) {
         self.products = products
         self.facets = facets
+        self.pagination = pagination
     }
 }

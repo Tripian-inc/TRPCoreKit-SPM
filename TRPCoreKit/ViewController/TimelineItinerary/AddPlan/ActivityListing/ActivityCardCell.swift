@@ -371,44 +371,10 @@ class ActivityCardCell: UITableViewCell {
         }
     }
 
+    /// A missing or non-positive value renders as "FREE" — see `TRPActivityPriceFormat`.
     private func updatePrice(value: Double?, currency: String, convertFromCents: Bool = false) {
-        guard let value = value else {
-            priceLabel.attributedText = nil
-            return
-        }
-
-        let displayValue = convertFromCents ? value / 100.0 : value
-
-        if displayValue == 0 {
-            priceLabel.attributedText = NSAttributedString(
-                string: CommonLocalizationKeys.localized(CommonLocalizationKeys.free),
-                attributes: [
-                    .font: FontSet.montserratBold.font(16),
-                    .foregroundColor: ColorSet.primaryText.uiColor
-                ]
-            )
-            return
-        }
-
-        let fromText = CommonLocalizationKeys.localized(CommonLocalizationKeys.from) + " "
-        let priceText = TRPCurrencyHelper.formatPrice(displayValue, currency: currency)
-
-        let attributedString = NSMutableAttributedString()
-        attributedString.append(NSAttributedString(
-            string: fromText,
-            attributes: [
-                .font: FontSet.montserratMedium.font(14),
-                .foregroundColor: ColorSet.primaryText.uiColor
-            ]
-        ))
-        attributedString.append(NSAttributedString(
-            string: priceText,
-            attributes: [
-                .font: FontSet.montserratBold.font(16),
-                .foregroundColor: ColorSet.primaryText.uiColor
-            ]
-        ))
-        priceLabel.attributedText = attributedString
+        let displayValue = value.map { convertFromCents ? $0 / 100.0 : $0 }
+        priceLabel.attributedText = TRPActivityPriceFormat.attributedText(value: displayValue, currency: currency)
     }
 
     private func updateImage(urlString: String?) {

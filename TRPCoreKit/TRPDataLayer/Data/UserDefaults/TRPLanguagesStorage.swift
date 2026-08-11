@@ -8,41 +8,62 @@
 
 import Foundation
 
+/// Persists the translations of each language separately, so switching language
+/// does not invalidate what is already cached for the others.
 final class TRPLanguagesStorage {
     static let shared = TRPLanguagesStorage()
 
-    private let translationsKey = "trp_languages_translations"
-    private let fetchedAtKey = "trp_languages_fetched_at"
+    private let translationsKey = "trp_translations_by_language"
+    private let fetchedAtKey = "trp_translations_fetched_at_by_language"
 
-    // Legacy keys — cleared in clearCache() for hygiene
-    private let legacyDataKey = "trp_languages_data"
-    private let legacyLangKey = "trp_languages_cached_lang"
+    private let legacyKeys = [
+        "trp_languages_translations",
+        "trp_languages_fetched_at",
+        "trp_languages_data",
+        "trp_languages_cached_lang"
+    ]
 
     private let userDefaults = UserDefaults.standard
 
-    private init() {}
-
-    func getCachedTranslations() -> (translations: [String: Any], fetchedAt: Date)? {
-        guard let data = userDefaults.data(forKey: translationsKey),
-              let dict = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-              !dict.isEmpty else {
-            return nil
-        }
-        let interval = userDefaults.double(forKey: fetchedAtKey)
-        guard interval > 0 else { return nil }
-        return (dict, Date(timeIntervalSince1970: interval))
+    private init() {
+        legacyKeys.forEach { userDefaults.removeObject(forKey: $0) }
     }
 
-    func saveTranslations(_ translations: [String: Any], at date: Date) {
-        guard let data = try? JSONSerialization.data(withJSONObject: translations) else { return }
+    func getCachedTranslations() -> (translations: [String: [String: Any]], fetchedAt: [String: Date]) {
+        let translations = storedTranslations().compactMapValues { $0 as? [String: Any] }
+        let fetchedAt = (userDefaults.dictionary(forKey: fetchedAtKey) as? [String: Double] ?? [:])
+            .compactMapValues { interval -> Date? in
+                interval > 0 ? Date(timeIntervalSince1970: interval) : nil
+            }
+        return (translations, fetchedAt)
+    }
+
+    func saveTranslations(_ translations: [String: Any], for language: String, at date: Date) {
+        var stored = storedTranslations()
+        stored[language] = translations
+
+        guard JSONSerialization.isValidJSONObject(stored),
+              let data = try? JSONSerialization.data(withJSONObject: stored) else {
+            Log.e("Translations cache could not be serialized for language \(language)")
+            return
+        }
+
         userDefaults.set(data, forKey: translationsKey)
-        userDefaults.set(date.timeIntervalSince1970, forKey: fetchedAtKey)
+        var timestamps = userDefaults.dictionary(forKey: fetchedAtKey) as? [String: Double] ?? [:]
+        timestamps[language] = date.timeIntervalSince1970
+        userDefaults.set(timestamps, forKey: fetchedAtKey)
     }
 
     func clearCache() {
         userDefaults.removeObject(forKey: translationsKey)
         userDefaults.removeObject(forKey: fetchedAtKey)
-        userDefaults.removeObject(forKey: legacyDataKey)
-        userDefaults.removeObject(forKey: legacyLangKey)
+    }
+
+    private func storedTranslations() -> [String: Any] {
+        guard let data = userDefaults.data(forKey: translationsKey),
+              let dict = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            return [:]
+        }
+        return dict
     }
 }

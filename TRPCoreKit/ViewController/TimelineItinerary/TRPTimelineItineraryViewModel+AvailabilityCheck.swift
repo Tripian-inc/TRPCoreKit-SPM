@@ -68,13 +68,15 @@ extension TRPTimelineItineraryViewModel {
 
         let items = targets.map { $0.activityId }
         let dateString = AvailabilityCheckDateFormat.shared.string(from: date)
+        // Slots carry a bare price; the currency is the one this request asks for, so it travels with the response.
+        let requestCurrency = TRPClient.getCurrency()
 
         Log.i("AvailabilityCheck: requesting \(items.count) item(s) for \(dateString)")
 
         TRPTourUseCases().executeGetTourScheduleAvailability(
             items: items,
             date: dateString,
-            currency: TRPClient.getCurrency(),
+            currency: requestCurrency,
             lang: nil
         ) { [weak self] result in
             DispatchQueue.main.async {
@@ -89,7 +91,7 @@ extension TRPTimelineItineraryViewModel {
                 }
                 switch result {
                 case .success(let response):
-                    self.applyResults(response, targets: targets, dateString: dateString)
+                    self.applyResults(response, targets: targets, dateString: dateString, currency: requestCurrency)
                     // cellData snapshots `isAvailabilityExpired` at build time, so rebuild it before the next reload().
                     self.processTimelineData()
                     self.delegate?.timelineItineraryViewModel(didUpdateTimeline: true)
@@ -183,55 +185,130 @@ extension TRPTimelineItineraryViewModel {
 
     private func applyResults(_ response: [TRPTourScheduleAvailability],
                               targets: [AvailabilityTarget],
-                              dateString: String) {
+                              dateString: String,
+                              currency: String) {
         var byId: [String: TRPTourScheduleAvailability] = [:]
         for entry in response { byId[entry.activityId] = entry }
 
         // Batch decisions, then apply once at the end.
         var planUpdates: [Int: [Int: Bool]] = [:]   // planIndex -> stepIndex -> expired
         var segmentExpires: [Int: Bool] = [:]       // segIndex -> expired
+        var planPrices: [Int: [Int: TRPSegmentActivityPrice]] = [:]  // planIndex -> stepIndex -> fresh price
+        var segmentPrices: [Int: TRPSegmentActivityPrice] = [:]      // segIndex -> fresh price
 
         for target in targets {
-            let expired = isExpired(entry: byId[target.activityId], target: target)
-            guard expired else { continue }
+            let entry = byId[target.activityId]
 
             // Cache by stable key so the decision survives a network re-fetch.
-            expiredAvailabilityKeys.insert(availabilityCacheKey(
+            let key = availabilityCacheKey(
                 activityId: target.activityId,
                 dateString: dateString,
                 expectedHHmm: target.expectedHHmm,
-                isFlexible: target.isFlexible))
+                isFlexible: target.isFlexible)
+
+            if isExpired(entry: entry, target: target) {
+                expiredAvailabilityKeys.insert(key)
+
+                switch target.location {
+                case .reservedSegment(let index):
+                    segmentExpires[index] = true
+                case .itineraryStep(let planIndex, let stepIndex):
+                    planUpdates[planIndex, default: [:]][stepIndex] = true
+                }
+                continue
+            }
+
+            guard let value = refreshedSlotPrice(schedule: entry?.schedule,
+                                                 dateString: dateString,
+                                                 expectedHHmm: target.expectedHHmm,
+                                                 isFlexible: target.isFlexible) else { continue }
+
+            let price = TRPSegmentActivityPrice(currency: currency, value: value)
+            refreshedActivityPrices[key] = price
 
             switch target.location {
             case .reservedSegment(let index):
-                segmentExpires[index] = true
+                segmentPrices[index] = price
             case .itineraryStep(let planIndex, let stepIndex):
-                planUpdates[planIndex, default: [:]][stepIndex] = true
+                planPrices[planIndex, default: [:]][stepIndex] = price
             }
         }
 
         // additionalData is a struct, so mutate via copy-and-write back onto the segment.
-        if !segmentExpires.isEmpty, let segments = timeline?.tripProfile?.segments {
+        if !segmentExpires.isEmpty || !segmentPrices.isEmpty, let segments = timeline?.tripProfile?.segments {
             for (index, _) in segmentExpires where index < segments.count {
                 if var data = segments[index].additionalData {
                     data.isAvailabilityExpired = true
                     segments[index].additionalData = data
                 }
             }
+            for (index, price) in segmentPrices where index < segments.count {
+                if var data = segments[index].additionalData {
+                    data.price = price
+                    segments[index].additionalData = data
+                }
+            }
         }
 
         // Plans/steps are structs: copy, write through indexed paths, assign back.
-        if !planUpdates.isEmpty, var plans = timeline?.plans {
+        if !planUpdates.isEmpty || !planPrices.isEmpty, var plans = timeline?.plans {
             for (planIndex, stepMap) in planUpdates where planIndex < plans.count {
                 for (stepIndex, _) in stepMap where stepIndex < plans[planIndex].steps.count {
                     plans[planIndex].steps[stepIndex].isAvailabilityExpired = true
+                }
+            }
+            for (planIndex, stepMap) in planPrices where planIndex < plans.count {
+                for (stepIndex, price) in stepMap where stepIndex < plans[planIndex].steps.count {
+                    applyPrice(price, toStep: &plans[planIndex].steps[stepIndex])
                 }
             }
             timeline?.plans = plans
         }
 
         Log.i("AvailabilityCheck: flagged \(segmentExpires.count) segment(s) and "
-              + "\(planUpdates.values.reduce(0) { $0 + $1.count }) step(s) expired")
+              + "\(planUpdates.values.reduce(0) { $0 + $1.count }) step(s) expired; "
+              + "refreshed \(segmentPrices.count + planPrices.values.reduce(0) { $0 + $1.count }) price(s)")
+    }
+
+    /// Writes a slot price onto an activity step's POI. `additionalData` is non-nil for every sweep target (its `productId` is what builds the activity id).
+    private func applyPrice(_ price: TRPSegmentActivityPrice, toStep step: inout TRPTimelineStep) {
+        step.poi?.additionalData?.price = price.value
+        step.poi?.additionalData?.currency = price.currency
+    }
+
+    // MARK: - Price refresh
+
+    /// Price of the slot backing a still-available target: the exact-time slot, else the flexible (`nil`-time) one; for a flexible
+    /// target the flexible slot, else the day's cheapest. `nil` — including a missing or non-positive slot price — leaves the
+    /// timeline's own price in place.
+    internal func refreshedSlotPrice(schedule: TRPTourSchedule?,
+                                     dateString: String,
+                                     expectedHHmm: String?,
+                                     isFlexible: Bool) -> Double? {
+        guard let schedule = schedule else { return nil }
+
+        let slots = schedule.dates.first(where: { $0.date == dateString })?.slots ?? schedule.allSlots
+        guard !slots.isEmpty else { return nil }
+
+        let candidate: Double?
+        if isFlexible {
+            if let flexibleSlot = slots.first(where: { $0.time == nil }) {
+                candidate = flexibleSlot.price
+            } else {
+                candidate = slots.compactMap { $0.price }.min()
+            }
+        } else if let expectedHHmm = expectedHHmm {
+            if let exactSlot = slots.first(where: { $0.time == expectedHHmm }) {
+                candidate = exactSlot.price
+            } else {
+                candidate = slots.first(where: { $0.time == nil })?.price
+            }
+        } else {
+            candidate = nil
+        }
+
+        guard let price = candidate, price > 0 else { return nil }
+        return price
     }
 
     // MARK: - Cache re-apply (no network)
@@ -243,7 +320,7 @@ extension TRPTimelineItineraryViewModel {
         return "\(activityId)|\(dateString)|\(timeComponent)"
     }
 
-    /// Drops the cached "expired" decision for a segment when its slot is re-validated (time change / removal). No-op for non-reserved segments.
+    /// Drops the cached "expired" decision and refreshed price for a segment when its slot is re-validated (time change / removal). No-op for non-reserved segments.
     internal func clearCachedAvailability(for segment: TRPTimelineSegment) {
         guard segment.segmentType == .reservedActivity,
               let additional = segment.additionalData,
@@ -255,13 +332,15 @@ extension TRPTimelineItineraryViewModel {
         let key = availabilityCacheKey(activityId: activityId, dateString: dateString,
                                        expectedHHmm: expectedHHmm, isFlexible: isFlexible)
         expiredAvailabilityKeys.remove(key)
+        refreshedActivityPrices.removeValue(forKey: key)
     }
 
-    /// Re-applies cached "not available" decisions onto the current timeline (no network), restoring the transient flag wiped by a re-fetch.
+    /// Re-applies the sweep's cached decisions onto the current timeline (no network): the transient "not available" flag wiped by a re-fetch, and the refreshed slot prices the re-fetch overwrote with the timeline's own.
     internal func reapplyCachedAvailabilityFlags() {
-        guard !expiredAvailabilityKeys.isEmpty, timeline != nil else { return }
+        guard !expiredAvailabilityKeys.isEmpty || !refreshedActivityPrices.isEmpty, timeline != nil else { return }
 
         var planUpdates: [Int: Set<Int>] = [:]   // planIndex -> stepIndexes
+        var planPrices: [Int: [Int: TRPSegmentActivityPrice]] = [:]  // planIndex -> stepIndex -> cached price
 
         for date in getDayDates() {
             let dateString = AvailabilityCheckDateFormat.shared.string(from: date)
@@ -270,25 +349,44 @@ extension TRPTimelineItineraryViewModel {
                                                dateString: dateString,
                                                expectedHHmm: target.expectedHHmm,
                                                isFlexible: target.isFlexible)
-                guard expiredAvailabilityKeys.contains(key) else { continue }
 
-                switch target.location {
-                case .reservedSegment(let index):
-                    if let segments = timeline?.tripProfile?.segments, index < segments.count,
-                       var data = segments[index].additionalData {
-                        data.isAvailabilityExpired = true
-                        segments[index].additionalData = data
+                if expiredAvailabilityKeys.contains(key) {
+                    switch target.location {
+                    case .reservedSegment(let index):
+                        if let segments = timeline?.tripProfile?.segments, index < segments.count,
+                           var data = segments[index].additionalData {
+                            data.isAvailabilityExpired = true
+                            segments[index].additionalData = data
+                        }
+                    case .itineraryStep(let planIndex, let stepIndex):
+                        planUpdates[planIndex, default: []].insert(stepIndex)
                     }
-                case .itineraryStep(let planIndex, let stepIndex):
-                    planUpdates[planIndex, default: []].insert(stepIndex)
+                }
+
+                if let price = refreshedActivityPrices[key] {
+                    switch target.location {
+                    case .reservedSegment(let index):
+                        if let segments = timeline?.tripProfile?.segments, index < segments.count,
+                           var data = segments[index].additionalData {
+                            data.price = price
+                            segments[index].additionalData = data
+                        }
+                    case .itineraryStep(let planIndex, let stepIndex):
+                        planPrices[planIndex, default: [:]][stepIndex] = price
+                    }
                 }
             }
         }
 
-        if !planUpdates.isEmpty, var plans = timeline?.plans {
+        if !planUpdates.isEmpty || !planPrices.isEmpty, var plans = timeline?.plans {
             for (planIndex, steps) in planUpdates where planIndex < plans.count {
                 for stepIndex in steps where stepIndex < plans[planIndex].steps.count {
                     plans[planIndex].steps[stepIndex].isAvailabilityExpired = true
+                }
+            }
+            for (planIndex, stepMap) in planPrices where planIndex < plans.count {
+                for (stepIndex, price) in stepMap where stepIndex < plans[planIndex].steps.count {
+                    applyPrice(price, toStep: &plans[planIndex].steps[stepIndex])
                 }
             }
             timeline?.plans = plans

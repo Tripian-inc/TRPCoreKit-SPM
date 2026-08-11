@@ -76,7 +76,10 @@ extension TRPTimelineItineraryVC: AddPlanContainerVCDelegate {
     }
 
     public func addPlanContainerShouldShowActivityListing(_ viewController: AddPlanContainerVC, data: AddPlanData) {
-        let activityListingViewModel = AddPlanActivityListingViewModel(planData: data)
+        let activityListingViewModel = AddPlanActivityListingViewModel(
+            planData: data,
+            activityIdsByDay: viewModel.plannedActivityIdsByDay()
+        )
         let activityListingVC = AddPlanActivityListingVC()
         activityListingVC.viewModel = activityListingViewModel
 
@@ -266,7 +269,10 @@ extension TRPTimelineItineraryVC: UICollectionViewDataSource, UICollectionViewDe
                     return
                 }
 
-                let detailVM = TimelinePoiDetailViewModel(poi: poi)
+                let dateRange = viewModel.getTripDateRange()
+                let detailVM = TimelinePoiDetailViewModel(poi: poi,
+                                                          tripStartDate: dateRange?.start,
+                                                          tripEndDate: dateRange?.end)
                 let detailVC = TimelinePoiDetailViewController(viewModel: detailVM)
                 navigationController?.pushViewController(detailVC, animated: true)
 

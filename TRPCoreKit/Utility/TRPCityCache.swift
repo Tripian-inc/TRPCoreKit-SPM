@@ -17,9 +17,12 @@ public class TRPCityCache {
     public static let shared = TRPCityCache()
 
     // MARK: - Properties
+    private static let cacheTTL: TimeInterval = 7 * 24 * 60 * 60 // 7 days
+
     private var cities: [TRPCity] = []
     private var isFetching: Bool = false
-    private var hasFetched: Bool = false
+    private var lastFetchedAt: Date?
+    private var didLoadFromDisk: Bool = false
 
     private let cityRemoteApi: TRPCityRemoteApi
     private let queue = DispatchQueue(label: "com.tripian.cityCache", attributes: .concurrent)
@@ -31,8 +34,10 @@ public class TRPCityCache {
 
     // MARK: - Public Methods
 
-    /// Fetches cities from API if not already fetched.
-    /// This method is safe to call multiple times - it will only fetch once.
+    /// Loads the persisted cities and refreshes them from the API when the stored
+    /// copy is missing or older than the TTL. Safe to call multiple times — a fresh
+    /// cache or an in-flight fetch short-circuits it without touching the network.
+    /// A stale cache keeps serving lookups while the refresh runs.
     /// - Parameter completion: Optional completion handler called when fetch completes
     public func fetchCitiesIfNeeded(completion: ((Bool) -> Void)? = nil) {
         queue.async(flags: .barrier) { [weak self] in
@@ -41,8 +46,11 @@ public class TRPCityCache {
                 return
             }
 
-            // Already fetched or currently fetching
-            if self.hasFetched {
+            self.loadFromDiskLocked()
+
+            if let fetchedAt = self.lastFetchedAt,
+               Date().timeIntervalSince(fetchedAt) < Self.cacheTTL,
+               !self.cities.isEmpty {
                 completion?(true)
                 return
             }
@@ -64,9 +72,13 @@ public class TRPCityCache {
                 self.queue.async(flags: .barrier) {
                     switch result {
                     case .success(let fetchedCities):
+                        let now = Date()
                         self.cities = fetchedCities
-                        self.hasFetched = true
+                        self.lastFetchedAt = now
                         self.isFetching = false
+                        DispatchQueue.global(qos: .utility).async {
+                            TRPCityStorage.shared.save(fetchedCities, at: now)
+                        }
                         Log.i("TRPCityCache: Successfully cached \(fetchedCities.count) cities")
                         completion?(true)
 
@@ -78,6 +90,17 @@ public class TRPCityCache {
                 }
             }
         }
+    }
+
+    /// Must be called from inside a `queue` barrier block.
+    private func loadFromDiskLocked() {
+        guard !didLoadFromDisk else { return }
+        didLoadFromDisk = true
+
+        guard cities.isEmpty, let cached = TRPCityStorage.shared.load() else { return }
+        cities = cached.cities
+        lastFetchedAt = cached.fetchedAt
+        Log.i("TRPCityCache: Loaded \(cached.cities.count) cities from disk")
     }
 
     /// Returns the city with the given ID from cache.
@@ -150,17 +173,19 @@ public class TRPCityCache {
     public func isCacheReady() -> Bool {
         var result: Bool = false
         queue.sync {
-            result = hasFetched
+            result = !cities.isEmpty
         }
         return result
     }
 
-    /// Clears the cache. Useful for logout scenarios.
+    /// Clears the cache, in memory and on disk. Useful for logout scenarios.
     public func clearCache() {
         queue.async(flags: .barrier) { [weak self] in
             self?.cities = []
-            self?.hasFetched = false
+            self?.lastFetchedAt = nil
             self?.isFetching = false
+            self?.didLoadFromDisk = false
+            TRPCityStorage.shared.clear()
             Log.i("TRPCityCache: Cache cleared")
         }
     }

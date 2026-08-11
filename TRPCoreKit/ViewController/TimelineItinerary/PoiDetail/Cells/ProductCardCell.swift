@@ -120,6 +120,43 @@ class ProductCardCell: UICollectionViewCell {
         return stack
     }()
 
+    private let imageSkeletonView: UIView = {
+        let view = UIView()
+        view.backgroundColor = ColorSet.lineWeak.uiColor
+        view.translatesAutoresizingMaskIntoConstraints = false
+        view.isHidden = true
+        return view
+    }()
+
+    private let titleSkeletonView: UIView = {
+        let view = UIView()
+        view.backgroundColor = ColorSet.lineWeak.uiColor
+        view.layer.cornerRadius = 4
+        view.translatesAutoresizingMaskIntoConstraints = false
+        view.isHidden = true
+        return view
+    }()
+
+    private let subtitleSkeletonView: UIView = {
+        let view = UIView()
+        view.backgroundColor = ColorSet.lineWeak.uiColor
+        view.layer.cornerRadius = 3
+        view.translatesAutoresizingMaskIntoConstraints = false
+        view.isHidden = true
+        return view
+    }()
+
+    private let priceSkeletonView: UIView = {
+        let view = UIView()
+        view.backgroundColor = ColorSet.lineWeak.uiColor
+        view.layer.cornerRadius = 3
+        view.translatesAutoresizingMaskIntoConstraints = false
+        view.isHidden = true
+        return view
+    }()
+
+    private static let skeletonAnimationKey = "ProductCardCellSkeletonPulse"
+
     override init(frame: CGRect) {
         super.init(frame: frame)
         setupUI()
@@ -151,6 +188,10 @@ class ProductCardCell: UICollectionViewCell {
         contentView.addSubview(titleLabel)
         contentView.addSubview(detailsStackView)
         contentView.addSubview(priceLabel)
+        contentView.addSubview(imageSkeletonView)
+        contentView.addSubview(titleSkeletonView)
+        contentView.addSubview(subtitleSkeletonView)
+        contentView.addSubview(priceSkeletonView)
 
         NSLayoutConstraint.activate([
             contentView.widthAnchor.constraint(equalToConstant: 253),
@@ -178,14 +219,36 @@ class ProductCardCell: UICollectionViewCell {
             priceLabel.topAnchor.constraint(equalTo: detailsStackView.bottomAnchor, constant: 8),
             priceLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -8),
             priceLabel.bottomAnchor.constraint(lessThanOrEqualTo: contentView.bottomAnchor, constant: -8),
-            priceLabel.leadingAnchor.constraint(greaterThanOrEqualTo: contentView.leadingAnchor, constant: 8)
+            priceLabel.leadingAnchor.constraint(greaterThanOrEqualTo: contentView.leadingAnchor, constant: 8),
+
+            imageSkeletonView.topAnchor.constraint(equalTo: contentView.topAnchor),
+            imageSkeletonView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
+            imageSkeletonView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
+            imageSkeletonView.heightAnchor.constraint(equalToConstant: 152),
+
+            titleSkeletonView.topAnchor.constraint(equalTo: imageSkeletonView.bottomAnchor, constant: 12),
+            titleSkeletonView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 8),
+            titleSkeletonView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -8),
+            titleSkeletonView.heightAnchor.constraint(equalToConstant: 14),
+
+            subtitleSkeletonView.topAnchor.constraint(equalTo: titleSkeletonView.bottomAnchor, constant: 10),
+            subtitleSkeletonView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 8),
+            subtitleSkeletonView.widthAnchor.constraint(equalToConstant: 120),
+            subtitleSkeletonView.heightAnchor.constraint(equalToConstant: 10),
+
+            priceSkeletonView.topAnchor.constraint(equalTo: subtitleSkeletonView.bottomAnchor, constant: 18),
+            priceSkeletonView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -8),
+            priceSkeletonView.widthAnchor.constraint(equalToConstant: 60),
+            priceSkeletonView.heightAnchor.constraint(equalToConstant: 10)
         ])
     }
 
-    func configure(with product: TRPBookingProduct) {
-        titleLabel.text = product.title
+    func configure(with product: TRPTourProduct) {
+        exitSkeletonMode()
 
-        if let imageUrlString = product.image, !imageUrlString.isEmpty, let url = URL(string: imageUrlString) {
+        titleLabel.text = product.name
+
+        if let imageUrlString = product.image?.url, !imageUrlString.isEmpty, let url = URL(string: imageUrlString) {
             imageView.sd_setImage(with: url, placeholderImage: nil)
         } else {
             imageView.backgroundColor = ColorSet.neutral200.uiColor
@@ -203,58 +266,72 @@ class ProductCardCell: UICollectionViewCell {
             ratingStackView.isHidden = true
         }
 
-        if let duration = product.duration, !duration.isEmpty {
-            durationLabel.text = duration
-            durationLabel.isHidden = false
+        if let duration = product.duration, duration > 0 {
+            durationLabel.text = TimelineLocalizationKeys.formatDuration(minutes: duration)
+            durationStackView.isHidden = false
         } else {
-            durationLabel.isHidden = true
+            durationStackView.isHidden = true
         }
 
-        let hasNonRefundable = product.info.contains { $0.lowercased() == "non_refundable" }
-        freeCancellationLabel.isHidden = hasNonRefundable
-//        freeCancellationLabel.isHidden = true
+        freeCancellationLabel.isHidden = !product.tags.contains { $0.lowercased() == "full_refundable" }
 
-        if let price = product.price, price == 0 {
-            priceLabel.attributedText = NSAttributedString(
-                string: CommonLocalizationKeys.localized(CommonLocalizationKeys.free),
-                attributes: [
-                    .font: FontSet.montserratBold.font(16),
-                    .foregroundColor: ColorSet.primaryText.uiColor
-                ]
-            )
-            return
+        priceLabel.attributedText = TRPActivityPriceFormat.attributedText(value: product.price,
+                                                                         currency: product.currency)
+    }
+
+    /// Render the cell as a shimmering placeholder while a page is in flight.
+    func configureSkeleton() {
+        isUserInteractionEnabled = false
+
+        imageView.isHidden = true
+        titleLabel.isHidden = true
+        detailsStackView.isHidden = true
+        priceLabel.isHidden = true
+
+        imageSkeletonView.isHidden = false
+        titleSkeletonView.isHidden = false
+        subtitleSkeletonView.isHidden = false
+        priceSkeletonView.isHidden = false
+
+        startSkeletonAnimation()
+    }
+
+    private func exitSkeletonMode() {
+        stopSkeletonAnimation()
+        isUserInteractionEnabled = true
+
+        imageSkeletonView.isHidden = true
+        titleSkeletonView.isHidden = true
+        subtitleSkeletonView.isHidden = true
+        priceSkeletonView.isHidden = true
+
+        imageView.isHidden = false
+        titleLabel.isHidden = false
+        detailsStackView.isHidden = false
+        priceLabel.isHidden = false
+    }
+
+    private func startSkeletonAnimation() {
+        let animation = CABasicAnimation(keyPath: "opacity")
+        animation.fromValue = 0.4
+        animation.toValue = 1.0
+        animation.duration = 0.8
+        animation.autoreverses = true
+        animation.repeatCount = .infinity
+        for view in [imageSkeletonView, titleSkeletonView, subtitleSkeletonView, priceSkeletonView] {
+            view.layer.add(animation, forKey: Self.skeletonAnimationKey)
         }
+    }
 
-        let fromText = CommonLocalizationKeys.localized(CommonLocalizationKeys.from) + " "
-        var priceText: String = ""
-
-        if let price = product.price, let currency = product.currency {
-            priceText = TRPCurrencyHelper.formatPrice(price, currency: currency)
-        } else if let priceDescription = product.priceDescription {
-            priceText = priceDescription
+    private func stopSkeletonAnimation() {
+        for view in [imageSkeletonView, titleSkeletonView, subtitleSkeletonView, priceSkeletonView] {
+            view.layer.removeAnimation(forKey: Self.skeletonAnimationKey)
         }
+    }
 
-        if priceText.isEmpty {
-            priceLabel.text = ""
-            return
-        }
-
-        let attributedString = NSMutableAttributedString()
-        attributedString.append(NSAttributedString(
-            string: fromText,
-            attributes: [
-                .font: FontSet.montserratMedium.font(14),
-                .foregroundColor: ColorSet.primaryText.uiColor
-            ]
-        ))
-        attributedString.append(NSAttributedString(
-            string: priceText,
-            attributes: [
-                .font: FontSet.montserratBold.font(16),
-                .foregroundColor: ColorSet.primaryText.uiColor
-            ]
-        ))
-        priceLabel.attributedText = attributedString
+    override func prepareForReuse() {
+        super.prepareForReuse()
+        stopSkeletonAnimation()
     }
 
 }

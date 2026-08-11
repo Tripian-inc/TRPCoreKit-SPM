@@ -136,6 +136,8 @@ public struct FlexibleActivityCellData: TimelineCellData {
     public let duration: Double?
     public let price: TRPSegmentActivityPrice?
     public let cancellation: String?
+    public let rating: Float?
+    public let ratingCount: Int?
     public let isNoLocation: Bool
     public let segment: TRPTimelineSegment
 
@@ -148,6 +150,8 @@ public struct FlexibleActivityCellData: TimelineCellData {
         self.duration = item.duration
         self.price = item.price
         self.cancellation = item.cancellation
+        self.rating = item.rating
+        self.ratingCount = item.ratingCount
         self.isNoLocation = item.isNoLocation
         self.segment = item.segment
     }

@@ -16,9 +16,7 @@ import TRPFoundationKit
 extension TRPTimelineItineraryVC {
 
     internal func registerCells() {
-        tableView.register(TRPTimelineBookedActivityCell.self, forCellReuseIdentifier: TRPTimelineBookedActivityCell.reuseIdentifier)
-        tableView.register(TRPTimelineReservedActivityCell.self, forCellReuseIdentifier: TRPTimelineReservedActivityCell.reuseIdentifier)
-        tableView.register(TRPTimelineFlexibleActivityCell.self, forCellReuseIdentifier: TRPTimelineFlexibleActivityCell.reuseIdentifier)
+        tableView.register(TRPTimelineActivityCell.self, forCellReuseIdentifier: TRPTimelineActivityCell.reuseIdentifier)
         tableView.register(TRPTimelineManualPoiCell.self, forCellReuseIdentifier: TRPTimelineManualPoiCell.reuseIdentifier)
         tableView.register(TRPTimelineActivityStepCell.self, forCellReuseIdentifier: TRPTimelineActivityStepCell.reuseIdentifier)
         tableView.register(TRPTimelineRecommendationsCell.self, forCellReuseIdentifier: TRPTimelineRecommendationsCell.reuseIdentifier)

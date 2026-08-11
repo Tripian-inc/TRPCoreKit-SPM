@@ -483,47 +483,9 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
         titleRow.addSubview(titleLabel)
         titleRow.addSubview(actionButtonsStack)
 
-        let ratingStack = UIStackView()
-        ratingStack.translatesAutoresizingMaskIntoConstraints = false
-        ratingStack.axis = .horizontal
-        ratingStack.spacing = 0
-        ratingStack.alignment = .center
-
-        if isActivity, let poi = step.poi, let rating = poi.rating, (rating > 0 || (poi.ratingCount ?? 0) > 0) {
-            let ratingLabel = UILabel()
-            ratingLabel.font = FontSet.montserratBold.font(14)
-            ratingLabel.textColor = ColorSet.primaryText.uiColor
-            ratingLabel.text = String(format: "%.1f", rating).replacingOccurrences(of: ".", with: ",")
-
-            let spacer1 = UIView()
-            spacer1.translatesAutoresizingMaskIntoConstraints = false
-            spacer1.widthAnchor.constraint(equalToConstant: 2).isActive = true
-
-            let starIcon = UIImageView()
-            starIcon.image = TRPImageController().getImage(inFramework: "ic_rating_star", inApp: nil)
-            starIcon.tintColor = ColorSet.ratingStar.uiColor
-            starIcon.translatesAutoresizingMaskIntoConstraints = false
-            starIcon.contentMode = .scaleAspectFit
-            starIcon.widthAnchor.constraint(equalToConstant: 14).isActive = true
-            starIcon.heightAnchor.constraint(equalToConstant: 14).isActive = true
-
-            let spacer2 = UIView()
-            spacer2.translatesAutoresizingMaskIntoConstraints = false
-            spacer2.widthAnchor.constraint(equalToConstant: 4).isActive = true
-
-            let reviewLabel = UILabel()
-            reviewLabel.font = FontSet.montserratRegular.font(14)
-            reviewLabel.textColor = ColorSet.fgWeak.uiColor
-            if let reviewCount = poi.ratingCount {
-                let opinionsText = AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.opinions)
-                reviewLabel.text = "\(reviewCount.formattedWithSeparator) \(opinionsText)"
-            }
-
-            ratingStack.addArrangedSubview(ratingLabel)
-            ratingStack.addArrangedSubview(spacer1)
-            ratingStack.addArrangedSubview(starIcon)
-            ratingStack.addArrangedSubview(spacer2)
-            ratingStack.addArrangedSubview(reviewLabel)
+        let ratingRow = TRPActivityRatingRowView()
+        if isActivity, let poi = step.poi {
+            ratingRow.configure(rating: poi.rating, ratingCount: poi.ratingCount)
         }
 
         let bookingProduct = step.poi?.bookings?.first?.firstProduct()
@@ -544,7 +506,6 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
         } else {
             categoryBadge.backgroundColor = ColorSet.neutral200.uiColor
             categoryLabel.textColor = ColorSet.fgGray.uiColor
-            categoryLabel.font = FontSet.montserratMedium.font(12)
             if let poi = step.poi, let firstCategory = poi.categories.first {
                 categoryLabel.text = firstCategory.name
             } else {
@@ -618,73 +579,13 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
             }
         }
 
-        let priceRowContainer = UIView()
-        priceRowContainer.translatesAutoresizingMaskIntoConstraints = false
-        priceRowContainer.isHidden = true
-
-        let priceRow = UIStackView()
-        priceRow.translatesAutoresizingMaskIntoConstraints = false
-        priceRow.axis = .horizontal
-        priceRow.spacing = 4
-        priceRow.alignment = .center
-
+        let priceRow = TRPActivityPriceRowView()
         if isActivity {
-            var isFreeActivity = false
-            if let price = step.poi?.additionalData?.price, price == 0 {
-                isFreeActivity = true
-            } else if let price = bookingProduct?.price, price == 0 {
-                isFreeActivity = true
-            } else if let poiPrice = step.poi?.price, poiPrice == 0 {
-                isFreeActivity = true
-            }
-
-            if isFreeActivity {
-                let freeLabel = UILabel()
-                freeLabel.font = FontSet.montserratBold.font(16)
-                freeLabel.textColor = ColorSet.primaryText.uiColor
-                freeLabel.text = CommonLocalizationKeys.localized(CommonLocalizationKeys.free)
-                priceRow.addArrangedSubview(freeLabel)
-
-                priceRowContainer.addSubview(priceRow)
-                NSLayoutConstraint.activate([
-                    priceRow.topAnchor.constraint(equalTo: priceRowContainer.topAnchor),
-                    priceRow.bottomAnchor.constraint(equalTo: priceRowContainer.bottomAnchor),
-                    priceRow.trailingAnchor.constraint(equalTo: priceRowContainer.trailingAnchor),
-                ])
-                priceRowContainer.isHidden = false
-            } else {
-                let fromLabel = UILabel()
-                fromLabel.font = FontSet.montserratMedium.font(14)
-                fromLabel.textColor = ColorSet.primaryText.uiColor
-                fromLabel.text = CommonLocalizationKeys.localized(CommonLocalizationKeys.from)
-
-                let priceLabel = UILabel()
-                priceLabel.font = FontSet.montserratBold.font(16)
-                priceLabel.textColor = ColorSet.primaryText.uiColor
-
-                var priceText: String? = nil
-                if let price = step.poi?.additionalData?.price, let currency = step.poi?.additionalData?.currency {
-                    priceText = TRPCurrencyHelper.formatPrice(price, currency: currency)
-                } else if let price = bookingProduct?.price, let currency = bookingProduct?.currency {
-                    priceText = TRPCurrencyHelper.formatPrice(price, currency: currency)
-                } else if let poiPrice = step.poi?.price, poiPrice > 0 {
-                    priceText = TRPCurrencyHelper.formatPrice(poiPrice, currency: "EUR")
-                }
-
-                if let priceText = priceText {
-                    priceLabel.text = priceText
-                    priceRow.addArrangedSubview(fromLabel)
-                    priceRow.addArrangedSubview(priceLabel)
-
-                    priceRowContainer.addSubview(priceRow)
-                    NSLayoutConstraint.activate([
-                        priceRow.topAnchor.constraint(equalTo: priceRowContainer.topAnchor),
-                        priceRow.bottomAnchor.constraint(equalTo: priceRowContainer.bottomAnchor),
-                        priceRow.trailingAnchor.constraint(equalTo: priceRowContainer.trailingAnchor),
-                    ])
-                    priceRowContainer.isHidden = false
-                }
-            }
+            let resolvedPrice: Double? = step.poi?.additionalData?.price
+                ?? bookingProduct?.price.map { Double($0) }
+                ?? step.poi?.price.map { Double($0) }
+            let currency = step.poi?.additionalData?.currency ?? bookingProduct?.currency ?? "EUR"
+            priceRow.configure(value: resolvedPrice, currency: currency)
         }
 
         let reservationButton = TRPButton(title: TimelineLocalizationKeys.localized(TimelineLocalizationKeys.reservation), style: .primary, height: 40)
@@ -701,7 +602,7 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
 
         infoStackView.addArrangedSubview(titleRow)
         if isActivity {
-            infoStackView.addArrangedSubview(ratingStack)
+            infoStackView.addArrangedSubview(ratingRow)
         }
         infoStackView.addArrangedSubview(categoryBadge)
 
@@ -712,8 +613,8 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
             if hasCancellation {
                 infoStackView.addArrangedSubview(cancellationLabel)
             }
-            infoStackView.addArrangedSubview(priceRowContainer)
-            priceRowContainer.widthAnchor.constraint(equalTo: infoStackView.widthAnchor).isActive = true
+            infoStackView.addArrangedSubview(priceRow)
+            priceRow.widthAnchor.constraint(equalTo: infoStackView.widthAnchor).isActive = true
         }
 
         if isActivity {

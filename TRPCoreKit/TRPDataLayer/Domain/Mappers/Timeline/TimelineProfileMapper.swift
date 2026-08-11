@@ -148,7 +148,6 @@ final class TimelineProfileMapper {
         additionalData.bookingId = data.bookingId
         additionalData.title = data.title
         additionalData.imageUrl = data.imageUrl
-        additionalData.description = data.description
         additionalData.startDatetime = data.startDatetime
         additionalData.endDatetime = data.endDatetime
         additionalData.coordinate = data.coordinate

@@ -170,7 +170,7 @@ class TRPTimelineManualPoiCell: UITableViewCell {
     private let categoryLabel: UILabel = {
         let label = UILabel()
         label.translatesAutoresizingMaskIntoConstraints = false
-        label.font = FontSet.montserratMedium.font(12)
+        label.font = FontSet.montserratMedium.font(10)
         label.textColor = ColorSet.fgGray.uiColor
         return label
     }()

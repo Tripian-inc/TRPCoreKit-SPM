@@ -112,11 +112,17 @@ final class TourMapper {
         restModels.compactMap{ map($0) }
     }
 
-    // Map TRPTourSearchDataModel to a domain outcome (products + facets)
+    // Map TRPTourSearchDataModel to a domain outcome (products + facets + pagination)
     func mapDataModel(_ dataModel: TRPTourSearchDataModel) -> TRPTourSearchOutcome {
         let products = map(dataModel.products ?? [])
         let facets = mapFacets(dataModel.facets)
-        return TRPTourSearchOutcome(products: products, facets: facets)
+
+        var pagination: TRPTourPagination?
+        if let total = dataModel.total, let limit = dataModel.limit, let offset = dataModel.offset {
+            pagination = TRPTourPagination(total: total, limit: limit, offset: offset)
+        }
+
+        return TRPTourSearchOutcome(products: products, facets: facets, pagination: pagination)
     }
 
     // Map first facet entry (single provider; providerId = 15) to domain TRPTourFacets

@@ -92,17 +92,17 @@ extension TRPTimelineItineraryViewModel {
         return mergedTimeline?.reservedActivitiesCount ?? 0
     }
 
-    /// Get count of favorite items from timeline (filtered, excludes booked/reserved)
+    /// Get count of favorite items from timeline (filtered, excludes already-planned)
     public func getFavoriteItemsCount() -> Int {
         return filteredFavoriteItems.count
     }
 
-    /// Check if timeline has favorite items (filtered, excludes booked/reserved)
+    /// Check if timeline has favorite items (filtered, excludes already-planned)
     public func hasFavoriteItems() -> Bool {
         return !filteredFavoriteItems.isEmpty
     }
 
-    /// Get favourite items from timeline (filtered, excludes booked/reserved)
+    /// Get favourite items from timeline (filtered, excludes already-planned)
     public func getFavoriteItems() -> [TRPSegmentFavoriteItem] {
         return filteredFavoriteItems
     }
