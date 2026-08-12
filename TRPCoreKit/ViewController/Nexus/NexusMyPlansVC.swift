@@ -146,6 +146,18 @@ public class NexusMyPlansVC: TRPBaseUIViewController {
     @objc private func backTapped() { onClose?() }
     @objc private func addTapped() { onAddTrip?() }
 
+    /// Asks for confirmation before the trip is deleted; declining leaves the list untouched.
+    private func confirmDelete(at row: Int) {
+        showConfirmAlert(
+            title: NexusLocalizationKeys.localized(NexusLocalizationKeys.deleteTrip),
+            message: NexusLocalizationKeys.localized(NexusLocalizationKeys.deleteTripQuestion),
+            confirmTitle: NexusLocalizationKeys.localized(NexusLocalizationKeys.deleteTripSubmit),
+            cancelTitle: TRPLanguagesController.shared.getCancelBtnText(),
+            btnConfirmAction: { [weak self] in
+                self?.viewModel.deleteTrip(at: row)
+            })
+    }
+
     // MARK: - ViewModelDelegate
     public override func viewModel(dataLoaded: Bool) {
         DispatchQueue.main.async { [weak self] in
@@ -169,6 +181,11 @@ extension NexusMyPlansVC: UITableViewDataSource, UITableViewDelegate {
         let cell = tableView.dequeueReusableCell(withIdentifier: NexusTripCardCell.reuseId, for: indexPath)
         if let cell = cell as? NexusTripCardCell {
             cell.configure(with: viewModel.trip(at: indexPath.row))
+            cell.onDelete = { [weak self, weak tableView] in
+                guard let self = self, let tableView = tableView,
+                      let row = tableView.indexPath(for: cell)?.row else { return }
+                self.confirmDelete(at: row)
+            }
         }
         return cell
     }

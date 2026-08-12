@@ -24,6 +24,9 @@ public struct NexusLocalizationKeys {
     public static let noTripsYet = "trips.myPlans.empty"
     /// Suffix for the "X days until your trip" pill. The count is prefixed in code.
     public static let daysUntilTrip = "trips.myPlans.daysUntilTrip"
+    public static let deleteTrip = "trips.deleteTrip.title"
+    public static let deleteTripQuestion = "trips.deleteTrip.question"
+    public static let deleteTripSubmit = "trips.deleteTrip.submit"
 
     // MARK: - English fallbacks
     private static let defaultValues: [String: String] = [
@@ -37,7 +40,10 @@ public struct NexusLocalizationKeys {
         destinations: "Destinations",
         noResults: "No destinations found",
         noTripsYet: "No trips yet",
-        daysUntilTrip: "days until your trip"
+        daysUntilTrip: "days until your trip",
+        deleteTrip: "Delete trip",
+        deleteTripQuestion: "Are you sure you want to delete this trip?",
+        deleteTripSubmit: "Delete"
     ]
 
     public static func localized(_ key: String) -> String {

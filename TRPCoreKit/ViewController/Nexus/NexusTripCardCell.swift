@@ -15,6 +15,8 @@ final class NexusTripCardCell: UITableViewCell {
 
     static let reuseId = "NexusTripCardCell"
 
+    var onDelete: (() -> Void)?
+
     private let cardView: UIView = {
         let v = UIView()
         v.translatesAutoresizingMaskIntoConstraints = false
@@ -61,6 +63,20 @@ final class NexusTripCardCell: UITableViewCell {
         l.font = FontSet.montserratSemiBold.font(12)
         l.textColor = .white
         return l
+    }()
+
+    private let deleteButton: UIButton = {
+        let b = UIButton(type: .custom)
+        b.translatesAutoresizingMaskIntoConstraints = false
+        b.backgroundColor = .white
+        b.tintColor = ColorSet.primary.uiColor
+        let icon = TRPImageController().getImage(inFramework: "btn_delete_trip", inApp: nil)?
+            .withRenderingMode(.alwaysTemplate)
+        b.setImage(icon, for: .normal)
+        b.contentHorizontalAlignment = .center
+        b.layer.cornerRadius = 18
+        b.layer.masksToBounds = true
+        return b
     }()
 
     private let titleLabel: UILabel = {
@@ -123,6 +139,8 @@ final class NexusTripCardCell: UITableViewCell {
         cardView.addSubview(daysPill)
         daysPill.addSubview(daysIcon)
         daysPill.addSubview(daysLabel)
+        cardView.addSubview(deleteButton)
+        deleteButton.addTarget(self, action: #selector(deleteTapped), for: .touchUpInside)
         cardView.addSubview(titleLabel)
         cardView.addSubview(countryIcon)
         cardView.addSubview(countryLabel)
@@ -159,6 +177,12 @@ final class NexusTripCardCell: UITableViewCell {
             daysLabel.leadingAnchor.constraint(equalTo: daysIcon.trailingAnchor, constant: 5),
             daysLabel.trailingAnchor.constraint(equalTo: daysPill.trailingAnchor, constant: -10),
             daysLabel.centerYAnchor.constraint(equalTo: daysPill.centerYAnchor),
+
+            deleteButton.topAnchor.constraint(equalTo: coverImageView.topAnchor, constant: 12),
+            deleteButton.trailingAnchor.constraint(equalTo: coverImageView.trailingAnchor, constant: -12),
+            deleteButton.widthAnchor.constraint(equalToConstant: 36),
+            deleteButton.heightAnchor.constraint(equalToConstant: 36),
+            deleteButton.leadingAnchor.constraint(greaterThanOrEqualTo: daysPill.trailingAnchor, constant: 8),
 
             countryIcon.leadingAnchor.constraint(equalTo: cardView.leadingAnchor, constant: 16),
             countryIcon.bottomAnchor.constraint(equalTo: coverImageView.bottomAnchor, constant: -12),
@@ -218,6 +242,11 @@ final class NexusTripCardCell: UITableViewCell {
         coverImageView.sd_cancelCurrentImageLoad()
         coverImageView.image = nil
         daysPill.isHidden = true
+        onDelete = nil
+    }
+
+    @objc private func deleteTapped() {
+        onDelete?()
     }
 }
 

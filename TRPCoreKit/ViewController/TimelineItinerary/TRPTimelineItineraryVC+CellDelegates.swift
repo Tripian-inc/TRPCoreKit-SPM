@@ -141,7 +141,7 @@ extension TRPTimelineItineraryVC: TRPTimelineActivityStepCellDelegate {
 
 extension TRPTimelineItineraryVC: TRPTimelineManualPoiCellDelegate {
 
-    func manualPoiCellDidTapChangeTime(_ cell: TRPTimelineManualPoiCell, segment: TRPTimelineSegment) {
+    func manualPoiCellDidTapChangeTime(_ cell: TRPTimelineManualPoiCell, segment: TRPTimelineSegment, poi: TRPPoi?) {
         segmentBeingEdited = segment
 
         let timeRangeVC = TRPTimeRangeSelectionViewController()
@@ -157,6 +157,7 @@ extension TRPTimelineItineraryVC: TRPTimelineManualPoiCellDelegate {
            let startDate = parseStepDateTime(startDateStr),
            let endDate = parseStepDateTime(endDateStr) {
             timeRangeVC.setInitialTimes(from: startDate, to: endDate)
+            timeRangeVC.setOpeningHours(poi?.hours, on: startDate)
         }
 
         timeRangeVC.show(from: self)
@@ -340,6 +341,7 @@ extension TRPTimelineItineraryVC: TRPTimelineRecommendationsCellDelegate {
            let startDate = parseStepDateTime(startDateTimes),
            let endDate = parseStepDateTime(endDateTimes) {
             timeRangeVC.setInitialTimes(from: startDate, to: endDate)
+            timeRangeVC.setOpeningHours(step.poi?.hours, on: startDate)
         }
 
         timeRangeVC.show(from: self)

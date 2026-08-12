@@ -27,7 +27,9 @@ public struct AddPlanLocalizationKeys {
 
     // MARK: - Time Range Selection
     public static let timeTitle = "addPlan.title.time"
-    
+    public static let closedAtSelectedTime = "addPlan.message.closedAtSelectedTime"
+    public static let openHours = "addPlan.label.openHours"
+
     // MARK: - Selection Mode
     public static let howToAddPlans = "addPlan.label.howToAddPlans"
     public static let smartRecommendations = "addPlan.mode.smartRecommendations"
@@ -153,6 +155,8 @@ public struct AddPlanLocalizationKeys {
         endTime: "End Time",
         clearSelection: "Clear Selection",
         timeTitle: "Time",
+        closedAtSelectedTime: "This place is closed at the selected time.",
+        openHours: "Open",
         howToAddPlans: "How do you want to add plans?",
         smartRecommendations: "Smart Recommendations",
         smartRecommendationsDescription: "Enhance your trip with smart recommendations based on your planning.",
