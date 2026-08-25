@@ -8,7 +8,8 @@
 //  hard-coding a single customer's values. Mirrors the Android `TripianProvider`.
 //
 //  Defaults to `.civitatis` so the original SDK behavior (id 15, "C_" prefix) is
-//  preserved for existing hosts; the Nexus entry switches it to `.nexus`.
+//  preserved for existing hosts; the Nexus entry switches it to `.nexus` and
+//  CruiseGenie to `.getYourGuide`.
 //
 
 import Foundation
@@ -16,21 +17,25 @@ import Foundation
 public enum TripianProvider {
     case civitatis
     case nexus
+    case getYourGuide
 
     /// Numeric tour-api provider id used by product-lookup / availability calls.
     public var id: Int {
         switch self {
-        case .civitatis: return 15
-        case .nexus:     return 7   // Juniper
+        case .civitatis:    return 15
+        case .nexus:        return 7   // Juniper
+        case .getYourGuide: return 4
         }
     }
 
     /// Prefix the tour-api uses to wrap a raw product id into a timeline activity
-    /// id: `{prefix}{productId}_{id}[_{cityId}]`. Civitatis "C_", Nexus(Juniper) "J_".
+    /// id: `{prefix}{productId}_{id}[_{cityId}]`. Civitatis "C_", Nexus(Juniper) "J_",
+    /// GetYourGuide "G_".
     public var activityIdPrefix: String {
         switch self {
-        case .civitatis: return "C_"
-        case .nexus:     return "J_"
+        case .civitatis:    return "C_"
+        case .nexus:        return "J_"
+        case .getYourGuide: return "G_"
         }
     }
 
@@ -41,17 +46,18 @@ public enum TripianProvider {
     /// ids are `"{id}¬{TYPE}"` (e.g. "9148¬TKT", ¬ = U+00AC NOT SIGN) — which is what
     /// the tapped segment/step carries. Convert by swapping the two halves around `|`.
     /// Idempotent: ids without the separator (or not in the `{digits}¬{TYPE}` shape)
-    /// pass through unchanged. Civitatis: identity.
+    /// pass through unchanged. Civitatis and GetYourGuide: identity.
     public var showsActivityCategories: Bool {
         switch self {
-        case .civitatis: return true
-        case .nexus:     return false
+        case .civitatis:    return true
+        case .nexus:        return false
+        case .getYourGuide: return false
         }
     }
 
     public func activityDetailId(fromRaw rawId: String) -> String {
         switch self {
-        case .civitatis:
+        case .civitatis, .getYourGuide:
             return rawId
         case .nexus:
             let separator: Character = "\u{AC}"
