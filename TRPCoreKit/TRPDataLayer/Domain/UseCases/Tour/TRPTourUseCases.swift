@@ -167,3 +167,35 @@ extension TRPTourUseCases: FetchTourUseCase {
         }
     }
 }
+
+extension TRPTourUseCases {
+
+    /// Products attached to a single poi. Narrowing by poiId means no coordinates or
+    /// radius are sent, so the result is the poi's own products rather than what is nearby.
+    /// - Parameters:
+    ///   - date: "yyyy-MM-dd". The search asks for instant availability, which is only
+    ///           meaningful against a day, so a page comes back near empty without it.
+    ///   - dateTo: "yyyy-MM-dd" end of the range; falls back to `date`.
+    public func executeFetchTours(poiId: String,
+                                  cityId: Int,
+                                  date: String,
+                                  dateTo: String? = nil,
+                                  currency: String? = nil,
+                                  completion: @escaping (Result<[TRPTourProduct], Error>) -> Void) {
+
+        var params = TourParameters()
+        params.poiId = poiId
+        params.currency = currency
+        params.date = date
+        params.dateTo = dateTo ?? date
+
+        tourRepository.fetchTours(cityId: cityId, parameters: params) { result in
+            switch result {
+            case .success(let outcome):
+                completion(.success(outcome.products))
+            case .failure(let error):
+                completion(.failure(error))
+            }
+        }
+    }
+}
