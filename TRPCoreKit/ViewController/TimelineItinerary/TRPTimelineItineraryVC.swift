@@ -35,6 +35,11 @@ public class TRPTimelineItineraryVC: TRPBaseUIViewController {
 
     internal var viewModel: TRPTimelineItineraryViewModel!
     public weak var delegate: TRPTimelineItineraryVCDelegate?
+
+    /// Opens the add plan sheet as soon as the timeline is on screen. For a host whose own
+    /// entry point is "add something to this day" rather than "look at this day", which would
+    /// otherwise have to wait for the screen to load before it could ask.
+    public var opensAddPlanWhenReady: Bool = false
     internal var map: TRPMapView?
     internal var hasLoadedInitialMapData: Bool = false
 

@@ -39,6 +39,7 @@ public class TRPTimelineCoordinator: CoordinatorProtocol {
     private var timelineRepository: TimelineRepository
     private var timelineModelRepository: TimelineModelRepository
     private var currentTripHash: String?
+    private var opensAddPlan = false
     private var tryCount = 0
     private let maxTryCount = 8
 
@@ -90,8 +91,11 @@ public class TRPTimelineCoordinator: CoordinatorProtocol {
     /// Start timeline flow with existing trip hash (fetch existing timeline)
     /// This will fetch the timeline and display it immediately
     /// - Parameter tripHash: The trip hash for the existing timeline
-    public func start(tripHash: String) {
+    /// - Parameter openingAddPlan: Goes straight into the add plan sheet once the timeline is
+    ///   on screen, for a host whose entry point is adding to the day rather than reading it.
+    public func start(tripHash: String, openingAddPlan: Bool = false) {
         self.currentTripHash = tripHash
+        self.opensAddPlan = openingAddPlan
         fetchTimeline(tripHash: tripHash)
     }
 
@@ -179,6 +183,8 @@ public class TRPTimelineCoordinator: CoordinatorProtocol {
         let viewModel = TRPTimelineItineraryViewModel(tripHash: tripHash, mergeProfile: mergeProfile)
         let viewController = TRPTimelineItineraryVC(viewModel: viewModel)
         viewController.delegate = self
+        viewController.opensAddPlanWhenReady = opensAddPlan
+        opensAddPlan = false
 
         self.timelineViewController = viewController
 
@@ -248,8 +254,7 @@ extension TRPTimelineCoordinator: TRPTimelineItineraryVCDelegate {
     }
 
     public func timelineItineraryAddPlansPressed(_ viewController: TRPTimelineItineraryVC) {
-        // TODO: Implement add plans functionality
-        // This will likely open the AddPlanContainer flow
+        viewController.showAddPlanFlow()
     }
 
     public func timelineItineraryDidSelectStep(_ viewController: TRPTimelineItineraryVC, step: TRPTimelineStep) {

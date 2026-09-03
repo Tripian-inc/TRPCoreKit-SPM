@@ -165,6 +165,11 @@ extension TRPTimelineItineraryVC: TRPTimelineItineraryViewModelDelegate {
         conflictWarningDismissedDayIndex = nil
         viewModel(hideLottie: .bottomSheet)
         reload()
+
+        if opensAddPlanWhenReady {
+            opensAddPlanWhenReady = false
+            showAddPlanFlow()
+        }
     }
 
     public func timelineItineraryViewModel(noCitiesAvailable: Bool) {
