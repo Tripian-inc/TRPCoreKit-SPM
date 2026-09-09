@@ -14,4 +14,8 @@ public protocol LanguagesRepository {
     var currentLanguageResults: [String: Any] {get set}
     
     func fetchLanguages(completion: @escaping ((Result<TRPLanguagesInfoModel, Error>) -> Void))
+
+    /// Fetches the translations of the current language only (`misc/frontend-translationsv2`).
+    /// - Returns: the translations payload of that single language.
+    func fetchCurrentLanguageTranslations(completion: @escaping ((Result<[String: Any], Error>) -> Void))
 }

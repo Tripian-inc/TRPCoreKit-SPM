@@ -25,6 +25,7 @@ class PopupAlert: UIViewController {
     
     var btnConfirmAction: (() -> Void)?
     var btnCancelAction: (() -> Void)?
+    var btnOkCompletion: (() -> Void)?
     public var delegate: PopupAlertDelegate?
     
     private var contentTitle: String = ""
@@ -52,7 +53,7 @@ class PopupAlert: UIViewController {
     
     func setupView() {
 //        contentLbl.textColor = appTheme.color.text_grey
-        
+
         if message?.contains("</") == true {
             contentLbl.attributedText = message?.htmlToAttributedString
         } else {
@@ -60,24 +61,28 @@ class PopupAlert: UIViewController {
         }
         titleLbl.isHidden = contentTitle.isEmpty
         titleLbl.text = contentTitle
-        
+
         stackConfirm.isHidden = forOneButton
         button.isHidden = !forOneButton
-        
+
         btnConfirm.setTitle(btnTitle)
         btnCancel.setTitle(btnCancelTitle)
         button.setTitle(btnTitle)
-        
+
         btnConfirm.makePositiveConfirmBtn()
         if let attributedMessage = self.attributedMessage {
             contentLbl.attributedText = attributedMessage
         }
+        contentLbl.isHidden = message?.isEmpty ?? true
         subContentLbl.isHidden = subContentTitle.isEmpty
         subContentLbl.text = subContentTitle
     }
     @IBAction func okAction(_ sender: Any) {
-        btnConfirmAction?()
-        closeSelf()
+        // Dismiss the alert first, then fire the confirm action so that any
+        // loading UI shown inside the action doesn't get pulled away by the
+        // dismiss animation.
+        let action = btnConfirmAction
+        closeSelf { action?() }
     }
     
     @IBAction func cancelAction(_ sender: Any) {
@@ -85,6 +90,7 @@ class PopupAlert: UIViewController {
         closeSelf()
     }
     @IBAction func buttonAction(_ sender: Any) {
+        btnOkCompletion?()
         closeSelf()
     }
     
@@ -98,13 +104,23 @@ class PopupAlert: UIViewController {
         self.message = message
         self.subContentTitle = subContent
         if btnTitle != nil {self.btnTitle = btnTitle!}
-        
+        self.btnOkCompletion = nil
+    }
+
+    public func configWithCompletion(title: String = "", message: String, subContent: String = "", btnTitle: String? = nil, completion: @escaping () -> Void) {
+        self.contentTitle = title
+        self.message = message
+        self.subContentTitle = subContent
+        if btnTitle != nil {self.btnTitle = btnTitle!}
+        self.forOneButton = true
+        self.btnOkCompletion = completion
     }
     
     public func configForConfirm(title: String = "", message: String, btnTitle: String, btnCancelTitle: String = "Cancel", attributedMessage: NSAttributedString? = nil, btnConfirmAction: (() -> Void)?, btnCancelAction: (() -> Void)? = nil) {
         forOneButton = false
         self.contentTitle = title
         self.message = message
+        self.subContentTitle = ""  // Reset subContent from previous alerts
         self.btnTitle = btnTitle
         self.btnCancelTitle = btnCancelTitle
         self.btnConfirmAction = btnConfirmAction
@@ -116,9 +132,9 @@ class PopupAlert: UIViewController {
         closeSelf()
     }
     
-    public func closeSelf() {
+    public func closeSelf(completion: (() -> Void)? = nil) {
         self.delegate?.closedPopup()
-        self.dismiss(animated: true, completion: nil)
+        self.dismiss(animated: true, completion: completion)
     }
 }
 
@@ -172,7 +188,7 @@ class TRPBtnPopup: TRPBtn {
     
     fileprivate override func setupUI() {
         super.setupUI()
-        layer.cornerRadius = 20
+        layer.cornerRadius = 24
         setTitleColor(.white, for: .normal)
 //        tintColor = appTheme.color.white
     }

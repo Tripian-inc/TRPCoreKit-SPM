@@ -2,8 +2,8 @@
 //  AddPlanSteps.swift
 //  TRPCoreKit
 //
-//  Created by Cem Çaygöz on 22.12.2024.
-//  Copyright © 2024 Tripian Inc. All rights reserved.
+//  Created by Cem Çaygöz on 22.12.2025.
+//  Copyright © 2025 Tripian Inc. All rights reserved.
 //
 
 import Foundation

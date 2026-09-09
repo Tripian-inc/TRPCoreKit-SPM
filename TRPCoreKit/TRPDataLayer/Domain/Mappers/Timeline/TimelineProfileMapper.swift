@@ -115,6 +115,9 @@ final class TimelineProfileMapper {
         restKitSegment.excludedActivityIds = _segment.excludedActivityIds
         restKitSegment.doNotGenerate = _segment.doNotGenerate
 
+        // Currency from global SDK setting
+        restKitSegment.currency = TRPClient.getCurrency()
+
         // Set additional data for booked/reserved activities
         if let additionalData = _segment.additionalData {
             restKitSegment.additionalData = mapAdditionalData(from: additionalData)
@@ -145,7 +148,6 @@ final class TimelineProfileMapper {
         additionalData.bookingId = data.bookingId
         additionalData.title = data.title
         additionalData.imageUrl = data.imageUrl
-        additionalData.description = data.description
         additionalData.startDatetime = data.startDatetime
         additionalData.endDatetime = data.endDatetime
         additionalData.coordinate = data.coordinate
@@ -155,6 +157,9 @@ final class TimelineProfileMapper {
             additionalData.price = price.value
             additionalData.currency = price.currency
         }
+        additionalData.rating = data.rating
+        additionalData.ratingCount = data.ratingCount
+        additionalData.isNoLocation = data.isNoLocation
         // Note: TRPRestKit model doesn't have adultCount/childCount
         // These are stored in the segment itself, not in additionalData
         return additionalData

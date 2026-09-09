@@ -1,0 +1,12 @@
+{
+  "images" : [
+    {
+      "filename" : "ic_opening_hours.svg",
+      "idiom" : "universal"
+    }
+  ],
+  "info" : {
+    "author" : "xcode",
+    "version" : 1
+  }
+}

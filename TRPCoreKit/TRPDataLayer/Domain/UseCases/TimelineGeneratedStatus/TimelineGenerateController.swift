@@ -48,16 +48,9 @@ class TimelineGenerateController {
                         self?.fetchTimeline(hash: hash, completion: completion)
                     }
                 }
-                
-                let firstNotEmptyItineraryIndex = trip.tripProfile?.segments.firstIndex(where: { $0.title != "Empty" && $0.segmentType == .itinerary}) ?? 0
 
-                let firstStatus = generated[firstNotEmptyItineraryIndex]
-                if firstStatus > 0 {
-                    completion?(.success(trip))
-                } else if firstStatus < 0 {
-                    let errorMessage = TimelineLocalizationKeys.localized(TimelineLocalizationKeys.errorGenerationFailed)
-                    completion?(.failure(GeneralError.customMessage(errorMessage)))
-                }
+                completion?(.success(trip))
+
             case .failure(let error):
                 completion?(.failure(error))
             }

@@ -291,8 +291,8 @@ class TRPTimelineMockDataUsageExample {
                 print("Remove step: \(step.poi?.name ?? "Unknown")")
             }
 
-            func timelineItineraryDidRequestActivityReservation(_ viewController: TRPTimelineItineraryVC, activityId: String) {
-                print("Reservation requested for activity: \(activityId)")
+            func timelineItineraryDidRequestActivityReservation(_ viewController: TRPTimelineItineraryVC, activityId: String, date: Date) {
+                print("Reservation requested for activity: \(activityId) date: \(date)")
             }
         }
         

@@ -25,7 +25,7 @@ Add Tripian Core Kit to your `Package.swift`:
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/Tripian-inc/TRPCoreKit-SPM.git", branch: "main")
+    .package(url: "https://github.com/Tripian-inc/TRPCoreKit-SPM.git", branch: "civitatis")
 ]
 ```
 
@@ -41,6 +41,7 @@ TRPCoreKit.initialize(
     environment: .production,
     apiKey: "YOUR_API_KEY",
     language: "en",
+    currency: "EUR",
     delegate: self
 )
 
@@ -62,7 +63,11 @@ let itinerary = TRPItineraryWithActivities(
     tripItems: nil
 )
 
+// Start with new itinerary
 TRPCoreKit.startWithItinerary(itinerary, from: self)
+
+// Or reopen existing timeline with tripHash
+// TRPCoreKit.startWithItinerary(itinerary, tripHash: "saved-hash", from: self)
 
 // 3. Implement delegate
 extension YourVC: TRPCoreKitDelegate {
@@ -78,6 +83,10 @@ extension YourVC: TRPCoreKitDelegate {
     func trpCoreKitDidCreateTimeline(tripHash: String) {
         // Save tripHash for reopening timeline later
         UserDefaults.standard.set(tripHash, forKey: "tripHash")
+    }
+
+    func trpCoreKitDidAddActivity(activityId: String) {
+        // User manually added an activity to the timeline
     }
 }
 ```
@@ -116,7 +125,8 @@ For complete documentation, see:
 TRPCoreKit.initialize(
     environment: .production,  // .predev, .dev, .test, .production
     apiKey: String,
-    language: String = "en",
+    language: String = "en",   // Supported: en, fr, es, pt, de, nl, pt-br, it, ja
+    currency: String = "USD",  // Supported: USD, EUR, GBP, TRY, etc.
     delegate: TRPCoreKitDelegate? = nil
 )
 
@@ -126,6 +136,7 @@ TRPCoreKit.initialize(
     basePath: String,
     apiKey: String,
     language: String = "en",
+    currency: String = "USD",
     delegate: TRPCoreKitDelegate? = nil
 )
 ```
@@ -137,6 +148,7 @@ TRPCoreKit.initialize(
 TRPCoreKit.startWithItinerary(
     _ itinerary: TRPItineraryWithActivities,
     tripHash: String? = nil,
+    uniqueId: String? = nil,  // Optional - uses device ID if not provided
     from viewController: UIViewController,
     canBack: Bool = true
 )
@@ -183,17 +195,112 @@ public protocol TRPCoreKitDelegate: AnyObject {
     /// Called when a new timeline is successfully created
     /// - Parameter tripHash: Unique identifier for the timeline
     func trpCoreKitDidCreateTimeline(tripHash: String)
+
+    /// Called when user manually adds an activity to the timeline
+    /// - Parameter activityId: Activity identifier
+    func trpCoreKitDidAddActivity(activityId: String)
 }
 ```
 
 ### Data Models
 
-| Model | Description |
-|-------|-------------|
-| `TRPItineraryWithActivities` | Main itinerary model with trip details |
-| `TRPSegmentDestinationItem` | Destination (city) information |
-| `TRPSegmentActivityItem` | Booked activity information |
-| `TRPSegmentFavoriteItem` | Wishlisted/saved activity |
+#### TRPItineraryWithActivities
+
+Main itinerary model containing trip details and activities.
+
+```swift
+public struct TRPItineraryWithActivities {
+    var tripName: String?                              // Trip display name
+    var startDatetime: String                          // Format: "yyyy-MM-dd HH:mm"
+    var endDatetime: String                            // Format: "yyyy-MM-dd HH:mm"
+    var uniqueId: String                               // User identifier
+    var tripianHash: String?                           // Existing trip hash (for reopening)
+    var destinationItems: [TRPSegmentDestinationItem]  // Destinations/cities
+    var favouriteItems: [TRPSegmentFavoriteItem]?      // Wishlisted activities
+    var tripItems: [TRPSegmentActivityItem]?           // Booked activities
+}
+```
+
+#### TRPSegmentDestinationItem
+
+Destination (city) information.
+
+```swift
+public struct TRPSegmentDestinationItem {
+    var title: String           // City name (e.g., "Barcelona")
+    var coordinate: String      // Format: "lat,lon" (e.g., "41.3851,2.1734")
+    var cityId: Int?            // Tripian city ID (recommended for accuracy)
+}
+```
+
+#### TRPSegmentActivityItem
+
+Booked activity information.
+
+```swift
+public struct TRPSegmentActivityItem {
+    var activityId: String?                // Activity identifier
+    var bookingId: String?                 // Booking reference ID
+    var title: String?                     // Activity title
+    var imageUrl: String?                  // Activity image URL
+    var description: String?               // Activity description
+    var startDatetime: String?             // Format: "yyyy-MM-dd HH:mm"
+    var endDatetime: String?               // Format: "yyyy-MM-dd HH:mm"
+    var coordinate: TRPLocation            // Activity location (lat/lon)
+    var cancellation: String?              // Cancellation policy text
+    var adultCount: Int                    // Number of adults (default: 1)
+    var childCount: Int                    // Number of children (default: 0)
+    var bookingUrl: String?                // URL to view booking details
+    var duration: Double?                  // Duration in minutes
+    var price: TRPSegmentActivityPrice?    // Price information
+    var cityId: Int?                       // Tripian city ID
+}
+```
+
+#### TRPSegmentFavoriteItem
+
+Wishlisted/saved activity information.
+
+```swift
+public struct TRPSegmentFavoriteItem {
+    var activityId: String?                // Activity identifier
+    var title: String                      // Activity title
+    var cityName: String                   // City name
+    var cityId: Int?                       // Tripian city ID
+    var photoUrl: String?                  // Activity image URL
+    var description: String?               // Activity description
+    var activityUrl: String?               // URL to activity page
+    var coordinate: TRPLocation            // Activity location (lat/lon)
+    var rating: Float?                     // Rating (0-5)
+    var ratingCount: Int?                  // Number of ratings
+    var cancellation: String?              // Cancellation policy text
+    var duration: Double?                  // Duration in minutes
+    var price: TRPSegmentActivityPrice?    // Price information
+    var locations: [String]?               // Meeting point locations
+}
+```
+
+#### TRPSegmentActivityPrice
+
+Price information for activities.
+
+```swift
+public struct TRPSegmentActivityPrice {
+    var currency: String    // Currency code (e.g., "USD", "EUR")
+    var value: Double       // Price amount
+}
+```
+
+#### TRPLocation
+
+Location coordinates (from TRPFoundationKit).
+
+```swift
+public struct TRPLocation {
+    var lat: Double    // Latitude
+    var lon: Double    // Longitude
+}
+```
 
 ## Architecture
 

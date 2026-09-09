@@ -15,56 +15,30 @@ public class AddPlanPOIListingVC: TRPBaseUIViewController {
     // MARK: - Properties
     public var viewModel: AddPlanPOIListingViewModel!
     private var isLoadingMore = false
+    private var customNavigationBar: TRPTimelineCustomNavigationBar!
 
-    // Temporarily stores selected POI while time range is being selected
+    private static let skeletonRowCount: Int = 6
+
+    /// One-shot guard: the VM may emit the `.lottie` state twice during a single fetch.
+    private var lottiePresented: Bool = false
+
+
     private var pendingPoi: TRPPoi?
 
-    // Callback when segment is created successfully
-    public var onSegmentCreated: (() -> Void)?
+    private var pendingPoiName: String?
+
+    /// Legacy "dismiss everything on success" callback; internal flow uses `onSegmentCreatedSilent`.
+    public var onSegmentCreated: ((Date?) -> Void)?
+
+    /// Fired after the manual-POI add + regeneration poll; listing stays open, host refreshes silently.
+    public var onSegmentCreatedSilent: ((Date?) -> Void)?
 
     // MARK: - Lifecycle
     public override func viewDidLoad() {
         super.viewDidLoad()
-        setupNavigationBar()
+        navigationController?.setNavigationBarHidden(true, animated: false)
         viewModel.delegate = self
         viewModel.performInitialFetch()
-    }
-
-    private func setupNavigationBar() {
-        title = viewModel.getTitle()
-        navigationController?.navigationBar.prefersLargeTitles = false
-
-        // Add back button
-        let backButton = UIBarButtonItem(
-            image: TRPImageController().getImage(inFramework: "ic_back", inApp: nil),
-            style: .plain,
-            target: self,
-            action: #selector(backButtonTapped)
-        )
-        backButton.tintColor = ColorSet.primaryText.uiColor
-        navigationItem.leftBarButtonItem = backButton
-
-        // Navigation bar appearance
-        let appearance = UINavigationBarAppearance()
-        appearance.configureWithOpaqueBackground()
-        appearance.backgroundColor = .white
-        appearance.shadowColor = .clear
-        appearance.titleTextAttributes = [
-            .foregroundColor: ColorSet.primaryText.uiColor,
-            .font: FontSet.montserratSemiBold.font(18)
-        ]
-
-        navigationController?.navigationBar.standardAppearance = appearance
-        navigationController?.navigationBar.scrollEdgeAppearance = appearance
-    }
-    
-    public override func viewWillAppear(_ animated: Bool) {
-        super.viewWillAppear(animated)
-        showNavigationBar()
-    }
-
-    @objc private func backButtonTapped() {
-        dismiss(animated: true)
     }
 
     // MARK: - UI Components
@@ -74,13 +48,6 @@ public class AddPlanPOIListingVC: TRPBaseUIViewController {
         searchBar.placeholder = AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.searchPOIPlace)
         searchBar.delegate = self
         return searchBar
-    }()
-    
-    private let separatorView: UIView = {
-        let view = UIView()
-        view.translatesAutoresizingMaskIntoConstraints = false
-        view.backgroundColor = ColorSet.lineWeak.uiColor
-        return view
     }()
 
     private lazy var filterButton: UIButton = {
@@ -95,7 +62,6 @@ public class AddPlanPOIListingVC: TRPBaseUIViewController {
         button.layer.borderColor = ColorSet.lineWeak.uiColor.cgColor
         button.contentEdgeInsets = UIEdgeInsets(top: 6, left: 12, bottom: 6, right: 12)
 
-        // Add filter icon
         let image = TRPImageController().getImage(inFramework: "ic_filter_activity", inApp: nil)
         button.setImage(image, for: .normal)
         button.tintColor = ColorSet.fgWeak.uiColor
@@ -116,7 +82,6 @@ public class AddPlanPOIListingVC: TRPBaseUIViewController {
         button.layer.borderColor = ColorSet.lineWeak.uiColor.cgColor
         button.contentEdgeInsets = UIEdgeInsets(top: 6, left: 12, bottom: 6, right: 12)
 
-        // Add sort icon
         let image = TRPImageController().getImage(inFramework: "ic_order_activity", inApp: nil)
         button.setImage(image, for: .normal)
         button.tintColor = ColorSet.fgWeak.uiColor
@@ -143,12 +108,15 @@ public class AddPlanPOIListingVC: TRPBaseUIViewController {
         label.text = "0 \(AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.places))"
         return label
     }()
-
-    private lazy var infoButton: UIButton = {
-        let button = UIButton(type: .infoLight)
-        button.tintColor = ColorSet.fgWeak.uiColor
-        button.translatesAutoresizingMaskIntoConstraints = false
-        return button
+    
+    private lazy var infoImageView: UIImageView = {
+        let imageView = UIImageView()
+        imageView.image = UIImage(systemName: "info.circle")
+        imageView.tintColor = ColorSet.neutral500.uiColor
+        imageView.contentMode = .scaleAspectFit
+        imageView.translatesAutoresizingMaskIntoConstraints = false
+        imageView.isUserInteractionEnabled = true
+        return imageView
     }()
 
     private lazy var tableView: UITableView = {
@@ -156,12 +124,20 @@ public class AddPlanPOIListingVC: TRPBaseUIViewController {
         tableView.translatesAutoresizingMaskIntoConstraints = false
         tableView.backgroundColor = .white
         tableView.separatorStyle = .none
+        tableView.showsVerticalScrollIndicator = false
         tableView.delegate = self
         tableView.dataSource = self
         tableView.estimatedRowHeight = 96
         tableView.rowHeight = UITableView.automaticDimension
         tableView.register(POIListingCell.self, forCellReuseIdentifier: POIListingCell.reuseIdentifier)
         return tableView
+    }()
+
+    /// Lives as the table's `tableHeaderView` so filter/sort/count scroll with content.
+    private lazy var headerContainerView: UIView = {
+        let view = UIView()
+        view.backgroundColor = .white
+        return view
     }()
 
     private lazy var loadingFooterView: UIView = {
@@ -180,56 +156,115 @@ public class AddPlanPOIListingVC: TRPBaseUIViewController {
         super.setupViews()
         view.backgroundColor = .white
 
+        customNavigationBar = setupCustomNavigationBar(title: viewModel.getTitle())
+        customNavigationBar.delegate = self
+
         view.addSubview(searchBar)
-        view.addSubview(separatorView)
-        view.addSubview(filterSortStackView)
-        view.addSubview(poiCountLabel)
-        view.addSubview(infoButton)
         view.addSubview(tableView)
 
+        headerContainerView.addSubview(filterSortStackView)
+        headerContainerView.addSubview(poiCountLabel)
+        headerContainerView.addSubview(infoImageView)
+
         NSLayoutConstraint.activate([
-            // Search Bar
-            searchBar.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 8),
+            searchBar.topAnchor.constraint(equalTo: customNavigationBar.bottomAnchor, constant: 8),
             searchBar.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
             searchBar.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
-            
-            // Separator
-            separatorView.topAnchor.constraint(equalTo: searchBar.bottomAnchor, constant: 24),
-            separatorView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            separatorView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            separatorView.heightAnchor.constraint(equalToConstant: 0.5),
 
-            // Filter and Sort Stack View
-            filterSortStackView.topAnchor.constraint(equalTo: separatorView.bottomAnchor, constant: 24),
-            filterSortStackView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
-            filterSortStackView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
+            // Table pinned edge-to-edge; the 16pt row inset is applied inside POIListingCell.
+            tableView.topAnchor.constraint(equalTo: searchBar.bottomAnchor, constant: 16),
+            tableView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            tableView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            tableView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+
+            filterSortStackView.topAnchor.constraint(equalTo: headerContainerView.topAnchor, constant: 8),
+            filterSortStackView.leadingAnchor.constraint(equalTo: headerContainerView.leadingAnchor, constant: 16),
+            filterSortStackView.trailingAnchor.constraint(equalTo: headerContainerView.trailingAnchor, constant: -16),
             filterSortStackView.heightAnchor.constraint(equalToConstant: 40),
 
-            // POI Count Label
             poiCountLabel.topAnchor.constraint(equalTo: filterSortStackView.bottomAnchor, constant: 16),
-            poiCountLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
+            poiCountLabel.leadingAnchor.constraint(equalTo: headerContainerView.leadingAnchor, constant: 16),
             poiCountLabel.heightAnchor.constraint(equalToConstant: 28),
+            poiCountLabel.bottomAnchor.constraint(equalTo: headerContainerView.bottomAnchor, constant: -8),
 
-            // Info Button
-            infoButton.centerYAnchor.constraint(equalTo: poiCountLabel.centerYAnchor),
-            infoButton.leadingAnchor.constraint(equalTo: poiCountLabel.trailingAnchor, constant: 4),
-            infoButton.heightAnchor.constraint(equalToConstant: 16),
-            infoButton.widthAnchor.constraint(equalToConstant: 16),
-
-            // Table View
-            tableView.topAnchor.constraint(equalTo: poiCountLabel.bottomAnchor, constant: 16),
-            tableView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
-            tableView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
-            tableView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor)
+            infoImageView.centerYAnchor.constraint(equalTo: poiCountLabel.centerYAnchor),
+            infoImageView.leadingAnchor.constraint(equalTo: poiCountLabel.trailingAnchor, constant: 4),
+            infoImageView.heightAnchor.constraint(equalToConstant: 16),
+            infoImageView.widthAnchor.constraint(equalToConstant: 16),
         ])
+
+        tableView.tableHeaderView = headerContainerView
+
+        filterButton.addTarget(self, action: #selector(filterButtonTapped), for: .touchUpInside)
+        sortButton.addTarget(self, action: #selector(sortButtonTapped), for: .touchUpInside)
+
+        let infoTapGesture = UITapGestureRecognizer(target: self, action: #selector(infoIconTapped))
+        infoImageView.addGestureRecognizer(infoTapGesture)
+    }
+
+    public override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+        sizeTableHeaderToFit()
+    }
+
+    /// `tableHeaderView` is frame-driven: measure via Auto Layout, apply via `.frame`. Height check guards an infinite layout loop.
+    private func sizeTableHeaderToFit() {
+        guard let header = tableView.tableHeaderView else { return }
+        let width = tableView.bounds.width
+        guard width > 0 else { return }
+        let target = header.systemLayoutSizeFitting(
+            CGSize(width: width, height: UIView.layoutFittingCompressedSize.height),
+            withHorizontalFittingPriority: .required,
+            verticalFittingPriority: .fittingSizeLevel
+        )
+        if header.frame.size.width != width || header.frame.size.height != target.height {
+            header.frame = CGRect(x: 0, y: 0, width: width, height: target.height)
+            tableView.tableHeaderView = header
+        }
+    }
+
+    // MARK: - Actions
+    @objc private func filterButtonTapped() {
+        let filterVC = AddPlanPOIFilterVC(categoryType: viewModel.categoryType, filterData: viewModel.filterData)
+        filterVC.onFilterApplied = { [weak self] filterData in
+            self?.viewModel.updateFilterData(filterData)
+            self?.updateFilterButtonAppearance()
+
+            // `setContentOffset(.zero)` returns to true top; `scrollToRow(.top)` would hide the header.
+            self?.tableView.setContentOffset(.zero, animated: true)
+        }
+        presentVCWithDynamicHeight(filterVC, prefersGrabberVisible: false, isDimmed: false)
+    }
+
+    @objc private func sortButtonTapped() {
+        let poiSortOptions: [SortOption] = [.popularity, .rating]
+        let sortVC = AddPlanSortByVC(selectedOption: viewModel.selectedSortOption, availableOptions: poiSortOptions)
+        sortVC.onSortOptionSelected = { [weak self] option in
+            self?.viewModel.updateSortOption(option)
+
+            self?.tableView.setContentOffset(.zero, animated: true)
+        }
+        presentVCWithDynamicHeight(sortVC, prefersGrabberVisible: false, isDimmed: false)
+    }
+
+    @objc private func infoIconTapped() {
+        let title = AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.sortingInfoTitle)
+        let message = AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.sortingInfoMessage)
+        let bottomSheetVC = SortingInfoBottomSheetVC(title: title, message: message)
+        presentVCWithDynamicHeight(bottomSheetVC, prefersGrabberVisible: false, isDimmed: true)
     }
 
     private func updatePoiCountLabel() {
-        let count = viewModel.getPoiCount()
-        let placeText = count == 1
-            ? AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.place)
-            : AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.places)
-        poiCountLabel.text = "\(count) \(placeText)"
+        poiCountLabel.text = viewModel.getPoiCountDisplayString()
+    }
+
+    private func updateFilterButtonAppearance() {
+        let filterCount = viewModel.filterData.activeFilterCount
+        let hasFilters = filterCount > 0
+
+        let baseTitle = AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.filters)
+        let title = hasFilters ? "\(baseTitle) (\(filterCount))" : baseTitle
+        filterButton.setTitle(title, for: .normal)
     }
 
     private func updateTableFooter() {
@@ -243,6 +278,9 @@ public class AddPlanPOIListingVC: TRPBaseUIViewController {
 extension AddPlanPOIListingVC: UITableViewDataSource, UITableViewDelegate {
 
     public func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
+        if viewModel.loadingStyle == .skeleton {
+            return Self.skeletonRowCount
+        }
         return viewModel.getPois().count
     }
 
@@ -253,7 +291,9 @@ extension AddPlanPOIListingVC: UITableViewDataSource, UITableViewDelegate {
 
         cell.delegate = self
 
-        if let poi = viewModel.getPoiAt(index: indexPath.row) {
+        if viewModel.loadingStyle == .skeleton {
+            cell.configureSkeleton()
+        } else if let poi = viewModel.getPoiAt(index: indexPath.row) {
             cell.configure(with: poi)
         }
 
@@ -261,9 +301,9 @@ extension AddPlanPOIListingVC: UITableViewDataSource, UITableViewDelegate {
     }
 
     public func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+        guard viewModel.loadingStyle != .skeleton else { return }
         tableView.deselectRow(at: indexPath, animated: true)
 
-        // Navigate to POI detail
         if let poi = viewModel.getPoiAt(index: indexPath.row) {
             openPoiDetail(poi: poi)
         }
@@ -276,8 +316,8 @@ extension AddPlanPOIListingVC: UITableViewDataSource, UITableViewDelegate {
 
         guard contentHeight > frameHeight else { return }
 
-        let threshold: CGFloat = 100
-        if offsetY + frameHeight >= contentHeight - threshold {
+        let paginationThreshold: CGFloat = 100
+        if offsetY + frameHeight >= contentHeight - paginationThreshold {
             if viewModel.hasMorePois() && !isLoadingMore {
                 isLoadingMore = true
                 tableView.tableFooterView = loadingFooterView
@@ -287,7 +327,10 @@ extension AddPlanPOIListingVC: UITableViewDataSource, UITableViewDelegate {
     }
 
     private func openPoiDetail(poi: TRPPoi) {
-        let detailVM = TimelinePoiDetailViewModel(poi: poi)
+        let availableDays = viewModel.planData.availableDays
+        let detailVM = TimelinePoiDetailViewModel(poi: poi,
+                                                  tripStartDate: availableDays.first,
+                                                  tripEndDate: availableDays.last)
         let detailVC = TimelinePoiDetailViewController(viewModel: detailVM)
         navigationController?.pushViewController(detailVC, animated: true)
     }
@@ -298,14 +341,7 @@ extension AddPlanPOIListingVC: TRPSearchBarDelegate {
 
     public func searchBar(_ searchBar: TRPSearchBar, textDidChange text: String) {
         viewModel.updateSearchText(text)
-    }
-
-    public func searchBarDidBeginEditing(_ searchBar: TRPSearchBar) {
-        // Optional
-    }
-
-    public func searchBarDidEndEditing(_ searchBar: TRPSearchBar) {
-        // Optional
+        tableView.setContentOffset(.zero, animated: true)
     }
 
     public func searchBarSearchButtonClicked(_ searchBar: TRPSearchBar) {
@@ -319,14 +355,50 @@ extension AddPlanPOIListingVC: AddPlanPOIListingViewModelDelegate {
     public func poisDidLoad() {
         isLoadingMore = false
         tableView.reloadData()
-        updatePoiCountLabel()
+        // Count label is meaningless during skeleton mode; show it only once back to `.none`.
+        if viewModel.loadingStyle != .skeleton {
+            updatePoiCountLabel()
+        }
         updateTableFooter()
     }
 
-    public func segmentCreatedSuccessfully() {
-        dismiss(animated: true) { [weak self] in
-            self?.onSegmentCreated?()
+    public func poiLoadingStateDidChange() {
+        // Base helper marshals to main so the overlay attaches after the modal starts compositing (else it z-orders beneath).
+        switch viewModel.loadingStyle {
+        case .lottie:
+            if !lottiePresented {
+                lottiePresented = true
+                let text = LoadingLocalizationKeys.localized(LoadingLocalizationKeys.gettingPlaces)
+                viewModel(showLottie: .fullScreen, textMode: .single(text))
+            }
+        case .skeleton, .bottomSheet, .none:
+            // `.bottomSheet` is an Activity Listing case but the shared enum forces it here; treat as skeleton/none.
+            if lottiePresented {
+                lottiePresented = false
+                viewModel(hideLottie: .fullScreen)
+            }
         }
+    }
+
+    public func segmentCreatedSuccessfully() {
+        let activityName = pendingPoiName ?? ""
+        let selectedDay = viewModel.getSelectedDay()
+        viewModel(hideLottie: .bottomSheet, completion: { [weak self] in
+            guard let self = self else { return }
+            let dayLabel = selectedDay?.weekdayWithDayMonth() ?? ""
+            let template = AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.activityAddedToast)
+            let message = String(format: template, activityName, dayLabel)
+            TRPSuccessToast.show(over: self, message: message)
+            self.pendingPoiName = nil
+            self.onSegmentCreatedSilent?(selectedDay)
+        })
+    }
+
+    public override func viewModel(error: Error) {
+        // Tear down any in-flight bottom-sheet loader so it doesn't stack with the error alert.
+        viewModel(hideLottie: .bottomSheet)
+        pendingPoiName = nil
+        super.viewModel(error: error)
     }
 }
 
@@ -334,12 +406,18 @@ extension AddPlanPOIListingVC: AddPlanPOIListingViewModelDelegate {
 extension AddPlanPOIListingVC: POIListingCellDelegate {
 
     func poiListingCellDidTapAdd(_ cell: POIListingCell, poi: TRPPoi) {
-        // Store POI temporarily
         pendingPoi = poi
 
-        // Show time range selection
         let timeRangeVC = TRPTimeRangeSelectionViewController()
         timeRangeVC.delegate = self
+
+        if let selectedDay = viewModel.planData.selectedDay {
+            timeRangeVC.setSelectedDate(selectedDay)
+        }
+
+        // City drives the IANA timezone for "today" / minimum-time, not the device.
+        timeRangeVC.setSelectedCity(viewModel.planData.selectedCity)
+
         timeRangeVC.show(from: self)
     }
 }
@@ -354,10 +432,28 @@ extension AddPlanPOIListingVC: TRPTimeRangeSelectionDelegate {
     public func timeRangeSelected(fromDate: Date, toDate: Date) {
         guard let poi = pendingPoi else { return }
 
-        // Clear pending POI
         pendingPoi = nil
+        pendingPoiName = poi.name
 
-        // Create segment with selected times
+        // Loader stays up through the whole create + GetTimeline poll; success only fires after polling.
+        let text = LoadingLocalizationKeys.localized(LoadingLocalizationKeys.addingToItinerary)
+        viewModel(showLottie: .bottomSheet, textMode: .single(text))
+
         viewModel.createManualPoiSegment(poi: poi, startTime: fromDate, endTime: toDate)
+    }
+}
+
+// MARK: - TRPTimelineCustomNavigationBarDelegate
+extension AddPlanPOIListingVC: TRPTimelineCustomNavigationBarDelegate {
+
+    func customNavigationBarDidTapBack(_ navigationBar: TRPTimelineCustomNavigationBar) {
+        // Tear down the initial-fetch overlay on back, else it orphans over the underlying screen.
+        if lottiePresented {
+            lottiePresented = false
+            viewModel(hideLottie: .fullScreen)
+        }
+        // Dismiss the whole modal chain so back returns to the originating screen (timeline), not AddPlan.
+        let presenter = presentingViewController?.presentingViewController ?? presentingViewController
+        presenter?.dismiss(animated: true)
     }
 }

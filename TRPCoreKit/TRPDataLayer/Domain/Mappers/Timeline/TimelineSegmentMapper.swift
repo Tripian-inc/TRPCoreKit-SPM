@@ -35,7 +35,7 @@ final class TimelineSegmentMapper {
         profile.adults = restModel.adults
         profile.children = restModel.children
         profile.pets = restModel.pets
-//        profile.cityId = restModel.cityId
+        profile.cityId = restModel.cityId
         profile.generatedStatus = restModel.generatedStatus
         profile.answerIds = restModel.answerIds
         profile.doNotRecommend = restModel.doNotRecommend
@@ -84,7 +84,10 @@ final class TimelineSegmentMapper {
             adultCount: 1, // Default value - actual count is in segment.adults
             childCount: 0, // Default value - actual count is in segment.children
             duration: data.duration,
-            price: price
+            price: price,
+            rating: data.rating,
+            ratingCount: data.ratingCount,
+            isNoLocation: data.isNoLocation
         )
     }
 

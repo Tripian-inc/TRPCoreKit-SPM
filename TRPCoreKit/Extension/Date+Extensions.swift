@@ -57,6 +57,13 @@ extension Date {
         return toStringWithoutTimeZone(format: "EE").capitalized
         // or use capitalized(with: locale) if you want
     }
+
+    /// Localized "Weekday dd/MM" representation for user-facing strings — e.g.
+    /// "Wednesday 13/05" / "Miércoles 13/05". Uses the SDK's app language locale
+    /// (already wired through `toString`) and the device time zone.
+    func weekdayWithDayMonth() -> String {
+        return toStringWithoutTimeZone(format: "EEEE dd/MM").capitalized
+    }
     
     //Bugunun gununu sayi olarak dondurur.
     func dayNumberOfWeek() -> Int? {
@@ -90,6 +97,15 @@ extension Date {
     
     func isToday() -> Bool {
         return Calendar.currentWithUTC.isDateInToday(self)
+    }
+
+    /// Day-only past comparison (ignores time).
+    /// Returns true if `self`'s calendar day is strictly before `referenceDate`'s calendar day in the user's local calendar.
+    func isPastDay(referenceDate: Date = Date()) -> Bool {
+        let calendar = Calendar.current
+        let selfDay = calendar.startOfDay(for: self)
+        let refDay = calendar.startOfDay(for: referenceDate)
+        return selfDay < refDay
     }
     
     func isTodayLocal() -> Bool {

@@ -39,8 +39,8 @@ public class TRPSearchBar: UIView {
             textField.attributedPlaceholder = NSAttributedString(
                 string: newValue ?? "",
                 attributes: [
-                    .foregroundColor: ColorSet.fgWeak.uiColor,
-                    .font: FontSet.montserratRegular.font(16)
+                    .foregroundColor: ColorSet.primaryText.uiColor,
+                    .font: FontSet.montserratLight.font(14)
                 ]
             )
         }
@@ -61,7 +61,7 @@ public class TRPSearchBar: UIView {
     private let searchIconImageView: UIImageView = {
         let imageView = UIImageView()
         imageView.translatesAutoresizingMaskIntoConstraints = false
-        imageView.image = UIImage(systemName: "magnifyingglass")
+        imageView.image = TRPImageController().getImage(inFramework: "search_black", inApp: nil, withTintColor: true)
         imageView.tintColor = ColorSet.fgWeak.uiColor
         imageView.contentMode = .scaleAspectFit
         return imageView
@@ -86,6 +86,8 @@ public class TRPSearchBar: UIView {
         button.setImage(TRPImageController().getImage(inFramework: "ic_close", inApp: nil), for: .normal)
         button.tintColor = ColorSet.fgWeak.uiColor
         button.isHidden = true
+        button.imageView?.contentMode = .scaleAspectFit
+        button.contentEdgeInsets = UIEdgeInsets(top: 2, left: 2, bottom: 2, right: 2)
         button.addTarget(self, action: #selector(clearButtonTapped), for: .touchUpInside)
         return button
     }()
@@ -140,8 +142,8 @@ public class TRPSearchBar: UIView {
             // Clear Button
             clearButton.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -16),
             clearButton.centerYAnchor.constraint(equalTo: containerView.centerYAnchor),
-            clearButton.widthAnchor.constraint(equalToConstant: 20),
-            clearButton.heightAnchor.constraint(equalToConstant: 20)
+            clearButton.widthAnchor.constraint(equalToConstant: 24),
+            clearButton.heightAnchor.constraint(equalToConstant: 24)
         ])
     }
 

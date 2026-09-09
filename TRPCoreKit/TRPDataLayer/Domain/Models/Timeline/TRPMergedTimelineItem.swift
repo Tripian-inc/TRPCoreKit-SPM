@@ -29,11 +29,30 @@ public class TRPMergedTimelineItem {
     public let segment: TRPTimelineSegment
 
     /// The matching plan (nil for booked/reserved activities)
-    public let plan: TRPTimelinePlan?
+    /// NOTE: Mutable to allow updating step conflict flags
+    public var plan: TRPTimelinePlan?
 
     /// Original index in tripProfile.segments array (for API operations)
     /// This index is captured on FIRST fetch and remains constant
     public let originalSegmentIndex: Int
+
+    // MARK: - Conflict Detection
+
+    /// Whether this item has a time conflict with another item on the same day
+    public var hasConflict: Bool = false
+
+    /// Whether to show "Time Overlap" text (false for BookedActivity)
+    public var showTimeOverlapText: Bool = false
+
+    // MARK: - Availability
+
+    /// Mirror of `segment.additionalData?.isAvailabilityExpired` for reserved-activity
+    /// items, so cells can read it through the merged item without dereferencing the
+    /// segment's optional additional data. Always `false` for booked-activity items
+    /// and segments without additional data — the post-load sweep doesn't touch those.
+    public var isAvailabilityExpired: Bool {
+        return segment.additionalData?.isAvailabilityExpired ?? false
+    }
 
     // MARK: - Initialization
 
@@ -68,6 +87,23 @@ public class TRPMergedTimelineItem {
     /// Check if this is an itinerary (recommendations)
     public var isItinerary: Bool {
         return segmentType == .itinerary
+    }
+
+    /// Check if this reserved activity was created with a flexible-time slot.
+    /// Detection: reservedActivity + additionalData.duration == -1 + start/end time in {00:00, 23:59}.
+    public var isFlexibleActivity: Bool {
+        guard segmentType == .reservedActivity else { return false }
+        guard let duration = segment.additionalData?.duration, duration == -1 else { return false }
+
+        let flexibleTimes: Set<String> = ["00:00", "23:59"]
+        let startStr = segment.additionalData?.startDatetime ?? segment.startDate
+        let endStr = segment.additionalData?.endDatetime ?? segment.endDate
+
+        guard let startTime = TRPDateHelper.extractTimeString(startStr),
+              let endTime = TRPDateHelper.extractTimeString(endStr) else {
+            return false
+        }
+        return flexibleTimes.contains(startTime) && flexibleTimes.contains(endTime)
     }
 
     // MARK: - Computed Properties (Dates)
@@ -157,14 +193,44 @@ public class TRPMergedTimelineItem {
         return segment.additionalData?.childCount ?? segment.children
     }
 
-    /// Duration in minutes (from additionalData)
+    /// Duration in minutes (from additionalData or calculated from start/end times)
     public var duration: Double? {
-        return segment.additionalData?.duration
+        // 1. First check additionalData.duration
+        if let existingDuration = segment.additionalData?.duration, existingDuration > 0 {
+            return existingDuration
+        }
+
+        // 2. Calculate from startDatetime and endDatetime
+        guard let startDate = startDate,
+              let endDate = endDate else {
+            return nil
+        }
+
+        // Calculate difference in minutes
+        let minutes = endDate.timeIntervalSince(startDate) / 60.0
+        return minutes > 0 ? minutes : nil
     }
 
     /// Price information (from additionalData)
     public var price: TRPSegmentActivityPrice? {
         return segment.additionalData?.price
+    }
+
+    /// Average rating (from additionalData)
+    public var rating: Float? {
+        return segment.additionalData?.rating
+    }
+
+    /// Number of ratings backing `rating` (from additionalData)
+    public var ratingCount: Int? {
+        return segment.additionalData?.ratingCount
+    }
+
+    /// `true` when the activity was created without a precise coordinate and
+    /// uses the city's coordinate as a fallback. Drives the "no exact location"
+    /// tag in the cell and excludes the item from map annotations.
+    public var isNoLocation: Bool {
+        return segment.additionalData?.isNoLocation ?? false
     }
 
     /// Cancellation policy text (from additionalData)

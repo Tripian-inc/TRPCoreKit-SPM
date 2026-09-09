@@ -273,6 +273,7 @@ public enum ColorSet {
     case bgDisabled
     case bgOrange
     case bgBlue
+    case bgPurple
     case primaryText
     case primaryWeakText
     case inactive
@@ -292,8 +293,17 @@ public enum ColorSet {
     case fgGray
     case fgTertiary
     case borderActive
+    case borderDefault
     case mainDark
-    
+    case errorIcon
+    case errorBg
+    case infoBg
+    case infoIcon
+    case warningBg
+    case warningIcon
+    case warningBorder
+    case civiOrange
+
     public var uiColor: UIColor {
         switch self {
         case .primary, .ratingStar, .fgSecondary:
@@ -324,6 +334,8 @@ public enum ColorSet {
             return UIColor(red: 0, green: 130, blue: 91)
         case .line, .fgWeaker:
             return UIColor(red: 140, green: 140, blue: 140)
+        case .borderDefault:
+            return UIColor(red: 204, green: 204, blue: 204)
         case .lineWeak:
             return UIColor(red: 207, green: 207, blue: 207)
         case .bgOrange:
@@ -340,6 +352,24 @@ public enum ColorSet {
             return UIColor(red: 234, green: 5, blue: 88)
         case .fgGray:
             return UIColor(red: 33, green: 32, blue: 32)
+        case .bgPurple:
+            return UIColor(red: 154, green: 62, blue: 170)
+        case .errorIcon:
+            return UIColor(red: 234, green: 57, blue: 53)
+        case .errorBg:
+            return UIColor(red: 255, green: 235, blue: 238)
+        case .infoBg:
+            return UIColor(red: 242, green: 250, blue: 253)
+        case .infoIcon:
+            return UIColor(red: 9, green: 138, blue: 195)
+        case .warningBg:
+            return UIColor(red: 255, green: 249, blue: 225)
+        case .warningIcon:
+            return UIColor(red: 214, green: 119, blue: 26)
+        case .warningBorder:
+            return UIColor(red: 248, green: 195, blue: 22)
+        case .civiOrange:
+            return UIColor(red: 214, green: 119, blue: 26)
         }
     }
     
@@ -349,12 +379,14 @@ public enum ColorSet {
     }
     
     public static func getMapColor(_ index: Int) -> UIColor {
-        let colors = [ColorSet.fgBlue.uiColor,
-                      ColorSet.greenAdvantage.uiColor,
-                      ColorSet.fgPink.uiColor,
-                      ColorSet.fgOrange.uiColor,
-                      ColorSet.primaryText.uiColor]
-        
+        let colors = [
+            ColorSet.fg.uiColor,           // 0 = Siyah (ilk şehir)
+            ColorSet.primary.uiColor,      // 1 = Primary (ikinci şehir)
+            ColorSet.fgBlue.uiColor,       // 2 = Mavi
+            ColorSet.greenAdvantage.uiColor, // 3 = Yeşil
+            ColorSet.fgOrange.uiColor      // 4 = Turuncu
+        ]
+
         let safeIndex = index % colors.count
         return colors[safeIndex]
     }

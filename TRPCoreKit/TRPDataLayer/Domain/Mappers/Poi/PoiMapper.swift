@@ -50,6 +50,7 @@ final class PoiMapper {
                          icon: restModel.icon,
                          coordinate: coordinate,
                          bookings: bookings,
+                         hasBookings: restModel.hasBookings,
                          categories: categoreies,
                          tags: restModel.tags ?? [],
                          mustTries: mustTaste,

@@ -35,7 +35,8 @@ public class TRPTimelineSegment: Codable {
     public var considerWeather: Bool?
     public var distinctPlan: Bool = true
     public var segmentType: TRPTimelineSegmentType = .itinerary
-    
+
+    public var cityId: Int?
     public var city: TRPCity?
     public var differentEndLocation: Bool = false
     public var differentMealSuggestions: Bool = false
@@ -132,5 +133,8 @@ extension TRPCreateEditTimelineSegmentProfile {
 
         // Manual POI properties
         self.poiId                 = base.poiId
+
+        // Segment type (CRITICAL: must preserve original type during updates)
+        self.segmentType           = base.segmentType
     }
 }

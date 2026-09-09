@@ -48,7 +48,7 @@ public class TRPTourOptionsUseCases: TourOptionDataHolder {
   
     
     public init(language: String = "en",
-                currency: String = "USD") {
+                currency: String = "EUR") {
         self.language = language
         self.currency = currency
     }

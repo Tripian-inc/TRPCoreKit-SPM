@@ -45,13 +45,11 @@ final class ItineraryStepPoiDetailViewModel: TableViewViewModelProtocol {
         self.step = step
     }
 
-    // Convenience init for TRPTimelineStep
     public convenience init?(timelineStep: TRPTimelineStep) {
         guard let poi = timelineStep.poi else {
             return nil
         }
 
-        // Convert planId from String to Int (with fallback)
         let planId: Int?
         if let planIdString = timelineStep.planId, let convertedId = Int(planIdString) {
             planId = convertedId
@@ -59,14 +57,13 @@ final class ItineraryStepPoiDetailViewModel: TableViewViewModelProtocol {
             planId = nil
         }
 
-        // Convert TRPTimelineStep to TRPStep
         let step = TRPStep(
             id: timelineStep.id,
             planId: planId,
             poi: poi,
             order: timelineStep.order,
             score: Float(timelineStep.score ?? 0.0),
-            times: nil, // TRPTimelineStep uses startDateTimes/endDateTimes format
+            times: nil,
             alternatives: timelineStep.alternatives ?? []
         )
 
@@ -109,7 +106,6 @@ extension ItineraryStepPoiDetailViewModel {
             }
         }
         
-        // Title with Gallery
         let titleCell = PoiImageWithTitleModel(
             gallery: gallery,
             title: poi.name,
@@ -122,36 +118,31 @@ extension ItineraryStepPoiDetailViewModel {
         )
         let titleCellModel = ItineraryStepPoiDetailCellContent(data: titleCell, type: .galleryTitle)
         tempCells.append(titleCellModel)
-        
-        // Description
+
         if let description = poi.description, !description.isEmpty {
             let data = PoiDetailBasicCellModel(icon: "icon_attraction", content: description)
             let cellModel = ItineraryStepPoiDetailCellContent(data: data, type: .description)
             tempCells.append(cellModel)
         }
-        
-        // Opening Hours
+
         if let hours = poi.hours, !hours.isEmpty {
             let data = PoiDetailBasicCellModel(icon: "icon_clock", content: hours)
             let cellModel = ItineraryStepPoiDetailCellContent(data: data, type: .openCloseHour)
             tempCells.append(cellModel)
         }
-        
-        // Phone
+
         if let phone = poi.phone {
             let data = PoiDetailBasicCellModel(icon: "icon_phone", content: phone)
             let cellModel = ItineraryStepPoiDetailCellContent(data: data, type: .phone)
             tempCells.append(cellModel)
         }
-        
-        // Address
+
         if let address = poi.address {
             let data = PoiDetailBasicCellModel(icon: "icon_location", content: address)
             let cellModel = ItineraryStepPoiDetailCellContent(data: data, type: .address)
             tempCells.append(cellModel)
         }
-        
-        // Map
+
         if let coordinate = poi.coordinate {
             let mapModel = ItineraryStepPoiDetailCellContent(data: coordinate, type: .map)
             tempCells.append(mapModel)

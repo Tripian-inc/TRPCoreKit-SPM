@@ -52,17 +52,15 @@ class TRPTimelineSectionHeaderView: UITableViewHeaderFooterView {
         containerView.addSubview(cityLabel)
 
         NSLayoutConstraint.activate([
-            // Container View
             containerView.topAnchor.constraint(equalTo: contentView.topAnchor),
             containerView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
             containerView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
             containerView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
 
-            // City Label
-            cityLabel.topAnchor.constraint(equalTo: containerView.topAnchor, constant: 16),
+            cityLabel.topAnchor.constraint(equalTo: containerView.topAnchor, constant: 24),
             cityLabel.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 16),
             cityLabel.trailingAnchor.constraint(lessThanOrEqualTo: containerView.trailingAnchor, constant: -16),
-            cityLabel.bottomAnchor.constraint(equalTo: containerView.bottomAnchor, constant: -8)
+            cityLabel.bottomAnchor.constraint(equalTo: containerView.bottomAnchor, constant: -16)
         ])
     }
     

@@ -13,15 +13,17 @@ public struct AddPlanLocalizationKeys {
     public static let addPlan = "addPlan.title.addPlan"
     public static let addActivity = "addPlan.title.addActivity"
     public static let addToDay = "addPlan.label.addToDay"
+    public static let moveDay = "addPlan.label.moveDay"
     public static let city = "addPlan.label.city"
     public static let selectCity = "addPlan.title.selectCity"
+    public static let destination = "trips.createNewTrip.destinationTips.destination.title"
+    public static let citiesForSelectedDate = "addPlan.section.citiesForSelectedDate"
+    public static let otherCities = "addPlan.section.otherCities"
     public static let startTime = "addPlan.label.startTime"
     public static let endTime = "addPlan.label.endTime"
-    public static let select = "addPlan.button.select"
     public static let clearSelection = "addPlan.button.clearSelection"
-    public static let continueButton = "addPlan.button.continue"
-    public static let cancel = "addPlan.button.cancel"
-    public static let confirm = "addPlan.button.confirm"
+
+    // MARK: - Common Keys (use CommonLocalizationKeys)
 
     // MARK: - Time Range Selection
     public static let timeTitle = "addPlan.title.time"
@@ -42,7 +44,6 @@ public struct AddPlanLocalizationKeys {
     
     // MARK: - POI Selection
     public static let searchPOI = "addPlan.placeholder.searchPOI"
-    public static let nearMe = "addPlan.option.nearMe"
     public static let cityCenter = "addPlan.label.cityCenter"
     public static let savedActivities = "addPlan.section.savedActivities"
     
@@ -67,10 +68,26 @@ public struct AddPlanLocalizationKeys {
     public static let filters = "addPlan.button.filters"
     public static let sortBy = "addPlan.button.sortBy"
     public static let opinions = "addPlan.label.opinions"
-    public static let freeCancellation = "addPlan.label.freeCancellation"
-    public static let from = "addPlan.label.from"
     public static let activity = "addPlan.label.activity"
     public static let activities = "addPlan.label.activities"
+
+    // MARK: - Sorting Info
+    public static let sortingInfoTitle = "addPlan.info.sortingTitle"
+    public static let sortingInfoMessage = "addPlan.info.sortingMessage"
+
+    // MARK: - Sort Options
+    public static let sortPopularity = "addPlan.sort.popularity"
+    public static let sortRating = "addPlan.sort.rating"
+    public static let sortPriceLowToHigh = "addPlan.sort.priceLowToHigh"
+    public static let sortNewest = "addPlan.sort.newest"
+    public static let sortDurationShortToLong = "addPlan.sort.durationShortToLong"
+    public static let sortDurationLongToShort = "addPlan.sort.durationLongToShort"
+
+    // MARK: - Filter Options
+    public static let filterPrice = "addPlan.filter.price"
+    public static let filterDuration = "addPlan.filter.duration"
+    public static let filterFree = "addPlan.filter.free"
+    public static let filterDays = "addPlan.filter.days"
 
     // MARK: - POI Listing
     public static let searchPOIPlace = "addPlan.search.poiPlace"
@@ -80,28 +97,61 @@ public struct AddPlanLocalizationKeys {
     
     // MARK: - Empty State
     public static let addSavedPlansToItinerary = "addPlan.emptyState.addSavedPlansToItinerary"
+    public static let noAvailableTimes = "addPlan.emptyState.noAvailableTimes"
+
+    // MARK: - Flexible-time Activity
+    public static let flexibleTimeInfo = "addPlan.time.flexibleInfo"
+    public static let flexibleTimePinTopHint = "addPlan.time.flexibleTopOfItinerary"
+
+    public static let activityNotAvailableForTrip = "addPlan.time.activityNotAvailableForTrip"
+
+    public static let showMoreTimeSlots = "addPlan.time.showMore"
+
+    public static let soldOutWarning = "addPlan.time.soldOutWarning"
+
+    public static let endTimeBeforeStartWarning = "addPlan.time.endTimeBeforeStart"
+
+    // MARK: - Toast / Success Notifications
+    /// Format: activity name as %1$@, day display string as %2$@.
+    public static let activityAddedToast = "addPlan.toast.activityAdded"
+
+    // MARK: - Activity Listing
+    public static let activityAlreadyAddedEveryDay = "addPlan.time.activityAlreadyAddedEveryDay"
 
     // MARK: - Saved Plans Screen
     public static let savedPlans = "addPlan.title.savedPlans"
 
+    public static let savedPlansAllAddedTitle = "addPlan.emptyState.allAddedTitle"
+    public static let savedPlansAllAddedDescription = "addPlan.emptyState.allAddedDescription"
+    public static let viewItinerary = "addPlan.button.viewItinerary"
+
     // MARK: - Error Messages
     public static let errorMissingData = "trips.myTrips.timelineitinerary.addPlan.error.missingData"
     public static let errorCreateFailed = "trips.myTrips.timelineitinerary.addPlan.error.createFailed"
+    public static let errorTimelineNotFound = "addPlan.error.timelineNotFound"
+    public static let errorActivityLocationNotAvailable = "addPlan.error.activityLocationNotAvailable"
+    public static let errorSelectDate = "addPlan.error.selectDate"
+    public static let errorSelectTimeSlot = "addPlan.error.selectTimeSlot"
+    public static let errorCreateReservationFailed = "addPlan.error.createReservationFailed"
+    public static let errorSegmentNotFound = "addPlan.error.segmentNotFound"
+    public static let errorUpdateTimeFailed = "addPlan.error.updateTimeFailed"
+    public static let errorStepNotFound = "addPlan.error.stepNotFound"
+    public static let errorInvalidTimeFormat = "addPlan.error.invalidTimeFormat"
+    public static let errorNoDateSelected = "addPlan.error.noDateSelected"
     
     // MARK: - Default English Values
     private static let defaultValues: [String: String] = [
         addPlan: "Add Plan",
         addActivity: "Add Activity",
         addToDay: "Add to Day",
+        moveDay: "Move day",
         city: "City",
         selectCity: "Select City",
+        citiesForSelectedDate: "Cities for this date",
+        otherCities: "Other cities",
         startTime: "Start Time",
         endTime: "End Time",
-        select: "Select",
         clearSelection: "Clear Selection",
-        continueButton: "Continue",
-        cancel: "Cancel",
-        confirm: "Confirm",
         timeTitle: "Time",
         howToAddPlans: "How do you want to add plans?",
         smartRecommendations: "Smart Recommendations",
@@ -109,14 +159,13 @@ public struct AddPlanLocalizationKeys {
         addManually: "Add Manually",
         addManuallyDescription: "Select a single activity directly from the catalog.",
         selectStartingPoint: "Select a Starting Point",
-        selectDateAndTime: "Select Date and Time",
+        selectDateAndTime: "Select time",
         selectTravelers: "Select Travelers",
         travelers: "Travelers",
         selectATime: "Select a time",
         searchPOI: "Search for a place",
-        nearMe: "Near me",
         cityCenter: "City Center",
-        savedActivities: "Reserved and Saved Activities",
+        savedActivities: "Itinerary starting locations",
         selectCategories: "Select the Categories You Want",
         categoryGuidedTours: "Guided Tours\n& Free Tours",
         categoryTickets: "Tickets",
@@ -132,9 +181,19 @@ public struct AddPlanLocalizationKeys {
         searchActivity: "Search for an activity",
         filters: "Filters",
         sortBy: "Sort by",
+        sortingInfoTitle: "Sorting Criteria",
+        sortingInfoMessage: "Activities are sorted by relevance and availability based on your selected date and preferences.",
+        sortPopularity: "Popularity",
+        sortRating: "Rating",
+        sortPriceLowToHigh: "Price (lowest first)",
+        sortNewest: "Newest",
+        sortDurationShortToLong: "Duration (shortest to longest)",
+        sortDurationLongToShort: "Duration (longest to shortest)",
+        filterPrice: "Price",
+        filterDuration: "Duration",
+        filterFree: "Free",
+        filterDays: "days",
         opinions: "opinions",
-        freeCancellation: "Free cancellation",
-        from: "From",
         activity: "activity",
         activities: "activities",
         searchPOIPlace: "Search for a place or address",
@@ -142,16 +201,37 @@ public struct AddPlanLocalizationKeys {
         place: "place",
         places: "places",
         addSavedPlansToItinerary: "Add your saved plans to the itinerary",
+        noAvailableTimes: "No available times",
         savedPlans: "Saved Plans",
+        savedPlansAllAddedTitle: "All set!",
+        savedPlansAllAddedDescription: "You've added all your favourite activities to the itinerary. Now all that's left is to enjoy them.",
+        viewItinerary: "View itinerary",
         errorMissingData: "Missing required information. Please complete all fields.",
-        errorCreateFailed: "Failed to create smart recommendation. Please try again."
+        errorCreateFailed: "Failed to create smart recommendation. Please try again.",
+        errorTimelineNotFound: "Timeline not found. Please try again.",
+        errorActivityLocationNotAvailable: "Activity location not available.",
+        errorSelectDate: "Please select a date.",
+        errorSelectTimeSlot: "Please select a time slot.",
+        errorCreateReservationFailed: "Failed to create reservation. Please try again.",
+        errorSegmentNotFound: "Segment not found. Please try again.",
+        errorUpdateTimeFailed: "Failed to update time. Please try again.",
+        errorStepNotFound: "Step not found. Please try again.",
+        errorInvalidTimeFormat: "Invalid time format.",
+        errorNoDateSelected: "No date selected.",
+        flexibleTimeInfo: "Valid at any time on the chosen day. Check the opening hours.",
+        flexibleTimePinTopHint: "This plan will always appear at the top of your itinerary.",
+        activityNotAvailableForTrip: "This activity is not available on the days of your trip.",
+        showMoreTimeSlots: "More",
+        soldOutWarning: "Your selected time is sold out. Choose a new time for accurate availability, or keep this as a placeholder.",
+        endTimeBeforeStartWarning: "Choose an end time within today",
+        activityAddedToast: "%1$@ has been added to %2$@",
+        activityAlreadyAddedEveryDay: "This activity is already in your plan on every day of your trip."
     ]
     
     // MARK: - Helper Methods
     public static func localized(_ key: String) -> String {
         let localizedValue = TRPLanguagesController.shared.getLanguageValue(for: key)
-        
-        // If the localization returns the key itself or is empty, use default English value
+
         if localizedValue.isEmpty || localizedValue == key {
             return defaultValues[key] ?? key
         }

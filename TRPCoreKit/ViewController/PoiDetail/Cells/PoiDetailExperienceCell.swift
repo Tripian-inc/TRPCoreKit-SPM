@@ -136,8 +136,8 @@ extension PoiDetailExperienceCell: UICollectionViewDelegate, UICollectionViewDat
         cell.bestSeller.isHidden = true
         
         if let price = model.price {
-            cell.priceLabel.text = "\(price)$"
-        }else {
+            cell.priceLabel.text = TRPCurrencyHelper.formatPrice(price, currency: model.currency ?? "USD")
+        } else {
             cell.priceLabel.text = ""
         }
         
@@ -155,7 +155,8 @@ extension PoiDetailExperienceCell: UICollectionViewDelegate, UICollectionViewDat
     
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         let model = products[indexPath.row]
-        
+
         selectedTourAction?(model)
     }
+
 }
