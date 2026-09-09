@@ -295,7 +295,10 @@ extension NexusCitySelectionVC: UITableViewDataSource, UITableViewDelegate {
 extension NexusCitySelectionVC: TRPSearchBarDelegate {
 
     public func searchBar(_ searchBar: TRPSearchBar, textDidChange text: String) {
-        viewModel.search(text)
+    }
+
+    public func searchBar(_ searchBar: TRPSearchBar, queryDidChange query: String) {
+        viewModel.search(query)
     }
 
     public func searchBarSearchButtonClicked(_ searchBar: TRPSearchBar) {
