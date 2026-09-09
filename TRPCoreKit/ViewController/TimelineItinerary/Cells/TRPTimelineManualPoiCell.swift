@@ -11,7 +11,7 @@ import SDWebImage
 import TRPFoundationKit
 
 protocol TRPTimelineManualPoiCellDelegate: AnyObject {
-    func manualPoiCellDidTapChangeTime(_ cell: TRPTimelineManualPoiCell, segment: TRPTimelineSegment)
+    func manualPoiCellDidTapChangeTime(_ cell: TRPTimelineManualPoiCell, segment: TRPTimelineSegment, poi: TRPPoi?)
     func manualPoiCellDidTapRemove(_ cell: TRPTimelineManualPoiCell, segment: TRPTimelineSegment)
     func manualPoiCellDidTapCell(_ cell: TRPTimelineManualPoiCell, segment: TRPTimelineSegment, poi: TRPPoi?)
 }
@@ -407,7 +407,7 @@ class TRPTimelineManualPoiCell: UITableViewCell {
     // MARK: - Actions
     @objc private func changeTimeButtonTapped() {
         guard !isPastDayMode, let segment = segment else { return }
-        delegate?.manualPoiCellDidTapChangeTime(self, segment: segment)
+        delegate?.manualPoiCellDidTapChangeTime(self, segment: segment, poi: poi)
     }
 
     @objc private func removeButtonTapped() {

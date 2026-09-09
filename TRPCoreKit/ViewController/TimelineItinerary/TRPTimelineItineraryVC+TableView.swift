@@ -76,8 +76,8 @@ extension TRPTimelineItineraryVC: UITableViewDataSource {
             cell.configure(with: cellData, indexPath: indexPath)
 
             if let distances = calculatedDistances[indexPath] {
-                for (index, distanceData) in distances {
-                    cell.updateDistance(at: index, distance: distanceData.distance, time: distanceData.time)
+                for (index, routeInfo) in distances {
+                    cell.updateDistance(at: index, routeInfo: routeInfo)
                 }
             }
 

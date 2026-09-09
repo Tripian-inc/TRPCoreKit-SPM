@@ -141,7 +141,7 @@ extension TRPTimelineItineraryVC: TRPTimelineActivityStepCellDelegate {
 
 extension TRPTimelineItineraryVC: TRPTimelineManualPoiCellDelegate {
 
-    func manualPoiCellDidTapChangeTime(_ cell: TRPTimelineManualPoiCell, segment: TRPTimelineSegment) {
+    func manualPoiCellDidTapChangeTime(_ cell: TRPTimelineManualPoiCell, segment: TRPTimelineSegment, poi: TRPPoi?) {
         segmentBeingEdited = segment
 
         let timeRangeVC = TRPTimeRangeSelectionViewController()
@@ -157,6 +157,7 @@ extension TRPTimelineItineraryVC: TRPTimelineManualPoiCellDelegate {
            let startDate = parseStepDateTime(startDateStr),
            let endDate = parseStepDateTime(endDateStr) {
             timeRangeVC.setInitialTimes(from: startDate, to: endDate)
+            timeRangeVC.setOpeningHours(poi?.hours, on: startDate)
         }
 
         timeRangeVC.show(from: self)
@@ -336,6 +337,7 @@ extension TRPTimelineItineraryVC: TRPTimelineRecommendationsCellDelegate {
            let startDate = parseStepDateTime(startDateTimes),
            let endDate = parseStepDateTime(endDateTimes) {
             timeRangeVC.setInitialTimes(from: startDate, to: endDate)
+            timeRangeVC.setOpeningHours(step.poi?.hours, on: startDate)
         }
 
         timeRangeVC.show(from: self)
@@ -377,7 +379,7 @@ extension TRPTimelineItineraryVC: TRPTimelineRecommendationsCellDelegate {
         guard locations.count > 1 else { return }
 
         var allCached = true
-        var cachedResults: [(index: Int, data: (distance: Float, time: Int))] = []
+        var cachedResults: [(index: Int, data: TRPStepRouteInfo)] = []
 
         for i in 0..<(locations.count - 1) {
             let cacheKey = generateRouteCacheKey(from: locations[i], to: locations[i + 1])
@@ -395,36 +397,31 @@ extension TRPTimelineItineraryVC: TRPTimelineRecommendationsCellDelegate {
             }
             for result in cachedResults {
                 calculatedDistances[cellIndexPath]?[result.index] = result.data
-                cell.updateDistance(at: result.index, distance: result.data.distance, time: result.data.time)
+                cell.updateDistance(at: result.index, routeInfo: result.data)
             }
             return
         }
 
-        // `calculateRoute` completion is already dispatched to main.
-        viewModel.calculateRoute(for: locations) { [weak self] route, error in
-            guard let self = self, let route = route else { return }
+        viewModel.calculateStepRoutes(for: locations) { [weak self] routes in
+            guard let self = self, let routes = routes else { return }
 
             if self.calculatedDistances[cellIndexPath] == nil {
                 self.calculatedDistances[cellIndexPath] = [:]
             }
 
-            // legs[i] is locations[i] → locations[i+1].
-            for (index, leg) in route.legs.enumerated() {
-                let readable = ReadableDistance.calculate(distance: Float(leg.distance), time: leg.expectedTravelTime)
-                let distanceData = (distance: readable.distance, time: readable.time)
-
+            for (index, routeInfo) in routes.enumerated() {
                 if index < locations.count - 1 {
                     let cacheKey = self.generateRouteCacheKey(from: locations[index], to: locations[index + 1])
-                    self.routeCache[cacheKey] = distanceData
+                    self.routeCache[cacheKey] = routeInfo
                 }
 
-                self.calculatedDistances[cellIndexPath]?[index] = distanceData
+                self.calculatedDistances[cellIndexPath]?[index] = routeInfo
             }
 
             if let currentCell = self.tableView.cellForRow(at: cellIndexPath) as? TRPTimelineRecommendationsCell {
                 if let distances = self.calculatedDistances[cellIndexPath] {
-                    for (index, distanceData) in distances {
-                        currentCell.updateDistance(at: index, distance: distanceData.distance, time: distanceData.time)
+                    for (index, routeInfo) in distances {
+                        currentCell.updateDistance(at: index, routeInfo: routeInfo)
                     }
                 }
             } else {

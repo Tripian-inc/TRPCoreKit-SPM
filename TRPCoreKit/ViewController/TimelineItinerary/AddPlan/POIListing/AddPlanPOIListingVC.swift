@@ -417,6 +417,7 @@ extension AddPlanPOIListingVC: POIListingCellDelegate {
 
         // City drives the IANA timezone for "today" / minimum-time, not the device.
         timeRangeVC.setSelectedCity(viewModel.planData.selectedCity)
+        timeRangeVC.setOpeningHours(poi.hours)
 
         timeRangeVC.show(from: self)
     }
