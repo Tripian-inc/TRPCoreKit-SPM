@@ -12,6 +12,8 @@ import TRPRestKit
 
 public protocol AddPlanPOISelectionViewModelDelegate: AnyObject {
     func searchResultsDidUpdate()
+    /// Address search in flight; shown inline so the screen stays usable.
+    func searchLoadingStateDidChange(_ isLoading: Bool)
     func placeDetailDidLoad(accommodation: TRPAccommodation)
     func searchDidFail(error: Error)
     func viewModel(showPreloader: Bool)
@@ -197,7 +199,7 @@ public class AddPlanPOISelectionViewModel {
     }
 
     private func performSearch(text: String, apiKey: String) {
-        delegate?.viewModel(showPreloader: true)
+        delegate?.searchLoadingStateDidChange(true)
 
         TRPRestKit().googleAutoComplete(key: apiKey,
                                         text: text,
@@ -206,7 +208,7 @@ public class AddPlanPOISelectionViewModel {
             guard let self = self else { return }
 
             DispatchQueue.main.async {
-                self.delegate?.viewModel(showPreloader: false)
+                self.delegate?.searchLoadingStateDidChange(false)
 
                 if let error = error {
                     self.delegate?.searchDidFail(error: error)
