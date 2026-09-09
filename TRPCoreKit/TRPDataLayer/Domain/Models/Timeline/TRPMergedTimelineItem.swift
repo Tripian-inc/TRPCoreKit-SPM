@@ -230,7 +230,10 @@ public class TRPMergedTimelineItem {
     /// uses the city's coordinate as a fallback. Drives the "no exact location"
     /// tag in the cell and excludes the item from map annotations.
     public var isNoLocation: Bool {
-        return segment.additionalData?.isNoLocation ?? false
+        guard isBookedActivity || isReservedActivity else {
+            return segment.additionalData?.isNoLocation ?? false
+        }
+        return segment.hasNoLocation
     }
 
     /// Cancellation policy text (from additionalData)

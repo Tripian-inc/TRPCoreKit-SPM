@@ -92,6 +92,18 @@ public class AddPlanPOISelectionVC: TRPBaseUIViewController {
         return tableView
     }()
 
+    private lazy var noResultsLabel: UILabel = {
+        let label = UILabel()
+        label.translatesAutoresizingMaskIntoConstraints = false
+        label.font = FontSet.montserratMedium.font(15)
+        label.textColor = UIColor(white: 0.45, alpha: 1)
+        label.textAlignment = .center
+        label.numberOfLines = 0
+        label.text = AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.noSearchResults)
+        label.isHidden = true
+        return label
+    }()
+
     // MARK: - Lifecycle
     public override func setupViews() {
         super.setupViews()
@@ -155,12 +167,17 @@ public class AddPlanPOISelectionVC: TRPBaseUIViewController {
 
     private func setupSearchResultsView() {
         view.addSubview(searchResultsTableView)
+        view.addSubview(noResultsLabel)
 
         NSLayoutConstraint.activate([
             searchResultsTableView.topAnchor.constraint(equalTo: searchBar.bottomAnchor, constant: 16),
             searchResultsTableView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             searchResultsTableView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             searchResultsTableView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+
+            noResultsLabel.topAnchor.constraint(equalTo: searchBar.bottomAnchor, constant: 32),
+            noResultsLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 32),
+            noResultsLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -32),
         ])
     }
 
@@ -220,6 +237,12 @@ public class AddPlanPOISelectionVC: TRPBaseUIViewController {
         isSearchActive = false
         defaultContentView.isHidden = false
         searchResultsTableView.isHidden = true
+        noResultsLabel.isHidden = true
+    }
+
+    /// Shows the no-results text only for a finished, non-empty search that returned nothing.
+    private func updateNoResultsLabel() {
+        noResultsLabel.isHidden = !(isSearchActive && viewModel.getSearchResultsCount() == 0)
     }
 
     private func showSearchResults() {
@@ -315,6 +338,7 @@ extension AddPlanPOISelectionVC: TRPSearchBarDelegate {
 extension AddPlanPOISelectionVC: AddPlanPOISelectionViewModelDelegate {
     public func searchResultsDidUpdate() {
         searchResultsTableView.reloadData()
+        updateNoResultsLabel()
     }
 
     public func placeDetailDidLoad(accommodation: TRPAccommodation) {
@@ -323,6 +347,7 @@ extension AddPlanPOISelectionVC: AddPlanPOISelectionViewModelDelegate {
     }
 
     public func searchDidFail(error: Error) {
+        updateNoResultsLabel()
     }
 }
 
