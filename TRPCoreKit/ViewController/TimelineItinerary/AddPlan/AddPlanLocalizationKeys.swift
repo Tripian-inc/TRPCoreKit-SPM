@@ -37,6 +37,7 @@ public struct AddPlanLocalizationKeys {
     
     // MARK: - Time & Travelers
     public static let selectStartingPoint = "addPlan.label.selectStartingPoint"
+    public static let noSearchResults = "destination.search.noResults"
     public static let selectDateAndTime = "addPlan.label.selectDateAndTime"
     public static let selectTravelers = "addPlan.label.selectTravelers"
     public static let travelers = "addPlan.label.travelers"
@@ -159,6 +160,7 @@ public struct AddPlanLocalizationKeys {
         addManually: "Add Manually",
         addManuallyDescription: "Select a single activity directly from the catalog.",
         selectStartingPoint: "Select a Starting Point",
+        noSearchResults: "No destinations found",
         selectDateAndTime: "Select time",
         selectTravelers: "Select Travelers",
         travelers: "Travelers",

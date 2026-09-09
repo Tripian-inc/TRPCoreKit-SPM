@@ -17,6 +17,7 @@ public class AddPlanActivityListingVC: TRPBaseUIViewController {
     private var customNavigationBar: TRPTimelineCustomNavigationBar!
     private static let skeletonChipCount: Int = 5
     private static let skeletonRowCount: Int = 6
+    private static let paginationPrefetchThreshold: Int = 5
 
     private var currentLottiePresentation: LottieLoaderPresentation?
 
@@ -130,6 +131,17 @@ public class AddPlanActivityListingVC: TRPBaseUIViewController {
         tableView.rowHeight = UITableView.automaticDimension
         tableView.register(ActivityCardCell.self, forCellReuseIdentifier: ActivityCardCell.reuseIdentifier)
         return tableView
+    }()
+
+    private lazy var loadingFooterView: UIView = {
+        let footerView = UIView(frame: CGRect(x: 0, y: 0, width: view.bounds.width, height: 60))
+        let activityIndicator = UIActivityIndicatorView(style: .medium)
+        activityIndicator.color = ColorSet.primary.uiColor
+        activityIndicator.center = CGPoint(x: footerView.bounds.width / 2, y: footerView.bounds.height / 2)
+        activityIndicator.autoresizingMask = [.flexibleLeftMargin, .flexibleRightMargin, .flexibleTopMargin, .flexibleBottomMargin]
+        activityIndicator.startAnimating()
+        footerView.addSubview(activityIndicator)
+        return footerView
     }()
 
     /// Lives as the table's `tableHeaderView` so it scrolls under the search bar naturally.
@@ -340,6 +352,14 @@ extension AddPlanActivityListingVC: UITableViewDataSource, UITableViewDelegate {
         return cell
     }
 
+    public func tableView(_ tableView: UITableView, willDisplay cell: UITableViewCell, forRowAt indexPath: IndexPath) {
+        guard viewModel.loadingStyle == .none else { return }
+        if indexPath.row >= viewModel.getActivities().count - Self.paginationPrefetchThreshold,
+           viewModel.loadMoreActivities() {
+            tableView.tableFooterView = loadingFooterView
+        }
+    }
+
     public func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         tableView.deselectRow(at: indexPath, animated: true)
         guard !viewModel.isLoadingTours else { return }
@@ -375,6 +395,9 @@ extension AddPlanActivityListingVC: AddPlanActivityListingViewModelDelegate {
             let renderResults = {
                 self.activityCountLabel.isHidden = false
                 self.infoImageView.isHidden = false
+                if !self.viewModel.isLoadingMore {
+                    self.tableView.tableFooterView = nil
+                }
                 self.tableView.reloadData()
 
                 let count = self.viewModel.getActivityCount()

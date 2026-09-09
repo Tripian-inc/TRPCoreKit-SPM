@@ -111,7 +111,7 @@ public enum TRPMapDisplayItem {
     public var isNoLocation: Bool {
         switch self {
         case .poi: return false
-        case .activity(let segment): return segment.additionalData?.isNoLocation ?? false
+        case .activity(let segment): return segment.hasNoLocation
         }
     }
 
