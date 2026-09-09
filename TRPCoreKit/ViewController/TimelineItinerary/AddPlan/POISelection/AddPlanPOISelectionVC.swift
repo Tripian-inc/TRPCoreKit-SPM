@@ -92,6 +92,14 @@ public class AddPlanPOISelectionVC: TRPBaseUIViewController {
         return tableView
     }()
 
+    private lazy var searchActivityIndicator: UIActivityIndicatorView = {
+        let indicator = UIActivityIndicatorView(style: .medium)
+        indicator.translatesAutoresizingMaskIntoConstraints = false
+        indicator.color = ColorSet.primary.uiColor
+        indicator.hidesWhenStopped = true
+        return indicator
+    }()
+
     private lazy var noResultsLabel: UILabel = {
         let label = UILabel()
         label.translatesAutoresizingMaskIntoConstraints = false
@@ -168,6 +176,7 @@ public class AddPlanPOISelectionVC: TRPBaseUIViewController {
     private func setupSearchResultsView() {
         view.addSubview(searchResultsTableView)
         view.addSubview(noResultsLabel)
+        view.addSubview(searchActivityIndicator)
 
         NSLayoutConstraint.activate([
             searchResultsTableView.topAnchor.constraint(equalTo: searchBar.bottomAnchor, constant: 16),
@@ -178,6 +187,9 @@ public class AddPlanPOISelectionVC: TRPBaseUIViewController {
             noResultsLabel.topAnchor.constraint(equalTo: searchBar.bottomAnchor, constant: 32),
             noResultsLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 32),
             noResultsLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -32),
+
+            searchActivityIndicator.topAnchor.constraint(equalTo: searchBar.bottomAnchor, constant: 32),
+            searchActivityIndicator.centerXAnchor.constraint(equalTo: view.centerXAnchor),
         ])
     }
 
@@ -345,6 +357,15 @@ extension AddPlanPOISelectionVC: AddPlanPOISelectionViewModelDelegate {
     public func searchResultsDidUpdate() {
         searchResultsTableView.reloadData()
         updateNoResultsLabel()
+    }
+
+    public func searchLoadingStateDidChange(_ isLoading: Bool) {
+        if isLoading {
+            noResultsLabel.isHidden = true
+            searchActivityIndicator.startAnimating()
+        } else {
+            searchActivityIndicator.stopAnimating()
+        }
     }
 
     public func placeDetailDidLoad(accommodation: TRPAccommodation) {
