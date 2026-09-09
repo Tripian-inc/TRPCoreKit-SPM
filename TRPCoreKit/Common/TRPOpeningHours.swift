@@ -42,6 +42,12 @@ public struct TRPOpeningHours {
 
     private static let allDayNames: [String] = dayNameMappings.keys.sorted { $0.count > $1.count }
 
+    /// Localized "closed" markers a day entry may carry instead of a time range.
+    private static let closedMarkers = [
+        "closed", "cerrado", "cerrada", "fermé", "ferme", "geschlossen",
+        "chiuso", "chiusa", "fechado", "fechada", "kapalı", "kapali"
+    ]
+
     /// English day abbreviation ("Mon"..."Sun") for `date`, or nil when it can't be derived.
     public static func dayKey(of date: Date?) -> String? {
         guard let date = date else { return nil }
@@ -90,8 +96,11 @@ public struct TRPOpeningHours {
     }
 
     /// Whether `startTime...endTime` (both `"HH:mm"`) on `date` fits inside that day's
-    /// opening hours. Returns nil when it cannot be decided — no hours data, an
-    /// unparsable string, or an incomplete selection — so callers can stay silent.
+    /// opening hours. A day entry without a time range counts as closed only when it
+    /// carries a known localized "closed" marker; any other free text (e.g. "Open 24
+    /// hours" in any language) is undecided. Returns nil when it cannot be decided — no
+    /// hours data, an unparsable entry, or an incomplete selection — so callers can stay
+    /// silent.
     public static func coversSelection(
         _ hoursString: String?,
         date: Date?,
@@ -105,12 +114,18 @@ public struct TRPOpeningHours {
         let texts = dayTexts(hoursString)
         if texts.isEmpty { return nil }
 
-        guard let range = texts[key].flatMap(parseRange) else { return false }
+        guard let dayEntry = texts[key] else { return false }
+        guard let range = parseRange(dayEntry) else { return isClosedText(dayEntry) ? false : nil }
 
         if range.crossesMidnight {
             return selectionStart >= range.startMinutes || selectionEnd <= range.endMinutes
         }
         return selectionStart >= range.startMinutes && selectionEnd <= range.endMinutes
+    }
+
+    private static func isClosedText(_ text: String) -> Bool {
+        let normalized = text.lowercased()
+        return closedMarkers.contains { normalized.contains($0) }
     }
 
     private static func parseRange(_ text: String) -> Range? {

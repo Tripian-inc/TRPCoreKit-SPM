@@ -126,25 +126,37 @@ extension TRPTimelineItineraryVC {
         // doesn't animate down through the city-marker zoom band and flicker markers.
         map.fitCamera(to: fitCoordinates, maxZoom: 12, animated: !viewModel.hasMultipleCities())
 
-        let segments = viewModel.getSegmentsWithPoisForSelectedDay()
+        drawRoutesForSelectedDay()
+    }
 
-        if segments.isEmpty {
-            return
-        }
+    /// Routes the day's located items in display order, one route per city, and draws the legs
+    /// (walking dashed, driving solid) in the route blue. Only when the host draws routes.
+    private func drawRoutesForSelectedDay() {
+        removeAllRoutesFromMap()
+        guard TRPCoreKit.shared.provider.drawsRoutesOnMap else { return }
 
-        var hasMultiplePoiSegments = false
-        for segment in segments {
-            if segment.count > 1 {
-                hasMultiplePoiSegments = true
-                break
+        let groups = viewModel.getRouteGroupsForMap()
+        guard !groups.isEmpty else { return }
+
+        mapRouteGeneration += 1
+        let generation = mapRouteGeneration
+        var remaining = groups.count
+        showLoader(true)
+
+        for group in groups {
+            viewModel.calculateStepRoutes(for: group.locations) { [weak self] routes in
+                guard let self = self, generation == self.mapRouteGeneration else { return }
+
+                if let routes = routes {
+                    let legs = routes.map { TRPMapRouteLeg(coordinates: $0.shape, isWalking: $0.isWalking) }
+                    self.map?.drawRouteLegs(legs, segmentId: "timeline_city_\(group.cityIndex)", color: TRPMapView.DrawRouteStyle.rota.getColor())
+                }
+
+                remaining -= 1
+                if remaining == 0 {
+                    self.showLoader(false)
+                }
             }
-        }
-
-        if hasMultiplePoiSegments {
-            showLoader(true)
-            drawRoutesForSegments(segments)
-        } else {
-            removeAllRoutesFromMap()
         }
     }
 
@@ -347,67 +359,6 @@ extension TRPTimelineItineraryVC {
         }
     }
     
-    private func drawRoutesForSegments(_ segments: [[TRPPoi]]) {
-        guard segments.count > 0 else { return }
-        
-        var routesToCalculate = 0
-        var routesCompleted = 0
-        var hasError = false
-
-        for segment in segments {
-            if segment.count > 1 {
-                routesToCalculate += 1
-            }
-        }
-
-        guard routesToCalculate > 0 else {
-            showLoader(false)
-            return
-        }
-
-
-        for (segmentIndex, pois) in segments.enumerated() {
-            guard pois.count > 1 else { continue }
-
-            let locations = pois.compactMap { $0.coordinate }
-            guard locations.count > 1 else { continue }
-            let segmentId = "timeline_segment_\(segmentIndex)"
-            
-            viewModel.calculateRoute(for: locations) { [weak self] route, error in
-                guard let self = self else { return }
-                
-                routesCompleted += 1
-                
-                if let error = error {
-                    hasError = true
-                } else if let route = route, let map = self.map {
-                    DispatchQueue.main.async {
-                        // fitsCamera:false — loadMapData already framed the overview; each
-                        // route completes async and would otherwise snap the camera to its own city.
-                        map.drawRoute(route, segmentId: segmentId, segmentOrder: segmentIndex, fitsCamera: false)
-                    }
-                } else {
-                    hasError = true
-                }
-
-                if routesCompleted == routesToCalculate {
-                    DispatchQueue.main.async {
-                        self.showLoader(false)
-                        
-                        if hasError {
-                            let errorMessage = TRPLanguagesController.shared.getLanguageValue(for: "trips.myTrips.map.routeError")
-                            EvrAlertView.showAlert(
-                                contentText: errorMessage.isEmpty ? "Unable to calculate some routes" : errorMessage,
-                                type: .warning,
-                                bottomSpace: 80
-                            )
-                        }
-                    }
-                }
-            }
-        }
-    }
-    
     internal func clearMapAnnotations() {
         guard let map = map else {
             return
@@ -429,6 +380,7 @@ extension TRPTimelineItineraryVC {
         guard let map = map else { return }
 
         map.removeRoute(style: .rota)
+        map.removeAllRouteLegs()
     }
 
     internal func refreshMap() {

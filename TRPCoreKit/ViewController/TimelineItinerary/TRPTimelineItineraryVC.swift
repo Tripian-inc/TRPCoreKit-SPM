@@ -42,11 +42,13 @@ public class TRPTimelineItineraryVC: TRPBaseUIViewController {
     public var opensAddPlanWhenReady: Bool = false
     internal var map: TRPMapView?
     internal var hasLoadedInitialMapData: Bool = false
+    /// Bumped on every route redraw so late completions from a previous day are dropped.
+    internal var mapRouteGeneration: Int = 0
 
     // Cache for route calculations - keyed by route coordinates
-    internal var routeCache: [String: (distance: Float, time: Int)] = [:]
+    internal var routeCache: [String: TRPStepRouteInfo] = [:]
 
-    internal var calculatedDistances: [IndexPath: [Int: (distance: Float, time: Int)]] = [:]
+    internal var calculatedDistances: [IndexPath: [Int: TRPStepRouteInfo]] = [:]
 
     // MARK: - UI Components
 
@@ -542,16 +544,12 @@ public class TRPTimelineItineraryVC: TRPBaseUIViewController {
 
         guard needsCalculation else { return }
 
-        // viewModel.calculateRoute completion is already dispatched to main thread
-        viewModel.calculateRoute(for: locations) { [weak self] route, error in
-            guard let self = self, let route = route else { return }
+        viewModel.calculateStepRoutes(for: locations) { [weak self] routes in
+            guard let self = self, let routes = routes else { return }
 
-            for (index, leg) in route.legs.enumerated() {
-                if index < locations.count - 1 {
-                    let cacheKey = self.generateRouteCacheKey(from: locations[index], to: locations[index + 1])
-                    let readable = ReadableDistance.calculate(distance: Float(leg.distance), time: leg.expectedTravelTime)
-                    self.routeCache[cacheKey] = (distance: readable.distance, time: readable.time)
-                }
+            for (index, routeInfo) in routes.enumerated() where index < locations.count - 1 {
+                let cacheKey = self.generateRouteCacheKey(from: locations[index], to: locations[index + 1])
+                self.routeCache[cacheKey] = routeInfo
             }
 
             self.applyRouteCacheToVisibleCells()
@@ -564,8 +562,8 @@ public class TRPTimelineItineraryVC: TRPBaseUIViewController {
                   let indexPath = tableView.indexPath(for: recCell) else { continue }
 
             if let distances = calculatedDistances[indexPath] {
-                for (index, distanceData) in distances {
-                    recCell.updateDistance(at: index, distance: distanceData.distance, time: distanceData.time)
+                for (index, routeInfo) in distances {
+                    recCell.updateDistance(at: index, routeInfo: routeInfo)
                 }
             }
         }

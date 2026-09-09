@@ -757,6 +757,7 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
         iconImageView.translatesAutoresizingMaskIntoConstraints = false
         iconImageView.image = TRPImageController().getImage(inFramework: "ic_walk", inApp: nil)
         iconImageView.contentMode = .scaleAspectFit
+        iconImageView.tag = 2000 + index
 
         let distanceLabel = UILabel()
         distanceLabel.translatesAutoresizingMaskIntoConstraints = false
@@ -794,12 +795,17 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
         return containerView
     }
     
-    public func updateDistance(at index: Int, distance: Float, time: Int) {
+    func updateDistance(at index: Int, routeInfo: TRPStepRouteInfo) {
         guard let distanceView = distanceViews[index] else { return }
 
+        if let iconImageView = distanceView.viewWithTag(2000 + index) as? UIImageView {
+            let iconName = routeInfo.isWalking ? "ic_walk" : "icon_car"
+            iconImageView.image = TRPImageController().getImage(inFramework: iconName, inApp: nil)
+        }
+
         if let distanceLabel = distanceView.viewWithTag(1000 + index) as? UILabel {
-            let distanceString = String(format: "%.1f", distance).replacingOccurrences(of: ".", with: ",")
-            distanceLabel.text = TimelineLocalizationKeys.formatDistance(minutes: time, kilometers: distanceString)
+            let distanceString = String(format: "%.1f", routeInfo.distance).replacingOccurrences(of: ".", with: ",")
+            distanceLabel.text = TimelineLocalizationKeys.formatDistance(minutes: routeInfo.time, kilometers: distanceString)
         }
     }
 

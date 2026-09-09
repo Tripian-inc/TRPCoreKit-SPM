@@ -61,6 +61,27 @@ extension TRPTimelineItineraryViewModel {
         return pois
     }
 
+    /// Located items of the selected day in display order, grouped per city, for drawing the day's route.
+    /// Cities with fewer than two located items are omitted.
+    func getRouteGroupsForMap() -> [(cityIndex: Int, locations: [TRPLocation])] {
+        var locationsByCity: [Int: [TRPLocation]] = [:]
+        var cityOrder: [Int] = []
+
+        for entry in getOrderedItemsForMap() {
+            guard !entry.item.isNoLocation, let coordinate = entry.item.coordinate,
+                  coordinate.lat != 0 || coordinate.lon != 0 else { continue }
+            if locationsByCity[entry.cityIndex] == nil {
+                cityOrder.append(entry.cityIndex)
+            }
+            locationsByCity[entry.cityIndex, default: []].append(coordinate)
+        }
+
+        return cityOrder.compactMap { cityIndex in
+            guard let locations = locationsByCity[cityIndex], locations.count > 1 else { return nil }
+            return (cityIndex: cityIndex, locations: locations)
+        }
+    }
+
     /// POIs grouped by segment for the selected day; each inner array gets its own route.
     public func getSegmentsWithPoisForSelectedDay() -> [[TRPPoi]] {
         var segmentGroups: [[TRPPoi]] = []
@@ -234,7 +255,9 @@ extension TRPTimelineItineraryViewModel {
         return nil
     }
 
-    public func calculateRoute(for locations: [TRPLocation], completion: @escaping (Route?, Error?) -> Void) {
+    public func calculateRoute(for locations: [TRPLocation],
+                               profile: TRPRouteCalculator.DirectionProfile = .walking,
+                               completion: @escaping (Route?, Error?) -> Void) {
         guard locations.count > 1 else {
             completion(nil, nil)
             return
@@ -245,13 +268,45 @@ extension TRPTimelineItineraryViewModel {
             return
         }
 
-        let calculator = TRPRouteCalculator(providerApiKey: accessToken, wayPoints: locations, dailyPlanId: 0)
+        let calculator = TRPRouteCalculator(providerApiKey: accessToken, wayPoints: locations, dailyPlanId: 0, profile: profile)
         // Retain calculator to prevent deallocation during the async operation.
         activeRouteCalculators.append(calculator)
         calculator.calculateRoute { [weak self] route, error, _, _ in
             DispatchQueue.main.async {
                 self?.activeRouteCalculators.removeAll { $0 === calculator }
                 completion(route, error)
+            }
+        }
+    }
+
+    /// Routes each consecutive pair in `locations`: every pair is walked first, and pairs whose walking
+    /// distance reaches `TRPStepRouteInfo.walkingThresholdMeters` are re-routed by car in a second request.
+    /// Completes on the main thread with one entry per pair (`legs[i]` is `locations[i]` → `locations[i+1]`),
+    /// or nil when the walking request fails.
+    func calculateStepRoutes(for locations: [TRPLocation], completion: @escaping ([TRPStepRouteInfo]?) -> Void) {
+        calculateRoute(for: locations, profile: .walking) { [weak self] walkingRoute, _ in
+            guard let self = self, let walkingLegs = walkingRoute?.legs else {
+                completion(nil)
+                return
+            }
+
+            let needsDriving = walkingLegs.contains { $0.distance >= TRPStepRouteInfo.walkingThresholdMeters }
+            guard needsDriving else {
+                completion(walkingLegs.map { TRPStepRouteInfo(leg: $0, isWalking: true) })
+                return
+            }
+
+            self.calculateRoute(for: locations, profile: .automobile) { drivingRoute, _ in
+                let routes = walkingLegs.enumerated().map { index, walkingLeg -> TRPStepRouteInfo in
+                    guard walkingLeg.distance >= TRPStepRouteInfo.walkingThresholdMeters else {
+                        return TRPStepRouteInfo(leg: walkingLeg, isWalking: true)
+                    }
+                    guard let drivingLeg = drivingRoute?.legs[safe: index] else {
+                        return TRPStepRouteInfo.estimatedDriving(from: walkingLeg)
+                    }
+                    return TRPStepRouteInfo(leg: drivingLeg, isWalking: false)
+                }
+                completion(routes)
             }
         }
     }

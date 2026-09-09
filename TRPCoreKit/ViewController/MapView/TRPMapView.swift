@@ -54,6 +54,7 @@ public class TRPMapView: UIView {
     
     private var addedAnnotations = [String: [ViewAnnotation]]()
     private var addedRoutes = [String: [Route]]()
+    private var routeLegSourceIds = Set<String>()
     
     
     private var didMapLoaded: Bool = false {
@@ -571,6 +572,66 @@ extension TRPMapView {
     private func isMapSourceExist(id: String) -> Bool {
         return (mapView?.mapboxMap.sourceExists(withId: id)) ?? false
     }
+
+    /// Draws one group of route legs under `segmentId`: walking legs dashed, driving legs solid.
+    /// Redrawing the same `segmentId` replaces its legs.
+    public func drawRouteLegs(_ legs: [TRPMapRouteLeg], segmentId: String, color: UIColor) {
+        guard let mapView = mapView else { return }
+
+        let features = legs.filter { $0.coordinates.count > 1 }.map { leg -> Feature in
+            var feature = Feature(geometry: .lineString(LineString(leg.coordinates)))
+            feature.properties = [TRPMapRouteLeg.isWalkingProperty: .boolean(leg.isWalking)]
+            return feature
+        }
+        guard !features.isEmpty else { return }
+
+        let sourceId = TRPMapRouteLeg.sourceId(for: segmentId)
+        let collection = GeoJSONObject.featureCollection(FeatureCollection(features: features))
+
+        if isMapSourceExist(id: sourceId) {
+            mapView.mapboxMap.updateGeoJSONSource(withId: sourceId, geoJSON: collection)
+            return
+        }
+
+        var source = GeoJSONSource(id: sourceId)
+        source.data = .featureCollection(FeatureCollection(features: features))
+        try? mapView.mapboxMap.addSource(source)
+
+        var drivingLayer = LineLayer(id: TRPMapRouteLeg.drivingLayerId(for: segmentId), source: sourceId)
+        drivingLayer.filter = Exp(.eq) { Exp(.get) { TRPMapRouteLeg.isWalkingProperty }; false }
+        drivingLayer.lineJoin = .constant(.round)
+        drivingLayer.lineCap = .constant(.round)
+        drivingLayer.lineColor = .constant(StyleColor(color))
+        drivingLayer.lineWidth = .constant(4)
+        try? mapView.mapboxMap.addLayer(drivingLayer)
+
+        var walkingLayer = LineLayer(id: TRPMapRouteLeg.walkingLayerId(for: segmentId), source: sourceId)
+        walkingLayer.filter = Exp(.eq) { Exp(.get) { TRPMapRouteLeg.isWalkingProperty }; true }
+        walkingLayer.lineJoin = .constant(.round)
+        walkingLayer.lineCap = .constant(.round)
+        walkingLayer.lineColor = .constant(StyleColor(color))
+        walkingLayer.lineWidth = .constant(4)
+        walkingLayer.lineDasharray = .constant([1, 2])
+        try? mapView.mapboxMap.addLayer(walkingLayer)
+
+        routeLegSourceIds.insert(sourceId)
+    }
+
+    /// Removes every route-leg group drawn with `drawRouteLegs`.
+    public func removeAllRouteLegs() {
+        guard let mapView = mapView else { return }
+
+        for sourceId in routeLegSourceIds {
+            for layerId in [TRPMapRouteLeg.walkingLayerId(forSource: sourceId), TRPMapRouteLeg.drivingLayerId(forSource: sourceId)]
+            where mapView.mapboxMap.layerExists(withId: layerId) {
+                try? mapView.mapboxMap.removeLayer(withId: layerId)
+            }
+            if isMapSourceExist(id: sourceId) {
+                try? mapView.mapboxMap.removeSource(withId: sourceId)
+            }
+        }
+        routeLegSourceIds.removeAll()
+    }
     
 //    private func drawRouteDottedLine(_ route: Route, tag: String, color: UIColor = UIColor.blue) {
 //        
@@ -600,6 +661,25 @@ extension TRPMapView {
 //    }
 }
 
+
+/// One leg of a route drawn on `TRPMapView`, with the profile that decides its line style.
+public struct TRPMapRouteLeg {
+    public let coordinates: [CLLocationCoordinate2D]
+    public let isWalking: Bool
+
+    public init(coordinates: [CLLocationCoordinate2D], isWalking: Bool) {
+        self.coordinates = coordinates
+        self.isWalking = isWalking
+    }
+
+    static let isWalkingProperty = "isWalking"
+
+    static func sourceId(for segmentId: String) -> String { segmentId + "_route_legs" }
+    static func walkingLayerId(for segmentId: String) -> String { walkingLayerId(forSource: sourceId(for: segmentId)) }
+    static func drivingLayerId(for segmentId: String) -> String { drivingLayerId(forSource: sourceId(for: segmentId)) }
+    static func walkingLayerId(forSource sourceId: String) -> String { sourceId + "_walking" }
+    static func drivingLayerId(forSource sourceId: String) -> String { sourceId + "_driving" }
+}
 
 extension MapView {
     func setMapCenter(latitude: Double, longitude: Double, zoomLevel: Double? = nil) {

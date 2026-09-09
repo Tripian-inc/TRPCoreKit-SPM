@@ -55,6 +55,16 @@ public enum TripianProvider {
         }
     }
 
+    /// Whether the timeline map draws the day's route (walking and driving legs)
+    /// between its located items.
+    public var drawsRoutesOnMap: Bool {
+        switch self {
+        case .civitatis:    return false
+        case .nexus:        return true
+        case .getYourGuide: return false
+        }
+    }
+
     public func activityDetailId(fromRaw rawId: String) -> String {
         switch self {
         case .civitatis, .getYourGuide:
