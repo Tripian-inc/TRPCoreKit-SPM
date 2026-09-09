@@ -64,8 +64,6 @@ public class AddPlanActivityListingViewModel {
     /// True when the loaded list was fetched with search / filter / sort applied by the API.
     private var serverNarrowingActive = false
 
-    private var searchWorkItem: DispatchWorkItem?
-    private let searchDebounceInterval: TimeInterval = 0.65
 
     private var tourUseCases: TRPTourUseCases?
 
@@ -192,27 +190,16 @@ public class AddPlanActivityListingViewModel {
         return !hasLoadedInitialFacets
     }
 
-    /// Narrows locally when the whole base list is loaded; otherwise re-queries the API (debounced while typing).
+    /// Narrows locally when the whole base list is loaded; otherwise re-queries the API.
+    /// The search bar debounces typing.
     public func updateSearchText(_ text: String) {
         searchText = text
-        searchWorkItem?.cancel()
-
         if canNarrowLocally {
             applyLocalSortAndFilter()
             delegate?.activitiesDidLoad()
-            return
-        }
-
-        guard !text.isEmpty else {
+        } else {
             performSearch(style: .skeleton)
-            return
         }
-
-        let work = DispatchWorkItem { [weak self] in
-            self?.performSearch(style: .skeleton)
-        }
-        searchWorkItem = work
-        DispatchQueue.main.asyncAfter(deadline: .now() + searchDebounceInterval, execute: work)
     }
 
     public func updateSortOption(_ option: SortOption) {
@@ -358,7 +345,6 @@ public class AddPlanActivityListingViewModel {
     /// Fetches the first page for the current query and resets pagination. Search, filter and
     /// sort go to the API whenever any of them is active at fetch time.
     private func executeSearch(style: AddPlanLoadingStyle) {
-        searchWorkItem?.cancel()
         searchGeneration += 1
         isLoadingMore = false
         serverNarrowingActive = hasServerNarrowing

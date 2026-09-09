@@ -67,7 +67,6 @@ public class AddPlanPOISelectionViewModel {
     private var boundarySW: TRPLocation?
     private var boundaryNE: TRPLocation?
     private(set) var searchResults: [TRPGooglePlace] = []
-    private var searchWorkItem: DispatchWorkItem?
 
     // MARK: - Initialization
     public init(cityName: String?,
@@ -184,8 +183,6 @@ public class AddPlanPOISelectionViewModel {
 
     // MARK: - Google Places Search
     public func searchAddress(text: String) {
-        searchWorkItem?.cancel()
-
         let searchText = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !searchText.isEmpty else {
             clearSearchResults()
@@ -196,12 +193,7 @@ public class AddPlanPOISelectionViewModel {
             return
         }
 
-        let workItem = DispatchWorkItem { [weak self] in
-            self?.performSearch(text: searchText, apiKey: apiKey)
-        }
-
-        searchWorkItem = workItem
-        DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(650), execute: workItem)
+        performSearch(text: searchText, apiKey: apiKey)
     }
 
     private func performSearch(text: String, apiKey: String) {

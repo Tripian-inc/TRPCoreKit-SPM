@@ -9,15 +9,22 @@
 import UIKit
 import TRPFoundationKit
 
-/// Delegate protocol for TRPSearchBar
+/// Delegate protocol for TRPSearchBar.
+///
+/// `textDidChange` fires on every keystroke (for UI such as switching between default
+/// and result views). `queryDidChange` is the search trigger: it fires
+/// `queryDebounceInterval` after the last keystroke, and immediately when the text is
+/// cleared, the clear button is tapped or the keyboard's search key is pressed.
 public protocol TRPSearchBarDelegate: AnyObject {
     func searchBar(_ searchBar: TRPSearchBar, textDidChange text: String)
+    func searchBar(_ searchBar: TRPSearchBar, queryDidChange query: String)
     func searchBarDidBeginEditing(_ searchBar: TRPSearchBar)
     func searchBarDidEndEditing(_ searchBar: TRPSearchBar)
     func searchBarSearchButtonClicked(_ searchBar: TRPSearchBar)
 }
 
 extension TRPSearchBarDelegate {
+    public func searchBar(_ searchBar: TRPSearchBar, queryDidChange query: String) { }
     public func searchBarDidBeginEditing(_ searchBar: TRPSearchBar) { }
     public func searchBarDidEndEditing(_ searchBar: TRPSearchBar) { }
 }
@@ -28,9 +35,19 @@ public class TRPSearchBar: UIView {
     // MARK: - Properties
     public weak var delegate: TRPSearchBarDelegate?
 
+    /// Delay between the last keystroke and `queryDidChange`.
+    public var queryDebounceInterval: TimeInterval = 0.65
+
+    private var pendingQuery: DispatchWorkItem?
+    private var lastPublishedQuery = ""
+
     public var text: String? {
         get { return textField.text }
-        set { textField.text = newValue }
+        set {
+            textField.text = newValue
+            pendingQuery?.cancel()
+            lastPublishedQuery = Self.query(from: newValue ?? "")
+        }
     }
 
     public var placeholder: String? {
@@ -153,6 +170,7 @@ public class TRPSearchBar: UIView {
         clearButton.isHidden = true
         updateSearchIconVisibility(hasText: false)
         delegate?.searchBar(self, textDidChange: "")
+        publishQuery("")
         textField.resignFirstResponder()
     }
 
@@ -162,6 +180,31 @@ public class TRPSearchBar: UIView {
         clearButton.isHidden = !hasText
         updateSearchIconVisibility(hasText: hasText)
         delegate?.searchBar(self, textDidChange: text)
+        scheduleQuery(text)
+    }
+
+    private func scheduleQuery(_ text: String) {
+        pendingQuery?.cancel()
+        let query = Self.query(from: text)
+        if query.isEmpty {
+            publishQuery(query)
+            return
+        }
+        let work = DispatchWorkItem { [weak self] in self?.publishQuery(query) }
+        pendingQuery = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + queryDebounceInterval, execute: work)
+    }
+
+    private func publishQuery(_ query: String) {
+        pendingQuery?.cancel()
+        pendingQuery = nil
+        guard query != lastPublishedQuery else { return }
+        lastPublishedQuery = query
+        delegate?.searchBar(self, queryDidChange: query)
+    }
+
+    private static func query(from text: String) -> String {
+        return text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "" : text
     }
 
     private func updateSearchIconVisibility(hasText: Bool) {
@@ -201,6 +244,7 @@ extension TRPSearchBar: UITextFieldDelegate {
     }
 
     public func textFieldShouldReturn(_ textField: UITextField) -> Bool {
+        publishQuery(Self.query(from: textField.text ?? ""))
         textField.resignFirstResponder()
         delegate?.searchBarSearchButtonClicked(self)
         return true

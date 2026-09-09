@@ -322,10 +322,16 @@ extension AddPlanPOISelectionVC: TRPSearchBarDelegate {
     public func searchBar(_ searchBar: TRPSearchBar, textDidChange text: String) {
         if text.isEmpty {
             showDefaultContent()
-            viewModel.clearSearchResults()
         } else {
             showSearchResults()
-            viewModel.searchAddress(text: text)
+        }
+    }
+
+    public func searchBar(_ searchBar: TRPSearchBar, queryDidChange query: String) {
+        if query.isEmpty {
+            viewModel.clearSearchResults()
+        } else {
+            viewModel.searchAddress(text: query)
         }
     }
 
