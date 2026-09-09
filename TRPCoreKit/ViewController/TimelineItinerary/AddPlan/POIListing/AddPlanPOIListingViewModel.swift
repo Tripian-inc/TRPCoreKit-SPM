@@ -38,7 +38,6 @@ public class AddPlanPOIListingViewModel {
 
     private var poiUseCases: TRPPoiUseCases
     private var timelineRepository: TRPTimelineRepository
-    private var searchWorkItem: DispatchWorkItem?
     private var isLoadingMore: Bool = false
     private var currentPage: Int = 1
     private var totalPages: Int = 1
@@ -114,9 +113,10 @@ public class AddPlanPOIListingViewModel {
         return "\(count) \(placeText)"
     }
 
+    /// The search bar debounces typing; an empty query reloads the full list.
     public func updateSearchText(_ text: String) {
         searchText = text
-        performSearchWithDebounce()
+        performSearch()
     }
 
     public func updateSortOption(_ option: SortOption) {
@@ -198,17 +198,6 @@ public class AddPlanPOIListingViewModel {
         ) { [weak self] result, pagination in
             self?.handleSearchResult(result: result, pagination: pagination, isLoadMore: page > 1, requestedPage: page)
         }
-    }
-
-    private func performSearchWithDebounce() {
-        searchWorkItem?.cancel()
-
-        let workItem = DispatchWorkItem { [weak self] in
-            self?.performSearch()
-        }
-
-        searchWorkItem = workItem
-        DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(500), execute: workItem)
     }
 
     private func performSearch() {

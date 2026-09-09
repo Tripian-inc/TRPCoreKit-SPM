@@ -340,8 +340,11 @@ extension AddPlanPOIListingVC: UITableViewDataSource, UITableViewDelegate {
 extension AddPlanPOIListingVC: TRPSearchBarDelegate {
 
     public func searchBar(_ searchBar: TRPSearchBar, textDidChange text: String) {
-        viewModel.updateSearchText(text)
         tableView.setContentOffset(.zero, animated: true)
+    }
+
+    public func searchBar(_ searchBar: TRPSearchBar, queryDidChange query: String) {
+        viewModel.updateSearchText(query)
     }
 
     public func searchBarSearchButtonClicked(_ searchBar: TRPSearchBar) {
