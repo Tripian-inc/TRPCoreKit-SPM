@@ -21,6 +21,9 @@ extension TRPTimelineItineraryVC {
         tableView.register(TRPTimelineActivityStepCell.self, forCellReuseIdentifier: TRPTimelineActivityStepCell.reuseIdentifier)
         tableView.register(TRPTimelineRecommendationsCell.self, forCellReuseIdentifier: TRPTimelineRecommendationsCell.reuseIdentifier)
         tableView.register(TRPTimelineEmptyStateCell.self, forCellReuseIdentifier: TRPTimelineEmptyStateCell.reuseIdentifier)
+        tableView.register(TRPTimelinePlanStepCell.self, forCellReuseIdentifier: TRPTimelinePlanStepCell.reuseIdentifier)
+        tableView.register(TRPTimelineStartingPointCell.self, forCellReuseIdentifier: TRPTimelineStartingPointCell.reuseIdentifier)
+        tableView.register(TRPTimelineRouteSeparatorCell.self, forCellReuseIdentifier: TRPTimelineRouteSeparatorCell.reuseIdentifier)
         tableView.register(TRPTimelineSectionHeaderView.self, forHeaderFooterViewReuseIdentifier: TRPTimelineSectionHeaderView.reuseIdentifier)
         tableView.register(TRPTimelineSectionFooterView.self, forHeaderFooterViewReuseIdentifier: TRPTimelineSectionFooterView.reuseIdentifier)
 

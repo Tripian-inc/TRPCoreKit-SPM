@@ -18,6 +18,10 @@ extension TRPTimelineItineraryViewModel {
 
     /// Ordered items for map display, matching the list view's city-based numbering, sorted by section then order.
     public func getOrderedItemsForMap() -> [(order: Int, section: Int, cityIndex: Int, item: MapDisplayItem)] {
+        if usesFlatTimeline {
+            return flatOrderedItemsForMap()
+        }
+
         var result: [(order: Int, section: Int, cityIndex: Int, item: MapDisplayItem)] = []
 
         for (sectionIndex, cityGroup) in displayItems.enumerated() {
@@ -61,14 +65,14 @@ extension TRPTimelineItineraryViewModel {
         return pois
     }
 
-    /// Located items of the selected day in display order, grouped per city, for drawing the day's route.
-    /// Cities with fewer than two located items are omitted.
+    /// Located, non-flexible items of the selected day in display order, grouped per city, for drawing
+    /// the day's route. Cities with fewer than two located items are omitted.
     func getRouteGroupsForMap() -> [(cityIndex: Int, locations: [TRPLocation])] {
         var locationsByCity: [Int: [TRPLocation]] = [:]
         var cityOrder: [Int] = []
 
         for entry in getOrderedItemsForMap() {
-            guard !entry.item.isNoLocation, let coordinate = entry.item.coordinate,
+            guard !entry.item.isNoLocation, !entry.item.isFlexibleActivity, let coordinate = entry.item.coordinate,
                   coordinate.lat != 0 || coordinate.lon != 0 else { continue }
             if locationsByCity[entry.cityIndex] == nil {
                 cityOrder.append(entry.cityIndex)
@@ -173,6 +177,9 @@ extension TRPTimelineItineraryViewModel {
     }
 
     public func hasMultipleCities() -> Bool {
+        if usesFlatTimeline {
+            return flatSections.count > 1
+        }
         return displayItems.count > 1
     }
 

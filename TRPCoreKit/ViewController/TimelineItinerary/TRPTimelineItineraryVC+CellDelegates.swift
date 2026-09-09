@@ -259,6 +259,49 @@ extension TRPTimelineItineraryVC: TRPTimelineRecommendationsCellDelegate {
     }
 
     func recommendationsCellDidSelectStep(_ cell: TRPTimelineRecommendationsCell, step: TRPTimelineStep) {
+        handleStepSelection(step)
+    }
+
+    func recommendationsCellDidTapChangeTime(_ cell: TRPTimelineRecommendationsCell, step: TRPTimelineStep) {
+        handleStepChangeTime(step)
+    }
+
+    func recommendationsCellDidTapRemoveStep(_ cell: TRPTimelineRecommendationsCell, step: TRPTimelineStep) {
+        handleStepRemoval(step)
+    }
+
+    func recommendationsCellDidTapReservation(_ cell: TRPTimelineRecommendationsCell, step: TRPTimelineStep) {
+        handleStepReservation(step)
+    }
+}
+
+// MARK: - TRPTimelinePlanStepCellDelegate
+
+extension TRPTimelineItineraryVC: TRPTimelinePlanStepCellDelegate {
+
+    func planStepCellDidSelect(_ cell: TRPTimelinePlanStepCell, step: TRPTimelineStep) {
+        handleStepSelection(step)
+    }
+
+    func planStepCellDidTapChangeTime(_ cell: TRPTimelinePlanStepCell, step: TRPTimelineStep) {
+        handleStepChangeTime(step)
+    }
+
+    func planStepCellDidTapRemove(_ cell: TRPTimelinePlanStepCell, step: TRPTimelineStep) {
+        handleStepRemoval(step)
+    }
+
+    func planStepCellDidTapReservation(_ cell: TRPTimelinePlanStepCell, step: TRPTimelineStep) {
+        handleStepReservation(step)
+    }
+}
+
+// MARK: - Step Actions (shared by the recommendations card and the flat timeline's step rows)
+
+extension TRPTimelineItineraryVC {
+
+    /// "poi" steps open the internal POI detail; every other step type notifies the host for its product detail.
+    internal func handleStepSelection(_ step: TRPTimelineStep) {
         guard let poi = step.poi else { return }
 
         // Mirror Android: only "poi" steps open the internal POI detail screen;
@@ -279,16 +322,17 @@ extension TRPTimelineItineraryVC: TRPTimelineRecommendationsCellDelegate {
         TRPCoreKit.shared.delegate?.trpCoreKitDidRequestActivityDetail(activityId: activityId)
     }
 
-    func recommendationsCellDidTapChangeTime(_ cell: TRPTimelineRecommendationsCell, step: TRPTimelineStep) {
+    /// Activity steps open the availability time-slot picker; other steps the plain time range picker.
+    internal func handleStepChangeTime(_ step: TRPTimelineStep) {
         if step.stepType == "activity" {
-            openActivityTimeSelection(for: step, cell: cell)
+            openActivityTimeSelection(for: step)
         } else {
             openTimeRangeSelection(for: step)
         }
     }
 
     /// Opens AddPlanTimeSelectionVC for activity steps (with availability API)
-    private func openActivityTimeSelection(for step: TRPTimelineStep, cell: TRPTimelineRecommendationsCell) {
+    private func openActivityTimeSelection(for step: TRPTimelineStep) {
         var planData = AddPlanData()
         planData.tripHash = viewModel.getTripHash()
         planData.availableDays = viewModel.getDayDates()
@@ -361,7 +405,7 @@ extension TRPTimelineItineraryVC: TRPTimelineRecommendationsCellDelegate {
         return dateFormatter.date(from: dateTimeString)
     }
 
-    func recommendationsCellDidTapRemoveStep(_ cell: TRPTimelineRecommendationsCell, step: TRPTimelineStep) {
+    internal func handleStepRemoval(_ step: TRPTimelineStep) {
         showConfirmAlert(
             title: TimelineLocalizationKeys.localized(TimelineLocalizationKeys.removeStepTitle),
             message: TimelineLocalizationKeys.localized(TimelineLocalizationKeys.removeStepMessage),
@@ -372,12 +416,17 @@ extension TRPTimelineItineraryVC: TRPTimelineRecommendationsCellDelegate {
         )
     }
 
-    func recommendationsCellDidTapReservation(_ cell: TRPTimelineRecommendationsCell, step: TRPTimelineStep) {
+    internal func handleStepReservation(_ step: TRPTimelineStep) {
         guard let poi = step.poi else { return }
         let activityId = extractActivityId(from: poi)
         let reservationDate = resolveReservationDate(preferred: step.startDateTimes)
         TRPCoreKit.shared.delegate?.trpCoreKitDidRequestActivityReservation(activityId: activityId, date: reservationDate)
     }
+}
+
+// MARK: - TRPTimelineRecommendationsCellDelegate (route calculation)
+
+extension TRPTimelineItineraryVC {
 
     func recommendationsCellNeedsRouteCalculation(_ cell: TRPTimelineRecommendationsCell, locations: [TRPLocation], cellIndexPath: IndexPath) {
         guard locations.count > 1 else { return }

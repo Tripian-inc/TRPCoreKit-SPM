@@ -65,6 +65,17 @@ public enum TripianProvider {
         }
     }
 
+    /// Whether the timeline lists every segment and plan step of a day as one flat,
+    /// time-ordered sequence with route legs between consecutive rows, instead of a
+    /// smart-recommendations card per itinerary segment.
+    public var usesFlatTimeline: Bool {
+        switch self {
+        case .civitatis:    return false
+        case .nexus:        return true
+        case .getYourGuide: return false
+        }
+    }
+
     public func activityDetailId(fromRaw rawId: String) -> String {
         switch self {
         case .civitatis, .getYourGuide:

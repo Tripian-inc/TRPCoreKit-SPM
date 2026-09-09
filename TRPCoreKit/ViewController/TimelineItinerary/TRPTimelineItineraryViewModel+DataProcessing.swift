@@ -104,12 +104,14 @@ extension TRPTimelineItineraryViewModel {
         guard let mergedTimeline = mergedTimeline else {
             displayItems = []
             unifiedOrderMap = [:]
+            flatSections = []
             return
         }
 
         guard selectedDayIndex >= 0, selectedDayIndex < allTripDates.count else {
             displayItems = []
             unifiedOrderMap = [:]
+            flatSections = []
             return
         }
 
@@ -136,6 +138,11 @@ extension TRPTimelineItineraryViewModel {
         }
 
         calculateUnifiedOrders()
+
+        if usesFlatTimeline {
+            buildFlatSections()
+            reportPlansGeneratedWithoutPois()
+        }
     }
 
     // MARK: - Time Conflict Detection

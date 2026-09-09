@@ -131,9 +131,16 @@ extension TRPTimelineItineraryVC {
 
     /// Routes the day's located items in display order, one route per city, and draws the legs
     /// (walking dashed, driving solid) in the route blue. Only when the host draws routes.
-    private func drawRoutesForSelectedDay() {
+    internal func drawRoutesForSelectedDay() {
         removeAllRoutesFromMap()
         guard TRPCoreKit.shared.provider.drawsRoutesOnMap else { return }
+
+        if viewModel.usesFlatTimeline {
+            for entry in viewModel.flatMapRouteLegs() {
+                map?.drawRouteLegs(entry.legs, segmentId: entry.segmentId, color: TRPMapView.DrawRouteStyle.rota.getColor())
+            }
+            return
+        }
 
         let groups = viewModel.getRouteGroupsForMap()
         guard !groups.isEmpty else { return }

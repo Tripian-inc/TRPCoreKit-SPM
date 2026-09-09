@@ -339,6 +339,50 @@ public struct ActivityStepCellData: TimelineCellData {
     }
 }
 
+// MARK: - Flat Timeline Cell Data
+
+/// Starting point row of the flat timeline (accommodation or city centre).
+public struct StartingPointCellData: TimelineCellData {
+    public let segmentIndex: Int
+    public let name: String
+    public let segment: TRPTimelineSegment
+
+    public init(segmentIndex: Int, name: String, segment: TRPTimelineSegment) {
+        self.segmentIndex = segmentIndex
+        self.name = name
+        self.segment = segment
+    }
+}
+
+/// Route leg between two consecutive located rows of the flat timeline.
+public struct RouteSeparatorCellData {
+    /// Kilometers, one decimal.
+    public let distance: Float
+    public let minutes: Int
+    public let isWalking: Bool
+
+    public init(distance: Float, minutes: Int, isWalking: Bool) {
+        self.distance = distance
+        self.minutes = minutes
+        self.isWalking = isWalking
+    }
+}
+
+/// One itinerary plan step listed at the top level of the flat timeline.
+public struct PlanStepCellData: TimelineCellData {
+    public let segmentIndex: Int
+    public let order: Int
+    public let step: TRPTimelineStep
+    public let segment: TRPTimelineSegment
+
+    public init(segmentIndex: Int, order: Int, step: TRPTimelineStep, segment: TRPTimelineSegment) {
+        self.segmentIndex = segmentIndex
+        self.order = order
+        self.step = step
+        self.segment = segment
+    }
+}
+
 // MARK: - Unified Cell Type Enum
 
 public enum TimelineCellType {
@@ -349,6 +393,9 @@ public enum TimelineCellType {
     case manualPoi(ManualPoiCellData)
     case activityStep(ActivityStepCellData)
     case recommendations(RecommendationsCellData)
+    case startingPoint(StartingPointCellData)
+    case routeSeparator(RouteSeparatorCellData)
+    case planStep(PlanStepCellData)
     case emptyState
 
     // MARK: - Convenience Properties
@@ -361,7 +408,9 @@ public enum TimelineCellType {
         case .manualPoi(let data): return data.segmentIndex
         case .activityStep(let data): return data.segmentIndex
         case .recommendations(let data): return data.segmentIndex
-        case .emptyState: return nil
+        case .startingPoint(let data): return data.segmentIndex
+        case .planStep(let data): return data.segmentIndex
+        case .routeSeparator, .emptyState: return nil
         }
     }
 
@@ -373,7 +422,9 @@ public enum TimelineCellType {
         case .manualPoi(let data): return data.segment
         case .activityStep(let data): return data.segment
         case .recommendations(let data): return data.segment
-        case .emptyState: return nil
+        case .startingPoint(let data): return data.segment
+        case .planStep(let data): return data.segment
+        case .routeSeparator, .emptyState: return nil
         }
     }
 }

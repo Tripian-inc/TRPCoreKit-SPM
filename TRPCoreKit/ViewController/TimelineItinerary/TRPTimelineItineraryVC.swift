@@ -447,11 +447,27 @@ public class TRPTimelineItineraryVC: TRPBaseUIViewController {
         tableView.reloadData()
         updateConflictWarningVisibility()
 
-        calculateRoutesForItinerarySegments()
+        if viewModel.usesFlatTimeline {
+            requestFlatRoutes()
+        } else {
+            calculateRoutesForItinerarySegments()
+        }
 
         if isShowingMap {
             refreshMap()
             updatePOIPreviewCards()
+        }
+    }
+
+    /// Flat timeline: fetches legs for the day's chains not cached yet; every arrival re-renders
+    /// the list and, when the map is up, its route.
+    internal func requestFlatRoutes() {
+        viewModel.requestMissingFlatRoutes { [weak self] in
+            guard let self = self else { return }
+            self.tableView.reloadData()
+            if self.isShowingMap {
+                self.drawRoutesForSelectedDay()
+            }
         }
     }
 

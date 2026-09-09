@@ -118,6 +118,20 @@ public class TRPTimelineItineraryViewModel {
     /// Retained to prevent deallocation during async operations.
     internal var activeRouteCalculators: [TRPRouteCalculator] = []
 
+    /// Flat timeline (`TripianProvider.usesFlatTimeline`): the selected day's rows per city section.
+    internal var flatSections: [TimelineFlatSection] = []
+
+    /// Route legs per `TimelineFlatRouteChain.key`, and the chain keys with a request in flight.
+    internal var flatRouteCache: [String: [TRPStepRouteInfo]] = [:]
+    internal var flatRouteRequestsInFlight: Set<String> = []
+
+    /// Plans already reported as generated without places, so each alerts once.
+    internal var reportedEmptyPlanIds: Set<String> = []
+
+    internal var usesFlatTimeline: Bool {
+        return TRPCoreKit.shared.provider.usesFlatTimeline
+    }
+
     internal lazy var timelineModeUseCases: TRPTimelineModeUseCases = TRPTimelineModeUseCases()
 
     /// Set via `init(tripHash:)`; consumed once by `loadInitialTimelineIfNeeded()`.

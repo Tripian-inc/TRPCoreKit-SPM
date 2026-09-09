@@ -17,16 +17,28 @@ extension TRPTimelineItineraryViewModel {
 
     public func numberOfSections() -> Int {
         guard hasLoadedData else { return 0 }
+        if usesFlatTimeline {
+            return flatSections.isEmpty ? 1 : flatSections.count
+        }
         return displayItems.isEmpty ? 1 : displayItems.count
     }
 
     public func numberOfRows(in section: Int) -> Int {
+        if usesFlatTimeline {
+            if flatSections.isEmpty { return 1 }
+            guard section < flatSections.count else { return 0 }
+            return flatSections[section].rows.count
+        }
         if displayItems.isEmpty { return 1 }
         guard section < displayItems.count else { return 0 }
         return displayItems[section].items.count
     }
 
     public func cellType(at indexPath: IndexPath) -> TimelineCellType? {
+        if usesFlatTimeline {
+            return flatCellType(at: indexPath)
+        }
+
         if displayItems.isEmpty {
             return .emptyState
         }
@@ -57,7 +69,40 @@ extension TRPTimelineItineraryViewModel {
         return TimelineCellType.from(mergedItem, order: order, isExpanded: isExpanded)
     }
 
+    private func flatCellType(at indexPath: IndexPath) -> TimelineCellType? {
+        if flatSections.isEmpty {
+            return .emptyState
+        }
+        guard let row = flatRow(at: indexPath) else { return nil }
+
+        switch row {
+        case .flexibleActivity(let item):
+            return .flexibleActivity(FlexibleActivityCellData(from: item))
+
+        case .startingPoint(let name, _, let item):
+            return .startingPoint(StartingPointCellData(segmentIndex: item.originalSegmentIndex, name: name, segment: item.segment))
+
+        case .routeSeparator(let routeInfo, _):
+            return .routeSeparator(RouteSeparatorCellData(distance: routeInfo.distance, minutes: routeInfo.time, isWalking: routeInfo.isWalking))
+
+        case .bookedActivity(let item, let order):
+            let cellData = BookedActivityCellData(from: item, order: order)
+            return item.isReservedActivity ? .reservedActivity(cellData) : .bookedActivity(cellData)
+
+        case .manualPoi(let item, let order):
+            return .manualPoi(ManualPoiCellData(from: item, order: order))
+
+        case .planStep(let item, _, let order):
+            guard let step = row.step else { return nil }
+            return .planStep(PlanStepCellData(segmentIndex: item.originalSegmentIndex, order: order, step: step, segment: item.segment))
+        }
+    }
+
     public func getMergedItem(at indexPath: IndexPath) -> TRPMergedTimelineItem? {
+        if usesFlatTimeline {
+            return flatRow(at: indexPath)?.item
+        }
+
         guard indexPath.section < displayItems.count else { return nil }
 
         let cityGroup = displayItems[indexPath.section]
@@ -67,7 +112,9 @@ extension TRPTimelineItineraryViewModel {
     }
 
     public func headerData(for section: Int) -> TRPTimelineSectionHeaderData {
-        if displayItems.isEmpty {
+        let sectionCities: [TRPCity?] = usesFlatTimeline ? flatSections.map { $0.city } : displayItems.map { $0.city }
+
+        if sectionCities.isEmpty {
             return TRPTimelineSectionHeaderData(
                 cityName: "",
                 isFirstSection: false,
@@ -79,7 +126,7 @@ extension TRPTimelineItineraryViewModel {
         let isFirstSection = section == 0
         let hasMultipleDests = mergedTimeline?.hasMultipleDestinations ?? false
 
-        guard section < displayItems.count else {
+        guard section < sectionCities.count else {
             return TRPTimelineSectionHeaderData(
                 cityName: "",
                 isFirstSection: isFirstSection,
@@ -89,12 +136,12 @@ extension TRPTimelineItineraryViewModel {
         }
 
         let unknownText = TimelineLocalizationKeys.localized(TimelineLocalizationKeys.unknown)
-        let cityName = displayItems[section].city?.name ?? unknownText
+        let cityName = sectionCities[section]?.name ?? unknownText
 
         // Show a header only when the city changes.
         var shouldShowHeader = isFirstSection
         if hasMultipleDests && !isFirstSection && section > 0 {
-            let previousCityName = displayItems[section - 1].city?.name ?? unknownText
+            let previousCityName = sectionCities[section - 1]?.name ?? unknownText
             shouldShowHeader = (cityName != previousCityName)
         }
 

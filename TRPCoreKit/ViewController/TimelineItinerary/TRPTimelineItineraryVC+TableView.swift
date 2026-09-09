@@ -84,6 +84,29 @@ extension TRPTimelineItineraryVC: UITableViewDataSource {
             if isPastDay { cell.applyPastDayStyle() }
             return cell
 
+        case .startingPoint(let cellData):
+            guard let cell = tableView.dequeueReusableCell(withIdentifier: TRPTimelineStartingPointCell.reuseIdentifier, for: indexPath) as? TRPTimelineStartingPointCell else {
+                return UITableViewCell()
+            }
+            cell.configure(with: cellData)
+            return cell
+
+        case .routeSeparator(let cellData):
+            guard let cell = tableView.dequeueReusableCell(withIdentifier: TRPTimelineRouteSeparatorCell.reuseIdentifier, for: indexPath) as? TRPTimelineRouteSeparatorCell else {
+                return UITableViewCell()
+            }
+            cell.configure(with: cellData)
+            return cell
+
+        case .planStep(let cellData):
+            guard let cell = tableView.dequeueReusableCell(withIdentifier: TRPTimelinePlanStepCell.reuseIdentifier, for: indexPath) as? TRPTimelinePlanStepCell else {
+                return UITableViewCell()
+            }
+            cell.delegate = self
+            cell.configure(with: cellData)
+            if isPastDay { cell.applyPastDayStyle() }
+            return cell
+
         case .emptyState:
             guard let cell = tableView.dequeueReusableCell(withIdentifier: TRPTimelineEmptyStateCell.reuseIdentifier, for: indexPath) as? TRPTimelineEmptyStateCell else {
                 return UITableViewCell()
@@ -209,6 +232,9 @@ extension TRPTimelineItineraryVC: UITableViewDelegate {
             delegate?.timelineItineraryDidSelectStep(self, step: cellData.step)
 
         case .recommendations:
+            break
+
+        case .startingPoint, .routeSeparator, .planStep:
             break
 
         case .emptyState:
