@@ -23,6 +23,9 @@ public class NexusDateSelectionVC: TRPBaseUIViewController {
 
     private var viewModel: NexusDateSelectionViewModel!
 
+    /// Longest selectable trip, start and end days included.
+    public var maxRangeDays: Int = 30
+
     private var firstSelectedDate: Date?
     private var lastSelectedDate: Date?
     private var selectedRange: [Date] = []
@@ -195,8 +198,19 @@ public class NexusDateSelectionVC: TRPBaseUIViewController {
 
     @objc private func nextTapped() {
         guard let start = firstSelectedDate else { return }
-        let end = lastSelectedDate ?? start
+        let end = min(lastSelectedDate ?? start, lastAllowedEnd(from: start))
         onComplete?(viewModel.buildItinerary(start: start, end: end))
+    }
+
+    /// Last day that keeps a trip starting on `start` within `maxRangeDays`.
+    private func lastAllowedEnd(from start: Date) -> Date {
+        Calendar.current.date(byAdding: .day, value: maxRangeDays - 1, to: start) ?? start
+    }
+
+    /// True while an end day is being picked and `date` would exceed `maxRangeDays`.
+    private func exceedsRangeLimit(_ date: Date) -> Bool {
+        guard let first = firstSelectedDate, lastSelectedDate == nil else { return false }
+        return Calendar.current.startOfDay(for: date) > lastAllowedEnd(from: first)
     }
 }
 
@@ -212,8 +226,11 @@ extension NexusDateSelectionVC: FSCalendarDataSource, FSCalendarDelegate {
     }
 
     public func calendar(_ calendar: FSCalendar, shouldDeselect date: Date, at monthPosition: FSCalendarMonthPosition) -> Bool {
-        // Manage (de)selection manually via didSelect to keep a clean range.
         return false
+    }
+
+    public func calendar(_ calendar: FSCalendar, shouldSelect date: Date, at monthPosition: FSCalendarMonthPosition) -> Bool {
+        return !exceedsRangeLimit(date)
     }
 
     public func calendar(_ calendar: FSCalendar, didSelect date: Date, at monthPosition: FSCalendarMonthPosition) {
@@ -238,6 +255,14 @@ extension NexusDateSelectionVC: FSCalendarDataSource, FSCalendarDelegate {
                 for d in selectedRange { calendar.select(d) }
             }
         }
+        calendar.reloadData()
         updateNextState()
+    }
+}
+
+extension NexusDateSelectionVC: FSCalendarDelegateAppearance {
+
+    public func calendar(_ calendar: FSCalendar, appearance: FSCalendarAppearance, titleDefaultColorFor date: Date) -> UIColor? {
+        return exceedsRangeLimit(date) ? ColorSet.fgWeaker.uiColor : nil
     }
 }
