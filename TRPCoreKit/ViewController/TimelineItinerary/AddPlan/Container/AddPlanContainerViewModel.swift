@@ -27,15 +27,19 @@ public class AddPlanContainerViewModel {
     private let bookedActivities: [TRPTimelineSegment]
     private let destinationItems: [TRPSegmentDestinationItem]
     private let favouriteItems: [TRPSegmentFavoriteItem]
+    /// Party size the flow starts with and falls back to when the travelers step is cleared.
+    public let defaultTravelers: Int
 
     // MARK: - Initialization
-    public init(days: [Date], cities: [TRPCity], selectedDayIndex: Int, bookedActivities: [TRPTimelineSegment] = [], destinationItems: [TRPSegmentDestinationItem] = [], favouriteItems: [TRPSegmentFavoriteItem] = []) {
+    public init(days: [Date], cities: [TRPCity], selectedDayIndex: Int, bookedActivities: [TRPTimelineSegment] = [], destinationItems: [TRPSegmentDestinationItem] = [], favouriteItems: [TRPSegmentFavoriteItem] = [], defaultTravelers: Int = 1) {
         self.availableDays = days
         self.availableCities = cities
         self.selectedDayIndex = selectedDayIndex
         self.bookedActivities = bookedActivities
         self.destinationItems = destinationItems
         self.favouriteItems = favouriteItems
+        self.defaultTravelers = max(defaultTravelers, 1)
+        self.planData.travelers = self.defaultTravelers
 
         // If selectedDayIndex points at a past day, jump forward so AddPlan never opens on an unplannable day.
         if selectedDayIndex < days.count {

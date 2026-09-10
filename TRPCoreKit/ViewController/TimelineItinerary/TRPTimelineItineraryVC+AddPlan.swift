@@ -28,7 +28,8 @@ extension TRPTimelineItineraryVC {
                                                            selectedDayIndex: selectedDayIndex,
                                                            bookedActivities: bookedActivities,
                                                            destinationItems: destinationItems,
-                                                           favouriteItems: favouriteItems)
+                                                           favouriteItems: favouriteItems,
+                                                           defaultTravelers: viewModel.defaultTravelerCount())
 
         containerViewModel.planData.tripHash = viewModel.getTripHash()
 
