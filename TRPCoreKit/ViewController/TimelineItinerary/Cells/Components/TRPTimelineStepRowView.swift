@@ -164,6 +164,23 @@ final class TRPTimelineStepRowView: UIView {
 
         categoryBadge.addSubview(categoryLabel)
 
+        let noLocationBadge = TRPPaddingLabel(4, 4, 8, 8)
+        noLocationBadge.translatesAutoresizingMaskIntoConstraints = false
+        noLocationBadge.font = FontSet.montserratMedium.font(10)
+        noLocationBadge.textColor = ColorSet.infoIcon.uiColor
+        noLocationBadge.backgroundColor = ColorSet.bgBlue.uiColor
+        noLocationBadge.textAlignment = .center
+        noLocationBadge.layer.cornerRadius = 4
+        noLocationBadge.clipsToBounds = true
+        noLocationBadge.text = TimelineLocalizationKeys.localized(TimelineLocalizationKeys.noExactLocation)
+        noLocationBadge.isHidden = !(isActivity && (step.poi?.coordinate?.isMissingOrZero ?? true))
+
+        let badgeRow = UIStackView(arrangedSubviews: [categoryBadge, noLocationBadge])
+        badgeRow.translatesAutoresizingMaskIntoConstraints = false
+        badgeRow.axis = .horizontal
+        badgeRow.spacing = 8
+        badgeRow.alignment = .center
+
         let durationStack = UIStackView()
         durationStack.translatesAutoresizingMaskIntoConstraints = false
         durationStack.axis = .horizontal
@@ -250,7 +267,7 @@ final class TRPTimelineStepRowView: UIView {
         if isActivity {
             infoStackView.addArrangedSubview(ratingRow)
         }
-        infoStackView.addArrangedSubview(categoryBadge)
+        infoStackView.addArrangedSubview(badgeRow)
 
         if isActivity {
             if hasDuration {
