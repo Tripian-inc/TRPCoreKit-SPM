@@ -112,6 +112,18 @@ extension TRPTimelineItineraryViewModel {
         return mergedTimeline?.allBookedActivities ?? []
     }
 
+    /// Traveler count the add-plan flow starts with: the largest party (adults plus children)
+    /// among the host's bookings, read from the itinerary the SDK was opened with or from the
+    /// booked-activity segments already on the timeline. 1 without bookings.
+    public func defaultTravelerCount() -> Int {
+        let fromHostBookings = itineraryModel?.tripItems?.map { $0.adultCount + $0.childCount }.max()
+        let fromBookedSegments = timeline?.tripProfile?.segments
+            .filter { $0.segmentType == .bookedActivity }
+            .map { $0.adults + $0.children }
+            .max()
+        return max(fromHostBookings ?? fromBookedSegments ?? 1, 1)
+    }
+
     /// Count of reserved activities (saved plans not yet purchased).
     public func getReservedActivitiesCount() -> Int {
         return mergedTimeline?.reservedActivitiesCount ?? 0

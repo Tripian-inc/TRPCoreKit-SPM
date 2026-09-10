@@ -25,7 +25,7 @@ public class AddPlanTimeAndTravelersViewModel {
         }
 
         if containerViewModel.planData.travelers == 0 {
-            containerViewModel.planData.travelers = 1
+            containerViewModel.planData.travelers = containerViewModel.defaultTravelers
         }
     }
     
@@ -211,7 +211,7 @@ public class AddPlanTimeAndTravelersViewModel {
         setStartingPointToCityCenter()
         containerViewModel?.planData.startTime = nil
         containerViewModel?.planData.endTime = nil
-        containerViewModel?.planData.travelers = 1
+        containerViewModel?.planData.travelers = containerViewModel?.defaultTravelers ?? 1
     }
     
     // MARK: - POI Selection Data
