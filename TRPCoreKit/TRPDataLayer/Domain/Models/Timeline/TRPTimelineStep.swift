@@ -50,16 +50,12 @@ extension TRPTimelineStep: Equatable {
 
 extension TRPTimelineStep {
     public func getStartTime() -> String? {
-        guard let startDateTimes = Date.fromString(startDateTimes, format: "yyyy-MM-dd HH:mm:ss") else {
-            return nil
-        }
-        return startDateTimes.toString(format: "HH:mm")
+        guard TRPDateHelper.parseDateTime(startDateTimes) != nil else { return nil }
+        return TRPDateHelper.extractHourMinute(from: startDateTimes)
     }
     
     public func getEndTime() -> String? {
-        guard let endDateTimes = Date.fromString(endDateTimes, format: "yyyy-MM-dd HH:mm:ss") else {
-            return nil
-        }
-        return endDateTimes.toString(format: "HH:mm")
+        guard TRPDateHelper.parseDateTime(endDateTimes) != nil else { return nil }
+        return TRPDateHelper.extractHourMinute(from: endDateTimes)
     }
 }

@@ -37,11 +37,11 @@ public struct TRPTimelinePlan: Codable {
     }
     
     public func getStartDate() -> Date? {
-        return Date.fromString(startDate, format: "yyyy-MM-dd HH:mm")
+        return TRPDateHelper.parseDateTime(startDate)
     }
     
     public func getEndDate() -> Date? {
-        return Date.fromString(endDate, format: "yyyy-MM-dd HH:mm")
+        return TRPDateHelper.parseDateTime(endDate)
     }
 }
 

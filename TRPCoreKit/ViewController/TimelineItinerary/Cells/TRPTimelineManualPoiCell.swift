@@ -395,13 +395,7 @@ class TRPTimelineManualPoiCell: UITableViewCell {
     }
 
     private func formatTime(from dateString: String) -> String {
-        let date = Date.fromString(dateString, format: "yyyy-MM-dd HH:mm:ss")
-                   ?? Date.fromString(dateString, format: "yyyy-MM-dd HH:mm")
-
-        guard let validDate = date else {
-            return ""
-        }
-        return validDate.toString(format: "HH:mm") ?? ""
+        return TRPDateHelper.extractHourMinute(from: dateString) ?? ""
     }
 
     // MARK: - Actions

@@ -77,22 +77,11 @@ public enum TRPMapDisplayItem {
 
     /// Helper to extract time from segment
     private static func extractTimeFromSegment(_ segment: TRPTimelineSegment) -> String? {
-        // First try additionalData.startDatetime (format: "yyyy-MM-dd HH:mm:ss")
-        if let startDatetime = segment.additionalData?.startDatetime {
-            if let date = Date.fromString(startDatetime, format: "yyyy-MM-dd HH:mm:ss") {
-                return date.toString(format: "HH:mm")
-            }
+        if let time = extractHHmm(segment.additionalData?.startDatetime) {
+            return time
         }
-        // Then try segment.startDate (format: "yyyy-MM-dd HH:mm" or "yyyy-MM-dd HH:mm:ss")
-        if let startDate = segment.startDate {
-            // Try with seconds first
-            if let date = Date.fromString(startDate, format: "yyyy-MM-dd HH:mm:ss") {
-                return date.toString(format: "HH:mm")
-            }
-            // Then try without seconds
-            if let date = Date.fromString(startDate, format: "yyyy-MM-dd HH:mm") {
-                return date.toString(format: "HH:mm")
-            }
+        if let time = extractHHmm(segment.startDate) {
+            return time
         }
         return nil
     }
@@ -133,14 +122,8 @@ public enum TRPMapDisplayItem {
     }
 
     private static func extractHHmm(_ raw: String?) -> String? {
-        guard let raw = raw else { return nil }
-        if let date = Date.fromString(raw, format: "yyyy-MM-dd HH:mm:ss") {
-            return date.toString(format: "HH:mm")
-        }
-        if let date = Date.fromString(raw, format: "yyyy-MM-dd HH:mm") {
-            return date.toString(format: "HH:mm")
-        }
-        return nil
+        guard TRPDateHelper.parseDateTime(raw) != nil else { return nil }
+        return TRPDateHelper.extractHourMinute(from: raw)
     }
 
     /// Get city name for the item

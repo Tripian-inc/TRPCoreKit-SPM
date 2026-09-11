@@ -367,16 +367,9 @@ extension TRPTimelineItineraryViewModel {
         if let profileSegments = timeline.tripProfile?.segments {
             for segment in profileSegments {
                 if isTimelineDateSegment(segment) {
-                    if let startDateStr = segment.startDate,
-                       let endDateStr = segment.endDate {
-                        let startDate = Date.fromString(startDateStr, format: "yyyy-MM-dd HH:mm") ??
-                                       Date.fromString(startDateStr, format: "yyyy-MM-dd HH:mm:ss")
-                        let endDate = Date.fromString(endDateStr, format: "yyyy-MM-dd HH:mm") ??
-                                     Date.fromString(endDateStr, format: "yyyy-MM-dd HH:mm:ss")
-
-                        if let start = startDate, let end = endDate {
-                            return (startDate: start, endDate: end)
-                        }
+                    if let start = TRPDateHelper.parseDateTime(segment.startDate),
+                       let end = TRPDateHelper.parseDateTime(segment.endDate) {
+                        return (startDate: start, endDate: end)
                     }
                 }
             }
@@ -473,24 +466,20 @@ extension TRPTimelineItineraryViewModel {
     internal func calculateAllTripDates() -> [Date] {
         guard let boundaries = getTimelineDateBoundaries() else { return [] }
 
-        let numberOfDays = boundaries.startDate.numberOfDaysBetween(boundaries.endDate)
+        let calendar = Calendar.current
+        let firstDay = calendar.startOfDay(for: boundaries.startDate)
+        let lastDay = calendar.startOfDay(for: boundaries.endDate)
+        let dayCount = max((calendar.dateComponents([.day], from: firstDay, to: lastDay).day ?? 0) + 1, 1)
 
-        var dates: [Date] = []
-        for dayIndex in 0..<numberOfDays {
-            if let currentDate = boundaries.startDate.addDay(dayIndex) {
-                dates.append(currentDate)
-            }
-        }
-
-        return dates
+        return (0..<dayCount).compactMap { calendar.date(byAdding: .day, value: $0, to: firstDay) }
     }
 
     // MARK: - Favorite Items
 
     /// Drops favourites that are already in the plan — as a booked/reserved segment or as an itinerary
-    /// activity step — plus the ones the user removed by hand. Compares on the bare product id
-    /// (`cleanedAsActivityId()`) so `"12345"` matches `"C_12345_15"`; otherwise a just-added favourite
-    /// reappears in Saved Plans.
+    /// activity step — the ones the user removed by hand, and the ones whose city is unresolved or not
+    /// one of the trip's cities. Compares on the bare product id (`cleanedAsActivityId()`) so `"12345"`
+    /// matches `"C_12345_15"`; otherwise a just-added favourite reappears in Saved Plans.
     internal func filterFavoriteItems() {
         guard let favouriteItems = timeline?.favouriteItems else {
             filteredFavoriteItems = []

@@ -302,20 +302,6 @@ public class TRPTimelineItineraryViewModel {
     }
 
     public func getDays() -> [String] {
-        guard let boundaries = getTimelineDateBoundaries() else { return [] }
-
-        // Zero-hour dates for accurate day counting.
-        let startDay = boundaries.startDate.getDateWithZeroHour()
-        let endDay = boundaries.endDate.getDateWithZeroHour()
-        var numberOfDays = startDay.numberOfDaysBetween(endDay)
-
-        // Same-day activities yield 0; show at least 1.
-        if numberOfDays == 0 {
-            numberOfDays = 1
-        }
-
-        var days: [String] = []
-
         let appLanguage = TRPClient.getLanguage()
         let dayFormatter = DateFormatter()
         dayFormatter.locale = Locale(identifier: appLanguage)
@@ -324,31 +310,14 @@ public class TRPTimelineItineraryViewModel {
         let dateFormatter = DateFormatter()
         dateFormatter.dateFormat = "dd/MM"
 
-        for dayIndex in 0..<numberOfDays {
-            if let currentDate = boundaries.startDate.addDay(dayIndex) {
-                let dayName = dayFormatter.string(from: currentDate).capitalized
-                let dateString = dateFormatter.string(from: currentDate)
-                days.append("\(dayName) \(dateString)")
-            }
+        return getDayDates().map { date in
+            "\(dayFormatter.string(from: date).capitalized) \(dateFormatter.string(from: date))"
         }
-
-        return days
     }
     
     /// All days from the min to max segment date (inclusive).
     public func getDayDates() -> [Date] {
-        guard let boundaries = getTimelineDateBoundaries() else { return [] }
-
-        let numberOfDays = boundaries.startDate.numberOfDaysBetween(boundaries.endDate)
-
-        var dates: [Date] = []
-        for dayIndex in 0..<numberOfDays {
-            if let currentDate = boundaries.startDate.addDay(dayIndex) {
-                dates.append(currentDate)
-            }
-        }
-
-        return dates
+        return calculateAllTripDates()
     }
     
     public func getTripDateRange() -> (start: Date, end: Date)? {

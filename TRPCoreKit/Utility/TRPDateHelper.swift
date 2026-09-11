@@ -200,22 +200,10 @@ public struct TRPDateHelper {
 
     // MARK: - Day Matching
 
-    /// Find the `Date` in `days` whose calendar-day matches `ymd` ("yyyy-MM-dd").
-    /// Tries UTC first, then the local time zone, because day producers in the timeline
-    /// are UTC-anchored while some cell delegates parse segment/step strings in local
-    /// time. Trying both sidesteps that inconsistency without changing the producers.
-    /// Uses a dedicated formatter so the shared static formatter's time zone is untouched.
+    /// Find the `Date` in `days` whose local calendar day matches `ymd` ("yyyy-MM-dd").
     public static func matchDay(ymd: String?, in days: [Date]) -> Date? {
         guard let ymd = ymd else { return nil }
-        let matchFormatter = DateFormatter()
-        matchFormatter.dateFormat = dateOnly
-        for tz in [TimeZone(identifier: "UTC"), TimeZone.current].compactMap({ $0 }) {
-            matchFormatter.timeZone = tz
-            if let match = days.first(where: { matchFormatter.string(from: $0) == ymd }) {
-                return match
-            }
-        }
-        return nil
+        return days.first { formatDateString($0) == ymd }
     }
 
     // MARK: - Time Arithmetic

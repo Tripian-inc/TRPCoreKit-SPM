@@ -93,7 +93,7 @@ extension TRPTimelineItineraryVC: TRPTimelineActivityCellDelegate {
         planData.travelers = segment.adults
 
         if let startDateStr = segment.startDate,
-           let date = parseSegmentDateTime(startDateStr) {
+           let date = parseStepDateTime(startDateStr) {
             planData.selectedDay = date
         }
 
@@ -164,7 +164,8 @@ extension TRPTimelineItineraryVC: TRPTimelineManualPoiCellDelegate {
     }
 
     /// Resolves a Date carrying day + start time. Flexible pins to 00:00; else uses the source time. Falls back to the selected day at 00:00.
-    /// All parsing is UTC: server strings are wall-clock UTC and the host expects UTC HH:mm.
+    /// The result is wall-clock UTC: server strings are read as UTC and the host expects UTC HH:mm.
+    /// `getDayDates()` yields local-midnight days, so the fallback re-reads the local calendar day as UTC.
     internal func resolveReservationDate(preferred: String?, isFlexible: Bool = false) -> Date {
         let parsedSource = preferred.flatMap(parseSegmentDateTime)
 
@@ -172,19 +173,14 @@ extension TRPTimelineItineraryVC: TRPTimelineManualPoiCellDelegate {
             return parsed
         }
 
-        let baseDay: Date
         if let parsed = parsedSource {
-            baseDay = parsed
-        } else {
-            let days = viewModel.getDayDates()
-            let index = viewModel.selectedDayIndex
-            if index >= 0, index < days.count {
-                baseDay = days[index]
-            } else {
-                baseDay = days.first ?? Date()
-            }
+            return parsed.getDateWithZeroHour(forLocal: false)
         }
-        return baseDay.getDateWithZeroHour(forLocal: false)
+
+        let days = viewModel.getDayDates()
+        let index = viewModel.selectedDayIndex
+        let selectedDay = (index >= 0 && index < days.count) ? days[index] : (days.first ?? Date())
+        return TRPDateHelper.formatDateString(selectedDay).toDate() ?? selectedDay
     }
 
     /// Parses datetime strings as UTC (server times are wall-clock UTC). Supports formats with and without seconds.
