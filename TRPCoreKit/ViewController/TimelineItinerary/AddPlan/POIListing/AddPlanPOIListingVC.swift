@@ -409,6 +409,11 @@ extension AddPlanPOIListingVC: AddPlanPOIListingViewModelDelegate {
 extension AddPlanPOIListingVC: POIListingCellDelegate {
 
     func poiListingCellDidTapAdd(_ cell: POIListingCell, poi: TRPPoi) {
+        guard !viewModel.isPlannedOnSelectedDay(poi) else {
+            let message = AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.placeAlreadyAddedDay)
+            EvrAlertView.showAlert(contentText: message, type: .error)
+            return
+        }
         pendingPoi = poi
 
         let timeRangeVC = TRPTimeRangeSelectionViewController()

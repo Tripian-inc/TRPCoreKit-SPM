@@ -50,6 +50,10 @@ public class AddPlanPOIListingViewModel {
     /// Held during the post-add regeneration poll; cleared when `allSegmentGenerated` fires so it doesn't leak across adds.
     private var checkAllPlanUseCase: TRPTimelineCheckAllPlanUseCases?
 
+    /// "yyyy-MM-dd" → POI ids that day already holds. Seeded from the timeline this screen was
+    /// opened with and kept up to date locally as places are added.
+    public var poiIdsByDay: [String: [String]] = [:]
+
     // MARK: - Initialization
     public init(planData: AddPlanData, categoryType: POIListingCategoryType) {
         self.planData = planData
@@ -63,6 +67,24 @@ public class AddPlanPOIListingViewModel {
     }
 
     // MARK: - Public Methods
+
+    /// True when the chosen day already holds `poi`, so it must not be added again.
+    public func isPlannedOnSelectedDay(_ poi: TRPPoi) -> Bool {
+        guard let day = selectedDayKey() else { return false }
+        return poiIdsByDay[day]?.contains(poi.id) ?? false
+    }
+
+    private func selectedDayKey() -> String? {
+        guard let day = planData.selectedDay else { return nil }
+        return TRPDateHelper.formatDateString(day)
+    }
+
+    private func markPoiAdded(_ poi: TRPPoi) {
+        guard let day = selectedDayKey() else { return }
+        guard !(poiIdsByDay[day]?.contains(poi.id) ?? false) else { return }
+        poiIdsByDay[day, default: []].append(poi.id)
+    }
+
     public func getTitle() -> String {
         switch categoryType {
         case .placesOfInterest:
@@ -360,6 +382,7 @@ public class AddPlanPOIListingViewModel {
             DispatchQueue.main.async {
                 switch result {
                 case .success:
+                    self.markPoiAdded(poi)
                     self.waitForTimelineRefreshAfterCreation(tripHash: tripHash)
                 case .failure(let error):
                     self.delegate?.viewModel(error: error)

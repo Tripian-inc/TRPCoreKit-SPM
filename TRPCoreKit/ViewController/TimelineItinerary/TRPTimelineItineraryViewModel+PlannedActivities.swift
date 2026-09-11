@@ -93,6 +93,24 @@ extension TRPTimelineItineraryViewModel {
         return idsByDay
     }
 
+    /// "yyyy-MM-dd" → the POI ids that day already holds, from every non-activity plan step
+    /// (manual places and recommended places alike). The add-place flow blocks a place the
+    /// chosen day already has.
+    public func plannedPoiIdsByDay() -> [String: [String]] {
+        var idsByDay: [String: [String]] = [:]
+
+        for plan in timeline?.plans ?? [] {
+            for step in plan.steps where step.stepType != "activity" {
+                guard let poiId = step.poi?.id, !poiId.isEmpty,
+                      let day = dayPart(of: step.startDateTimes) else { continue }
+                guard !(idsByDay[day]?.contains(poiId) ?? false) else { continue }
+                idsByDay[day, default: []].append(poiId)
+            }
+        }
+
+        return idsByDay
+    }
+
     private func dayPart(of value: String?) -> String? {
         guard let value = value, value.count >= 10 else { return nil }
         return String(value.prefix(10))
