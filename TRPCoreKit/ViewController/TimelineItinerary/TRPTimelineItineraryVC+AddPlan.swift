@@ -97,6 +97,7 @@ extension TRPTimelineItineraryVC: AddPlanContainerVCDelegate {
 
     public func addPlanContainerShouldShowPOIListing(_ viewController: AddPlanContainerVC, data: AddPlanData, categoryType: POIListingCategoryType) {
         let poiListingViewModel = AddPlanPOIListingViewModel(planData: data, categoryType: categoryType)
+        poiListingViewModel.poiIdsByDay = viewModel.plannedPoiIdsByDay()
         let poiListingVC = AddPlanPOIListingVC()
         poiListingVC.viewModel = poiListingViewModel
 

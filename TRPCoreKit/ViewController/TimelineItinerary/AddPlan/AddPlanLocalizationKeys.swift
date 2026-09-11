@@ -101,6 +101,7 @@ public struct AddPlanLocalizationKeys {
     // MARK: - Empty State
     public static let addSavedPlansToItinerary = "addPlan.emptyState.addSavedPlansToItinerary"
     public static let noAvailableTimes = "addPlan.emptyState.noAvailableTimes"
+    public static let placeAlreadyAddedDay = "addPlan.time.placeAlreadyAddedDay"
 
     // MARK: - Flexible-time Activity
     public static let flexibleTimeInfo = "addPlan.time.flexibleInfo"
@@ -171,6 +172,7 @@ public struct AddPlanLocalizationKeys {
         selectATime: "Select a time",
         searchPOI: "Search for a place",
         cityCenter: "City Center",
+        placeAlreadyAddedDay: "This place is already in your plan on this day.",
         savedActivities: "Itinerary starting locations",
         selectCategories: "Select the Categories You Want",
         categoryGuidedTours: "Guided Tours\n& Free Tours",
