@@ -76,6 +76,10 @@ public class TRPTimelineItineraryViewModel {
     /// Excludes items already in the plan (booked, reserved or recommended) and hand-removed ones.
     internal var filteredFavoriteItems: [TRPSegmentFavoriteItem] = []
 
+    /// Favourite city ids resolved through tour-api / coordinates, keyed by base activity id; `nil` marks a
+    /// failed lookup. Host-sent favourite city ids are never trusted.
+    internal var favouriteCityLookups: [String: Int?] = [:]
+
     internal var destinationItems: [TRPSegmentDestinationItem] = []
 
     /// Prevents showing the empty state during loading.

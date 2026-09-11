@@ -487,6 +487,7 @@ extension TRPTimelineItineraryViewModel {
         }
 
         let plannedActivityIds = Set(plannedActivities().map { $0.productId })
+        let tripCityIds = Set(getCities().map { $0.id })
 
         let excludedIds: Set<String>
         if let tripHash = timeline?.tripHash {
@@ -496,15 +497,17 @@ extension TRPTimelineItineraryViewModel {
         }
 
         filteredFavoriteItems = favouriteItems.filter { item in
-            guard let activityId = item.activityId else { return true }
-            let baseId = activityId.cleanedAsActivityId()
+            guard let baseId = item.activityId?.cleanedAsActivityId(),
+                  let cityId = favouriteCityLookups[baseId] ?? nil,
+                  tripCityIds.contains(cityId) else { return false }
             return !plannedActivityIds.contains(baseId) && !excludedIds.contains(baseId)
         }
     }
 
     // MARK: - Favourite Items City Resolution
 
-    /// Fills in cityIds for favourites that don't have one yet, via `resolveCityIds` (product-lookup first).
+    /// Resolves every favourite's city via `resolveCityIds` (product-lookup first, then coordinate) and
+    /// overwrites the host-sent `cityId` with the result. Each activity is looked up once per session.
     internal func resolveFavouriteItemCities(completion: @escaping () -> Void) {
         guard let initial = timeline?.favouriteItems, !initial.isEmpty else {
             completion()
@@ -512,7 +515,8 @@ extension TRPTimelineItineraryViewModel {
         }
 
         let requests = initial.enumerated().compactMap { offset, item -> TRPCityResolutionRequest? in
-            guard (item.cityId ?? 0) <= 0 else { return nil }
+            guard let baseId = item.activityId?.cleanedAsActivityId(),
+                  favouriteCityLookups.index(forKey: baseId) == nil else { return nil }
             return TRPCityResolutionRequest(
                 index: offset,
                 lookupKeys: item.tourLookupKeys,
@@ -521,6 +525,7 @@ extension TRPTimelineItineraryViewModel {
         }
 
         guard !requests.isEmpty else {
+            applyFavouriteCityLookups()
             completion()
             return
         }
@@ -531,13 +536,22 @@ extension TRPTimelineItineraryViewModel {
                 return
             }
 
-            var favouriteItems = self.timeline?.favouriteItems ?? initial
-            for (index, cityId) in resolved where index < favouriteItems.count {
-                favouriteItems[index].cityId = cityId
+            for request in requests {
+                guard let baseId = initial[request.index].activityId?.cleanedAsActivityId() else { continue }
+                self.favouriteCityLookups[baseId] = resolved[request.index]
             }
-            self.timeline?.favouriteItems = favouriteItems
+            self.applyFavouriteCityLookups()
             completion()
         }
+    }
+
+    private func applyFavouriteCityLookups() {
+        guard var favouriteItems = timeline?.favouriteItems else { return }
+        for index in favouriteItems.indices {
+            let baseId = favouriteItems[index].activityId?.cleanedAsActivityId()
+            favouriteItems[index].cityId = baseId.flatMap { favouriteCityLookups[$0] ?? nil }
+        }
+        timeline?.favouriteItems = favouriteItems
     }
 
     // MARK: - Segment Identification
