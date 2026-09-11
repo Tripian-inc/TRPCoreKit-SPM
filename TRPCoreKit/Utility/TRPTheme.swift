@@ -297,6 +297,7 @@ public enum ColorSet {
     case mainDark
     case errorIcon
     case errorBg
+    case errorFg
     case infoBg
     case infoIcon
     case warningBg
@@ -358,6 +359,8 @@ public enum ColorSet {
             return UIColor(red: 234, green: 57, blue: 53)
         case .errorBg:
             return UIColor(red: 255, green: 235, blue: 238)
+        case .errorFg:
+            return UIColor(red: 197, green: 63, blue: 55)
         case .infoBg:
             return UIColor(red: 242, green: 250, blue: 253)
         case .infoIcon:

@@ -24,6 +24,26 @@ import Foundation
 /// city-local wall clock.
 public enum TimePickerBounds {
 
+    /// True when `time`'s HH:mm is earlier than "now" in the city's timezone and `selectedDay` is today
+    /// there. Future days never count as passed; without a city the device clock is used.
+    public static func hasPassed(selectedDay: Date?, city: TRPCity?, time: Date) -> Bool {
+        guard let selectedDay = selectedDay else { return false }
+        let isToday = city?.isDateTodayInCityTimezone(selectedDay)
+            ?? Calendar.current.isDateInToday(selectedDay)
+        guard isToday else { return false }
+
+        let cal = Calendar.current
+        let picked = cal.dateComponents([.hour, .minute], from: time)
+        let now: (hour: Int, minute: Int)
+        if let city = city {
+            now = city.cityLocalTimeComponents()
+        } else {
+            let comps = cal.dateComponents([.hour, .minute], from: Date())
+            now = (comps.hour ?? 0, comps.minute ?? 0)
+        }
+        return (picked.hour ?? 0) * 60 + (picked.minute ?? 0) < now.hour * 60 + now.minute
+    }
+
     /// Minimum selectable start time. When `selectedDay` is "today" in the
     /// city's timezone, the user must pick at least `now + 5 minutes` in that
     /// timezone. On future days there is no restriction.

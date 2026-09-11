@@ -103,19 +103,10 @@ public class AddPlanTimeAndTravelersViewModel {
     // MARK: - Time Picker Bounds
     // Thin wrappers over `TimePickerBounds`; all honour the selected city's IANA timezone, falling back to device tz.
 
-    public func getMinimumStartTime() -> Date? {
-        return TimePickerBounds.minimumStartTime(
-            selectedDay: getSelectedDay(),
-            city: getSelectedCity()
-        )
-    }
-
-    public func getMinimumEndTime() -> Date? {
-        return TimePickerBounds.minimumEndTime(
-            selectedDay: getSelectedDay(),
-            city: getSelectedCity(),
-            currentStartTime: getStartTime()
-        )
+    /// True when the picked start time has already passed today in the selected city.
+    public func hasStartTimePassedAtDestination() -> Bool {
+        guard let startTime = getStartTime() else { return false }
+        return TimePickerBounds.hasPassed(selectedDay: getSelectedDay(), city: getSelectedCity(), time: startTime)
     }
 
     /// "Today" → next top of the hour in the city's tz; future days → nil (picker default).
