@@ -477,7 +477,8 @@ extension TRPTimelineItineraryVC: TRPTimelineSavedPlansButtonDelegate {
             favouriteItems: favouriteItems,
             tripHash: tripHash,
             availableDays: availableDays,
-            availableCities: availableCities
+            availableCities: availableCities,
+            activityIdsByDay: viewModel.plannedActivityIdsByDay()
         )
 
         let savedPlansVC = SavedPlansVC(viewModel: savedPlansViewModel)

@@ -30,21 +30,29 @@ public class SavedPlansViewModel {
     public let tripHash: String?
     public let availableDays: [Date]
     public let availableCities: [TRPCity]
+    private let activityIdsByDay: [String: [String]]
 
     // MARK: - Initialization
     public init(favouriteItems: [TRPSegmentFavoriteItem],
                 tripHash: String?,
                 availableDays: [Date],
-                availableCities: [TRPCity]) {
+                availableCities: [TRPCity],
+                activityIdsByDay: [String: [String]] = [:]) {
         self.favouriteItems = favouriteItems
         self.tripHash = tripHash
         self.availableDays = availableDays
         self.availableCities = availableCities
+        self.activityIdsByDay = activityIdsByDay
 
         groupItemsByCity()
     }
 
     // MARK: - Public Methods
+
+    /// "yyyy-MM-dd" → activity ids that day already holds; the time-selection sheet blocks matching days.
+    public func plannedActivityIdsByDay() -> [String: [String]] {
+        return activityIdsByDay
+    }
 
     public func numberOfSections() -> Int {
         return sections.count
