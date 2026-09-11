@@ -67,8 +67,11 @@ struct TimelineFlatSection {
     var rows: [TimelineFlatRow]
 }
 
-/// The routable rows of one flat section in list order. `key` identifies the chain by its
-/// waypoints and coordinates, so rows that only changed time reuse the legs already calculated.
+/// One run of routable rows of a flat section, in list order. A timed row without a location
+/// ends the run: the rows before it and the rows after it are routed as separate chains, so no
+/// leg is drawn across a place that cannot be placed. The starting point belongs to the first
+/// run that has a located row. `key` identifies the chain by its waypoints and coordinates, so
+/// rows that only changed time reuse the legs already calculated.
 struct TimelineFlatRouteChain {
     let cityId: Int?
     let waypointKeys: [String]
@@ -91,10 +94,42 @@ struct TimelineFlatRouteChain {
         return destination < waypointKeys.count ? waypointKeys[destination] : nil
     }
 
-    init(cityId: Int?, rows: [TimelineFlatRow]) {
+    private init(cityId: Int?, waypoints: [(key: String, coordinate: TRPLocation)]) {
         self.cityId = cityId
-        let waypoints = rows.compactMap { $0.routeWaypoint }
         self.waypointKeys = waypoints.map { $0.key }
         self.locations = waypoints.map { $0.coordinate }
+    }
+
+    /// The chains of one section: rows are split into runs at each timed row without a
+    /// location; runs with fewer than two waypoints are dropped.
+    static func chains(cityId: Int?, rows: [TimelineFlatRow]) -> [TimelineFlatRouteChain] {
+        var chains: [TimelineFlatRouteChain] = []
+        var run: [(key: String, coordinate: TRPLocation)] = []
+
+        func closeRun() {
+            if run.count > 1 { chains.append(TimelineFlatRouteChain(cityId: cityId, waypoints: run)) }
+            run = []
+        }
+
+        for row in rows {
+            if let waypoint = row.routeWaypoint {
+                run.append(waypoint)
+            } else if row.breaksRouteChain, run.contains(where: { $0.key != "start" }) {
+                closeRun()
+            }
+        }
+        closeRun()
+        return chains
+    }
+}
+
+extension TimelineFlatRow {
+
+    /// A timed row that has no coordinate to route through, so legs must not cross it.
+    var breaksRouteChain: Bool {
+        switch self {
+        case .bookedActivity, .manualPoi, .planStep: return true
+        case .flexibleActivity, .startingPoint, .routeSeparator: return false
+        }
     }
 }

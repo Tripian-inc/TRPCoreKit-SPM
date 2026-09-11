@@ -33,8 +33,8 @@ extension TRPTimelineItineraryViewModel {
             }
 
             guard !rows.isEmpty else { continue }
-            let chain = TimelineFlatRouteChain(cityId: group.city?.id, rows: rows)
-            sections.append(TimelineFlatSection(city: group.city, items: group.items, rows: interleaveRouteSeparators(rows, chain: chain)))
+            let chains = TimelineFlatRouteChain.chains(cityId: group.city?.id, rows: rows)
+            sections.append(TimelineFlatSection(city: group.city, items: group.items, rows: interleaveRouteSeparators(rows, chains: chains)))
         }
 
         flatSections = sections
@@ -82,9 +82,7 @@ extension TRPTimelineItineraryViewModel {
     // MARK: Routes
 
     internal func flatRouteChains() -> [TimelineFlatRouteChain] {
-        return flatSections
-            .map { TimelineFlatRouteChain(cityId: $0.city?.id, rows: $0.rows) }
-            .filter { $0.isRoutable }
+        return flatSections.flatMap { TimelineFlatRouteChain.chains(cityId: $0.city?.id, rows: $0.rows) }
     }
 
     /// Requests legs for every chain of the day with no cached result and no request in flight.
@@ -121,15 +119,17 @@ extension TRPTimelineItineraryViewModel {
         }
     }
 
-    private func interleaveRouteSeparators(_ rows: [TimelineFlatRow], chain: TimelineFlatRouteChain) -> [TimelineFlatRow] {
-        guard let legs = flatRouteCache[chain.key] else { return rows }
-
+    private func interleaveRouteSeparators(_ rows: [TimelineFlatRow], chains: [TimelineFlatRouteChain]) -> [TimelineFlatRow] {
         var legByDestination: [String: TRPStepRouteInfo] = [:]
-        for (index, leg) in legs.enumerated() {
-            if let destinationKey = chain.destinationKey(ofLeg: index) {
-                legByDestination[destinationKey] = leg
+        for chain in chains {
+            guard let legs = flatRouteCache[chain.key] else { continue }
+            for (index, leg) in legs.enumerated() {
+                if let destinationKey = chain.destinationKey(ofLeg: index) {
+                    legByDestination[destinationKey] = leg
+                }
             }
         }
+        guard !legByDestination.isEmpty else { return rows }
 
         var result: [TimelineFlatRow] = []
         for row in rows {

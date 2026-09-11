@@ -5,7 +5,9 @@
 //  Parses the Nexus `reservations` JSON into a TRPItineraryWithActivities so the
 //  SDK can create a timeline via the standard create path. Mirrors Android's
 //  ACSplashVM.buildItinerary:
-//   - each reservation's detailURL carries startDate/endDate/destinationID/productID;
+//   - the trip range comes from each reservation's service Date; the detailURL's
+//     startDate/endDate are the host site's search window (they move with today)
+//     and only fill in when Date is missing; detailURL also carries destinationID/productID;
 //   - destinationID → cityId via TripianCommonApi.getCityIdFromDestination, then the
 //     city centre coordinate from TRPCityCache;
 //   - one destination per unique city + one booked activity per reservation;
@@ -103,8 +105,8 @@ enum NexusItineraryBuilder {
 
         for p in parsed {
             let serviceDate = p.reservation.date.flatMap { $0.count >= 10 ? String($0.prefix(10)) : nil }
-            if let s = p.startDate ?? serviceDate ?? p.endDate { startDates.append(s) }
-            if let e = p.endDate ?? serviceDate ?? p.startDate { endDates.append(e) }
+            if let s = serviceDate ?? p.startDate ?? p.endDate { startDates.append(s) }
+            if let e = serviceDate ?? p.endDate ?? p.startDate { endDates.append(e) }
 
             guard let dest = p.destinationId,
                   let cityId = cityIdByDestination[dest],
