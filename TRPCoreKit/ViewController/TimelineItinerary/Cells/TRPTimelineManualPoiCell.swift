@@ -289,17 +289,15 @@ class TRPTimelineManualPoiCell: UITableViewCell {
         categoryLabel.textColor = ColorSet.fgGray.uiColor
     }
 
-    /// Greys out action buttons but keeps them tappable; `isPastDayMode` makes their handlers no-op.
+    /// Past day: hide the change-time CTA; removal stays available.
     func applyPastDayStyle() {
         isPastDayMode = true
-        changeTimeButton.setPastDayDisabled(true, originalTint: ColorSet.primary.uiColor)
-        removeButton.setPastDayDisabled(true, originalTint: ColorSet.primary.uiColor)
+        changeTimeButton.isHidden = true
     }
 
     private func resetPastDayState() {
         isPastDayMode = false
-        changeTimeButton.setPastDayDisabled(false, originalTint: ColorSet.primary.uiColor)
-        removeButton.setPastDayDisabled(false, originalTint: ColorSet.primary.uiColor)
+        changeTimeButton.isHidden = false
     }
 
     // MARK: - Configuration
@@ -405,7 +403,7 @@ class TRPTimelineManualPoiCell: UITableViewCell {
     }
 
     @objc private func removeButtonTapped() {
-        guard !isPastDayMode, let segment = segment else { return }
+        guard let segment = segment else { return }
         delegate?.manualPoiCellDidTapRemove(self, segment: segment)
     }
 
