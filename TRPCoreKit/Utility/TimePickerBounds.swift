@@ -44,37 +44,6 @@ public enum TimePickerBounds {
         return (picked.hour ?? 0) * 60 + (picked.minute ?? 0) < now.hour * 60 + now.minute
     }
 
-    /// Minimum selectable start time. When `selectedDay` is "today" in the
-    /// city's timezone, the user must pick at least `now + 5 minutes` in that
-    /// timezone. On future days there is no restriction.
-    /// Falls back to device timezone when `city` is nil or carries no usable
-    /// IANA id — so existing single-city / unknown-tz flows behave unchanged.
-    public static func minimumStartTime(selectedDay: Date?, city: TRPCity?) -> Date? {
-        guard let selectedDay = selectedDay else { return nil }
-
-        let isToday = city?.isDateTodayInCityTimezone(selectedDay)
-            ?? Calendar.current.isDateInToday(selectedDay)
-        guard isToday else { return nil }
-
-        if let city = city {
-            let (h, m) = city.cityLocalTimeComponents(offsetSeconds: 5 * 60)
-            return city.deviceLocalProxy(forCityHour: h, minute: m)
-        }
-        return Date().addingTimeInterval(5 * 60)
-    }
-
-    /// Minimum selectable end time. The end-time picker is opened in
-    /// strict-minimum mode when a start time exists (`endTimeButtonTapped` flips
-    /// the picker into "minimum is the wheel start but not confirmable"); when
-    /// no start time has been picked yet the same "earliest sensible moment"
-    /// applies as `minimumStartTime`.
-    public static func minimumEndTime(selectedDay: Date?, city: TRPCity?, currentStartTime: Date?) -> Date? {
-        if let startTime = currentStartTime {
-            return startTime
-        }
-        return minimumStartTime(selectedDay: selectedDay, city: city)
-    }
-
     /// Default `initialTime` for the end-time picker when the user hasn't
     /// selected one yet. When a start time exists, returns `startTime + 1h`
     /// preserving the minute (13:30 → 14:30, 13:00 → 14:00) so the end picker
