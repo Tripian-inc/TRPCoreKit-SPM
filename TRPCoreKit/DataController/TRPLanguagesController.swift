@@ -49,15 +49,6 @@ public class TRPLanguagesController {
         self.languageResult = translationsByLanguage[TRPClient.getLanguage()] ?? [:]
     }
 
-    /// Prefetch translations — called from TRPCoreKit.initialize().
-    /// Hits the API only when the current language has never been cached; a stale
-    /// cache is refreshed later by `getLanguages()` when the SDK is actually opened.
-    public func prefetchLanguagesIfNeeded() {
-        let hasCache = syncQueue.sync { translationsByLanguage[TRPClient.getLanguage()]?.isEmpty == false }
-        guard !hasCache else { return }
-        getLanguages(completion: nil)
-    }
-
     public func getLanguages(completion: ((Result<Bool, Error>) -> Void)? = nil) {
         let language = TRPClient.getLanguage()
         enum Action { case alreadyFresh, queued, startFetch }
