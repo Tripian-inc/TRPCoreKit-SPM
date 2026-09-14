@@ -121,9 +121,6 @@ public class TRPCoreKit {
         TRPClient.start(baseUrl: baseUrl, apiKey: apiKey, language: language, currency: currency)
 
         TRPUserAgentURLProtocol.register(host: baseUrl.baseUrl)
-
-        // Prefetch languages - async, non-blocking
-        TRPLanguagesController.shared.prefetchLanguagesIfNeeded()
     }
 
     /// Initialize TRPCoreKit SDK with custom base URL (for advanced use cases)
@@ -150,9 +147,6 @@ public class TRPCoreKit {
         TRPClient.start(baseUrl: url, apiKey: apiKey, language: language, currency: currency)
 
         TRPUserAgentURLProtocol.register(host: url.baseUrl)
-
-        // Prefetch languages - async, non-blocking
-        TRPLanguagesController.shared.prefetchLanguagesIfNeeded()
     }
 
     // MARK: - Start SDK
