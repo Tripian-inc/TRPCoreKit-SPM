@@ -279,6 +279,7 @@ public class TRPTimelineItineraryViewModel {
     }
     
     public func selectDay(at index: Int) {
+        guard index >= 0, index < allTripDates.count else { return }
         selectedDayIndex = index
         sectionCollapseStates.removeAll()
 
