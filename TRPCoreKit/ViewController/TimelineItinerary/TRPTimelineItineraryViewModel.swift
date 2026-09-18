@@ -412,6 +412,9 @@ public class TRPTimelineItineraryViewModel {
             }
         }
 
+        // Nothing resolvable yet (city cache still loading, host sent no ids): keep the full list rather than none.
+        guard !allowedCityIds.isEmpty || !allowedCityNames.isEmpty else { return cities }
+
         return cities.filter {
             allowedCityIds.contains($0.id) || allowedCityNames.contains($0.name.lowercased())
         }

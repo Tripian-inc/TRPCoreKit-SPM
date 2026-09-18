@@ -477,9 +477,10 @@ extension TRPTimelineItineraryViewModel {
     // MARK: - Favorite Items
 
     /// Drops favourites that are already in the plan — as a booked/reserved segment or as an itinerary
-    /// activity step — the ones the user removed by hand, and the ones whose city is unresolved or not
-    /// one of the trip's cities. Compares on the bare product id (`cleanedAsActivityId()`) so `"12345"`
-    /// matches `"C_12345_15"`; otherwise a just-added favourite reappears in Saved Plans.
+    /// activity step — the ones the user removed by hand, and the ones whose city is unknown or not one of
+    /// the trip's cities. The city is the tour-api lookup result; the host's `cityId` is used only when the
+    /// lookup is unresolved and it names a trip city. Compares on the bare product id (`cleanedAsActivityId()`)
+    /// so `"12345"` matches `"C_12345_15"`; otherwise a just-added favourite reappears in Saved Plans.
     internal func filterFavoriteItems() {
         guard let favouriteItems = timeline?.favouriteItems else {
             filteredFavoriteItems = []
@@ -497,9 +498,11 @@ extension TRPTimelineItineraryViewModel {
         }
 
         filteredFavoriteItems = favouriteItems.filter { item in
-            guard let baseId = item.activityId?.cleanedAsActivityId(),
-                  let cityId = favouriteCityLookups[baseId] ?? nil,
-                  tripCityIds.contains(cityId) else { return false }
+            guard let baseId = item.activityId?.cleanedAsActivityId() else { return false }
+            let resolvedCityId = favouriteCityLookups[baseId] ?? nil
+            let cityId = resolvedCityId ?? item.cityId.flatMap { tripCityIds.contains($0) ? $0 : nil }
+            guard let cityId = cityId, cityId > 0 else { return false }
+            guard tripCityIds.isEmpty || tripCityIds.contains(cityId) else { return false }
             return !plannedActivityIds.contains(baseId) && !excludedIds.contains(baseId)
         }
     }
@@ -507,13 +510,23 @@ extension TRPTimelineItineraryViewModel {
     // MARK: - Favourite Items City Resolution
 
     /// Resolves every favourite's city via `resolveCityIds` (product-lookup first, then coordinate) and
-    /// overwrites the host-sent `cityId` with the result. Each activity is looked up once per session.
+    /// writes the result over the host-sent `cityId` when it resolved. Each activity is looked up once per
+    /// session. Waits for the city cache so the trip-city check that follows has data to work with.
     internal func resolveFavouriteItemCities(completion: @escaping () -> Void) {
         guard let initial = timeline?.favouriteItems, !initial.isEmpty else {
             completion()
             return
         }
 
+        TRPCityCache.shared.fetchCitiesIfNeeded { [weak self] _ in
+            DispatchQueue.main.async {
+                guard let self = self else { completion(); return }
+                self.lookupFavouriteItemCities(initial: initial, completion: completion)
+            }
+        }
+    }
+
+    private func lookupFavouriteItemCities(initial: [TRPSegmentFavoriteItem], completion: @escaping () -> Void) {
         let requests = initial.enumerated().compactMap { offset, item -> TRPCityResolutionRequest? in
             guard let baseId = item.activityId?.cleanedAsActivityId(),
                   favouriteCityLookups.index(forKey: baseId) == nil else { return nil }
@@ -548,8 +561,9 @@ extension TRPTimelineItineraryViewModel {
     private func applyFavouriteCityLookups() {
         guard var favouriteItems = timeline?.favouriteItems else { return }
         for index in favouriteItems.indices {
-            let baseId = favouriteItems[index].activityId?.cleanedAsActivityId()
-            favouriteItems[index].cityId = baseId.flatMap { favouriteCityLookups[$0] ?? nil }
+            guard let baseId = favouriteItems[index].activityId?.cleanedAsActivityId(),
+                  let resolved = favouriteCityLookups[baseId] ?? nil else { continue }
+            favouriteItems[index].cityId = resolved
         }
         timeline?.favouriteItems = favouriteItems
     }

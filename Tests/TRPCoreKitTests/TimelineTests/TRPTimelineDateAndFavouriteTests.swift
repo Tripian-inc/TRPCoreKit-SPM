@@ -122,14 +122,77 @@ final class TRPTimelineDateAndFavouriteTests: XCTestCase {
             favourite("111"),
             favourite("222"),
             favourite("333"),
-            favourite("444", hostCityId: 1)
+            favourite("444", hostCityId: 1),
+            favourite("555", hostCityId: 99),
+            favourite("666", hostCityId: 99)
         ]
-        vm.favouriteCityLookups = ["111": 1, "222": 99, "333": nil]
+        vm.favouriteCityLookups = ["111": 1, "222": 99, "333": nil, "666": 1]
+
+        vm.filterFavoriteItems()
+
+        XCTAssertEqual(vm.getFavoriteItems().map { $0.activityId }, ["111", "444", "666"])
+        XCTAssertEqual(vm.getFavoriteItemsCount(), 3)
+    }
+
+    func testFavouritesAreKeptWhenTripCitiesAreNotKnownYet() {
+        var unknownCity = TRPCity(id: 0, name: "", coordinate: TRPLocation(lat: 0, lon: 0))
+        unknownCity.timezone = nil
+        let profile = TRPTimelineProfile()
+        profile.segments = [timelineDateSegment(start: "2026-09-03 00:00", end: "2026-09-10 23:59")]
+        let vm = TRPTimelineItineraryViewModel(timeline: TRPTimeline(id: 1, tripHash: "hash", tripProfile: profile, city: unknownCity, plans: [], segments: [], favouriteItems: nil))
+        vm.timeline?.favouriteItems = [favourite("111"), favourite("222")]
+        vm.favouriteCityLookups = ["111": 7, "222": nil]
 
         vm.filterFavoriteItems()
 
         XCTAssertEqual(vm.getFavoriteItems().map { $0.activityId }, ["111"])
-        XCTAssertEqual(vm.getFavoriteItemsCount(), 1)
+    }
+
+    // MARK: - Booked activities
+
+    private func bookedTripItem(_ id: String) -> TRPSegmentActivityItem {
+        return TRPSegmentActivityItem(activityId: id, bookingId: "B-\(id)", title: id, imageUrl: nil, description: nil,
+                                      startDatetime: "2026-10-09 10:30", endDatetime: "2026-10-09 12:30",
+                                      coordinate: TRPLocation(lat: 0, lon: 0), cancellation: nil, adultCount: 2, childCount: 0)
+    }
+
+    private func activitySegment(_ id: String, type: TRPTimelineSegmentType) -> TRPTimelineSegment {
+        let segment = TRPTimelineSegment()
+        segment.segmentType = type
+        segment.startDate = "2026-10-09 10:30"
+        segment.endDate = "2026-10-09 12:30"
+        segment.additionalData = bookedTripItem(id)
+        return segment
+    }
+
+    func testReservedSegmentDoesNotHideTheMatchingBooking() {
+        let profile = TRPTimelineProfile()
+        profile.segments = [
+            timelineDateSegment(start: "2026-10-01 00:00", end: "2026-10-22 23:59"),
+            activitySegment("C_111_15", type: .reservedActivity),
+            activitySegment("222", type: .bookedActivity)
+        ]
+        let timeline = TRPTimeline(id: 1, tripHash: "hash", tripProfile: profile, city: barcelona, plans: [],
+                                   segments: [activitySegment("111", type: .reservedActivity)], favouriteItems: nil)
+        let vm = TRPTimelineItineraryViewModel(timeline: timeline)
+
+        let missing = vm.missingBookedTripItems(from: [bookedTripItem("111"), bookedTripItem("222"), bookedTripItem("333")], in: timeline)
+
+        XCTAssertEqual(missing.map { $0.activityId }, ["111", "333"])
+    }
+
+    func testBookedSegmentProfileFallsBackToTheTripCity() {
+        let profile = TRPTimelineProfile()
+        profile.segments = [timelineDateSegment(start: "2026-10-01 00:00", end: "2026-10-22 23:59")]
+        let vm = TRPTimelineItineraryViewModel(timeline: TRPTimeline(id: 1, tripHash: "hash", tripProfile: profile, city: barcelona, plans: [], segments: [], favouriteItems: nil))
+        var item = bookedTripItem("111")
+        item.cityId = 0
+
+        let segmentProfile = vm.createSegmentProfileFromTripItem(item, tripHash: "hash")
+
+        XCTAssertEqual(segmentProfile.city?.id, barcelona.id)
+        XCTAssertEqual(segmentProfile.coordinate?.lat, barcelona.coordinate.lat)
+        XCTAssertEqual(segmentProfile.additionalData?.isNoLocation, true)
     }
 
     func testSavedPlansViewModelExposesPlannedIds() {
