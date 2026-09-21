@@ -202,3 +202,21 @@ final class TRPTimelineDateAndFavouriteTests: XCTestCase {
         XCTAssertEqual(vm.plannedActivityIdsByDay(), ids)
     }
 }
+
+extension TRPTimelineDateAndFavouriteTests {
+
+    func testTravellerCountComesFromTheSegmentNotThePlaceholderAdditionalData() {
+        let segment = activitySegment("1505", type: .bookedActivity)
+        segment.adults = 2
+        segment.children = 1
+        // The API never fills these in; the mapper writes 1/0 placeholders.
+        segment.additionalData?.adultCount = 1
+        segment.additionalData?.childCount = 0
+
+        let item = TRPMergedTimelineItem(segment: segment, plan: nil, originalSegmentIndex: 0)
+
+        XCTAssertEqual(item.adultCount, 2)
+        XCTAssertEqual(item.childCount, 1)
+        XCTAssertEqual(BookedActivityCellData(from: item, order: 1).adultCount, 2)
+    }
+}
