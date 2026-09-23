@@ -109,6 +109,16 @@ public class AddPlanTimeAndTravelersViewModel {
         return TimePickerBounds.hasPassed(selectedDay: getSelectedDay(), city: getSelectedCity(), time: startTime)
     }
 
+    @available(*, deprecated, message: "Pickers no longer lock past times; use hasStartTimePassedAtDestination() to warn instead.")
+    public func getMinimumStartTime() -> Date? {
+        return TimePickerBounds.minimumStartTime(selectedDay: getSelectedDay(), city: getSelectedCity())
+    }
+
+    @available(*, deprecated, message: "Pickers no longer lock past times; use hasStartTimePassedAtDestination() to warn instead.")
+    public func getMinimumEndTime() -> Date? {
+        return TimePickerBounds.minimumEndTime(selectedDay: getSelectedDay(), city: getSelectedCity(), currentStartTime: getStartTime())
+    }
+
     /// "Today" → next top of the hour in the city's tz; future days → nil (picker default).
     public func getDefaultInitialTime() -> Date? {
         return TimePickerBounds.defaultInitialTime(

@@ -24,6 +24,29 @@ import Foundation
 /// city-local wall clock.
 public enum TimePickerBounds {
 
+    /// Earliest start time: `now + 5 minutes` in the city's timezone when `selectedDay` is today there, nil otherwise.
+    @available(*, deprecated, message: "Pickers no longer lock past times; use hasPassed(selectedDay:city:time:) to warn instead.")
+    public static func minimumStartTime(selectedDay: Date?, city: TRPCity?) -> Date? {
+        guard let selectedDay = selectedDay else { return nil }
+        let isToday = city?.isDateTodayInCityTimezone(selectedDay)
+            ?? Calendar.current.isDateInToday(selectedDay)
+        guard isToday else { return nil }
+        if let city = city {
+            let (h, m) = city.cityLocalTimeComponents(offsetSeconds: 5 * 60)
+            return city.deviceLocalProxy(forCityHour: h, minute: m)
+        }
+        return Date().addingTimeInterval(5 * 60)
+    }
+
+    /// Earliest end time: the start time when there is one, otherwise `minimumStartTime`.
+    @available(*, deprecated, message: "Pickers no longer lock past times; use hasPassed(selectedDay:city:time:) to warn instead.")
+    public static func minimumEndTime(selectedDay: Date?, city: TRPCity?, currentStartTime: Date?) -> Date? {
+        if let startTime = currentStartTime {
+            return startTime
+        }
+        return minimumStartTime(selectedDay: selectedDay, city: city)
+    }
+
     /// True when `time`'s HH:mm is earlier than "now" in the city's timezone and `selectedDay` is today
     /// there. Future days never count as passed; without a city the device clock is used.
     public static func hasPassed(selectedDay: Date?, city: TRPCity?, time: Date) -> Bool {
