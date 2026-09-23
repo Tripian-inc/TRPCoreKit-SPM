@@ -311,6 +311,12 @@ public enum ColorSet {
             : UIColor(red: 234, green: 5, blue: 88)
     }
 
+    private static var brandPinkForeground: UIColor {
+        TRPCoreKit.shared.provider == .civitatis
+            ? UIColor(red: 194, green: 4, blue: 75)
+            : brandPrimary
+    }
+
     private static var brandPrimaryBg: UIColor {
         TRPCoreKit.shared.provider == .nexus
             ? UIColor(red: 255, green: 236, blue: 228)
@@ -356,7 +362,7 @@ public enum ColorSet {
         case .fgOrange:
             return UIColor(red: 125, green: 41, blue: 35)
         case .fgPink:
-            return Self.brandPrimary
+            return Self.brandPinkForeground
         case .fgBlue:
             return UIColor(red: 5, green: 90, blue: 128)
         case .mainDark:

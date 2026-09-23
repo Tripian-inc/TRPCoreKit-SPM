@@ -46,9 +46,12 @@ public class TripianNavigateBridge {
 
     private init() {}
 
+    /// Reservation dates reach the host as a UTC wall clock, so the day is read in UTC too;
+    /// the device's zone would move it to the previous or next day.
     private static let dateFormatter: DateFormatter = {
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = TimeZone(identifier: "UTC")
         formatter.dateFormat = "yyyy-MM-dd"
         return formatter
     }()

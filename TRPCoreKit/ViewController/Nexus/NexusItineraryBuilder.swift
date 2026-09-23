@@ -184,12 +184,13 @@ enum NexusItineraryBuilder {
         return formatter.string(from: shifted)
     }
 
-    private static func today() -> String {
+    /// The traveller's calendar day, so a trip without dates starts on the day they see.
+    static func today(now: Date = Date()) -> String {
         let f = DateFormatter()
         f.locale = Locale(identifier: "en_US_POSIX")
-        f.timeZone = TimeZone(identifier: "UTC")
+        f.timeZone = Calendar.current.timeZone
         f.dateFormat = "yyyy-MM-dd"
-        return f.string(from: Date())
+        return f.string(from: now)
     }
 
     /// Converts a reservation date — "2026-07-02T20:30:00" / "2026-07-02 20:30" /

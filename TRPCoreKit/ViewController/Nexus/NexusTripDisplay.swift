@@ -67,13 +67,16 @@ enum NexusTripDisplay {
         }
     }
 
-    /// Whole days from today to the trip start; nil when started/ongoing/undated.
-    static func daysUntil(_ t: TRPTimeline) -> Int? {
+    /// Whole days from today to the trip start; nil when started/ongoing/undated. The start is a
+    /// UTC wall clock and today is the traveller's own day, so each is read in its own zone.
+    static func daysUntil(_ t: TRPTimeline, now: Date = Date()) -> Int? {
         guard let start = earliestStart(t) else { return nil }
-        let cal = Calendar.current
-        let startDay = cal.startOfDay(for: start)
-        let today = cal.startOfDay(for: Date())
-        let days = cal.dateComponents([.day], from: today, to: startDay).day ?? 0
+        var utc = Calendar(identifier: .gregorian)
+        utc.timeZone = TimeZone(identifier: "UTC")!
+        let startDay = utc.dateComponents([.year, .month, .day], from: start)
+        let today = Calendar.current.dateComponents([.year, .month, .day], from: now)
+        guard let startDate = utc.date(from: startDay), let todayDate = utc.date(from: today) else { return nil }
+        let days = utc.dateComponents([.day], from: todayDate, to: startDate).day ?? 0
         return days > 0 ? days : nil
     }
 
