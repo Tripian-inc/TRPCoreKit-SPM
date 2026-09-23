@@ -432,11 +432,7 @@ extension TRPItineraryWithActivities {
         // Set additional data (this is CRITICAL for booked activities)
         segment.additionalData = tripItem
 
-        // Carry the resolved cityId onto the segment so the booked activity is
-        // created in the right city. Nexus resolves it from the reservation's
-        // destinationId up front; when no cityId is known it stays nil and is
-        // populated from timeline.plans (index-based) after fetch, as before.
-        if let cityId = tripItem.cityId, cityId > 0 {
+        if TRPCoreKit.shared.provider.keepsHostCityIds, let cityId = tripItem.cityId, cityId > 0 {
             segment.city = TRPCityCache.shared.getCity(byId: cityId)
                 ?? TRPCity(id: cityId, name: "", coordinate: tripItem.coordinate)
         } else {

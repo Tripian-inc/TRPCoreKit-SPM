@@ -267,10 +267,7 @@ extension TRPTimelineItineraryVC: UICollectionViewDataSource, UICollectionViewDe
                 // Recommendation step uses the step's poi; manual-POI segment has step == nil and its own manualPoi.
                 let poi = step?.poi ?? manualPoi
 
-                // Mirror Android: a product step (stepType present and != "poi")
-                // notifies the host for its detail; "poi" steps and manual POIs
-                // (no step) open the internal POI detail.
-                if let stepType = step?.stepType, stepType != "poi" {
+                if let stepType = step?.stepType, TRPCoreKit.shared.provider.opensHostDetail(forStepType: stepType) {
                     let activityId = extractActivityId(from: poi)
                     TRPCoreKit.shared.delegate?.trpCoreKitDidRequestActivityDetail(activityId: activityId)
                     return

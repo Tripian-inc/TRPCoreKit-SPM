@@ -129,11 +129,85 @@ extension TRPTimelineItineraryVC {
         drawRoutesForSelectedDay()
     }
 
-    /// Routes the day's located items in display order, one route per city, and draws the legs
-    /// (walking dashed, driving solid) in the route blue. Only when the host draws routes.
+    /// Draws the selected day's routes in the provider's `mapRouteStyle`.
     internal func drawRoutesForSelectedDay() {
-        removeAllRoutesFromMap()
-        guard TRPCoreKit.shared.provider.drawsRoutesOnMap else { return }
+        switch TRPCoreKit.shared.provider.mapRouteStyle {
+        case .none:
+            removeAllRoutesFromMap()
+        case .walkingPerSegment:
+            drawWalkingRoutesPerSegment()
+        case .dayLegs:
+            removeAllRoutesFromMap()
+            drawDayRouteLegs()
+        }
+    }
+
+    /// One walking route through each segment's places; a day whose segments hold a single
+    /// place each clears the map's routes, and a day without segments leaves them as they are.
+    private func drawWalkingRoutesPerSegment() {
+        let segments = viewModel.getSegmentsWithPoisForSelectedDay()
+        guard !segments.isEmpty else { return }
+
+        guard segments.contains(where: { $0.count > 1 }) else {
+            removeAllRoutesFromMap()
+            return
+        }
+        showLoader(true)
+        drawRoutesForSegments(segments)
+    }
+
+    private func drawRoutesForSegments(_ segments: [[TRPPoi]]) {
+        let routesToCalculate = segments.filter { $0.count > 1 }.count
+        guard routesToCalculate > 0 else {
+            showLoader(false)
+            return
+        }
+        var routesCompleted = 0
+        var hasError = false
+
+        for (segmentIndex, pois) in segments.enumerated() {
+            guard pois.count > 1 else { continue }
+
+            let locations = pois.compactMap { $0.coordinate }
+            guard locations.count > 1 else { continue }
+            let segmentId = "timeline_segment_\(segmentIndex)"
+
+            viewModel.calculateRoute(for: locations) { [weak self] route, error in
+                guard let self = self else { return }
+
+                routesCompleted += 1
+
+                if error != nil {
+                    hasError = true
+                } else if let route = route, let map = self.map {
+                    DispatchQueue.main.async {
+                        map.drawRoute(route, segmentId: segmentId, segmentOrder: segmentIndex, fitsCamera: false)
+                    }
+                } else {
+                    hasError = true
+                }
+
+                if routesCompleted == routesToCalculate {
+                    DispatchQueue.main.async {
+                        self.showLoader(false)
+
+                        if hasError {
+                            let errorMessage = TRPLanguagesController.shared.getLanguageValue(for: "trips.myTrips.map.routeError")
+                            EvrAlertView.showAlert(
+                                contentText: errorMessage.isEmpty ? "Unable to calculate some routes" : errorMessage,
+                                type: .warning,
+                                bottomSpace: 80
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    /// Routes the day's located items in display order, one route per city, and draws the legs
+    /// (walking dashed, driving solid) in the route blue.
+    private func drawDayRouteLegs() {
 
         if viewModel.usesFlatTimeline {
             for entry in viewModel.flatMapRouteLegs() {

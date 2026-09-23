@@ -296,26 +296,22 @@ extension TRPTimelineItineraryVC: TRPTimelinePlanStepCellDelegate {
 
 extension TRPTimelineItineraryVC {
 
-    /// "poi" steps open the internal POI detail; every other step type notifies the host for its product detail.
+    /// Opens the host's product detail or the SDK's POI detail, as `TripianProvider.opensHostDetail(forStepType:)` decides.
     internal func handleStepSelection(_ step: TRPTimelineStep) {
         guard let poi = step.poi else { return }
 
-        // Mirror Android: only "poi" steps open the internal POI detail screen;
-        // every other step type (e.g. "activity") notifies the host for its
-        // product detail. (Gating on `== "activity"` wrongly routed non-"poi"
-        // product steps to the internal screen → "activity not found".)
-        if step.stepType == "poi" {
-            let dateRange = viewModel.getTripDateRange()
-            let detailViewModel = TimelinePoiDetailViewModel(poi: poi,
-                                                            tripStartDate: dateRange?.start,
-                                                            tripEndDate: dateRange?.end)
-            let detailVC = TimelinePoiDetailViewController(viewModel: detailViewModel)
-            navigationController?.pushViewController(detailVC, animated: true)
+        if TRPCoreKit.shared.provider.opensHostDetail(forStepType: step.stepType) {
+            let activityId = extractActivityId(from: poi)
+            TRPCoreKit.shared.delegate?.trpCoreKitDidRequestActivityDetail(activityId: activityId)
             return
         }
 
-        let activityId = extractActivityId(from: poi)
-        TRPCoreKit.shared.delegate?.trpCoreKitDidRequestActivityDetail(activityId: activityId)
+        let dateRange = viewModel.getTripDateRange()
+        let detailViewModel = TimelinePoiDetailViewModel(poi: poi,
+                                                        tripStartDate: dateRange?.start,
+                                                        tripEndDate: dateRange?.end)
+        let detailVC = TimelinePoiDetailViewController(viewModel: detailViewModel)
+        navigationController?.pushViewController(detailVC, animated: true)
     }
 
     /// Activity steps open the availability time-slot picker; other steps the plain time range picker.

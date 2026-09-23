@@ -78,10 +78,8 @@ extension TRPTimelineItineraryViewModel {
         let allItems = mutableItinerary.destinationItems.enumerated()
             .map { (index: $0.offset, item: $0.element) }
 
-        // Destinations the host already resolved (cityId > 0 — e.g. Nexus resolves
-        // each reservation's destinationId to a cityId up front) keep their cityId;
-        // only the rest fall back to coordinate-based cities/resolve.
-        let pending = allItems.filter { ($0.item.cityId ?? 0) <= 0 }
+        let keepsHostCityIds = TRPCoreKit.shared.provider.keepsHostCityIds
+        let pending = allItems.filter { !keepsHostCityIds || ($0.item.cityId ?? 0) <= 0 }
 
         if pending.isEmpty {
             completion(mutableItinerary)
@@ -215,8 +213,8 @@ extension TRPTimelineItineraryViewModel {
     // MARK: - CityId Resolution
 
     /// Resolves cityIds for tripItems via `resolveCityIds`; anything left unresolved gets `cityId = 0`.
-    /// Items the host already resolved (`cityId > 0` — e.g. Nexus maps the reservation's destinationId
-    /// to a cityId up front) are neither looked up nor overwritten.
+    /// When the provider keeps host city ids, items that already carry one (`cityId > 0`) are neither
+    /// looked up nor overwritten.
     internal func resolveTripItemsCityIds(
         tripItems: [TRPSegmentActivityItem],
         completion: @escaping ([TRPSegmentActivityItem]) -> Void
@@ -226,8 +224,9 @@ extension TRPTimelineItineraryViewModel {
             return
         }
 
+        let keepsHostCityIds = TRPCoreKit.shared.provider.keepsHostCityIds
         let requests = tripItems.enumerated().compactMap { offset, item -> TRPCityResolutionRequest? in
-            guard (item.cityId ?? 0) <= 0 else { return nil }
+            guard !keepsHostCityIds || (item.cityId ?? 0) <= 0 else { return nil }
             return TRPCityResolutionRequest(
                 index: offset,
                 lookupKeys: item.tourLookupKeys,
@@ -237,7 +236,7 @@ extension TRPTimelineItineraryViewModel {
 
         resolveCityIds(for: requests) { resolved in
             var updated = tripItems
-            for index in updated.indices where (updated[index].cityId ?? 0) <= 0 {
+            for index in updated.indices where !keepsHostCityIds || (updated[index].cityId ?? 0) <= 0 {
                 updated[index].cityId = resolved[index] ?? 0
             }
             completion(updated)

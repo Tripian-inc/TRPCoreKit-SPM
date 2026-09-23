@@ -55,14 +55,42 @@ public enum TripianProvider {
         }
     }
 
-    /// Whether the timeline map draws the day's route (walking and driving legs)
-    /// between its located items.
-    public var drawsRoutesOnMap: Bool {
+    /// Whether a city id the host already resolved is kept as it is. When false every destination
+    /// and booked activity is resolved again from its coordinate or product, and booked segments
+    /// are sent without a city.
+    public var keepsHostCityIds: Bool {
         switch self {
         case .civitatis:    return false
         case .nexus:        return true
-        case .getYourGuide: return false
+        case .getYourGuide: return true
         }
+    }
+
+    /// Whether tapping a step of `stepType` asks the host for its product detail rather than
+    /// opening the SDK's POI detail. Civitatis sends only activity steps; the others send every
+    /// step that is not a plain poi.
+    public func opensHostDetail(forStepType stepType: String?) -> Bool {
+        switch self {
+        case .civitatis:
+            return stepType == "activity"
+        case .nexus, .getYourGuide:
+            return stepType != "poi"
+        }
+    }
+
+    /// How the timeline map connects the selected day's places.
+    public var mapRouteStyle: TRPMapRouteStyle {
+        switch self {
+        case .civitatis:    return .walkingPerSegment
+        case .nexus:        return .dayLegs
+        case .getYourGuide: return .none
+        }
+    }
+
+    /// Whether the timeline map draws the day's route (walking and driving legs)
+    /// between its located items.
+    public var drawsRoutesOnMap: Bool {
+        return mapRouteStyle == .dayLegs
     }
 
     /// Whether the timeline lists every segment and plan step of a day as one flat,
@@ -101,4 +129,14 @@ public enum TripianProvider {
             return "\(parts[1])|\(parts[0])"
         }
     }
+}
+
+/// How the timeline map connects a day's places.
+public enum TRPMapRouteStyle {
+    /// No route lines.
+    case none
+    /// One walking route through the places of each itinerary segment.
+    case walkingPerSegment
+    /// The day's located items in order, one route per city, drawn as walking and driving legs.
+    case dayLegs
 }
