@@ -19,7 +19,20 @@ class TRPTimeRangeSelectionViewController: TRPBaseUIViewController, DynamicHeigh
     var preferredContentHeight: CGFloat {
         // Header (56) + separator (0.5) + padding (24) + start field (64) + spacing (16) + end field (64) + button padding (16) + button (52) + bottom (16)
         let base: CGFloat = 56 + 0.5 + 24 + 64 + 16 + 64 + 16 + 52 + 16  // ~308.5
-        return closedWarningView.isHidden ? base : base + closedWarningHeight
+        let timeWarnings = [startTimeWarningRow, endTimeWarningRow]
+            .filter { !$0.isHidden }
+            .reduce(CGFloat(0)) { $0 + timeWarningHeight($1) }
+        return base + timeWarnings + (closedWarningView.isHidden ? 0 : closedWarningHeight)
+    }
+
+    /// Extra height a visible time warning row adds: the row itself plus the 8/12 spacing it introduces
+    /// around the field, minus the 16 the field already had.
+    private func timeWarningHeight(_ row: UIStackView) -> CGFloat {
+        let available = max(view.bounds.width, UIScreen.main.bounds.width) - 32 - 16 - 6
+        let textHeight = (row.arrangedSubviews.last as? UILabel)?.sizeThatFits(
+            CGSize(width: available, height: .greatestFiniteMagnitude)
+        ).height ?? 16
+        return max(16, textHeight) + 4
     }
 
     /// Spacing (16) + the warning card's own height, added while it is visible.
@@ -48,6 +61,9 @@ class TRPTimeRangeSelectionViewController: TRPBaseUIViewController, DynamicHeigh
     /// Day the opening-hours check runs against. Kept separate from `selectedDate`
     /// so callers can warn without also opting into the minimum-time gate.
     private var openingHoursDay: Date?
+
+    private var endTimeFieldTopBelowWarning: NSLayoutConstraint!
+    private var closedWarningTopBelowWarning: NSLayoutConstraint!
 
     // MARK: - UI Components
     private let headerView: UIView = {
@@ -99,6 +115,40 @@ class TRPTimeRangeSelectionViewController: TRPBaseUIViewController, DynamicHeigh
         return field
     }()
 
+    private lazy var startTimeWarningRow = makeTimeWarningRow(
+        text: AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.startTimePassedWarning)
+    )
+
+    private lazy var endTimeWarningRow = makeTimeWarningRow(
+        text: AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.endTimeBeforeStartWarning)
+    )
+
+    private func makeTimeWarningRow(text: String) -> UIStackView {
+        let icon = UIImageView()
+        icon.translatesAutoresizingMaskIntoConstraints = false
+        icon.image = TRPImageController().getImage(inFramework: "ic_warning", inApp: nil)?.withRenderingMode(.alwaysTemplate)
+        icon.tintColor = ColorSet.errorFg.uiColor
+        icon.contentMode = .scaleAspectFit
+        icon.widthAnchor.constraint(equalToConstant: 16).isActive = true
+        icon.heightAnchor.constraint(equalToConstant: 16).isActive = true
+
+        let label = UILabel()
+        label.translatesAutoresizingMaskIntoConstraints = false
+        label.font = FontSet.montserratMedium.font(12)
+        label.textColor = ColorSet.errorFg.uiColor
+        label.numberOfLines = 0
+        label.setContentCompressionResistancePriority(.required, for: .vertical)
+        label.text = text
+
+        let row = UIStackView(arrangedSubviews: [icon, label])
+        row.translatesAutoresizingMaskIntoConstraints = false
+        row.axis = .horizontal
+        row.alignment = .top
+        row.spacing = 6
+        row.isHidden = true
+        return row
+    }
+
     private let closedWarningView: UIView = {
         let view = UIView()
         view.backgroundColor = ColorSet.warningBg.uiColor
@@ -147,6 +197,7 @@ class TRPTimeRangeSelectionViewController: TRPBaseUIViewController, DynamicHeigh
         updateStartTimeDisplay()
         updateEndTimeDisplay()
         updateConfirmButtonState()
+        updateTimeValidationUI()
         updateClosedWarning()
     }
 
@@ -164,7 +215,9 @@ class TRPTimeRangeSelectionViewController: TRPBaseUIViewController, DynamicHeigh
 
         // Content
         view.addSubview(startTimeField)
+        view.addSubview(startTimeWarningRow)
         view.addSubview(endTimeField)
+        view.addSubview(endTimeWarningRow)
         view.addSubview(closedWarningView)
         closedWarningView.addSubview(closedWarningIcon)
         closedWarningView.addSubview(closedWarningLabel)
@@ -202,13 +255,19 @@ class TRPTimeRangeSelectionViewController: TRPBaseUIViewController, DynamicHeigh
             startTimeField.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
             startTimeField.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
 
+            startTimeWarningRow.topAnchor.constraint(equalTo: startTimeField.bottomAnchor, constant: 8),
+            startTimeWarningRow.leadingAnchor.constraint(equalTo: startTimeField.leadingAnchor),
+            startTimeWarningRow.trailingAnchor.constraint(equalTo: startTimeField.trailingAnchor),
+
             // End time field
-            endTimeField.topAnchor.constraint(equalTo: startTimeField.bottomAnchor, constant: 16),
             endTimeField.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
             endTimeField.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
 
+            endTimeWarningRow.topAnchor.constraint(equalTo: endTimeField.bottomAnchor, constant: 8),
+            endTimeWarningRow.leadingAnchor.constraint(equalTo: endTimeField.leadingAnchor),
+            endTimeWarningRow.trailingAnchor.constraint(equalTo: endTimeField.trailingAnchor),
+
             // Outside-opening-hours warning
-            closedWarningView.topAnchor.constraint(equalTo: endTimeField.bottomAnchor, constant: 16),
             closedWarningView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
             closedWarningView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
 
@@ -227,6 +286,21 @@ class TRPTimeRangeSelectionViewController: TRPBaseUIViewController, DynamicHeigh
             confirmButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
             confirmButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -16),
         ])
+
+        // A visible warning row pushes the view below it down (`updateTimeValidationUI` toggles the floor constraints).
+        let endTimeFieldTopDefault = endTimeField.topAnchor.constraint(equalTo: startTimeField.bottomAnchor, constant: 16)
+        endTimeFieldTopDefault.priority = .defaultLow
+        endTimeFieldTopDefault.isActive = true
+        endTimeFieldTopBelowWarning = endTimeField.topAnchor.constraint(
+            greaterThanOrEqualTo: startTimeWarningRow.bottomAnchor, constant: 12
+        )
+
+        let closedWarningTopDefault = closedWarningView.topAnchor.constraint(equalTo: endTimeField.bottomAnchor, constant: 16)
+        closedWarningTopDefault.priority = .defaultLow
+        closedWarningTopDefault.isActive = true
+        closedWarningTopBelowWarning = closedWarningView.topAnchor.constraint(
+            greaterThanOrEqualTo: endTimeWarningRow.bottomAnchor, constant: 12
+        )
     }
 
     private func setupActions() {
@@ -265,7 +339,7 @@ class TRPTimeRangeSelectionViewController: TRPBaseUIViewController, DynamicHeigh
         let picker = TRPSingleTimePickerViewController(
             title: AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.startTime),
             selectedDate: selectedDate,
-            minimumTime: TimePickerBounds.minimumStartTime(selectedDay: selectedDate, city: selectedCity),
+            minimumTime: nil,
             maximumTime: nil,
             initialTime: initialTime,
             showBackButton: true
@@ -276,14 +350,6 @@ class TRPTimeRangeSelectionViewController: TRPBaseUIViewController, DynamicHeigh
 
     private func endTimeFieldTapped() {
         editingStartTime = false
-        // Strict-minimum only when an actual start time exists. In that case the
-        // picker minimum IS the start time and must NOT itself be confirmable
-        // (end > start). Without a start time, the minimum is the earliest
-        // sensible moment (today+30m, or unrestricted on future days) and is a
-        // valid pick on its own. Mirrors the smart-recommendation screen
-        // (`AddPlanTimeAndTravelersVC.endTimeButtonTapped`).
-        // Initial: previously-picked end, or "start + 1h" / city-tz fallback.
-        let hasStartTime = fromDate != nil
         let initialTime = toDate ?? TimePickerBounds.defaultInitialEndTime(
             selectedDay: selectedDate,
             city: selectedCity,
@@ -292,15 +358,10 @@ class TRPTimeRangeSelectionViewController: TRPBaseUIViewController, DynamicHeigh
         let picker = TRPSingleTimePickerViewController(
             title: AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.endTime),
             selectedDate: selectedDate,
-            minimumTime: TimePickerBounds.minimumEndTime(
-                selectedDay: selectedDate,
-                city: selectedCity,
-                currentStartTime: fromDate
-            ),
+            minimumTime: nil,
             maximumTime: nil,
             initialTime: initialTime,
-            showBackButton: true,
-            strictMinimum: hasStartTime
+            showBackButton: true
         )
         picker.delegate = self
         presentVCWithDynamicHeight(picker)
@@ -318,18 +379,42 @@ class TRPTimeRangeSelectionViewController: TRPBaseUIViewController, DynamicHeigh
         endTimeField.setValue(toDate)
     }
 
+    /// Compares HH:mm only: the picker hands back Dates with inconsistent day components.
     private func updateConfirmButtonState() {
         guard let fromDate = fromDate, let toDate = toDate else {
             confirmButton.setEnabled(false)
             return
         }
-        // Compare HH:mm only, NOT the full Date. The single time picker hands back
-        // Dates with inconsistent day components (the start keeps the planned day,
-        // a re-picked end is rebuilt on "today" by TimePickerBounds.defaultInitialEndTime),
-        // so `toDate > fromDate` can be false even when end-of-day > start-of-day.
-        // Mirrors the picker's own strict-minimum HH:mm comparison.
-        let isValid = minutesOfDay(toDate) > minutesOfDay(fromDate)
+        let isValid = !startTimeHasPassed() && minutesOfDay(toDate) > minutesOfDay(fromDate)
         confirmButton.setEnabled(isValid)
+    }
+
+    private func startTimeHasPassed() -> Bool {
+        guard let fromDate = fromDate else { return false }
+        return TimePickerBounds.hasPassed(selectedDay: openingHoursDay ?? selectedDate, city: selectedCity, time: fromDate)
+    }
+
+    /// Shows the inline warning rows + error styling: start already passed at the destination, or end not after start.
+    private func updateTimeValidationUI() {
+        let startHasError = startTimeHasPassed()
+        let endHasError: Bool
+        if let fromDate = fromDate, let toDate = toDate {
+            endHasError = minutesOfDay(toDate) <= minutesOfDay(fromDate)
+        } else {
+            endHasError = false
+        }
+
+        let wasShown = (!startTimeWarningRow.isHidden, !endTimeWarningRow.isHidden)
+        startTimeField.setErrorState(startHasError)
+        endTimeField.setErrorState(endHasError)
+        startTimeWarningRow.isHidden = !startHasError
+        endTimeWarningRow.isHidden = !endHasError
+        endTimeFieldTopBelowWarning.isActive = startHasError
+        closedWarningTopBelowWarning.isActive = endHasError
+
+        if wasShown != (startHasError, endHasError) {
+            updateSheetHeight()
+        }
     }
 
     /// Shows a non-blocking notice when the picked span falls outside the POI's
@@ -439,6 +524,7 @@ class TRPTimeRangeSelectionViewController: TRPBaseUIViewController, DynamicHeigh
             self.updateStartTimeDisplay()
             self.updateEndTimeDisplay()
             self.updateConfirmButtonState()
+            self.updateTimeValidationUI()
             self.updateClosedWarning()
         }
     }
@@ -452,6 +538,7 @@ class TRPTimeRangeSelectionViewController: TRPBaseUIViewController, DynamicHeigh
             self.updateStartTimeDisplay()
             self.updateEndTimeDisplay()
             self.updateConfirmButtonState()
+            self.updateTimeValidationUI()
             self.updateClosedWarning()
         }
     }
@@ -461,22 +548,16 @@ class TRPTimeRangeSelectionViewController: TRPBaseUIViewController, DynamicHeigh
 extension TRPTimeRangeSelectionViewController: TRPSingleTimePickerDelegate {
 
     func singleTimePickerDidSelectTime(_ picker: TRPSingleTimePickerViewController, time: Date) {
-        if editingStartTime {  // Start time
+        if editingStartTime {
             fromDate = time
             updateStartTimeDisplay()
-
-            // Clear end time if it's now invalid (at or before the new start time).
-            // HH:mm comparison — see updateConfirmButtonState for why a full Date compare is wrong here.
-            if let toDate = toDate, minutesOfDay(toDate) <= minutesOfDay(time) {
-                self.toDate = nil
-                updateEndTimeDisplay()
-            }
-        } else {  // End time
+        } else {
             toDate = time
             updateEndTimeDisplay()
         }
 
         updateConfirmButtonState()
+        updateTimeValidationUI()
         updateClosedWarning()
     }
 
@@ -577,6 +658,11 @@ private class TRPTimeSelectionField: UIView {
     }
 
     // MARK: - Public Methods
+    func setErrorState(_ hasError: Bool) {
+        titleLabel.textColor = hasError ? ColorSet.errorFg.uiColor : ColorSet.primaryText.uiColor
+        container.layer.borderColor = (hasError ? ColorSet.errorFg.uiColor : ColorSet.lineWeak.uiColor).cgColor
+    }
+
     func setValue(_ time: Date?) {
         if let time = time {
             let formatter = DateFormatter()

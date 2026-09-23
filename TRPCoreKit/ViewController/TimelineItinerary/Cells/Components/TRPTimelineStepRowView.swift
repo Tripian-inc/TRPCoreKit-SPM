@@ -17,10 +17,9 @@ final class TRPTimelineStepRowView: UIView {
     var onRemove: ((TRPTimelineStep) -> Void)?
     var onReservation: ((TRPTimelineStep) -> Void)?
 
-    /// Reservation CTAs, hidden on past days.
-    private(set) var reservationButtons: [UIButton] = []
-    /// Change-time / remove buttons, greyed out on past days.
-    private(set) var actionButtons: [UIButton] = []
+    private var reservationButtons: [UIButton] = []
+    private var changeTimeButtons: [UIButton] = []
+    private var removeButtons: [UIButton] = []
 
     private let step: TRPTimelineStep
 
@@ -36,14 +35,8 @@ final class TRPTimelineStepRowView: UIView {
         fatalError("init(coder:) has not been implemented")
     }
 
-    /// Past-day rendering: hide reservation CTAs, grey out action buttons (still tap-consuming).
-    func applyPastDayStyle() {
-        for button in reservationButtons {
-            button.isHidden = true
-        }
-        for button in actionButtons {
-            button.setPastDayDisabled(true, originalTint: ColorSet.primary.uiColor)
-        }
+    func applyPastDayStyle(_ style: TRPPastDayActionStyle) {
+        style.apply(changeTime: changeTimeButtons, remove: removeButtons, reservation: reservationButtons)
     }
 
     // MARK: - Build
@@ -130,8 +123,8 @@ final class TRPTimelineStepRowView: UIView {
 
         actionButtonsStack.addArrangedSubview(changeTimeButton)
         actionButtonsStack.addArrangedSubview(removeStepButton)
-        actionButtons.append(changeTimeButton)
-        actionButtons.append(removeStepButton)
+        changeTimeButtons.append(changeTimeButton)
+        removeButtons.append(removeStepButton)
 
         titleRow.addSubview(titleLabel)
         titleRow.addSubview(actionButtonsStack)

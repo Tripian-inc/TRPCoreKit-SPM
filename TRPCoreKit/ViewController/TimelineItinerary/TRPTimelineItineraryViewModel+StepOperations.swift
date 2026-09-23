@@ -180,7 +180,7 @@ extension TRPTimelineItineraryViewModel {
             return (mapped: [], other: allCities)
         }
 
-        let dateString = date.toString(format: "yyyy-MM-dd")
+        let dateString = TRPDateHelper.formatDateString(date)
 
         var mappedCityIds = Set<Int>()
         for item in destinationItems {

@@ -100,11 +100,8 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
         return stack
     }()
 
-    /// Per-step reservation CTAs, so `applyPastDayStyle()` can hide them all. Rebuilt every `configure`.
-    private var stepReservationButtons: [UIButton] = []
-
-    /// Per-step change-time / remove-step buttons, for past-day disabling. Rebuilt every `configure`.
-    private var stepActionButtons: [UIButton] = []
+    /// Per-step rows, so `applyPastDayStyle()` can reach every step's buttons. Rebuilt every `configure`.
+    private var stepRows: [TRPTimelineStepRowView] = []
 
     /// True on past days. Buttons stay enabled to consume taps; this flag short-circuits their handlers.
     private var isPastDayMode: Bool = false
@@ -178,15 +175,14 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
         closeButton.layer.borderColor = ColorSet.neutral200.uiColor.cgColor
     }
 
-    /// Past-day rendering: hide reservation CTAs, grey out action buttons (still tap-consuming). Must be called AFTER `configure(...)`.
+    /// Past-day rendering in the provider's `pastDayActionStyle`. Must be called AFTER `configure(...)`.
     func applyPastDayStyle() {
         isPastDayMode = true
-        for button in stepReservationButtons {
-            button.isHidden = true
-        }
-        for button in stepActionButtons {
-            button.setPastDayDisabled(true, originalTint: ColorSet.primary.uiColor)
-        }
+        stepRows.forEach { $0.applyPastDayStyle(pastDayActionStyle) }
+    }
+
+    private var pastDayActionStyle: TRPPastDayActionStyle {
+        return TRPCoreKit.shared.provider.pastDayActionStyle
     }
     
     // MARK: - Actions
@@ -232,8 +228,7 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
 
         recommendationsStackView.arrangedSubviews.forEach { $0.removeFromSuperview() }
         distanceViews.removeAll()
-        stepReservationButtons.removeAll()
-        stepActionButtons.removeAll()
+        stepRows.removeAll()
 
         var distanceIndex = 0
 
@@ -317,8 +312,7 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
 
         recommendationsStackView.arrangedSubviews.forEach { $0.removeFromSuperview() }
         distanceViews.removeAll()
-        stepReservationButtons.removeAll()
-        stepActionButtons.removeAll()
+        stepRows.removeAll()
 
         var distanceIndex = 0
 
@@ -398,15 +392,14 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
             self.delegate?.recommendationsCellDidTapChangeTime(self, step: step)
         }
         row.onRemove = { [weak self] step in
-            guard let self = self, !self.isPastDayMode else { return }
+            guard let self = self, !self.isPastDayMode || self.pastDayActionStyle.allowsRemoval else { return }
             self.delegate?.recommendationsCellDidTapRemoveStep(self, step: step)
         }
         row.onReservation = { [weak self] step in
             guard let self = self, !self.isPastDayMode else { return }
             self.delegate?.recommendationsCellDidTapReservation(self, step: step)
         }
-        stepReservationButtons.append(contentsOf: row.reservationButtons)
-        stepActionButtons.append(contentsOf: row.actionButtons)
+        stepRows.append(row)
         return row
     }
 

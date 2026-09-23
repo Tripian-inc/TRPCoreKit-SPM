@@ -76,6 +76,15 @@ public enum TripianProvider {
         }
     }
 
+    /// How the timeline rows' actions behave on a day that has already passed.
+    public var pastDayActionStyle: TRPPastDayActionStyle {
+        switch self {
+        case .civitatis:    return .removalOnly
+        case .nexus:        return .readOnly
+        case .getYourGuide: return .readOnly
+        }
+    }
+
     public func activityDetailId(fromRaw rawId: String) -> String {
         switch self {
         case .civitatis, .getYourGuide:

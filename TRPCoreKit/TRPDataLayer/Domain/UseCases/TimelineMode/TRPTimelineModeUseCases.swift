@@ -454,8 +454,7 @@ extension TRPTimelineModeUseCases: AddTimelineStepUseCase {
         start: String = "",
         end: String = "",
         target: String? = nil,
-        ids: String,
-        format: String = "yyyy-MM-dd HH:mm"
+        ids: String
     ) -> Int? {
         
         // Split IDs into array of Ints
@@ -468,12 +467,11 @@ extension TRPTimelineModeUseCases: AddTimelineStepUseCase {
         }
         
         guard
-            let startDate = Date.fromString(start, format: format),
-            let endDate = Date.fromString(end, format: format)
+            let startDate = TRPDateHelper.parseDateTime(start),
+            let endDate = TRPDateHelper.parseDateTime(end)
         else { return idList.last }
         
-        // If no target provided → return last id
-        guard let target, let targetDate = Date.fromString(target, format: format) else {
+        guard let targetDate = TRPDateHelper.parseDateTime(target) else {
             return idList.last
         }
         

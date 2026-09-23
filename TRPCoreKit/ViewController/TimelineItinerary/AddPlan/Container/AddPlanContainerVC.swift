@@ -374,7 +374,11 @@ public class AddPlanContainerVC: TRPBaseUIViewController, DynamicHeightPresentab
                   let endTime = viewModel.planData.endTime else {
                 return false
             }
+            let startHasPassed = TimePickerBounds.hasPassed(selectedDay: viewModel.planData.selectedDay,
+                                                            city: viewModel.planData.selectedCity,
+                                                            time: startTime)
             return viewModel.planData.startingPointLocation != nil &&
+                   !startHasPassed &&
                    endTime > startTime &&
                    viewModel.planData.travelers > 0
         case .categorySelection:

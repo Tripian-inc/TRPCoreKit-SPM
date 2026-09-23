@@ -289,17 +289,19 @@ class TRPTimelineManualPoiCell: UITableViewCell {
         categoryLabel.textColor = ColorSet.fgGray.uiColor
     }
 
-    /// Greys out action buttons but keeps them tappable; `isPastDayMode` makes their handlers no-op.
+    /// Past-day rendering in the provider's `pastDayActionStyle`.
     func applyPastDayStyle() {
         isPastDayMode = true
-        changeTimeButton.setPastDayDisabled(true, originalTint: ColorSet.primary.uiColor)
-        removeButton.setPastDayDisabled(true, originalTint: ColorSet.primary.uiColor)
+        pastDayActionStyle.apply(changeTime: [changeTimeButton], remove: [removeButton], reservation: [])
     }
 
     private func resetPastDayState() {
         isPastDayMode = false
-        changeTimeButton.setPastDayDisabled(false, originalTint: ColorSet.primary.uiColor)
-        removeButton.setPastDayDisabled(false, originalTint: ColorSet.primary.uiColor)
+        pastDayActionStyle.reset(changeTime: [changeTimeButton], remove: [removeButton], reservation: [])
+    }
+
+    private var pastDayActionStyle: TRPPastDayActionStyle {
+        return TRPCoreKit.shared.provider.pastDayActionStyle
     }
 
     // MARK: - Configuration
@@ -395,13 +397,7 @@ class TRPTimelineManualPoiCell: UITableViewCell {
     }
 
     private func formatTime(from dateString: String) -> String {
-        let date = Date.fromString(dateString, format: "yyyy-MM-dd HH:mm:ss")
-                   ?? Date.fromString(dateString, format: "yyyy-MM-dd HH:mm")
-
-        guard let validDate = date else {
-            return ""
-        }
-        return validDate.toString(format: "HH:mm") ?? ""
+        return TRPDateHelper.extractHourMinute(from: dateString) ?? ""
     }
 
     // MARK: - Actions
@@ -411,7 +407,7 @@ class TRPTimelineManualPoiCell: UITableViewCell {
     }
 
     @objc private func removeButtonTapped() {
-        guard !isPastDayMode, let segment = segment else { return }
+        guard !isPastDayMode || pastDayActionStyle.allowsRemoval, let segment = segment else { return }
         delegate?.manualPoiCellDidTapRemove(self, segment: segment)
     }
 

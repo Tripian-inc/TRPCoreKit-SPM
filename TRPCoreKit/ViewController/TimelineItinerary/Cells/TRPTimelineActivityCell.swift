@@ -382,23 +382,22 @@ class TRPTimelineActivityCell: UITableViewCell {
         flexibleTimeBadgeView.resetStyle()
     }
 
-    /// Past-day rendering: hide the reservation CTA and grey the action buttons (they stay enabled to
-    /// consume taps; `isPastDayMode` makes their handlers no-op). Booked rows have no CTAs, so they
-    /// keep their normal styling.
+    /// Past-day rendering in the provider's `pastDayActionStyle`. Booked rows have no CTAs,
+    /// so they keep their normal styling.
     func applyPastDayStyle() {
         guard kind != .booked else { return }
 
         isPastDayMode = true
-        reservationButton.isHidden = true
-        changeTimeButton.setPastDayDisabled(true, originalTint: ColorSet.primary.uiColor)
-        removeButton.setPastDayDisabled(true, originalTint: ColorSet.primary.uiColor)
+        pastDayActionStyle.apply(changeTime: [changeTimeButton], remove: [removeButton], reservation: [reservationButton])
     }
 
     private func resetPastDayState() {
         isPastDayMode = false
-        reservationButton.isHidden = false
-        changeTimeButton.setPastDayDisabled(false, originalTint: ColorSet.primary.uiColor)
-        removeButton.setPastDayDisabled(false, originalTint: ColorSet.primary.uiColor)
+        pastDayActionStyle.reset(changeTime: [changeTimeButton], remove: [removeButton], reservation: [reservationButton])
+    }
+
+    private var pastDayActionStyle: TRPPastDayActionStyle {
+        return TRPCoreKit.shared.provider.pastDayActionStyle
     }
 
     // MARK: - Configuration
@@ -542,7 +541,7 @@ class TRPTimelineActivityCell: UITableViewCell {
     }
 
     @objc private func removeButtonTapped() {
-        guard !isPastDayMode, let segment = segment else { return }
+        guard !isPastDayMode || pastDayActionStyle.allowsRemoval, let segment = segment else { return }
         delegate?.activityCellDidTapRemove(self, segment: segment)
     }
 

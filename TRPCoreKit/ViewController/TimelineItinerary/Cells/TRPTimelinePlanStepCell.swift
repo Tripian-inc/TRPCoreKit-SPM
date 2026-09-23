@@ -50,7 +50,7 @@ final class TRPTimelinePlanStepCell: UITableViewCell {
             self.delegate?.planStepCellDidTapChangeTime(self, step: step)
         }
         row.onRemove = { [weak self] step in
-            guard let self = self, !self.isPastDayMode else { return }
+            guard let self = self, !self.isPastDayMode || self.pastDayActionStyle.allowsRemoval else { return }
             self.delegate?.planStepCellDidTapRemove(self, step: step)
         }
         row.onReservation = { [weak self] step in
@@ -68,9 +68,13 @@ final class TRPTimelinePlanStepCell: UITableViewCell {
         rowView = row
     }
 
-    /// Past-day rendering: hide the reservation CTA, grey out the action buttons. Call after `configure`.
+    /// Past-day rendering in the provider's `pastDayActionStyle`. Call after `configure`.
     func applyPastDayStyle() {
         isPastDayMode = true
-        rowView?.applyPastDayStyle()
+        rowView?.applyPastDayStyle(pastDayActionStyle)
+    }
+
+    private var pastDayActionStyle: TRPPastDayActionStyle {
+        return TRPCoreKit.shared.provider.pastDayActionStyle
     }
 }

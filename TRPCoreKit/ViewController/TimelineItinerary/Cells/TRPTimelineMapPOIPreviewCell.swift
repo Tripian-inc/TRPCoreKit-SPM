@@ -264,17 +264,12 @@ class TRPTimelineMapPOIPreviewCell: UICollectionViewCell {
     }
     
     private func formatTime(from dateString: String) -> String {
-        guard let date = Date.fromString(dateString, format: "yyyy-MM-dd HH:mm:ss") else {
-            return ""
-        }
-        return date.toString(format: "HH:mm") ?? ""
+        return TRPDateHelper.extractHourMinute(from: dateString) ?? ""
     }
     
     private func formatDate(from dateString: String) -> String {
-        guard let date = Date.fromString(dateString, format: "yyyy-MM-dd HH:mm:ss") else {
-            return ""
-        }
-        return date.toString(format: "dd/MM/yyyy") ?? ""
+        guard let date = TRPDateHelper.parseDateTime(dateString) else { return "" }
+        return TRPDateHelper.formatDisplayDate(date)
     }
     
     override func prepareForReuse() {

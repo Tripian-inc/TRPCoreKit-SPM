@@ -14,21 +14,25 @@ public class AddPlanTimeAndTravelersVC: TRPBaseUIViewController, AddPlanChildVie
 
     // MARK: - Height Constants
     private let baseContentHeight: CGFloat = 432
-    /// Extra height when the "end before start" warning shows; derived from the row's intrinsic height so 1- vs 2-line translations fit.
-    private var endTimeWarningExtraHeight: CGFloat {
-        guard !warningStackView.isHidden else { return 0 }
-        let warningHeight = warningStackView
-            .systemLayoutSizeFitting(
-                CGSize(width: view.bounds.width - 32, height: UIView.layoutFittingCompressedSize.height),
-                withHorizontalFittingPriority: .required,
-                verticalFittingPriority: .fittingSizeLevel
-            ).height
-        return max(0, warningHeight - 8)
+    /// Extra height when a time warning row shows; derived from the tallest visible row so 1- vs 2-line translations fit.
+    private var warningExtraHeight: CGFloat {
+        let fieldWidth = (view.bounds.width - 48) / 2
+        let tallest = [startTimeWarningStackView, endTimeWarningStackView]
+            .filter { !$0.isHidden }
+            .map { row in
+                row.systemLayoutSizeFitting(
+                    CGSize(width: fieldWidth, height: UIView.layoutFittingCompressedSize.height),
+                    withHorizontalFittingPriority: .required,
+                    verticalFittingPriority: .fittingSizeLevel
+                ).height
+            }
+            .max() ?? 0
+        return max(0, tallest - 8)
     }
 
     // MARK: - AddPlanChildViewController
     public var preferredContentHeight: CGFloat {
-        return baseContentHeight + endTimeWarningExtraHeight
+        return baseContentHeight + warningExtraHeight
     }
 
     // MARK: - Properties
@@ -97,39 +101,45 @@ public class AddPlanTimeAndTravelersVC: TRPBaseUIViewController, AddPlanChildVie
         return view
     }()
 
-    // MARK: - End-time warning row (shown when end <= start)
+    // MARK: - Time warning rows (start already passed at the destination / end <= start)
 
-    private lazy var warningIconView: UIImageView = {
-        let iv = UIImageView()
-        iv.translatesAutoresizingMaskIntoConstraints = false
-        iv.image = TRPImageController().getImage(inFramework: "ic_warning", inApp: nil)?.withRenderingMode(.alwaysTemplate)
-        iv.tintColor = ColorSet.primary.uiColor
-        iv.contentMode = .scaleAspectFit
-        return iv
-    }()
+    private lazy var startTimeWarningStackView = makeWarningRow(
+        text: AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.startTimePassedWarning)
+    )
 
-    private lazy var warningLabel: UILabel = {
+    private lazy var endTimeWarningStackView = makeWarningRow(
+        text: AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.endTimeBeforeStartWarning)
+    )
+
+    private func makeWarningRow(text: String) -> UIStackView {
+        let icon = UIImageView()
+        icon.translatesAutoresizingMaskIntoConstraints = false
+        icon.image = TRPImageController().getImage(inFramework: "ic_warning", inApp: nil)?.withRenderingMode(.alwaysTemplate)
+        icon.tintColor = ColorSet.errorFg.uiColor
+        icon.contentMode = .scaleAspectFit
+        icon.widthAnchor.constraint(equalToConstant: 16).isActive = true
+        icon.heightAnchor.constraint(equalToConstant: 16).isActive = true
+
         let label = UILabel()
         label.translatesAutoresizingMaskIntoConstraints = false
         label.font = FontSet.montserratMedium.font(12)
-        label.textColor = ColorSet.primary.uiColor
-        label.numberOfLines = 2
-        label.text = AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.endTimeBeforeStartWarning)
-        return label
-    }()
+        label.textColor = ColorSet.errorFg.uiColor
+        label.numberOfLines = 0
+        label.setContentCompressionResistancePriority(.required, for: .vertical)
+        label.text = text
 
-    private lazy var warningStackView: UIStackView = {
-        let stack = UIStackView(arrangedSubviews: [warningIconView, warningLabel])
+        let stack = UIStackView(arrangedSubviews: [icon, label])
         stack.translatesAutoresizingMaskIntoConstraints = false
         stack.axis = .horizontal
         stack.alignment = .top
         stack.spacing = 6
         stack.isHidden = true
         return stack
-    }()
+    }
 
-    private var travelersLabelTopWithoutWarning: NSLayoutConstraint!
-    private var travelersLabelTopWithWarning: NSLayoutConstraint!
+    private var travelersLabelTopDefault: NSLayoutConstraint!
+    private var travelersLabelTopBelowStartWarning: NSLayoutConstraint!
+    private var travelersLabelTopBelowEndWarning: NSLayoutConstraint!
     
     private lazy var travelersLabel: UILabel = {
         let label = UILabel()
@@ -204,7 +214,8 @@ public class AddPlanTimeAndTravelersVC: TRPBaseUIViewController, AddPlanChildVie
 
         view.addSubview(startTimeField)
         view.addSubview(endTimeField)
-        view.addSubview(warningStackView)
+        view.addSubview(startTimeWarningStackView)
+        view.addSubview(endTimeWarningStackView)
 
         view.addSubview(travelersLabel)
         view.addSubview(travelersContainer)
@@ -250,12 +261,13 @@ public class AddPlanTimeAndTravelersVC: TRPBaseUIViewController, AddPlanChildVie
             endTimeField.leadingAnchor.constraint(equalTo: view.centerXAnchor, constant: 8),
             endTimeField.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
 
-            warningStackView.topAnchor.constraint(equalTo: endTimeField.bottomAnchor, constant: 8),
-            warningStackView.leadingAnchor.constraint(equalTo: endTimeField.leadingAnchor),
-            warningStackView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
+            startTimeWarningStackView.topAnchor.constraint(equalTo: startTimeField.bottomAnchor, constant: 8),
+            startTimeWarningStackView.leadingAnchor.constraint(equalTo: startTimeField.leadingAnchor),
+            startTimeWarningStackView.trailingAnchor.constraint(equalTo: startTimeField.trailingAnchor),
 
-            warningIconView.widthAnchor.constraint(equalToConstant: 16),
-            warningIconView.heightAnchor.constraint(equalToConstant: 16),
+            endTimeWarningStackView.topAnchor.constraint(equalTo: endTimeField.bottomAnchor, constant: 8),
+            endTimeWarningStackView.leadingAnchor.constraint(equalTo: endTimeField.leadingAnchor),
+            endTimeWarningStackView.trailingAnchor.constraint(equalTo: endTimeField.trailingAnchor),
 
             travelersLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
             travelersLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
@@ -288,14 +300,16 @@ public class AddPlanTimeAndTravelersVC: TRPBaseUIViewController, AddPlanChildVie
             bottomSeparator.heightAnchor.constraint(equalToConstant: 0.5),
         ])
 
-        // Swapped by `updateEndTimeValidationUI` so the warning row pushes travelers down when shown.
-        travelersLabelTopWithoutWarning = travelersLabel.topAnchor.constraint(
-            equalTo: startTimeField.bottomAnchor, constant: 32
+        // A visible warning row pushes travelers down (`updateTimeValidationUI` toggles the two floor constraints).
+        travelersLabelTopDefault = travelersLabel.topAnchor.constraint(equalTo: startTimeField.bottomAnchor, constant: 32)
+        travelersLabelTopDefault.priority = .defaultLow
+        travelersLabelTopDefault.isActive = true
+        travelersLabelTopBelowStartWarning = travelersLabel.topAnchor.constraint(
+            greaterThanOrEqualTo: startTimeWarningStackView.bottomAnchor, constant: 16
         )
-        travelersLabelTopWithWarning = travelersLabel.topAnchor.constraint(
-            equalTo: warningStackView.bottomAnchor, constant: 16
+        travelersLabelTopBelowEndWarning = travelersLabel.topAnchor.constraint(
+            greaterThanOrEqualTo: endTimeWarningStackView.bottomAnchor, constant: 16
         )
-        travelersLabelTopWithoutWarning.isActive = true
     }
     
     private func setupActions() {
@@ -354,27 +368,28 @@ public class AddPlanTimeAndTravelersVC: TRPBaseUIViewController, AddPlanChildVie
             decrementButton.tintColor = ColorSet.fgWeak.uiColor
         }
 
-        updateEndTimeValidationUI()
+        updateTimeValidationUI()
     }
 
-    /// Shows the warning row + error styling when both times are set and end is not strictly after start; refreshes sheet height.
-    private func updateEndTimeValidationUI() {
-        let startTime = viewModel.getStartTime()
-        let endTime = viewModel.getEndTime()
-        let hasError: Bool
-        if let start = startTime, let end = endTime {
-            hasError = end <= start
+    /// Shows the warning rows + error styling: start already passed at the destination, or end not strictly after start; refreshes sheet height.
+    private func updateTimeValidationUI() {
+        let startHasError = viewModel.hasStartTimePassedAtDestination()
+        let endHasError: Bool
+        if let start = viewModel.getStartTime(), let end = viewModel.getEndTime() {
+            endHasError = end <= start
         } else {
-            hasError = false
+            endHasError = false
         }
 
-        let wasHidden = warningStackView.isHidden
-        endTimeField.setErrorState(hasError)
-        warningStackView.isHidden = !hasError
-        travelersLabelTopWithoutWarning.isActive = !hasError
-        travelersLabelTopWithWarning.isActive = hasError
+        let wasShown = (!startTimeWarningStackView.isHidden, !endTimeWarningStackView.isHidden)
+        startTimeField.setErrorState(startHasError)
+        endTimeField.setErrorState(endHasError)
+        startTimeWarningStackView.isHidden = !startHasError
+        endTimeWarningStackView.isHidden = !endHasError
+        travelersLabelTopBelowStartWarning.isActive = startHasError
+        travelersLabelTopBelowEndWarning.isActive = endHasError
 
-        if wasHidden != !hasError {
+        if wasShown != (startHasError, endHasError) {
             containerVC?.notifyContentHeightChanged()
         }
     }
@@ -413,7 +428,7 @@ public class AddPlanTimeAndTravelersVC: TRPBaseUIViewController, AddPlanChildVie
         let picker = TRPSingleTimePickerViewController(
             title: AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.startTime),
             selectedDate: viewModel.getSelectedDay(),
-            minimumTime: viewModel.getMinimumStartTime(),
+            minimumTime: nil,
             maximumTime: nil,
             initialTime: initialTime
         )
@@ -423,16 +438,13 @@ public class AddPlanTimeAndTravelersVC: TRPBaseUIViewController, AddPlanChildVie
 
     @objc private func endTimeButtonTapped() {
         editingStartTime = false
-        // Strict-minimum only when a start time exists: then the picker minimum IS the start and must not itself be confirmable (end > start).
-        let hasStartTime = viewModel.getStartTime() != nil
         let initialTime = viewModel.getEndTime() ?? viewModel.getDefaultInitialEndTime()
         let picker = TRPSingleTimePickerViewController(
             title: AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.endTime),
             selectedDate: viewModel.getSelectedDay(),
-            minimumTime: viewModel.getMinimumEndTime(),
+            minimumTime: nil,
             maximumTime: nil,
-            initialTime: initialTime,
-            strictMinimum: hasStartTime
+            initialTime: initialTime
         )
         picker.delegate = self
         presentVCWithDynamicHeight(picker)
@@ -491,11 +503,6 @@ extension AddPlanTimeAndTravelersVC: TRPSingleTimePickerDelegate {
 
         if editingStartTime {
             viewModel.setStartTime(combinedTime)
-
-            if let endTime = viewModel.getEndTime(), endTime <= combinedTime {
-                viewModel.setEndTime(nil)
-                endTimeShownAsMidnight = false
-            }
         } else {
             let calendar = Calendar.current
             let components = calendar.dateComponents([.hour, .minute], from: combinedTime)
@@ -527,5 +534,7 @@ extension AddPlanTimeAndTravelersVC: TRPTimelineDayFilterViewDelegate {
         selectedDayIndex = dayIndex
         viewModel.selectDay(days[dayIndex])
         updateCityCenterIfNeeded()
+        updateUI()
+        containerVC?.updateContinueButtonState()
     }
 }

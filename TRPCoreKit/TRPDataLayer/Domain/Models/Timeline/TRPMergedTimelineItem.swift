@@ -183,14 +183,15 @@ public class TRPMergedTimelineItem {
 
     // MARK: - Computed Properties (Booking Info)
 
-    /// Adult count (from additionalData or segment)
+    /// Adult count. The segment is the source of truth: the API's `additionalData` carries no
+    /// traveller counts, so the mapper fills it with a placeholder `1`.
     public var adultCount: Int {
-        return segment.additionalData?.adultCount ?? segment.adults
+        return segment.adults
     }
 
-    /// Child count (from additionalData or segment)
+    /// Child count. Read from the segment for the same reason as `adultCount`.
     public var childCount: Int {
-        return segment.additionalData?.childCount ?? segment.children
+        return segment.children
     }
 
     /// Duration in minutes (from additionalData or calculated from start/end times)
