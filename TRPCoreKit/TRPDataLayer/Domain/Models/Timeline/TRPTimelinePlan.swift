@@ -36,12 +36,15 @@ public struct TRPTimelinePlan: Codable {
         return steps.compactMap({$0.poi})
     }
     
+    /// The plan's "yyyy-MM-dd HH:mm" start read as a UTC wall clock. Hosts compare it with their
+    /// own UTC-parsed times, so the zone is part of the public contract.
     public func getStartDate() -> Date? {
-        return TRPDateHelper.parseDateTime(startDate)
+        return Date.fromString(startDate, format: "yyyy-MM-dd HH:mm")
     }
-    
+
+    /// The plan's end, read the same way as `getStartDate()`.
     public func getEndDate() -> Date? {
-        return TRPDateHelper.parseDateTime(endDate)
+        return Date.fromString(endDate, format: "yyyy-MM-dd HH:mm")
     }
 }
 

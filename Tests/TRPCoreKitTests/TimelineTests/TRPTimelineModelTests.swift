@@ -26,11 +26,12 @@ final class TRPTimelineModelTests: XCTestCase {
 
     // MARK: - TRPTimelinePlan / TRPTimelineStep
 
-    func testPlanDatesParseInLocalTime() {
+    /// Hosts compare these dates with their own UTC-parsed times, so the plan's wall clock is read as UTC.
+    func testPlanDatesKeepTheirWallClockInUTC() {
         let plan = timeline.plans!.first { $0.id == "25459" }!
 
-        XCTAssertEqual(plan.getStartDate().map(TRPDateHelper.formatDateTime), "2025-12-07 09:00")
-        XCTAssertEqual(plan.getEndDate().map(TRPDateHelper.formatDateTime), "2025-12-07 21:00")
+        XCTAssertEqual(plan.getStartDate()?.toString(format: "yyyy-MM-dd HH:mm", timeZone: "UTC"), "2025-12-07 09:00")
+        XCTAssertEqual(plan.getEndDate()?.toString(format: "yyyy-MM-dd HH:mm", timeZone: "UTC"), "2025-12-07 21:00")
     }
 
     func testStepTimesAreExtractedAsHourMinute() {
