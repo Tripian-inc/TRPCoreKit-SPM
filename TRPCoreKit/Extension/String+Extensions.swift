@@ -210,12 +210,14 @@ extension String? {
 }
 
 extension String {
-    /// Cleans activity ID by extracting actual ID from C_ format
-    /// Pattern: C_{activityId}_{providerId} or C_{activityId}_{providerId}_{cityId}
-    /// Example: "C_15423_15" → "15423"
+    /// Cleans an activity ID by extracting the bare product id from the active
+    /// provider's wrapped format `{prefix}{activityId}_{providerId}[_{cityId}]`.
+    /// Prefix is provider-based (Civitatis "C_", Nexus/Juniper "J_"). Plain ids
+    /// (no matching prefix) are returned unchanged. Example: "C_15423_15" → "15423".
     func cleanedAsActivityId() -> String {
-        guard self.hasPrefix("C_") else { return self }
-        let withoutPrefix = String(self.dropFirst(2))
+        let prefix = TRPCoreKit.shared.provider.activityIdPrefix
+        guard !prefix.isEmpty, self.hasPrefix(prefix) else { return self }
+        let withoutPrefix = String(self.dropFirst(prefix.count))
         let components = withoutPrefix.split(separator: "_")
         if let activityId = components.first {
             return String(activityId)
@@ -223,11 +225,13 @@ extension String {
         return self
     }
 
-    /// Parses the providerId out of a `C_{productId}_{providerId}[_{cityId}]` activity id.
-    /// Returns nil for plain ids (no `C_` prefix) or when the second segment isn't a valid Int.
+    /// Parses the providerId out of a `{prefix}{productId}_{providerId}[_{cityId}]`
+    /// activity id (prefix is provider-based). Returns nil for plain ids (no
+    /// matching prefix) or when the second segment isn't a valid Int.
     func trp_parsedProviderId() -> Int? {
-        guard self.hasPrefix("C_") else { return nil }
-        let components = self.dropFirst(2).split(separator: "_")
+        let prefix = TRPCoreKit.shared.provider.activityIdPrefix
+        guard !prefix.isEmpty, self.hasPrefix(prefix) else { return nil }
+        let components = self.dropFirst(prefix.count).split(separator: "_")
         guard components.count >= 2 else { return nil }
         return Int(components[1])
     }

@@ -41,15 +41,13 @@ extension TRPCity {
         return nil
     }
 
-    /// `true` if `day` falls on the same calendar day as "now" in THIS city's
-    /// timezone. Use instead of `Calendar.current.isDateInToday(day)` whenever
-    /// "today" must be interpreted from the city's perspective — a device in
-    /// Tokyo planning a Barcelona trip can land on a different calendar day
-    /// than the city actually sees.
+    /// `true` if the trip day `day` (a device-local calendar day) is today's date in this city's timezone.
     public func isDateTodayInCityTimezone(_ day: Date) -> Bool {
-        var cal = Calendar.current
-        cal.timeZone = resolvedTimezone() ?? .current
-        return cal.isDate(day, inSameDayAs: Date())
+        var cityCalendar = Calendar.current
+        cityCalendar.timeZone = resolvedTimezone() ?? .current
+        let cityToday = cityCalendar.dateComponents([.year, .month, .day], from: Date())
+        let tripDay = Calendar.current.dateComponents([.year, .month, .day], from: day)
+        return cityToday.year == tripDay.year && cityToday.month == tripDay.month && cityToday.day == tripDay.day
     }
 
     /// "Now" in this city's timezone as `(hour, minute)` in 24h, with an

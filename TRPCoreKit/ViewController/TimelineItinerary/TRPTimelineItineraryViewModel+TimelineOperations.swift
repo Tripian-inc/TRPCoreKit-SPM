@@ -54,6 +54,9 @@ extension TRPTimelineItineraryViewModel {
 
             switch result {
             case .success(let createdTimeline):
+                // Persist for the Nexus flow so the next reservations open can resume
+                // this timeline instead of creating a new one (no-op for other hosts).
+                NexusTripStore.onTimelineCreated(createdTimeline.tripHash)
                 self.waitForTimelineGeneration(tripHash: createdTimeline.tripHash, itineraryModel: itineraryModel)
 
             case .failure(let error):
@@ -75,12 +78,15 @@ extension TRPTimelineItineraryViewModel {
         let allItems = mutableItinerary.destinationItems.enumerated()
             .map { (index: $0.offset, item: $0.element) }
 
-        if allItems.isEmpty {
+        let keepsHostCityIds = TRPCoreKit.shared.provider.keepsHostCityIds
+        let pending = allItems.filter { !keepsHostCityIds || ($0.item.cityId ?? 0) <= 0 }
+
+        if pending.isEmpty {
             completion(mutableItinerary)
             return
         }
 
-        let coordinates = allItems.map { parseCoordinate(from: $0.item.coordinate) }
+        let coordinates = pending.map { parseCoordinate(from: $0.item.coordinate) }
 
         let cityRemoteApi = TRPCityRemoteApi()
         cityRemoteApi.resolveCities(coordinates: coordinates) { [weak self] result in
@@ -88,7 +94,7 @@ extension TRPTimelineItineraryViewModel {
 
             switch result {
             case .success(let cityIds):
-                for (i, (index, _)) in allItems.enumerated() {
+                for (i, (index, _)) in pending.enumerated() {
                     if i < cityIds.count && cityIds[i] > 0 {
                         mutableItinerary.destinationItems[index].cityId = cityIds[i]
                     } else {
@@ -97,8 +103,8 @@ extension TRPTimelineItineraryViewModel {
                 }
                 completion(mutableItinerary)
 
-            case .failure(let error):
-                self.resolveCityIdsFromCache(items: allItems, itinerary: &mutableItinerary)
+            case .failure:
+                self.resolveCityIdsFromCache(items: pending, itinerary: &mutableItinerary)
                 completion(mutableItinerary)
             }
         }
@@ -207,6 +213,8 @@ extension TRPTimelineItineraryViewModel {
     // MARK: - CityId Resolution
 
     /// Resolves cityIds for tripItems via `resolveCityIds`; anything left unresolved gets `cityId = 0`.
+    /// When the provider keeps host city ids, items that already carry one (`cityId > 0`) are neither
+    /// looked up nor overwritten.
     internal func resolveTripItemsCityIds(
         tripItems: [TRPSegmentActivityItem],
         completion: @escaping ([TRPSegmentActivityItem]) -> Void
@@ -216,8 +224,10 @@ extension TRPTimelineItineraryViewModel {
             return
         }
 
-        let requests = tripItems.enumerated().map { offset, item in
-            TRPCityResolutionRequest(
+        let keepsHostCityIds = TRPCoreKit.shared.provider.keepsHostCityIds
+        let requests = tripItems.enumerated().compactMap { offset, item -> TRPCityResolutionRequest? in
+            guard !keepsHostCityIds || (item.cityId ?? 0) <= 0 else { return nil }
+            return TRPCityResolutionRequest(
                 index: offset,
                 lookupKeys: item.tourLookupKeys,
                 coordinate: item.lacksLocation ? nil : item.coordinate
@@ -226,7 +236,7 @@ extension TRPTimelineItineraryViewModel {
 
         resolveCityIds(for: requests) { resolved in
             var updated = tripItems
-            for index in updated.indices {
+            for index in updated.indices where !keepsHostCityIds || (updated[index].cityId ?? 0) <= 0 {
                 updated[index].cityId = resolved[index] ?? 0
             }
             completion(updated)
@@ -354,30 +364,7 @@ extension TRPTimelineItineraryViewModel {
         }
 
         let tripHash = timeline.tripHash
-
-        var existingActivityIds = Set<String>()
-
-        // Normalize to the core id so format differences (plain vs `C_`-prefixed) don't re-add an already-present activity.
-        if let segments = timeline.segments {
-            for segment in segments {
-                if let activityId = segment.additionalData?.activityId {
-                    existingActivityIds.insert(activityId.cleanedAsActivityId())
-                }
-            }
-        }
-
-        if let profileSegments = timeline.tripProfile?.segments {
-            for segment in profileSegments {
-                if let activityId = segment.additionalData?.activityId {
-                    existingActivityIds.insert(activityId.cleanedAsActivityId())
-                }
-            }
-        }
-
-        let missingTripItems = tripItems.filter { tripItem in
-            guard let activityId = tripItem.activityId else { return false }
-            return !existingActivityIds.contains(activityId.cleanedAsActivityId())
-        }
+        let missingTripItems = missingBookedTripItems(from: tripItems, in: timeline)
 
         guard !missingTripItems.isEmpty else {
             return
@@ -390,6 +377,21 @@ extension TRPTimelineItineraryViewModel {
             guard let self = self else { return }
 
             self.addMissingTripItemsSequentially(tripItems: resolvedTripItems, tripHash: tripHash, index: 0)
+        }
+    }
+
+    /// Host bookings not yet present as a booked segment. Only `.bookedActivity` segments count: a reserved
+    /// segment for the same product is removed by the reconcile cascade, so it must not hide the booking.
+    internal func missingBookedTripItems(from tripItems: [TRPSegmentActivityItem], in timeline: TRPTimeline) -> [TRPSegmentActivityItem] {
+        let bookedSegments = (timeline.segments ?? []) + (timeline.tripProfile?.segments ?? [])
+        let bookedActivityIds = Set(bookedSegments.compactMap { segment -> String? in
+            guard segment.segmentType == .bookedActivity else { return nil }
+            return segment.additionalData?.activityId?.cleanedAsActivityId()
+        })
+
+        return tripItems.filter { tripItem in
+            guard let activityId = tripItem.activityId else { return false }
+            return !bookedActivityIds.contains(activityId.cleanedAsActivityId())
         }
     }
 
@@ -409,17 +411,13 @@ extension TRPTimelineItineraryViewModel {
 
             switch result {
             case .success(let success):
-                if success {
-                    self.addMissingTripItemsSequentially(tripItems: tripItems, tripHash: tripHash, index: index + 1)
-                } else {
-                    // Continue anyway to try remaining items.
-                    self.addMissingTripItemsSequentially(tripItems: tripItems, tripHash: tripHash, index: index + 1)
+                if !success {
+                    Log.e("addMissingBookedActivities: server rejected booked segment for \(tripItem.activityId ?? "?")")
                 }
-
             case .failure(let error):
-                // Continue anyway to try remaining items.
-                self.addMissingTripItemsSequentially(tripItems: tripItems, tripHash: tripHash, index: index + 1)
+                Log.e("addMissingBookedActivities: booked segment for \(tripItem.activityId ?? "?") failed — \(error.localizedDescription)")
             }
+            self.addMissingTripItemsSequentially(tripItems: tripItems, tripHash: tripHash, index: index + 1)
         }
     }
 
@@ -436,6 +434,7 @@ extension TRPTimelineItineraryViewModel {
         profile.endDate = tripItem.endDatetime
 
         // Resolve city first so we can fall back to its coordinate when the trip item has none (isNoLocation or (0, 0)).
+        // A booking whose city could not be resolved still lands in the trip: it takes the trip's own city.
         var resolvedCity: TRPCity? = nil
         if let cityId = tripItem.cityId, cityId > 0 {
             if let city = TRPCityCache.shared.getCity(byId: cityId) {
@@ -451,6 +450,10 @@ extension TRPTimelineItineraryViewModel {
                 let city = TRPCity(id: cityId, name: "", coordinate: tripItem.coordinate)
                 resolvedCity = city
             }
+        } else if let tripCity = timeline?.city, tripCity.id > 0 {
+            resolvedCity = tripCity
+        } else {
+            resolvedCity = getCities().first
         }
         profile.city = resolvedCity
 

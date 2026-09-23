@@ -24,18 +24,13 @@ import Foundation
 /// city-local wall clock.
 public enum TimePickerBounds {
 
-    /// Minimum selectable start time. When `selectedDay` is "today" in the
-    /// city's timezone, the user must pick at least `now + 5 minutes` in that
-    /// timezone. On future days there is no restriction.
-    /// Falls back to device timezone when `city` is nil or carries no usable
-    /// IANA id — so existing single-city / unknown-tz flows behave unchanged.
+    /// Earliest start time: `now + 5 minutes` in the city's timezone when `selectedDay` is today there, nil otherwise.
+    @available(*, deprecated, message: "Pickers no longer lock past times; use hasPassed(selectedDay:city:time:) to warn instead.")
     public static func minimumStartTime(selectedDay: Date?, city: TRPCity?) -> Date? {
         guard let selectedDay = selectedDay else { return nil }
-
         let isToday = city?.isDateTodayInCityTimezone(selectedDay)
             ?? Calendar.current.isDateInToday(selectedDay)
         guard isToday else { return nil }
-
         if let city = city {
             let (h, m) = city.cityLocalTimeComponents(offsetSeconds: 5 * 60)
             return city.deviceLocalProxy(forCityHour: h, minute: m)
@@ -43,16 +38,33 @@ public enum TimePickerBounds {
         return Date().addingTimeInterval(5 * 60)
     }
 
-    /// Minimum selectable end time. The end-time picker is opened in
-    /// strict-minimum mode when a start time exists (`endTimeButtonTapped` flips
-    /// the picker into "minimum is the wheel start but not confirmable"); when
-    /// no start time has been picked yet the same "earliest sensible moment"
-    /// applies as `minimumStartTime`.
+    /// Earliest end time: the start time when there is one, otherwise `minimumStartTime`.
+    @available(*, deprecated, message: "Pickers no longer lock past times; use hasPassed(selectedDay:city:time:) to warn instead.")
     public static func minimumEndTime(selectedDay: Date?, city: TRPCity?, currentStartTime: Date?) -> Date? {
         if let startTime = currentStartTime {
             return startTime
         }
         return minimumStartTime(selectedDay: selectedDay, city: city)
+    }
+
+    /// True when `time`'s HH:mm is earlier than "now" in the city's timezone and `selectedDay` is today
+    /// there. Future days never count as passed; without a city the device clock is used.
+    public static func hasPassed(selectedDay: Date?, city: TRPCity?, time: Date) -> Bool {
+        guard let selectedDay = selectedDay else { return false }
+        let isToday = city?.isDateTodayInCityTimezone(selectedDay)
+            ?? Calendar.current.isDateInToday(selectedDay)
+        guard isToday else { return false }
+
+        let cal = Calendar.current
+        let picked = cal.dateComponents([.hour, .minute], from: time)
+        let now: (hour: Int, minute: Int)
+        if let city = city {
+            now = city.cityLocalTimeComponents()
+        } else {
+            let comps = cal.dateComponents([.hour, .minute], from: Date())
+            now = (comps.hour ?? 0, comps.minute ?? 0)
+        }
+        return (picked.hour ?? 0) * 60 + (picked.minute ?? 0) < now.hour * 60 + now.minute
     }
 
     /// Default `initialTime` for the end-time picker when the user hasn't

@@ -23,7 +23,7 @@ public class TRPTourRemoteApi: TourRemoteApi {
         var request = TRPTourSearchRequestModel(cityId: cityId)
 
         // Set provider ID
-        request.providerId = 15
+        request.providerId = TRPCoreKit.shared.provider.id
 
         // Always require instant availability
         request.instantAvailability = 1
@@ -64,15 +64,15 @@ public class TRPTourRemoteApi: TourRemoteApi {
         request.offset = parameters.offset ?? 0
 
         // Map price filters
-        request.minPrice = parameters.minPrice
-        request.maxPrice = parameters.maxPrice
+        request.minPrice = parameters.minPrice.map { Int($0) }
+        request.maxPrice = parameters.maxPrice.map { Int($0) }
 
         // Map rating filter
         request.minRating = parameters.minRating
 
         // Map duration filters
-        request.minDuration = parameters.minDuration
-        request.maxDuration = parameters.maxDuration
+        request.minDuration = parameters.minDuration.map { Int($0) }
+        request.maxDuration = parameters.maxDuration.map { Int($0) }
 
         // Map sorting (default to score descending)
         request.sortingBy = parameters.sortingBy ?? "rating"
@@ -113,7 +113,7 @@ public class TRPTourRemoteApi: TourRemoteApi {
         var request = TRPTourSearchRequestModel(cityId: cityId)
 
         // Set provider ID
-        request.providerId = 15
+        request.providerId = TRPCoreKit.shared.provider.id
 
         // Always require instant availability
         request.instantAvailability = 1
@@ -148,15 +148,15 @@ public class TRPTourRemoteApi: TourRemoteApi {
         request.limit = 10
 
         // Map price filters
-        request.minPrice = parameters.minPrice
-        request.maxPrice = parameters.maxPrice
+        request.minPrice = parameters.minPrice.map { Int($0) }
+        request.maxPrice = parameters.maxPrice.map { Int($0) }
 
         // Map rating filter
         request.minRating = parameters.minRating
 
         // Map duration filters
-        request.minDuration = parameters.minDuration
-        request.maxDuration = parameters.maxDuration
+        request.minDuration = parameters.minDuration.map { Int($0) }
+        request.maxDuration = parameters.maxDuration.map { Int($0) }
 
         // Map sorting (default to score descending)
         request.sortingBy = parameters.sortingBy ?? "score"

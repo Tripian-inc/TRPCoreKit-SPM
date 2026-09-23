@@ -156,12 +156,12 @@ public class TRPSelectionField: UIView {
     }
 
     /// Toggle the field's error styling: title color and button border swap to
-    /// `primary` when `hasError` is true, back to defaults otherwise. Independent
+    /// `errorFg` when `hasError` is true, back to defaults otherwise. Independent
     /// of selection value — `setValue` / `clear` won't touch these properties.
     public func setErrorState(_ hasError: Bool) {
         if hasError {
-            titleLabel.textColor = ColorSet.primary.uiColor
-            selectionButton.layer.borderColor = ColorSet.primary.uiColor.cgColor
+            titleLabel.textColor = ColorSet.errorFg.uiColor
+            selectionButton.layer.borderColor = ColorSet.errorFg.uiColor.cgColor
         } else {
             titleLabel.textColor = ColorSet.primaryText.uiColor
             selectionButton.layer.borderColor = ColorSet.line.uiColor.cgColor

@@ -167,6 +167,11 @@ extension TRPTimelineItineraryVC: TRPTimelineItineraryViewModelDelegate {
         conflictWarningDismissedDayIndex = nil
         viewModel(hideLottie: .bottomSheet)
         reload()
+
+        if opensAddPlanWhenReady {
+            opensAddPlanWhenReady = false
+            showAddPlanFlow()
+        }
     }
 
     public func timelineItineraryViewModel(noCitiesAvailable: Bool) {
@@ -262,7 +267,7 @@ extension TRPTimelineItineraryVC: UICollectionViewDataSource, UICollectionViewDe
                 // Recommendation step uses the step's poi; manual-POI segment has step == nil and its own manualPoi.
                 let poi = step?.poi ?? manualPoi
 
-                if step?.stepType == "activity" {
+                if let stepType = step?.stepType, TRPCoreKit.shared.provider.opensHostDetail(forStepType: stepType) {
                     let activityId = extractActivityId(from: poi)
                     TRPCoreKit.shared.delegate?.trpCoreKitDidRequestActivityDetail(activityId: activityId)
                     return

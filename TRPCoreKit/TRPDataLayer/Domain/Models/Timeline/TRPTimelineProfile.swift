@@ -54,7 +54,7 @@ public class TRPTimelineProfile: Codable {
         if oldestStartDate != nil {
             return oldestStartDate!
         }
-        let dates = segments.compactMap({ Date.fromString($0.startDate, format: "yyyy-MM-dd HH:mm")})
+        let dates = segments.compactMap({ TRPDateHelper.parseDateTime($0.startDate) })
         oldestStartDate = dates.min()
         return oldestStartDate ?? Date()
     }
@@ -63,13 +63,13 @@ public class TRPTimelineProfile: Codable {
         if maxEndDate != nil {
             return maxEndDate!
         }
-        let dates = segments.compactMap({ Date.fromString($0.endDate, format: "yyyy-MM-dd HH:mm") })
+        let dates = segments.compactMap({ TRPDateHelper.parseDateTime($0.endDate) })
         maxEndDate = dates.max()
         return maxEndDate ?? Date()
     }
     
     public func getDateRangeText() -> String? {
-        return "\(getOldestStartDate().toString(format: "MMMM dd")) - \(getMaxEndDate().toString(format: "MMMM dd, yyyy"))"
+        return "\(getOldestStartDate().toStringWithoutTimeZone(format: "MMMM dd")) - \(getMaxEndDate().toStringWithoutTimeZone(format: "MMMM dd, yyyy"))"
     }
     
     public func getFirstSegmentTitle() -> String? {

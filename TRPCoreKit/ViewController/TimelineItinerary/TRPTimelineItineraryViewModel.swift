@@ -76,6 +76,10 @@ public class TRPTimelineItineraryViewModel {
     /// Excludes items already in the plan (booked, reserved or recommended) and hand-removed ones.
     internal var filteredFavoriteItems: [TRPSegmentFavoriteItem] = []
 
+    /// Favourite city ids resolved through tour-api / coordinates, keyed by base activity id; `nil` marks a
+    /// failed lookup. Host-sent favourite city ids are never trusted.
+    internal var favouriteCityLookups: [String: Int?] = [:]
+
     internal var destinationItems: [TRPSegmentDestinationItem] = []
 
     /// Prevents showing the empty state during loading.
@@ -117,6 +121,20 @@ public class TRPTimelineItineraryViewModel {
 
     /// Retained to prevent deallocation during async operations.
     internal var activeRouteCalculators: [TRPRouteCalculator] = []
+
+    /// Flat timeline (`TripianProvider.usesFlatTimeline`): the selected day's rows per city section.
+    internal var flatSections: [TimelineFlatSection] = []
+
+    /// Route legs per `TimelineFlatRouteChain.key`, and the chain keys with a request in flight.
+    internal var flatRouteCache: [String: [TRPStepRouteInfo]] = [:]
+    internal var flatRouteRequestsInFlight: Set<String> = []
+
+    /// Plans already reported as generated without places, so each alerts once.
+    internal var reportedEmptyPlanIds: Set<String> = []
+
+    internal var usesFlatTimeline: Bool {
+        return TRPCoreKit.shared.provider.usesFlatTimeline
+    }
 
     internal lazy var timelineModeUseCases: TRPTimelineModeUseCases = TRPTimelineModeUseCases()
 
@@ -275,6 +293,7 @@ public class TRPTimelineItineraryViewModel {
     }
     
     public func selectDay(at index: Int) {
+        guard index >= 0, index < allTripDates.count else { return }
         selectedDayIndex = index
         sectionCollapseStates.removeAll()
 
@@ -302,20 +321,6 @@ public class TRPTimelineItineraryViewModel {
     }
 
     public func getDays() -> [String] {
-        guard let boundaries = getTimelineDateBoundaries() else { return [] }
-
-        // Zero-hour dates for accurate day counting.
-        let startDay = boundaries.startDate.getDateWithZeroHour()
-        let endDay = boundaries.endDate.getDateWithZeroHour()
-        var numberOfDays = startDay.numberOfDaysBetween(endDay)
-
-        // Same-day activities yield 0; show at least 1.
-        if numberOfDays == 0 {
-            numberOfDays = 1
-        }
-
-        var days: [String] = []
-
         let appLanguage = TRPClient.getLanguage()
         let dayFormatter = DateFormatter()
         dayFormatter.locale = Locale(identifier: appLanguage)
@@ -324,31 +329,14 @@ public class TRPTimelineItineraryViewModel {
         let dateFormatter = DateFormatter()
         dateFormatter.dateFormat = "dd/MM"
 
-        for dayIndex in 0..<numberOfDays {
-            if let currentDate = boundaries.startDate.addDay(dayIndex) {
-                let dayName = dayFormatter.string(from: currentDate).capitalized
-                let dateString = dateFormatter.string(from: currentDate)
-                days.append("\(dayName) \(dateString)")
-            }
+        return getDayDates().map { date in
+            "\(dayFormatter.string(from: date).capitalized) \(dateFormatter.string(from: date))"
         }
-
-        return days
     }
     
     /// All days from the min to max segment date (inclusive).
     public func getDayDates() -> [Date] {
-        guard let boundaries = getTimelineDateBoundaries() else { return [] }
-
-        let numberOfDays = boundaries.startDate.numberOfDaysBetween(boundaries.endDate)
-
-        var dates: [Date] = []
-        for dayIndex in 0..<numberOfDays {
-            if let currentDate = boundaries.startDate.addDay(dayIndex) {
-                dates.append(currentDate)
-            }
-        }
-
-        return dates
+        return calculateAllTripDates()
     }
     
     public func getTripDateRange() -> (start: Date, end: Date)? {
@@ -437,6 +425,9 @@ public class TRPTimelineItineraryViewModel {
                 allowedCityNames.insert(city.name.lowercased())
             }
         }
+
+        // Nothing resolvable yet (city cache still loading, host sent no ids): keep the full list rather than none.
+        guard !allowedCityIds.isEmpty || !allowedCityNames.isEmpty else { return cities }
 
         return cities.filter {
             allowedCityIds.contains($0.id) || allowedCityNames.contains($0.name.lowercased())

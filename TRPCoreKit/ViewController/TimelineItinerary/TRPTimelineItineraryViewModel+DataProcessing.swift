@@ -104,12 +104,14 @@ extension TRPTimelineItineraryViewModel {
         guard let mergedTimeline = mergedTimeline else {
             displayItems = []
             unifiedOrderMap = [:]
+            flatSections = []
             return
         }
 
         guard selectedDayIndex >= 0, selectedDayIndex < allTripDates.count else {
             displayItems = []
             unifiedOrderMap = [:]
+            flatSections = []
             return
         }
 
@@ -136,6 +138,11 @@ extension TRPTimelineItineraryViewModel {
         }
 
         calculateUnifiedOrders()
+
+        if usesFlatTimeline {
+            buildFlatSections()
+            reportPlansGeneratedWithoutPois()
+        }
     }
 
     // MARK: - Time Conflict Detection
@@ -367,16 +374,9 @@ extension TRPTimelineItineraryViewModel {
         if let profileSegments = timeline.tripProfile?.segments {
             for segment in profileSegments {
                 if isTimelineDateSegment(segment) {
-                    if let startDateStr = segment.startDate,
-                       let endDateStr = segment.endDate {
-                        let startDate = Date.fromString(startDateStr, format: "yyyy-MM-dd HH:mm") ??
-                                       Date.fromString(startDateStr, format: "yyyy-MM-dd HH:mm:ss")
-                        let endDate = Date.fromString(endDateStr, format: "yyyy-MM-dd HH:mm") ??
-                                     Date.fromString(endDateStr, format: "yyyy-MM-dd HH:mm:ss")
-
-                        if let start = startDate, let end = endDate {
-                            return (startDate: start, endDate: end)
-                        }
+                    if let start = TRPDateHelper.parseDateTime(segment.startDate),
+                       let end = TRPDateHelper.parseDateTime(segment.endDate) {
+                        return (startDate: start, endDate: end)
                     }
                 }
             }
@@ -473,24 +473,21 @@ extension TRPTimelineItineraryViewModel {
     internal func calculateAllTripDates() -> [Date] {
         guard let boundaries = getTimelineDateBoundaries() else { return [] }
 
-        let numberOfDays = boundaries.startDate.numberOfDaysBetween(boundaries.endDate)
+        let calendar = Calendar.current
+        let firstDay = calendar.startOfDay(for: boundaries.startDate)
+        let lastDay = calendar.startOfDay(for: boundaries.endDate)
+        let dayCount = max((calendar.dateComponents([.day], from: firstDay, to: lastDay).day ?? 0) + 1, 1)
 
-        var dates: [Date] = []
-        for dayIndex in 0..<numberOfDays {
-            if let currentDate = boundaries.startDate.addDay(dayIndex) {
-                dates.append(currentDate)
-            }
-        }
-
-        return dates
+        return (0..<dayCount).compactMap { calendar.date(byAdding: .day, value: $0, to: firstDay) }
     }
 
     // MARK: - Favorite Items
 
     /// Drops favourites that are already in the plan — as a booked/reserved segment or as an itinerary
-    /// activity step — plus the ones the user removed by hand. Compares on the bare product id
-    /// (`cleanedAsActivityId()`) so `"12345"` matches `"C_12345_15"`; otherwise a just-added favourite
-    /// reappears in Saved Plans.
+    /// activity step — the ones the user removed by hand, and the ones whose city is unknown or not one of
+    /// the trip's cities. The city is the tour-api lookup result; the host's `cityId` is used only when the
+    /// lookup is unresolved and it names a trip city. Compares on the bare product id (`cleanedAsActivityId()`)
+    /// so `"12345"` matches `"C_12345_15"`; otherwise a just-added favourite reappears in Saved Plans.
     internal func filterFavoriteItems() {
         guard let favouriteItems = timeline?.favouriteItems else {
             filteredFavoriteItems = []
@@ -498,6 +495,7 @@ extension TRPTimelineItineraryViewModel {
         }
 
         let plannedActivityIds = Set(plannedActivities().map { $0.productId })
+        let tripCityIds = Set(getCities().map { $0.id })
 
         let excludedIds: Set<String>
         if let tripHash = timeline?.tripHash {
@@ -507,23 +505,38 @@ extension TRPTimelineItineraryViewModel {
         }
 
         filteredFavoriteItems = favouriteItems.filter { item in
-            guard let activityId = item.activityId else { return true }
-            let baseId = activityId.cleanedAsActivityId()
+            guard let baseId = item.activityId?.cleanedAsActivityId() else { return false }
+            let resolvedCityId = favouriteCityLookups[baseId] ?? nil
+            let cityId = resolvedCityId ?? item.cityId.flatMap { tripCityIds.contains($0) ? $0 : nil }
+            guard let cityId = cityId, cityId > 0 else { return false }
+            guard tripCityIds.isEmpty || tripCityIds.contains(cityId) else { return false }
             return !plannedActivityIds.contains(baseId) && !excludedIds.contains(baseId)
         }
     }
 
     // MARK: - Favourite Items City Resolution
 
-    /// Fills in cityIds for favourites that don't have one yet, via `resolveCityIds` (product-lookup first).
+    /// Resolves every favourite's city via `resolveCityIds` (product-lookup first, then coordinate) and
+    /// writes the result over the host-sent `cityId` when it resolved. Each activity is looked up once per
+    /// session. Waits for the city cache so the trip-city check that follows has data to work with.
     internal func resolveFavouriteItemCities(completion: @escaping () -> Void) {
         guard let initial = timeline?.favouriteItems, !initial.isEmpty else {
             completion()
             return
         }
 
+        TRPCityCache.shared.fetchCitiesIfNeeded { [weak self] _ in
+            DispatchQueue.main.async {
+                guard let self = self else { completion(); return }
+                self.lookupFavouriteItemCities(initial: initial, completion: completion)
+            }
+        }
+    }
+
+    private func lookupFavouriteItemCities(initial: [TRPSegmentFavoriteItem], completion: @escaping () -> Void) {
         let requests = initial.enumerated().compactMap { offset, item -> TRPCityResolutionRequest? in
-            guard (item.cityId ?? 0) <= 0 else { return nil }
+            guard let baseId = item.activityId?.cleanedAsActivityId(),
+                  favouriteCityLookups.index(forKey: baseId) == nil else { return nil }
             return TRPCityResolutionRequest(
                 index: offset,
                 lookupKeys: item.tourLookupKeys,
@@ -532,6 +545,7 @@ extension TRPTimelineItineraryViewModel {
         }
 
         guard !requests.isEmpty else {
+            applyFavouriteCityLookups()
             completion()
             return
         }
@@ -542,13 +556,23 @@ extension TRPTimelineItineraryViewModel {
                 return
             }
 
-            var favouriteItems = self.timeline?.favouriteItems ?? initial
-            for (index, cityId) in resolved where index < favouriteItems.count {
-                favouriteItems[index].cityId = cityId
+            for request in requests {
+                guard let baseId = initial[request.index].activityId?.cleanedAsActivityId() else { continue }
+                self.favouriteCityLookups[baseId] = resolved[request.index]
             }
-            self.timeline?.favouriteItems = favouriteItems
+            self.applyFavouriteCityLookups()
             completion()
         }
+    }
+
+    private func applyFavouriteCityLookups() {
+        guard var favouriteItems = timeline?.favouriteItems else { return }
+        for index in favouriteItems.indices {
+            guard let baseId = favouriteItems[index].activityId?.cleanedAsActivityId(),
+                  let resolved = favouriteCityLookups[baseId] ?? nil else { continue }
+            favouriteItems[index].cityId = resolved
+        }
+        timeline?.favouriteItems = favouriteItems
     }
 
     // MARK: - Segment Identification

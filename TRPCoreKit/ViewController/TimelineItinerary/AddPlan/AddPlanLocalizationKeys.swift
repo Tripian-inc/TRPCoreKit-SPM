@@ -101,6 +101,7 @@ public struct AddPlanLocalizationKeys {
     // MARK: - Empty State
     public static let addSavedPlansToItinerary = "addPlan.emptyState.addSavedPlansToItinerary"
     public static let noAvailableTimes = "addPlan.emptyState.noAvailableTimes"
+    public static let noRecommendations = "addPlan.emptyState.noRecommendations"
     public static let placeAlreadyAddedDay = "addPlan.time.placeAlreadyAddedDay"
 
     // MARK: - Flexible-time Activity
@@ -114,6 +115,7 @@ public struct AddPlanLocalizationKeys {
     public static let soldOutWarning = "addPlan.time.soldOutWarning"
 
     public static let endTimeBeforeStartWarning = "addPlan.time.endTimeBeforeStart"
+    public static let startTimePassedWarning = "addPlan.time.startTimePassed"
 
     // MARK: - Toast / Success Notifications
     /// Format: activity name as %1$@, day display string as %2$@.
@@ -172,6 +174,7 @@ public struct AddPlanLocalizationKeys {
         selectATime: "Select a time",
         searchPOI: "Search for a place",
         cityCenter: "City Center",
+        noRecommendations: "No recommendations found for this area",
         placeAlreadyAddedDay: "This place is already in your plan on this day.",
         savedActivities: "Itinerary starting locations",
         selectCategories: "Select the Categories You Want",
@@ -231,7 +234,8 @@ public struct AddPlanLocalizationKeys {
         activityNotAvailableForTrip: "This activity is not available on the days of your trip.",
         showMoreTimeSlots: "More",
         soldOutWarning: "Your selected time is sold out. Choose a new time for accurate availability, or keep this as a placeholder.",
-        endTimeBeforeStartWarning: "Choose an end time within today",
+        endTimeBeforeStartWarning: "End time must be after the start time",
+        startTimePassedWarning: "That time has already passed at the destination",
         activityAddedToast: "%1$@ has been added to %2$@",
         activityAlreadyAddedEveryDay: "This activity is already in your plan on every day of your trip."
     ]

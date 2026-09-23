@@ -72,9 +72,11 @@ tmp.xcconfig
 *.xcassets.zip
 
 # Claude AI context files
+.claude/
 claude.md
 CLAUDE.md
-.claude/
+**/claude.md
+**/CLAUDE.md
 ANDROID_*.md
 *_PROMPT.md
 *_README.md

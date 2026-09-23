@@ -235,7 +235,9 @@ class TRPTimelineActivityCell: UITableViewCell {
     private lazy var removeButton: UIButton = {
         let button = UIButton(type: .custom)
         button.translatesAutoresizingMaskIntoConstraints = false
-        button.setImage(TRPImageController().getImage(inFramework: "ic_remove_step", inApp: nil), for: .normal)
+        let icon = TRPImageController().getImage(inFramework: "ic_remove_step", inApp: nil)?.withRenderingMode(.alwaysTemplate)
+        button.setImage(icon, for: .normal)
+        button.tintColor = ColorSet.primary.uiColor
         button.contentHorizontalAlignment = .center
         button.addTarget(self, action: #selector(removeButtonTapped), for: .touchUpInside)
         return button
@@ -380,23 +382,22 @@ class TRPTimelineActivityCell: UITableViewCell {
         flexibleTimeBadgeView.resetStyle()
     }
 
-    /// Past-day rendering: hide the reservation CTA and grey the action buttons (they stay enabled to
-    /// consume taps; `isPastDayMode` makes their handlers no-op). Booked rows have no CTAs, so they
-    /// keep their normal styling.
+    /// Past-day rendering in the provider's `pastDayActionStyle`. Booked rows have no CTAs,
+    /// so they keep their normal styling.
     func applyPastDayStyle() {
         guard kind != .booked else { return }
 
         isPastDayMode = true
-        reservationButton.isHidden = true
-        changeTimeButton.setPastDayDisabled(true, originalTint: ColorSet.primary.uiColor)
-        removeButton.setPastDayDisabled(true, originalTint: ColorSet.primary.uiColor)
+        pastDayActionStyle.apply(changeTime: [changeTimeButton], remove: [removeButton], reservation: [reservationButton])
     }
 
     private func resetPastDayState() {
         isPastDayMode = false
-        reservationButton.isHidden = false
-        changeTimeButton.setPastDayDisabled(false, originalTint: ColorSet.primary.uiColor)
-        removeButton.setPastDayDisabled(false, originalTint: ColorSet.primary.uiColor)
+        pastDayActionStyle.reset(changeTime: [changeTimeButton], remove: [removeButton], reservation: [reservationButton])
+    }
+
+    private var pastDayActionStyle: TRPPastDayActionStyle {
+        return TRPCoreKit.shared.provider.pastDayActionStyle
     }
 
     // MARK: - Configuration
@@ -484,21 +485,35 @@ class TRPTimelineActivityCell: UITableViewCell {
     }
 
     /// `desaturated` greys the photo out for an activity whose slot is no longer offered.
+    /// Hosts without a brand fallback (`NexusHelper.activityImageFallbackImage` is nil)
+    /// render a blank image view.
     private func configureImage(urlString: String?, desaturated: Bool) {
-        guard let urlString = urlString, let url = URL(string: urlString) else {
+        let fallback = NexusHelper.activityImageFallbackImage
+
+        guard let urlString = urlString, !urlString.isEmpty, let url = URL(string: urlString) else {
+            applyFallbackImage(fallback)
+            return
+        }
+
+        activityImageView.contentMode = .scaleAspectFill
+        activityImageView.sd_setImage(with: url, placeholderImage: fallback) { [weak self] image, _, _, _ in
+            guard let self = self else { return }
+            guard let image = image else {
+                self.applyFallbackImage(fallback)
+                return
+            }
+            self.activityImageView.contentMode = .scaleAspectFill
+            self.activityImageView.image = desaturated ? (image.convertToGrayScale() ?? image) : image
+        }
+    }
+
+    private func applyFallbackImage(_ fallback: UIImage?) {
+        guard let fallback = fallback else {
             activityImageView.image = nil
             return
         }
-
-        guard desaturated else {
-            activityImageView.sd_setImage(with: url, placeholderImage: nil)
-            return
-        }
-
-        activityImageView.sd_setImage(with: url, placeholderImage: nil) { [weak self] image, _, _, _ in
-            guard let self = self, let image = image else { return }
-            self.activityImageView.image = image.convertToGrayScale() ?? image
-        }
+        activityImageView.contentMode = .scaleAspectFit
+        activityImageView.image = fallback
     }
 
     private func travellersText(adults: Int, children: Int) -> String {
@@ -526,7 +541,7 @@ class TRPTimelineActivityCell: UITableViewCell {
     }
 
     @objc private func removeButtonTapped() {
-        guard !isPastDayMode, let segment = segment else { return }
+        guard !isPastDayMode || pastDayActionStyle.allowsRemoval, let segment = segment else { return }
         delegate?.activityCellDidTapRemove(self, segment: segment)
     }
 

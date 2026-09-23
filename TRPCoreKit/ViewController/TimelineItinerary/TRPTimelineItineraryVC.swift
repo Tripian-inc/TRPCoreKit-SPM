@@ -35,6 +35,11 @@ public class TRPTimelineItineraryVC: TRPBaseUIViewController {
 
     internal var viewModel: TRPTimelineItineraryViewModel!
     public weak var delegate: TRPTimelineItineraryVCDelegate?
+
+    /// Opens the add plan sheet as soon as the timeline is on screen. For a host whose own
+    /// entry point is "add something to this day" rather than "look at this day", which would
+    /// otherwise have to wait for the screen to load before it could ask.
+    public var opensAddPlanWhenReady: Bool = false
     internal var map: TRPMapView?
     internal var hasLoadedInitialMapData: Bool = false
     /// Bumped on every route redraw so late completions from a previous day are dropped.
@@ -442,11 +447,27 @@ public class TRPTimelineItineraryVC: TRPBaseUIViewController {
         tableView.reloadData()
         updateConflictWarningVisibility()
 
-        calculateRoutesForItinerarySegments()
+        if viewModel.usesFlatTimeline {
+            requestFlatRoutes()
+        } else {
+            calculateRoutesForItinerarySegments()
+        }
 
         if isShowingMap {
             refreshMap()
             updatePOIPreviewCards()
+        }
+    }
+
+    /// Flat timeline: fetches legs for the day's chains not cached yet; every arrival re-renders
+    /// the list and, when the map is up, its route.
+    internal func requestFlatRoutes() {
+        viewModel.requestMissingFlatRoutes { [weak self] in
+            guard let self = self else { return }
+            self.tableView.reloadData()
+            if self.isShowingMap {
+                self.drawRoutesForSelectedDay()
+            }
         }
     }
 

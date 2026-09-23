@@ -1,0 +1,12 @@
+{
+  "images" : [
+    {
+      "filename" : "ic_smart_recommendations.svg",
+      "idiom" : "universal"
+    }
+  ],
+  "info" : {
+    "author" : "xcode",
+    "version" : 1
+  }
+}

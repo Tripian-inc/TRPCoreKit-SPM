@@ -67,7 +67,7 @@ final class TRPActivityRatingRowView: UIStackView {
     }
 
     func configure(rating: Float?, ratingCount: Int?) {
-        guard let rating = rating else {
+        guard let rating = rating, rating > 0 || (ratingCount ?? 0) > 0 else {
             isHidden = true
             return
         }

@@ -191,7 +191,7 @@ class TRPTimelineActivityStepCell: UITableViewCell {
 
         ratingStack.arrangedSubviews.forEach { $0.removeFromSuperview() }
 
-        if let rating = poi.rating {
+        if let rating = poi.rating, (rating > 0 || (poi.ratingCount ?? 0) > 0) {
             let ratingLabel = UILabel()
             ratingLabel.font = FontSet.montserratBold.font(14)
             ratingLabel.textColor = ColorSet.fg.uiColor

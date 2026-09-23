@@ -16,7 +16,7 @@ public final class TRPUserTimelineUseCases: ObserverController {
     }
     
     private var currentDate: String {
-        return Date().toString(format: "YYYY-MM-dd")
+        return TRPDateHelper.formatDateString(Date())
     }
     
     private func removeTimelineInPastTimelines(tripHash: String) {

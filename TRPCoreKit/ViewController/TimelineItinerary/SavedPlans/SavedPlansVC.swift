@@ -197,7 +197,9 @@ extension SavedPlansVC: ActivityCardCellDelegate {
 
     func activityCardCellDidTapAdd(_ cell: ActivityCardCell, tour: TRPTourProduct) {
         let planData = viewModel.createAddPlanData(cityId: tour.cityId)
-        let timeSelectionVC = AddPlanTimeSelectionVC(tour: tour, planData: planData)
+        let timeSelectionVC = AddPlanTimeSelectionVC(tour: tour,
+                                                     planData: planData,
+                                                     plannedActivityIdsByDay: viewModel.plannedActivityIdsByDay())
 
         timeSelectionVC.onTimeSelected = { _, _ in }
 

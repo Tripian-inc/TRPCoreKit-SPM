@@ -101,6 +101,10 @@ public class TRPLottieLoadingVC: UIViewController {
         animationView.contentMode = .scaleAspectFit
         animationView.loopMode = .loop
         animationView.backgroundBehavior = .pauseAndRestore
+        if TRPCoreKit.shared.provider == .nexus {
+            let lottieColor = ColorSet.primary.uiColor.lottieColorValue
+            animationView.setValueProvider(ColorValueProvider(lottieColor), keypath: AnimationKeypath(keypath: "**.Color"))
+        }
         return animationView
     }()
 
