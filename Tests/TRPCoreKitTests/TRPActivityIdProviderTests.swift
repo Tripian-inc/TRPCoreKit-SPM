@@ -2,7 +2,8 @@ import XCTest
 @testable import TRPCoreKit
 
 /// The activity id the tour-api expects is `{prefix}{productId}_{providerId}[_{cityId}]`, with the
-/// prefix and provider id of the active provider. These pin building and taking it apart per provider.
+/// prefix and provider id of the active provider; a product id never contains `_`. These pin building
+/// and taking it apart per provider.
 final class TRPActivityIdProviderTests: XCTestCase {
 
     private var originalProvider: TripianProvider = .civitatis
@@ -131,19 +132,38 @@ final class TRPActivityIdProviderTests: XCTestCase {
         }
     }
 
-    /// A product id that itself contains `_` cannot be told apart from the provider part, so it
-    /// does not survive a round trip through the wrapped form.
-    func testProductIdWithAnUnderscoreDoesNotRoundTrip() {
-        for expected in expectations {
-            TRPCoreKit.shared.provider = expected.provider
-            let wrapped = TRPActivityIdFormat.make("ABC_DEF")
+    // MARK: - Confirmed format
 
-            XCTAssertEqual(wrapped, "\(expected.prefix)ABC_DEF_\(expected.id)", "\(expected.provider)")
-            XCTExpectFailure("an underscore inside the product id is read as the provider separator") {
-                XCTAssertEqual(wrapped.cleanedAsActivityId(), "ABC_DEF", "\(expected.provider)")
-                XCTAssertEqual(wrapped.trp_parsedProviderId(), expected.id, "\(expected.provider)")
-            }
-        }
+    func testCivitatisIdWithACityIsTakenApart() {
+        TRPCoreKit.shared.provider = .civitatis
+
+        XCTAssertEqual("C_123_15_34".cleanedAsActivityId(), "123")
+        XCTAssertEqual("C_123_15_34".trp_parsedProviderId(), 15)
+    }
+
+    func testNexusIdWithItsTypeSuffixIsTakenApart() {
+        TRPCoreKit.shared.provider = .nexus
+
+        XCTAssertEqual("J_9148\u{AC}TKT_7".cleanedAsActivityId(), "9148\u{AC}TKT")
+        XCTAssertEqual("J_9148\u{AC}TKT_7".trp_parsedProviderId(), 7)
+    }
+
+    func testGetYourGuideIdWithACityIsTakenApart() {
+        TRPCoreKit.shared.provider = .getYourGuide
+
+        XCTAssertEqual("G_123456_4_12".cleanedAsActivityId(), "123456")
+        XCTAssertEqual("G_123456_4_12".trp_parsedProviderId(), 4)
+    }
+
+    func testConfirmedFormatIsWhatEachProviderBuilds() {
+        TRPCoreKit.shared.provider = .civitatis
+        XCTAssertEqual(TRPActivityIdFormat.make("123", cityId: 34), "C_123_15_34")
+
+        TRPCoreKit.shared.provider = .nexus
+        XCTAssertEqual(TRPActivityIdFormat.make("9148\u{AC}TKT"), "J_9148\u{AC}TKT_7")
+
+        TRPCoreKit.shared.provider = .getYourGuide
+        XCTAssertEqual(TRPActivityIdFormat.make("123456", cityId: 12), "G_123456_4_12")
     }
 
     // MARK: - Detail id
