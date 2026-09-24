@@ -149,7 +149,7 @@ extension TRPTimelineItineraryViewModel {
         let emptyPlans = displayItems
             .flatMap { $0.items }
             .compactMap { item -> TRPTimelinePlan? in
-                guard item.isItinerary, let plan = item.plan else { return nil }
+                guard item.isItinerary, item.segment.isBackendPlaceholder != true, let plan = item.plan else { return nil }
                 return plan.generatedStatus == -1 && plan.steps.isEmpty ? plan : nil
             }
             .filter { !reportedEmptyPlanIds.contains($0.id) }

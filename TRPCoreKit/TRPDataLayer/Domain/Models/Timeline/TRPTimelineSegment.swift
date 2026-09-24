@@ -51,6 +51,10 @@ public class TRPTimelineSegment: Codable {
     public var excludedActivityIds: [String]?
     public var doNotGenerate: Int = 0
 
+    /// True for the empty segment the backend allocates in advance (segment type "empty"), which
+    /// is mapped as an itinerary but is never generated.
+    public var isBackendPlaceholder: Bool?
+
     // Manual POI properties
     public var poiId: String?
 
@@ -130,6 +134,7 @@ extension TRPCreateEditTimelineSegmentProfile {
         self.smartRecommendation   = base.smartRecommendation
         self.excludedActivityIds   = base.excludedActivityIds
         self.doNotGenerate         = base.doNotGenerate
+        self.isBackendPlaceholder  = base.isBackendPlaceholder
 
         // Manual POI properties
         self.poiId                 = base.poiId
