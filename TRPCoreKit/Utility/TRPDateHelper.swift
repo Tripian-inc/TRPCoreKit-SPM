@@ -27,7 +27,7 @@ public struct TRPDateHelper {
     private static let formatter: DateFormatter = {
         let formatter = DateFormatter()
         formatter.timeZone = TimeZone.current
-        formatter.locale = Locale.current
+        formatter.locale = Locale.current.withLatinDigits
         formatter.calendar = Calendar(identifier: .gregorian)
         return formatter
     }()

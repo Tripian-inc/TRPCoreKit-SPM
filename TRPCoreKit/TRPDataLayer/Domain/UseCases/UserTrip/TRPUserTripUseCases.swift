@@ -16,7 +16,7 @@ public final class TRPUserTripUseCases: ObserverController {
     }
     
     private var currentDate: String {
-        return Date().localDate().toStringWithoutTimeZone(format: "YYYY-MM-dd")
+        return Date().localDate().toStringWithoutTimeZone(format: "yyyy-MM-dd")
     }
     
     private func removeTripInPastTrip(tripHash: String) {

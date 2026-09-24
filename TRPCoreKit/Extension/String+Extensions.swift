@@ -38,7 +38,7 @@ extension String {
         if appLanguage == "en" {
             dateFormatter.locale = Locale(identifier: "en_US_POSIX")
         } else {
-            dateFormatter.locale = Locale(identifier: appLanguage)
+            dateFormatter.locale = Locale(identifier: appLanguage).withLatinDigits
         }
         dateFormatter.calendar = Calendar(identifier: .gregorian)
         return dateFormatter.date(from: self)
