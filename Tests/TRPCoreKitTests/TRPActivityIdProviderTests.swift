@@ -219,4 +219,21 @@ final class TRPActivityIdProviderTests: XCTestCase {
         XCTAssertTrue(TripianProvider.nexus.keepsHostCityIds)
         XCTAssertTrue(TripianProvider.getYourGuide.keepsHostCityIds)
     }
+
+    func testGetYourGuideShapesTheTimelineScreenExactlyLikeNexus() {
+        let nexus = TripianProvider.nexus
+        let getYourGuide = TripianProvider.getYourGuide
+
+        XCTAssertEqual(getYourGuide.usesFlatTimeline, nexus.usesFlatTimeline)
+        XCTAssertEqual(getYourGuide.mapRouteStyle, nexus.mapRouteStyle)
+        XCTAssertEqual(getYourGuide.drawsRoutesOnMap, nexus.drawsRoutesOnMap)
+        XCTAssertEqual(getYourGuide.pastDayActionStyle, nexus.pastDayActionStyle)
+        XCTAssertEqual(getYourGuide.showsActivityCategories, nexus.showsActivityCategories)
+        XCTAssertEqual(getYourGuide.keepsHostCityIds, nexus.keepsHostCityIds)
+        for stepType in ["poi", "activity", nil, "event"] as [String?] {
+            XCTAssertEqual(getYourGuide.opensHostDetail(forStepType: stepType),
+                           nexus.opensHostDetail(forStepType: stepType),
+                           stepType ?? "nil")
+        }
+    }
 }
