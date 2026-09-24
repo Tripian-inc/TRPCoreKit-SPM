@@ -28,6 +28,7 @@ public struct TRPDateHelper {
         let formatter = DateFormatter()
         formatter.timeZone = TimeZone.current
         formatter.locale = Locale.current
+        formatter.calendar = Calendar(identifier: .gregorian)
         return formatter
     }()
 

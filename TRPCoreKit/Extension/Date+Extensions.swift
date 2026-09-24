@@ -27,6 +27,7 @@ extension Date {
         } else {
             formatter.locale = Locale(identifier: appLanguage)
         }
+        formatter.calendar = Calendar(identifier: .gregorian)
         if let f = format {
             formatter.dateFormat = f
         }

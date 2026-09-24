@@ -40,6 +40,7 @@ extension String {
         } else {
             dateFormatter.locale = Locale(identifier: appLanguage)
         }
+        dateFormatter.calendar = Calendar(identifier: .gregorian)
         return dateFormatter.date(from: self)
     }
 

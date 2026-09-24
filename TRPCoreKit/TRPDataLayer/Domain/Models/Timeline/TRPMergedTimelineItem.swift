@@ -194,8 +194,12 @@ public class TRPMergedTimelineItem {
         return segment.children
     }
 
-    /// Duration in minutes (from additionalData or calculated from start/end times)
+    /// Duration in minutes (from additionalData or calculated from start/end times); nil for a
+    /// flexible activity, whose 00:00–23:59 window is not how long it lasts.
     public var duration: Double? {
+        if isFlexibleActivity {
+            return nil
+        }
         // 1. First check additionalData.duration
         if let existingDuration = segment.additionalData?.duration, existingDuration > 0 {
             return existingDuration

@@ -100,7 +100,7 @@ public enum TripianProvider {
         switch self {
         case .civitatis:    return false
         case .nexus:        return true
-        case .getYourGuide: return false
+        case .getYourGuide: return true
         }
     }
 
