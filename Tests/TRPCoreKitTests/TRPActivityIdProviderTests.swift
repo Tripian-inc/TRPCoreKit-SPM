@@ -179,10 +179,13 @@ final class TRPActivityIdProviderTests: XCTestCase {
         }
     }
 
-    func testOnlyNexusUsesTheFlatTimeline() {
+    func testNexusAndGetYourGuideUseTheFlatTimeline() {
         XCTAssertTrue(TripianProvider.nexus.usesFlatTimeline)
+        XCTAssertTrue(TripianProvider.getYourGuide.usesFlatTimeline)
+    }
+
+    func testCivitatisKeepsACardPerSegment() {
         XCTAssertFalse(TripianProvider.civitatis.usesFlatTimeline)
-        XCTAssertFalse(TripianProvider.getYourGuide.usesFlatTimeline)
     }
 
     func testOnlyCivitatisShowsActivityCategories() {

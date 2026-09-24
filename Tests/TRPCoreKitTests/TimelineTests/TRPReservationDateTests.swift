@@ -87,16 +87,13 @@ final class TRPReservationDateTests: XCTestCase {
         }
     }
 
-    /// Server strings are Gregorian, but the parser takes its calendar from the app language, so Thai
-    /// reads 2026 as a Buddhist year and Persian as a Solar Hijri one.
+    /// Server strings are Gregorian even when the app language defaults to a Buddhist or Solar Hijri calendar.
     func testTimedSourceKeepsItsYearInLanguagesWithAnotherCalendar() {
-        for language in ["th", "fa"] {
+        for language in ["th", "fa", "ja-JP-u-ca-japanese"] {
             TRPClient.changeLanguage(language)
             let screen = makeScreen()
 
-            XCTExpectFailure("the date parser uses the app language's calendar") {
-                XCTAssertEqual(screen.resolveReservationDate(preferred: "2026-10-05 10:30"), utc("2026-10-05 10:30"), language)
-            }
+            XCTAssertEqual(screen.resolveReservationDate(preferred: "2026-10-05 10:30"), utc("2026-10-05 10:30"), language)
         }
     }
 }

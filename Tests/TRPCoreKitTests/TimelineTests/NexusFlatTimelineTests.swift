@@ -5,7 +5,10 @@ import TRPFoundationKit
 
 /// Nexus lists a day as one flat, time-ordered run of rows with route legs between them. These build
 /// the rows from the mock trip, with the plans marked generated because a plan still generating has none.
-final class NexusFlatTimelineTests: XCTestCase {
+/// Subclasses run every test again for another provider with a flat timeline.
+class NexusFlatTimelineTests: XCTestCase {
+
+    var provider: TripianProvider { .nexus }
 
     private var originalProvider: TripianProvider = .civitatis
     private var originalZone: TimeZone!
@@ -14,7 +17,7 @@ final class NexusFlatTimelineTests: XCTestCase {
         super.setUp()
         originalProvider = TRPCoreKit.shared.provider
         originalZone = NSTimeZone.default
-        TRPCoreKit.shared.provider = .nexus
+        TRPCoreKit.shared.provider = provider
         NSTimeZone.default = TimeZone(identifier: "Europe/Madrid")!
     }
 
