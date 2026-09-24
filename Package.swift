@@ -24,6 +24,7 @@ let package = Package(
         .package(url: "https://github.com/SDWebImage/SDWebImage.git", from: "5.19.7"),
         .package(url: "https://github.com/Tripian-inc/TRPRestKit.git", branch: "master"),
         .package(url: "https://github.com/airbnb/lottie-ios.git", from: "4.4.0"),
+        .package(url: "https://github.com/pointfreeco/swift-snapshot-testing", from: "1.17.0"),
 //        .package(url: "https://github.com/mapbox/mapbox-events-ios.git", from: "2.0.0"),
     ],
     targets: [
@@ -49,7 +50,12 @@ let package = Package(
         ),
         .testTarget(
             name: "TRPCoreKitTests",
-            dependencies: ["TRPCoreKit"]
+            dependencies: [
+                "TRPCoreKit",
+                .product(name: "MapboxDirections", package: "mapbox-directions-swift"),
+                .product(name: "SnapshotTesting", package: "swift-snapshot-testing"),
+            ],
+            exclude: ["Snapshots/__Snapshots__"]
         ),
     ],
     swiftLanguageModes: [.v5]
