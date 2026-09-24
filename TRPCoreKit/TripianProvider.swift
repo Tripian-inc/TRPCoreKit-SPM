@@ -83,7 +83,7 @@ public enum TripianProvider {
         switch self {
         case .civitatis:    return .walkingPerSegment
         case .nexus:        return .dayLegs
-        case .getYourGuide: return .none
+        case .getYourGuide: return .dayLegs
         }
     }
 

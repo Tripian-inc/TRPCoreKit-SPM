@@ -21,10 +21,10 @@ final class TRPProviderRulesTests: XCTestCase {
     func testMapRouteStyles() {
         XCTAssertEqual(TripianProvider.civitatis.mapRouteStyle, .walkingPerSegment)
         XCTAssertEqual(TripianProvider.nexus.mapRouteStyle, .dayLegs)
-        XCTAssertEqual(TripianProvider.getYourGuide.mapRouteStyle, .none)
+        XCTAssertEqual(TripianProvider.getYourGuide.mapRouteStyle, .dayLegs)
         XCTAssertTrue(TripianProvider.nexus.drawsRoutesOnMap)
         XCTAssertFalse(TripianProvider.civitatis.drawsRoutesOnMap)
-        XCTAssertFalse(TripianProvider.getYourGuide.drawsRoutesOnMap)
+        XCTAssertTrue(TripianProvider.getYourGuide.drawsRoutesOnMap)
     }
 
     func testCivitatisSendsOnlyActivityStepsToTheHost() {
