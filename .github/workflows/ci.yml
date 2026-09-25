@@ -45,6 +45,8 @@ jobs:
           xcodebuild test \
             -scheme TRPCoreKit \
             -destination "id=$SIMULATOR_UDID" \
+            -testLanguage en \
+            -testRegion US \
             -clonedSourcePackagesDirPath SourcePackages \
             -resultBundlePath TestResults.xcresult \
             | tee xcodebuild.log | grep -E "error:|failed|Executed|\*\* TEST"

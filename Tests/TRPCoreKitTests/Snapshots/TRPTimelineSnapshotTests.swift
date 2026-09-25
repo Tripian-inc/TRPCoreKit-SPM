@@ -38,8 +38,8 @@ final class TRPTimelineSnapshotTests: XCTestCase {
         NSTimeZone.default = TimeZone(identifier: "Europe/Madrid")!
         TRPClient.changeLanguage("en")
         TRPFonts.registerAll()
-        guard Locale.current.identifier.hasPrefix("en") else {
-            throw EnvironmentError(description: "snapshots are recorded with an English device locale, found \(Locale.current.identifier)")
+        guard Locale.current.identifier == "en_US" else {
+            throw EnvironmentError(description: "snapshots are recorded with the en_US locale (xcodebuild -testLanguage en -testRegion US), found \(Locale.current.identifier)")
         }
     }
 
@@ -268,15 +268,35 @@ final class TRPTimelineSnapshotTests: XCTestCase {
         return (screen, containerViewModel)
     }
 
-    /// Puts the screen on screen so its day strip lays out its days, then lets the strip's scroll settle.
+    /// Puts the screen on screen so its day strip lays out its days, then waits for the strip's deferred scroll to settle.
     private func onScreen(_ screen: UIViewController, size: CGSize) -> UIWindow {
         let window = UIWindow(frame: CGRect(origin: .zero, size: size))
         window.rootViewController = screen
         window.isHidden = false
         screen.view.layoutIfNeeded()
-        RunLoop.main.run(until: Date().addingTimeInterval(0.3))
+        waitForScrollToSettle(in: screen.view)
         screen.view.layoutIfNeeded()
         return window
+    }
+
+    /// Spins the run loop until no scroll view under `view` has moved for a while, so a slow machine snapshots the same offset as a fast one.
+    private func waitForScrollToSettle(in view: UIView, quietPeriod: TimeInterval = 0.5, timeout: TimeInterval = 5) {
+        func offsets(in view: UIView) -> [CGPoint] {
+            let own = (view as? UIScrollView).map { [$0.contentOffset] } ?? []
+            return own + view.subviews.flatMap { offsets(in: $0) }
+        }
+        let deadline = Date().addingTimeInterval(timeout)
+        var lastOffsets = offsets(in: view)
+        var lastChange = Date()
+        while Date() < deadline, Date().timeIntervalSince(lastChange) < quietPeriod {
+            RunLoop.main.run(until: Date().addingTimeInterval(0.05))
+            view.layoutIfNeeded()
+            let current = offsets(in: view)
+            if current != lastOffsets {
+                lastOffsets = current
+                lastChange = Date()
+            }
+        }
     }
 
     func testAddPlanSelectDayScreen() {
