@@ -24,6 +24,7 @@ final class TimelineSegmentMapper {
         } else {
             profile.segmentType = .itinerary // Default value
         }
+        profile.isBackendPlaceholder = restModel.segmentType == "empty"
 
         profile.available = restModel.available
         profile.title = restModel.title
