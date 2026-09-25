@@ -35,7 +35,8 @@ public class TRPTimelineSegment: Codable {
     public var considerWeather: Bool?
     public var distinctPlan: Bool = true
     public var segmentType: TRPTimelineSegmentType = .itinerary
-    
+
+    public var cityId: Int?
     public var city: TRPCity?
     public var differentEndLocation: Bool = false
     public var differentMealSuggestions: Bool = false
@@ -49,6 +50,10 @@ public class TRPTimelineSegment: Codable {
     public var smartRecommendation: Bool?
     public var excludedActivityIds: [String]?
     public var doNotGenerate: Int = 0
+
+    /// True for the empty segment the backend allocates in advance (segment type "empty"), which
+    /// is mapped as an itinerary but is never generated.
+    public var isBackendPlaceholder: Bool?
 
     // Manual POI properties
     public var poiId: String?
@@ -129,8 +134,12 @@ extension TRPCreateEditTimelineSegmentProfile {
         self.smartRecommendation   = base.smartRecommendation
         self.excludedActivityIds   = base.excludedActivityIds
         self.doNotGenerate         = base.doNotGenerate
+        self.isBackendPlaceholder  = base.isBackendPlaceholder
 
         // Manual POI properties
         self.poiId                 = base.poiId
+
+        // Segment type (CRITICAL: must preserve original type during updates)
+        self.segmentType           = base.segmentType
     }
 }

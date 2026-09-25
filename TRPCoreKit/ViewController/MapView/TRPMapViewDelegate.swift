@@ -29,7 +29,9 @@ public protocol TRPMapViewDelegate:AnyObject {
     //func mapViewGeoJson(_ mapView: TRPMapView) -> GeoJson?
     
     func mapView(annotationPressed annotationId: String, type: TRPAnnotationType)
-    
+
+    func mapView(cityAnnotationPressed cityId: String)
+
     func mapView(_ mapView: TRPMapView, userLocationUpdate location: TRPLocation)
 
     func mapViewWillStartLocationingUser(_ mapView: TRPMapView)
@@ -71,4 +73,6 @@ extension TRPMapViewDelegate{
     public func mapViewDidStopLocationingUser(_ mapView: TRPMapView) {}
     
     public func mapView(_ mapView: TRPMapView, didChange mode: TRPUserTrackingMode) {}
+
+    public func mapView(cityAnnotationPressed cityId: String) {}
 }

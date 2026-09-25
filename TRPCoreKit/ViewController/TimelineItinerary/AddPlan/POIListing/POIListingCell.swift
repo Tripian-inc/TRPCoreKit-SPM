@@ -17,6 +17,7 @@ protocol POIListingCellDelegate: AnyObject {
 class POIListingCell: UITableViewCell {
 
     static let reuseIdentifier = "POIListingCell"
+    private static let skeletonAnimationKey = "shimmer"
 
     weak var delegate: POIListingCellDelegate?
     private var poi: TRPPoi?
@@ -89,14 +90,44 @@ class POIListingCell: UITableViewCell {
         label.textColor = ColorSet.fgWeak.uiColor
         return label
     }()
-
-    private lazy var addButton: UIButton = {
-        let button = UIButton(type: .custom)
-        button.translatesAutoresizingMaskIntoConstraints = false
-        button.setImage(UIImage(systemName: "plus.circle"), for: .normal)
+    
+    private let addButton: UIButton = {
+        let button = UIButton(type: .system)
+        let image = TRPImageController().getImage(inFramework: "ic_add_to_plan", inApp: nil)
+        button.setImage(image, for: .normal)
         button.tintColor = ColorSet.primary.uiColor
-        button.addTarget(self, action: #selector(addButtonTapped), for: .touchUpInside)
+        button.imageView?.contentMode = .scaleAspectFit
+        button.imageEdgeInsets = UIEdgeInsets(top: 6, left: 6, bottom: 6, right: 6)
+        button.translatesAutoresizingMaskIntoConstraints = false
         return button
+    }()
+
+    // MARK: - Skeleton Placeholders
+    private let imageSkeletonView: UIView = {
+        let view = UIView()
+        view.backgroundColor = ColorSet.lineWeak.uiColor
+        view.layer.cornerRadius = 4
+        view.translatesAutoresizingMaskIntoConstraints = false
+        view.isHidden = true
+        return view
+    }()
+
+    private let titleSkeletonView: UIView = {
+        let view = UIView()
+        view.backgroundColor = ColorSet.lineWeak.uiColor
+        view.layer.cornerRadius = 4
+        view.translatesAutoresizingMaskIntoConstraints = false
+        view.isHidden = true
+        return view
+    }()
+
+    private let subtitleSkeletonView: UIView = {
+        let view = UIView()
+        view.backgroundColor = ColorSet.lineWeak.uiColor
+        view.layer.cornerRadius = 3
+        view.translatesAutoresizingMaskIntoConstraints = false
+        view.isHidden = true
+        return view
     }()
 
     // MARK: - Initialization
@@ -109,6 +140,20 @@ class POIListingCell: UITableViewCell {
         fatalError("init(coder:) has not been implemented")
     }
 
+    // MARK: - Cell Reuse
+    override func prepareForReuse() {
+        super.prepareForReuse()
+
+        poi = nil
+        titleLabel.text = nil
+        poiImageView.sd_cancelCurrentImageLoad()
+        poiImageView.image = nil
+        ratingLabel.text = nil
+        reviewCountLabel.text = nil
+        ratingStackView.isHidden = false
+        stopSkeletonAnimation()
+    }
+
     // MARK: - Setup
     private func setupCell() {
         selectionStyle = .none
@@ -118,6 +163,9 @@ class POIListingCell: UITableViewCell {
         containerView.addSubview(poiImageView)
         containerView.addSubview(contentStackView)
         containerView.addSubview(addButton)
+        containerView.addSubview(imageSkeletonView)
+        containerView.addSubview(titleSkeletonView)
+        containerView.addSubview(subtitleSkeletonView)
 
         contentStackView.addArrangedSubview(titleLabel)
         contentStackView.addArrangedSubview(ratingStackView)
@@ -129,55 +177,67 @@ class POIListingCell: UITableViewCell {
         // Add extra 2px spacing before reviewCountLabel (total: 2 + 2 = 4px)
         ratingStackView.setCustomSpacing(4, after: starImageView)
 
+        addButton.addTarget(self, action: #selector(addButtonTapped), for: .touchUpInside)
+
         setupConstraints()
     }
 
     private func setupConstraints() {
         NSLayoutConstraint.activate([
-            // Container View
             containerView.topAnchor.constraint(equalTo: contentView.topAnchor),
-            containerView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
-            containerView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
+            containerView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
+            containerView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
             containerView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
 
-            // POI Image
             poiImageView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
             poiImageView.topAnchor.constraint(equalTo: containerView.topAnchor),
             poiImageView.bottomAnchor.constraint(equalTo: containerView.bottomAnchor, constant: -16),
             poiImageView.widthAnchor.constraint(equalToConstant: 80),
             poiImageView.heightAnchor.constraint(equalToConstant: 80),
 
-            // Content Stack View
             contentStackView.leadingAnchor.constraint(equalTo: poiImageView.trailingAnchor, constant: 16),
             contentStackView.trailingAnchor.constraint(equalTo: addButton.leadingAnchor),
             contentStackView.topAnchor.constraint(equalTo: poiImageView.topAnchor),
 
-            // Add Button
             addButton.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
-            contentStackView.topAnchor.constraint(equalTo: poiImageView.topAnchor),
-            addButton.widthAnchor.constraint(equalToConstant: 24),
-            addButton.heightAnchor.constraint(equalToConstant: 24),
+            addButton.topAnchor.constraint(equalTo: poiImageView.topAnchor),
+            addButton.widthAnchor.constraint(equalToConstant: 32),
+            addButton.heightAnchor.constraint(equalToConstant: 32),
 
-            // Star Image
             starImageView.widthAnchor.constraint(equalToConstant: 12),
-            starImageView.heightAnchor.constraint(equalToConstant: 12)
+            starImageView.heightAnchor.constraint(equalToConstant: 12),
+
+            imageSkeletonView.topAnchor.constraint(equalTo: poiImageView.topAnchor),
+            imageSkeletonView.leadingAnchor.constraint(equalTo: poiImageView.leadingAnchor),
+            imageSkeletonView.widthAnchor.constraint(equalTo: poiImageView.widthAnchor),
+            imageSkeletonView.heightAnchor.constraint(equalTo: poiImageView.heightAnchor),
+
+            titleSkeletonView.topAnchor.constraint(equalTo: poiImageView.topAnchor, constant: 8),
+            titleSkeletonView.leadingAnchor.constraint(equalTo: poiImageView.trailingAnchor, constant: 16),
+            titleSkeletonView.trailingAnchor.constraint(equalTo: addButton.leadingAnchor, constant: -8),
+            titleSkeletonView.heightAnchor.constraint(equalToConstant: 14),
+
+            subtitleSkeletonView.topAnchor.constraint(equalTo: titleSkeletonView.bottomAnchor, constant: 10),
+            subtitleSkeletonView.leadingAnchor.constraint(equalTo: poiImageView.trailingAnchor, constant: 16),
+            subtitleSkeletonView.widthAnchor.constraint(equalToConstant: 120),
+            subtitleSkeletonView.heightAnchor.constraint(equalToConstant: 10)
         ])
     }
 
     // MARK: - Configuration
     func configure(with poi: TRPPoi) {
+        exitSkeletonMode()
         self.poi = poi
 
         titleLabel.text = poi.name
 
-        // Set image
-        if let imageUrl = poi.image?.url {
-            poiImageView.sd_setImage(with: URL(string: imageUrl), placeholderImage: nil)
+        let placeholderImage = TRPImageController().getImage(inFramework: "placeholder_poi", inApp: nil)
+        if let imageUrl = poi.image?.url, let url = URL(string: imageUrl) {
+            poiImageView.sd_setImage(with: url, placeholderImage: placeholderImage)
         } else {
-            poiImageView.image = nil
+            poiImageView.image = placeholderImage
         }
 
-        // Set rating
         if let rating = poi.rating, rating > 0 {
             ratingLabel.text = String(format: "%.1f", rating)
             ratingStackView.isHidden = false
@@ -185,7 +245,6 @@ class POIListingCell: UITableViewCell {
             ratingStackView.isHidden = true
         }
 
-        // Set review count
         if let reviewCount = poi.ratingCount, reviewCount > 0 {
             let formattedCount = formatReviewCount(reviewCount)
             let opinionsText = AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.opinions)
@@ -204,6 +263,55 @@ class POIListingCell: UITableViewCell {
         numberFormatter.numberStyle = .decimal
         numberFormatter.groupingSeparator = "."
         return numberFormatter.string(from: NSNumber(value: count)) ?? "\(count)"
+    }
+
+    // MARK: - Skeleton Mode
+
+    func configureSkeleton() {
+        self.poi = nil
+        isUserInteractionEnabled = false
+
+        poiImageView.isHidden = true
+        titleLabel.isHidden = true
+        ratingStackView.isHidden = true
+        addButton.isHidden = true
+
+        imageSkeletonView.isHidden = false
+        titleSkeletonView.isHidden = false
+        subtitleSkeletonView.isHidden = false
+
+        startSkeletonAnimation()
+    }
+
+    private func exitSkeletonMode() {
+        stopSkeletonAnimation()
+        isUserInteractionEnabled = true
+
+        imageSkeletonView.isHidden = true
+        titleSkeletonView.isHidden = true
+        subtitleSkeletonView.isHidden = true
+
+        poiImageView.isHidden = false
+        titleLabel.isHidden = false
+        addButton.isHidden = false
+    }
+
+    private func startSkeletonAnimation() {
+        let animation = CABasicAnimation(keyPath: "opacity")
+        animation.fromValue = 0.4
+        animation.toValue = 1.0
+        animation.duration = 0.8
+        animation.autoreverses = true
+        animation.repeatCount = .infinity
+        for view in [imageSkeletonView, titleSkeletonView, subtitleSkeletonView] {
+            view.layer.add(animation, forKey: Self.skeletonAnimationKey)
+        }
+    }
+
+    private func stopSkeletonAnimation() {
+        for view in [imageSkeletonView, titleSkeletonView, subtitleSkeletonView] {
+            view.layer.removeAnimation(forKey: Self.skeletonAnimationKey)
+        }
     }
 
     // MARK: - Actions

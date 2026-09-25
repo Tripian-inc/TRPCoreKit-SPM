@@ -27,78 +27,98 @@ public class SavedPlansViewModel {
     private let favouriteItems: [TRPSegmentFavoriteItem]
     private var sections: [SavedPlansSection] = []
 
-    // Data needed for time selection flow
     public let tripHash: String?
     public let availableDays: [Date]
     public let availableCities: [TRPCity]
+    private let activityIdsByDay: [String: [String]]
 
     // MARK: - Initialization
     public init(favouriteItems: [TRPSegmentFavoriteItem],
                 tripHash: String?,
                 availableDays: [Date],
-                availableCities: [TRPCity]) {
+                availableCities: [TRPCity],
+                activityIdsByDay: [String: [String]] = [:]) {
         self.favouriteItems = favouriteItems
         self.tripHash = tripHash
         self.availableDays = availableDays
         self.availableCities = availableCities
+        self.activityIdsByDay = activityIdsByDay
 
         groupItemsByCity()
     }
 
     // MARK: - Public Methods
 
-    /// Get total number of sections (cities)
+    /// "yyyy-MM-dd" → activity ids that day already holds; the time-selection sheet blocks matching days.
+    public func plannedActivityIdsByDay() -> [String: [String]] {
+        return activityIdsByDay
+    }
+
     public func numberOfSections() -> Int {
         return sections.count
     }
 
-    /// Get number of items in a section
     public func numberOfItems(in section: Int) -> Int {
         guard section < sections.count else { return 0 }
         return sections[section].items.count
     }
 
-    /// Get section data for header
     public func getSection(at index: Int) -> SavedPlansSection? {
         guard index < sections.count else { return nil }
         return sections[index]
     }
 
-    /// Get favourite item at index path
     public func getItem(at indexPath: IndexPath) -> TRPSegmentFavoriteItem? {
         guard indexPath.section < sections.count,
               indexPath.row < sections[indexPath.section].items.count else { return nil }
         return sections[indexPath.section].items[indexPath.row]
     }
 
-    /// Get total count of all items
     public func getTotalItemCount() -> Int {
-        return favouriteItems.count
+        return sections.reduce(0) { $0 + $1.items.count }
     }
 
-    /// Convert TRPSegmentFavoriteItem to TRPTourProduct for time selection flow
+    /// `productId` may be raw, provider-prefixed or city-suffixed form; all reduce to the same core id for matching.
+    @discardableResult
+    public func removeItem(matchingProductId productId: String) -> Bool {
+        let target = productId.cleanedAsActivityId()
+        var didRemove = false
+
+        for sectionIndex in sections.indices {
+            sections[sectionIndex].items.removeAll { item in
+                guard let activityId = item.activityId else { return false }
+                if activityId.cleanedAsActivityId() == target {
+                    didRemove = true
+                    return true
+                }
+                return false
+            }
+        }
+        // Drop sections that just emptied out so the list collapses naturally.
+        sections.removeAll { $0.items.isEmpty }
+
+        if didRemove {
+            delegate?.savedPlansDidLoad()
+        }
+        return didRemove
+    }
+
     public func convertToTourProduct(from item: TRPSegmentFavoriteItem) -> TRPTourProduct? {
         guard let activityId = item.activityId else { return nil }
 
-        // Format activity ID as C_{id}_15
-        let formattedActivityId = "C_\(activityId)_15"
+        let formattedActivityId = TRPActivityIdFormat.normalized(activityId)
 
         let location: TRPLocation? = item.coordinate
 
-        // Get city ID from first available city or use 0
-        let cityId = availableCities.first?.id ?? 0
+        let cityId = item.cityId ?? availableCities.first?.id ?? 0
 
-        // Create image if photoUrl available
         var image: TRPImage?
         if let photoUrl = item.photoUrl {
             image = TRPImage(url: photoUrl, imageOwner: nil, width: nil, height: nil)
         }
 
-        // Convert price to Int
-        var priceInt: Int?
-        if let priceValue = item.price?.value {
-            priceInt = Int(priceValue)
-        }
+        // Favourite prices are minor units (cents); TRPTourProduct.price is major units, so divide.
+        let majorUnitPrice = item.price.map { $0.value / 100.0 }
 
         return TRPTourProduct(
             id: formattedActivityId,
@@ -107,8 +127,9 @@ public class SavedPlansViewModel {
             name: item.title,
             image: image,
             gallery: nil,
-            duration: nil, // Not available in TRPSegmentFavoriteItem
-            price: priceInt,
+            duration: nil,
+            price: majorUnitPrice,
+            currency: item.price?.currency,
             rating: item.rating,
             ratingCount: item.ratingCount,
             description: item.description,
@@ -127,37 +148,43 @@ public class SavedPlansViewModel {
         )
     }
 
-    /// Create AddPlanData for time selection flow
-    public func createAddPlanData() -> AddPlanData {
+    public func createAddPlanData(cityId: Int) -> AddPlanData {
         var planData = AddPlanData()
         planData.tripHash = tripHash
         planData.availableDays = availableDays
-        planData.selectedCity = availableCities.first
+        planData.selectedCity = availableCities.first(where: { $0.id == cityId }) ?? availableCities.first
         planData.selectedDay = availableDays.first
-        planData.travelers = 1 // Default
+        planData.travelers = 1
         return planData
+    }
+
+    public func createAddPlanData() -> AddPlanData {
+        return createAddPlanData(cityId: availableCities.first?.id ?? 0)
     }
 
     // MARK: - Private Methods
 
-    /// Group favourite items by their city name
+    /// Group by cached `TRPCity` name (via `cityId`) so varying backend `cityName` spellings still merge; falls back to `item.cityName`.
     private func groupItemsByCity() {
-        // Create a dictionary to group items by city name
         var cityGroups: [String: [TRPSegmentFavoriteItem]] = [:]
-        var cityOrder: [String] = [] // Maintain insertion order
+        var cityOrder: [String] = []
 
         for item in favouriteItems {
-            // Use cityName field for grouping
-            let cityName = item.cityName
-
-            if cityGroups[cityName] == nil {
-                cityGroups[cityName] = []
-                cityOrder.append(cityName)
+            let resolvedCityName: String
+            if let cityId = item.cityId,
+               let cachedCity = availableCities.first(where: { $0.id == cityId }) {
+                resolvedCityName = cachedCity.name
+            } else {
+                resolvedCityName = item.cityName
             }
-            cityGroups[cityName]?.append(item)
+
+            if cityGroups[resolvedCityName] == nil {
+                cityGroups[resolvedCityName] = []
+                cityOrder.append(resolvedCityName)
+            }
+            cityGroups[resolvedCityName]?.append(item)
         }
 
-        // Convert to sections maintaining order
         sections = cityOrder.compactMap { cityName in
             guard let items = cityGroups[cityName] else { return nil }
             return SavedPlansSection(cityName: cityName, items: items)

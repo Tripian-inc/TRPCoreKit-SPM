@@ -21,6 +21,23 @@ public struct TRPTimelineStep: Codable, Hashable {
     public var attention: String?
     public var alternatives: [String]?
     public var warningMessage: [String]?
+
+    // MARK: - Conflict Detection (not encoded/decoded)
+    public var hasConflict: Bool = false
+    public var showTimeOverlapText: Bool = false
+
+    // MARK: - Availability (not encoded/decoded)
+    /// Transient runtime flag set by the post-load availability sweep when the
+    /// provider's schedule for this step's date no longer contains its
+    /// `startDateTimes` slot. Rebuilt on every cold load.
+    public var isAvailabilityExpired: Bool = false
+
+    // Custom coding keys to exclude conflict properties from JSON
+    private enum CodingKeys: String, CodingKey {
+        case id, poi, score, planId, scoreDetails, order
+        case startDateTimes, endDateTimes, stepType, attention
+        case alternatives, warningMessage
+    }
 }
 
 extension TRPTimelineStep: Equatable {
@@ -33,16 +50,12 @@ extension TRPTimelineStep: Equatable {
 
 extension TRPTimelineStep {
     public func getStartTime() -> String? {
-        guard let startDateTimes = Date.fromString(startDateTimes, format: "yyyy-MM-dd HH:mm:ss") else {
-            return nil
-        }
-        return startDateTimes.toString(format: "HH:mm")
+        guard TRPDateHelper.parseDateTime(startDateTimes) != nil else { return nil }
+        return TRPDateHelper.extractHourMinute(from: startDateTimes)
     }
     
     public func getEndTime() -> String? {
-        guard let endDateTimes = Date.fromString(endDateTimes, format: "yyyy-MM-dd HH:mm:ss") else {
-            return nil
-        }
-        return endDateTimes.toString(format: "HH:mm")
+        guard TRPDateHelper.parseDateTime(endDateTimes) != nil else { return nil }
+        return TRPDateHelper.extractHourMinute(from: endDateTimes)
     }
 }

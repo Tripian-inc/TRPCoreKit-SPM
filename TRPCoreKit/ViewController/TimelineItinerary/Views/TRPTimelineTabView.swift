@@ -130,7 +130,7 @@ class TRPTimelineTabView: UIView {
     
     private func animateUnderline(to index: Int) {
         guard tabItems.count > 0 else { return }
-        
+
         let tabWidth = bounds.width / CGFloat(tabItems.count)
         let targetLeading = tabWidth * CGFloat(index)
         
@@ -143,34 +143,28 @@ class TRPTimelineTabView: UIView {
     
     // MARK: - Public Methods
     public func configure(with tabs: [TRPTimelineTabItem], selectedIndex: Int = 0) {
-        // Clear existing tabs
         tabButtons.forEach { $0.removeFromSuperview() }
         tabButtons.removeAll()
         stackView.arrangedSubviews.forEach { $0.removeFromSuperview() }
-        
-        // Store new tabs
+
         self.tabItems = tabs
         self.selectedIndex = min(selectedIndex, tabs.count - 1)
-        
-        // Create buttons for each tab
+
         for (index, tab) in tabs.enumerated() {
             let button = createTabButton(title: tab.title, index: index)
             stackView.addArrangedSubview(button)
             tabButtons.append(button)
         }
-        
-        // Update underline width constraint
+
         underlineWidthConstraint?.isActive = false
         if tabs.count > 0 {
             underlineWidthConstraint = underlineView.widthAnchor.constraint(equalTo: stackView.widthAnchor, multiplier: 1.0/CGFloat(tabs.count))
             underlineWidthConstraint?.isActive = true
         }
-        
-        // Update appearance
+
         updateTabAppearance()
         layoutIfNeeded()
-        
-        // Position underline
+
         if tabs.count > 0 {
             let tabWidth = bounds.width / CGFloat(tabs.count)
             underlineLeadingConstraint?.constant = tabWidth * CGFloat(self.selectedIndex)
@@ -208,8 +202,7 @@ class TRPTimelineTabView: UIView {
     
     override func layoutSubviews() {
         super.layoutSubviews()
-        
-        // Update underline position when layout changes
+
         guard tabItems.count > 0 else { return }
         let tabWidth = bounds.width / CGFloat(tabItems.count)
         underlineLeadingConstraint?.constant = tabWidth * CGFloat(selectedIndex)

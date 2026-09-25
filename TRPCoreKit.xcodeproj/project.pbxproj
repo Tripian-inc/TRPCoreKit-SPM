@@ -79,10 +79,6 @@
 		6B7D7DF928F6F7A000BC1DC6 /* CreateTripDescriptionSelectionCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6B7D7DF828F6F7A000BC1DC6 /* CreateTripDescriptionSelectionCell.swift */; };
 		6B7D7DFB28F6F9BE00BC1DC6 /* CreateTripPickedInformationVC.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6B7D7DFA28F6F9BE00BC1DC6 /* CreateTripPickedInformationVC.swift */; };
 		6B7D7DFD28F6F9F900BC1DC6 /* CreateTripPickedInformationViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6B7D7DFC28F6F9F900BC1DC6 /* CreateTripPickedInformationViewModel.swift */; };
-		6B88946D2E4C84EF0067D727 /* Mapbox.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6B88946B2E4C84EF0067D727 /* Mapbox.xcframework */; };
-		6B88946E2E4C84EF0067D727 /* MapboxMobileEvents.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6B88946C2E4C84EF0067D727 /* MapboxMobileEvents.xcframework */; };
-		6B88946F2E4C84EF0067D727 /* Mapbox.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6B88946B2E4C84EF0067D727 /* Mapbox.xcframework */; };
-		6B8894702E4C84EF0067D727 /* MapboxMobileEvents.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6B88946C2E4C84EF0067D727 /* MapboxMobileEvents.xcframework */; };
 		6B8896AD2E4C85000067D727 /* TripGenerateController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6B8895532E4C85000067D727 /* TripGenerateController.swift */; };
 		6B8896AE2E4C85000067D727 /* TRPUserInfoLocalStorage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6B8894862E4C85000067D727 /* TRPUserInfoLocalStorage.swift */; };
 		6B8896AF2E4C85000067D727 /* ReservationExplainCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6B8895C02E4C85000067D727 /* ReservationExplainCell.swift */; };
@@ -507,9 +503,7 @@
 		6B8898562E4C85000067D727 /* Development.plist in Resources */ = {isa = PBXBuildFile; fileRef = 6B88967D2E4C85000067D727 /* Development.plist */; };
 		6B8898582E4C85000067D727 /* Release.xcconfig in Resources */ = {isa = PBXBuildFile; fileRef = 6B8896822E4C85000067D727 /* Release.xcconfig */; };
 		6BA801492CAED112009050F1 /* Mapbox.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6BA801472CAED112009050F1 /* Mapbox.framework */; };
-		6BA8014A2CAED112009050F1 /* MapboxMobileEvents.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6BA801482CAED112009050F1 /* MapboxMobileEvents.framework */; };
 		6BA8014B2CAED112009050F1 /* Mapbox.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6BA801472CAED112009050F1 /* Mapbox.framework */; platformFilter = ios; };
-		6BA8014C2CAED112009050F1 /* MapboxMobileEvents.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6BA801482CAED112009050F1 /* MapboxMobileEvents.framework */; };
 		6BA801F52CB03F50009050F1 /* Alamofire in Frameworks */ = {isa = PBXBuildFile; productRef = 6BA801F42CB03F50009050F1 /* Alamofire */; };
 		6BA802602CB05769009050F1 /* SDWebImage in Frameworks */ = {isa = PBXBuildFile; productRef = 6BA8025F2CB05769009050F1 /* SDWebImage */; };
 		6BA802622CB05769009050F1 /* SDWebImageMapKit in Frameworks */ = {isa = PBXBuildFile; productRef = 6BA802612CB05769009050F1 /* SDWebImageMapKit */; };
@@ -914,8 +908,6 @@
 		6B7D7DF828F6F7A000BC1DC6 /* CreateTripDescriptionSelectionCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreateTripDescriptionSelectionCell.swift; sourceTree = "<group>"; };
 		6B7D7DFA28F6F9BE00BC1DC6 /* CreateTripPickedInformationVC.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreateTripPickedInformationVC.swift; sourceTree = "<group>"; };
 		6B7D7DFC28F6F9F900BC1DC6 /* CreateTripPickedInformationViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreateTripPickedInformationViewModel.swift; sourceTree = "<group>"; };
-		6B88946B2E4C84EF0067D727 /* Mapbox.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; path = Mapbox.xcframework; sourceTree = "<group>"; };
-		6B88946C2E4C84EF0067D727 /* MapboxMobileEvents.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; path = MapboxMobileEvents.xcframework; sourceTree = "<group>"; };
 		6B8894712E4C85000067D727 /* Cancellable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Cancellable.swift; sourceTree = "<group>"; };
 		6B8894722E4C85000067D727 /* ObserverController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ObserverController.swift; sourceTree = "<group>"; };
 		6B8894732E4C85000067D727 /* UseCase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UseCase.swift; sourceTree = "<group>"; };
@@ -1340,7 +1332,6 @@
 		6B8896AA2E4C85000067D727 /* TRPUIKit.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TRPUIKit.swift; sourceTree = "<group>"; };
 		6B8896AB2E4C85000067D727 /* UIKitInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UIKitInfo.swift; sourceTree = "<group>"; };
 		6BA801472CAED112009050F1 /* Mapbox.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; path = Mapbox.framework; sourceTree = "<group>"; };
-		6BA801482CAED112009050F1 /* MapboxMobileEvents.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; path = MapboxMobileEvents.framework; sourceTree = "<group>"; };
 		6BAF34F82674A8B600FD7722 /* StayAddressCellModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StayAddressCellModel.swift; sourceTree = "<group>"; };
 		6BAF34FA2674E1CA00FD7722 /* CreateTripStayAddress.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = CreateTripStayAddress.storyboard; sourceTree = "<group>"; };
 		6BAF34FD267594E500FD7722 /* CompanionQuestionAnswersCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompanionQuestionAnswersCell.swift; sourceTree = "<group>"; };
@@ -1661,11 +1652,8 @@
 				6B18F9A4274FCF920004494C /* MapboxDirections in Frameworks */,
 				6BF357CF28E76EFC00CED3C9 /* FSCalendar in Frameworks */,
 				6B18F9A1274FAFF70004494C /* Parchment in Frameworks */,
-				6B88946D2E4C84EF0067D727 /* Mapbox.xcframework in Frameworks */,
-				6B88946E2E4C84EF0067D727 /* MapboxMobileEvents.xcframework in Frameworks */,
 				6BA802602CB05769009050F1 /* SDWebImage in Frameworks */,
 				6BA801492CAED112009050F1 /* Mapbox.framework in Frameworks */,
-				6BA8014A2CAED112009050F1 /* MapboxMobileEvents.framework in Frameworks */,
 				6BA801F52CB03F50009050F1 /* Alamofire in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -1675,10 +1663,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				B2E5A0FD237EDB2600AC6AC7 /* TRPCoreKit.framework in Frameworks */,
-				6B88946F2E4C84EF0067D727 /* Mapbox.xcframework in Frameworks */,
-				6B8894702E4C84EF0067D727 /* MapboxMobileEvents.xcframework in Frameworks */,
 				6BA8014B2CAED112009050F1 /* Mapbox.framework in Frameworks */,
-				6BA8014C2CAED112009050F1 /* MapboxMobileEvents.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -3869,9 +3854,6 @@
 			isa = PBXGroup;
 			children = (
 				6BA801472CAED112009050F1 /* Mapbox.framework */,
-				6BA801482CAED112009050F1 /* MapboxMobileEvents.framework */,
-				6B88946B2E4C84EF0067D727 /* Mapbox.xcframework */,
-				6B88946C2E4C84EF0067D727 /* MapboxMobileEvents.xcframework */,
 				B25A7B8B20F4F22000803CF8 /* TRPCoreKit */,
 				B2E5A0F9237EDB2600AC6AC7 /* TRPCoreKitTests */,
 				B25A7B8A20F4F22000803CF8 /* Products */,

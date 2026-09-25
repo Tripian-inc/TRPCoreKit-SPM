@@ -1,0 +1,239 @@
+import XCTest
+@testable import TRPCoreKit
+
+/// The activity id the tour-api expects is `{prefix}{productId}_{providerId}[_{cityId}]`, with the
+/// prefix and provider id of the active provider; a product id never contains `_`. These pin building
+/// and taking it apart per provider.
+final class TRPActivityIdProviderTests: XCTestCase {
+
+    private var originalProvider: TripianProvider = .civitatis
+
+    override func setUp() {
+        super.setUp()
+        originalProvider = TRPCoreKit.shared.provider
+    }
+
+    override func tearDown() {
+        TRPCoreKit.shared.provider = originalProvider
+        super.tearDown()
+    }
+
+    private let expectations: [(provider: TripianProvider, prefix: String, id: Int)] = [
+        (.civitatis, "C_", 15),
+        (.nexus, "J_", 7),
+        (.getYourGuide, "G_", 4)
+    ]
+
+    // MARK: - Building
+
+    func testEachProviderWrapsAPlainIdWithItsPrefixAndProviderId() {
+        for expected in expectations {
+            TRPCoreKit.shared.provider = expected.provider
+
+            XCTAssertEqual(TRPActivityIdFormat.make("12345"), "\(expected.prefix)12345_\(expected.id)", "\(expected.provider)")
+        }
+    }
+
+    func testEachProviderAppendsTheCityIdWhenKnown() {
+        for expected in expectations {
+            TRPCoreKit.shared.provider = expected.provider
+
+            XCTAssertEqual(TRPActivityIdFormat.make("12345", cityId: 109), "\(expected.prefix)12345_\(expected.id)_109", "\(expected.provider)")
+        }
+    }
+
+    func testAnExplicitProviderIdOverridesTheActiveProvidersId() {
+        TRPCoreKit.shared.provider = .nexus
+
+        XCTAssertEqual(TRPActivityIdFormat.make("12345", providerId: 99), "J_12345_99")
+    }
+
+    func testAnAlreadyWrappedIdIsReducedToItsProductIdBeforeWrappingAgain() {
+        for expected in expectations {
+            TRPCoreKit.shared.provider = expected.provider
+            let wrapped = "\(expected.prefix)777_\(expected.id)_3"
+
+            XCTAssertEqual(TRPActivityIdFormat.make(wrapped, cityId: 5), "\(expected.prefix)777_\(expected.id)_5", "\(expected.provider)")
+        }
+    }
+
+    func testNexusProductIdWithItsTypeSuffixSurvivesWrapping() {
+        TRPCoreKit.shared.provider = .nexus
+
+        let id = TRPActivityIdFormat.make("9148\u{AC}TKT", cityId: 55)
+
+        XCTAssertEqual(id, "J_9148\u{AC}TKT_7_55")
+        XCTAssertEqual(id.cleanedAsActivityId(), "9148\u{AC}TKT")
+        XCTAssertEqual(id.trp_parsedProviderId(), 7)
+    }
+
+    // MARK: - Normalizing
+
+    func testNormalizedKeepsAnIdCarryingTheActiveProvidersPrefixUntouched() {
+        for expected in expectations {
+            TRPCoreKit.shared.provider = expected.provider
+            let wrapped = "\(expected.prefix)777_\(expected.id)_3"
+
+            XCTAssertEqual(TRPActivityIdFormat.normalized(wrapped, cityId: 9), wrapped, "\(expected.provider)")
+        }
+    }
+
+    func testNormalizedWrapsAPlainId() {
+        for expected in expectations {
+            TRPCoreKit.shared.provider = expected.provider
+
+            XCTAssertEqual(TRPActivityIdFormat.normalized("777", cityId: 9), "\(expected.prefix)777_\(expected.id)_9", "\(expected.provider)")
+        }
+    }
+
+    // MARK: - Taking apart
+
+    func testCleanedIdIsTheProductIdForEachProvider() {
+        for expected in expectations {
+            TRPCoreKit.shared.provider = expected.provider
+
+            XCTAssertEqual("\(expected.prefix)15423_\(expected.id)".cleanedAsActivityId(), "15423", "\(expected.provider)")
+            XCTAssertEqual("\(expected.prefix)15423_\(expected.id)_109".cleanedAsActivityId(), "15423", "\(expected.provider)")
+        }
+    }
+
+    func testCleanedIdLeavesAPlainIdAlone() {
+        for expected in expectations {
+            TRPCoreKit.shared.provider = expected.provider
+
+            XCTAssertEqual("15423".cleanedAsActivityId(), "15423", "\(expected.provider)")
+            XCTAssertEqual("BOOKING_12345".cleanedAsActivityId(), "BOOKING_12345", "\(expected.provider)")
+        }
+    }
+
+    func testCleanedIdLeavesAnotherProvidersIdAlone() {
+        TRPCoreKit.shared.provider = .nexus
+
+        XCTAssertEqual("C_15423_15".cleanedAsActivityId(), "C_15423_15")
+        XCTAssertEqual("G_15423_4".cleanedAsActivityId(), "G_15423_4")
+    }
+
+    func testParsedProviderIdIsReadFromTheSecondPart() {
+        for expected in expectations {
+            TRPCoreKit.shared.provider = expected.provider
+
+            XCTAssertEqual("\(expected.prefix)15423_\(expected.id)".trp_parsedProviderId(), expected.id, "\(expected.provider)")
+            XCTAssertEqual("\(expected.prefix)15423_\(expected.id)_109".trp_parsedProviderId(), expected.id, "\(expected.provider)")
+        }
+    }
+
+    func testParsedProviderIdIsNilWithoutAProviderPart() {
+        for expected in expectations {
+            TRPCoreKit.shared.provider = expected.provider
+
+            XCTAssertNil("15423".trp_parsedProviderId(), "\(expected.provider)")
+            XCTAssertNil("\(expected.prefix)15423".trp_parsedProviderId(), "\(expected.provider)")
+            XCTAssertNil("\(expected.prefix)15423_abc".trp_parsedProviderId(), "\(expected.provider)")
+        }
+    }
+
+    // MARK: - Confirmed format
+
+    func testCivitatisIdWithACityIsTakenApart() {
+        TRPCoreKit.shared.provider = .civitatis
+
+        XCTAssertEqual("C_123_15_34".cleanedAsActivityId(), "123")
+        XCTAssertEqual("C_123_15_34".trp_parsedProviderId(), 15)
+    }
+
+    func testNexusIdWithItsTypeSuffixIsTakenApart() {
+        TRPCoreKit.shared.provider = .nexus
+
+        XCTAssertEqual("J_9148\u{AC}TKT_7".cleanedAsActivityId(), "9148\u{AC}TKT")
+        XCTAssertEqual("J_9148\u{AC}TKT_7".trp_parsedProviderId(), 7)
+    }
+
+    func testGetYourGuideIdWithACityIsTakenApart() {
+        TRPCoreKit.shared.provider = .getYourGuide
+
+        XCTAssertEqual("G_123456_4_12".cleanedAsActivityId(), "123456")
+        XCTAssertEqual("G_123456_4_12".trp_parsedProviderId(), 4)
+    }
+
+    func testConfirmedFormatIsWhatEachProviderBuilds() {
+        TRPCoreKit.shared.provider = .civitatis
+        XCTAssertEqual(TRPActivityIdFormat.make("123", cityId: 34), "C_123_15_34")
+
+        TRPCoreKit.shared.provider = .nexus
+        XCTAssertEqual(TRPActivityIdFormat.make("9148\u{AC}TKT"), "J_9148\u{AC}TKT_7")
+
+        TRPCoreKit.shared.provider = .getYourGuide
+        XCTAssertEqual(TRPActivityIdFormat.make("123456", cityId: 12), "G_123456_4_12")
+    }
+
+    // MARK: - Detail id
+
+    func testNexusSwapsTheTourApiIdIntoTheProductLookupForm() {
+        XCTAssertEqual(TripianProvider.nexus.activityDetailId(fromRaw: "9148\u{AC}TKT"), "TKT|9148")
+    }
+
+    func testNexusDetailIdIsIdempotent() {
+        XCTAssertEqual(TripianProvider.nexus.activityDetailId(fromRaw: "TKT|9148"), "TKT|9148")
+        XCTAssertEqual(TripianProvider.nexus.activityDetailId(fromRaw: "9148"), "9148")
+    }
+
+    func testNexusLeavesIdsThatAreNotDigitsThenTypeUnchanged() {
+        for raw in ["ABC\u{AC}TKT", "9148\u{AC}", "\u{AC}TKT", "1\u{AC}2\u{AC}3", "91a8\u{AC}TKT"] {
+            XCTAssertEqual(TripianProvider.nexus.activityDetailId(fromRaw: raw), raw, raw)
+        }
+    }
+
+    func testCivitatisAndGetYourGuideUseTheRawIdAsTheDetailId() {
+        for provider in [TripianProvider.civitatis, .getYourGuide] {
+            XCTAssertEqual(provider.activityDetailId(fromRaw: "9148\u{AC}TKT"), "9148\u{AC}TKT", "\(provider)")
+            XCTAssertEqual(provider.activityDetailId(fromRaw: "15423"), "15423", "\(provider)")
+        }
+    }
+
+    // MARK: - Provider values
+
+    func testProviderIdsAndPrefixes() {
+        for expected in expectations {
+            XCTAssertEqual(expected.provider.id, expected.id)
+            XCTAssertEqual(expected.provider.activityIdPrefix, expected.prefix)
+        }
+    }
+
+    func testNexusAndGetYourGuideUseTheFlatTimeline() {
+        XCTAssertTrue(TripianProvider.nexus.usesFlatTimeline)
+        XCTAssertTrue(TripianProvider.getYourGuide.usesFlatTimeline)
+    }
+
+    func testCivitatisKeepsACardPerSegment() {
+        XCTAssertFalse(TripianProvider.civitatis.usesFlatTimeline)
+    }
+
+    func testOnlyCivitatisShowsActivityCategories() {
+        XCTAssertTrue(TripianProvider.civitatis.showsActivityCategories)
+        XCTAssertFalse(TripianProvider.nexus.showsActivityCategories)
+        XCTAssertFalse(TripianProvider.getYourGuide.showsActivityCategories)
+    }
+
+    func testOnlyCivitatisResolvesHostCityIdsAgain() {
+        XCTAssertFalse(TripianProvider.civitatis.keepsHostCityIds)
+        XCTAssertTrue(TripianProvider.nexus.keepsHostCityIds)
+        XCTAssertTrue(TripianProvider.getYourGuide.keepsHostCityIds)
+    }
+
+    func testGetYourGuideShapesTheTimelineScreenExactlyLikeNexus() {
+        let nexus = TripianProvider.nexus
+        let getYourGuide = TripianProvider.getYourGuide
+
+        XCTAssertEqual(getYourGuide.usesFlatTimeline, nexus.usesFlatTimeline)
+        XCTAssertEqual(getYourGuide.mapRouteStyle, nexus.mapRouteStyle)
+        XCTAssertEqual(getYourGuide.drawsRoutesOnMap, nexus.drawsRoutesOnMap)
+        XCTAssertEqual(getYourGuide.pastDayActionStyle, nexus.pastDayActionStyle)
+        XCTAssertEqual(getYourGuide.showsActivityCategories, nexus.showsActivityCategories)
+        XCTAssertEqual(getYourGuide.keepsHostCityIds, nexus.keepsHostCityIds)
+        for stepType in ["poi", "activity", nil, "event"] as [String?] {
+            XCTAssertEqual(getYourGuide.opensHostDetail(forStepType: stepType),
+                           nexus.opensHostDetail(forStepType: stepType),
+                           stepType ?? "nil")
+        }
+    }
+}

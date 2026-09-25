@@ -24,6 +24,7 @@ final class TimelineSegmentMapper {
         } else {
             profile.segmentType = .itinerary // Default value
         }
+        profile.isBackendPlaceholder = restModel.segmentType == "empty"
 
         profile.available = restModel.available
         profile.title = restModel.title
@@ -35,7 +36,7 @@ final class TimelineSegmentMapper {
         profile.adults = restModel.adults
         profile.children = restModel.children
         profile.pets = restModel.pets
-//        profile.cityId = restModel.cityId
+        profile.cityId = restModel.cityId
         profile.generatedStatus = restModel.generatedStatus
         profile.answerIds = restModel.answerIds
         profile.doNotRecommend = restModel.doNotRecommend
@@ -81,10 +82,15 @@ final class TimelineSegmentMapper {
             endDatetime: data.endDatetime,
             coordinate: data.coordinate ?? TRPLocation(lat: 0, lon: 0),
             cancellation: data.cancellation,
-            adultCount: 1, // Default value - actual count is in segment.adults
-            childCount: 0, // Default value - actual count is in segment.children
+            // Placeholders: the API carries no traveller counts in additionalData, so readers take
+            // them from the segment (see `TRPMergedTimelineItem.adultCount`).
+            adultCount: 1,
+            childCount: 0,
             duration: data.duration,
-            price: price
+            price: price,
+            rating: data.rating,
+            ratingCount: data.ratingCount,
+            isNoLocation: data.isNoLocation
         )
     }
 

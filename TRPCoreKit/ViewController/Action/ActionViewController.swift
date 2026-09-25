@@ -23,7 +23,7 @@ struct ActionModel {
 }
 
 @objc(SPMActionViewController)
-class ActionViewController: UIViewController {
+class ActionViewController: TRPBaseUIViewController {
 
     @IBOutlet weak var containerView: UIView!
     @IBOutlet weak var stackView: UIStackView!

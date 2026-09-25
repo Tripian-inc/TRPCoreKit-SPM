@@ -37,6 +37,7 @@ public struct TRPPoi: Codable {
 
     public let coordinate: TRPLocation?
     public var bookings: [TRPBooking]?
+    public var hasBookings: Bool?
     public var categories = [TRPPoiCategory]()
     public var tags = [String]()
     public var mustTries = [TRPTaste]()

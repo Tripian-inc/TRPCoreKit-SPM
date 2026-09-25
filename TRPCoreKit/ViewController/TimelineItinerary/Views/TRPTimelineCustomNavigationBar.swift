@@ -13,15 +13,22 @@ protocol TRPTimelineCustomNavigationBarDelegate: AnyObject {
 }
 
 class TRPTimelineCustomNavigationBar: UIView {
-    
+
     weak var delegate: TRPTimelineCustomNavigationBarDelegate?
-    
+
+    /// Top padding for fullscreen map mode (status bar hidden).
+    var topPadding: CGFloat = 0 {
+        didSet {
+            topPaddingConstraint?.constant = topPadding
+        }
+    }
+    private var topPaddingConstraint: NSLayoutConstraint?
+
     // MARK: - UI Components
     private let backButton: UIButton = {
         let button = UIButton(type: .system)
         button.translatesAutoresizingMaskIntoConstraints = false
-        
-        // Create circular white background for better visibility
+
         let backgroundView = UIView()
         backgroundView.translatesAutoresizingMaskIntoConstraints = false
         backgroundView.backgroundColor = .clear
@@ -65,30 +72,30 @@ class TRPTimelineCustomNavigationBar: UIView {
     
     // MARK: - Setup
     private func setupView() {
-        backgroundColor = .clear  // Start with white for list view
-        
+        backgroundColor = .clear
+
         addSubview(backButton)
         addSubview(titleLabel)
-        
-        // Add shadow to title for better readability (will be useful in map mode)
+
+        // Title shadow stays at 0 opacity until map mode enables it.
         titleLabel.layer.shadowColor = UIColor.black.cgColor
         titleLabel.layer.shadowOffset = CGSize(width: 0, height: 1)
         titleLabel.layer.shadowRadius = 2
         titleLabel.layer.shadowOpacity = 0
-        
+
+        topPaddingConstraint = backButton.topAnchor.constraint(equalTo: topAnchor, constant: topPadding)
+
         NSLayoutConstraint.activate([
-            // Back Button
             backButton.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 8),
-            backButton.centerYAnchor.constraint(equalTo: centerYAnchor),
+            topPaddingConstraint!,
             backButton.widthAnchor.constraint(equalToConstant: 44),
             backButton.heightAnchor.constraint(equalToConstant: 44),
-            
-            // Title Label
+
             titleLabel.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 16),
-            titleLabel.centerYAnchor.constraint(equalTo: centerYAnchor),
+            titleLabel.centerYAnchor.constraint(equalTo: backButton.centerYAnchor),
             titleLabel.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -16),
         ])
-        
+
         backButton.addTarget(self, action: #selector(backButtonTapped), for: .touchUpInside)
     }
     

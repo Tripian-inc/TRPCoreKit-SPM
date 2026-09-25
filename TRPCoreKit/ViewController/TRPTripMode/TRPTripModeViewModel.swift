@@ -185,7 +185,7 @@ public class TRPTripModeViewModel {
     }
     
     private func convertDateReadable(_ date: String) -> String {
-        if let convertedDate = date.toDate(format: "YYYY-MM-dd") {
+        if let convertedDate = date.toDate(format: "yyyy-MM-dd") {
             return convertedDate.toString(dateStyle: DateFormatter.Style.medium)
         }
         return ""

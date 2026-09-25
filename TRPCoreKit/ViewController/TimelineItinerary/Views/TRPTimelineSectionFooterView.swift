@@ -8,78 +8,73 @@
 
 import UIKit
 
-protocol TRPTimelineSectionFooterViewDelegate: AnyObject {
-    func sectionFooterViewDidTapAdd(_ view: TRPTimelineSectionFooterView, section: Int)
-}
-
 class TRPTimelineSectionFooterView: UITableViewHeaderFooterView {
-    
+
     static let reuseIdentifier = "TRPTimelineSectionFooterView"
-    
-    weak var delegate: TRPTimelineSectionFooterViewDelegate?
-    private var sectionIndex: Int = 0
-    
+
     // MARK: - UI Components
-    private let horizontalLine: UIView = {
+
+    /// Separator between city sections: a top line + 10px neutral100 gap + bottom line.
+    private let topLine: UIView = {
         let view = UIView()
         view.translatesAutoresizingMaskIntoConstraints = false
-        view.backgroundColor = ColorSet.lineWeak.uiColor
+        view.backgroundColor = ColorSet.neutral200.uiColor
         return view
     }()
-    
-    private let addButton: UIButton = {
-        let button = UIButton(type: .system)
-        button.translatesAutoresizingMaskIntoConstraints = false
-        button.backgroundColor = ColorSet.neutral200.uiColor
-        button.layer.cornerRadius = 16
-        
-        let image = TRPImageController().getImage(inFramework: "ic_plus", inApp: nil)
-        button.setImage(image, for: .normal)
-        button.tintColor = ColorSet.fgWeak.uiColor
-        
-        return button
+
+    private let bottomLine: UIView = {
+        let view = UIView()
+        view.translatesAutoresizingMaskIntoConstraints = false
+        view.backgroundColor = ColorSet.neutral200.uiColor
+        return view
     }()
-    
+
+    /// Fill between the two lines (the previous band colour, not transparent).
+    private let gapFillView: UIView = {
+        let view = UIView()
+        view.translatesAutoresizingMaskIntoConstraints = false
+        view.backgroundColor = ColorSet.neutral100.uiColor
+        return view
+    }()
+
     // MARK: - Initialization
     override init(reuseIdentifier: String?) {
         super.init(reuseIdentifier: reuseIdentifier)
         setupView()
     }
-    
+
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
-    
+
     // MARK: - Setup
     private func setupView() {
+        // Transparent so the clear space above the divider matches the cells' (clear) bottom inset.
         contentView.backgroundColor = .clear
-        
-        contentView.addSubview(horizontalLine)
-        contentView.addSubview(addButton)
-        
+
+        contentView.addSubview(gapFillView)
+        contentView.addSubview(topLine)
+        contentView.addSubview(bottomLine)
+
         NSLayoutConstraint.activate([
-            horizontalLine.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
-            horizontalLine.centerYAnchor.constraint(equalTo: contentView.centerYAnchor),
-            horizontalLine.heightAnchor.constraint(equalToConstant: 0.5),
-            
-            addButton.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
-            addButton.centerYAnchor.constraint(equalTo: contentView.centerYAnchor),
-            addButton.widthAnchor.constraint(equalToConstant: 48),
-            addButton.heightAnchor.constraint(equalToConstant: 32),
-            addButton.leadingAnchor.constraint(equalTo: horizontalLine.trailingAnchor, constant: 16)
+            // 8px clear space above the divider. Combined with the last cell's 16px bottom inset,
+            // the gap from the last item to the divider line totals 24px at a city-section boundary.
+            topLine.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 8),
+            topLine.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
+            topLine.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
+            topLine.heightAnchor.constraint(equalToConstant: 0.5),
+
+            // 10px neutral100 gap between the two lines.
+            gapFillView.topAnchor.constraint(equalTo: topLine.bottomAnchor),
+            gapFillView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
+            gapFillView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
+            gapFillView.heightAnchor.constraint(equalToConstant: 10),
+
+            bottomLine.topAnchor.constraint(equalTo: gapFillView.bottomAnchor),
+            bottomLine.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
+            bottomLine.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
+            bottomLine.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
+            bottomLine.heightAnchor.constraint(equalToConstant: 0.5)
         ])
-        
-        addButton.addTarget(self, action: #selector(addButtonTapped), for: .touchUpInside)
-    }
-    
-    // MARK: - Actions
-    @objc private func addButtonTapped() {
-        delegate?.sectionFooterViewDidTapAdd(self, section: sectionIndex)
-    }
-    
-    // MARK: - Configuration
-    func configure(section: Int) {
-        self.sectionIndex = section
     }
 }
-

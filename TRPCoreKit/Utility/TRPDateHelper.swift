@@ -27,7 +27,8 @@ public struct TRPDateHelper {
     private static let formatter: DateFormatter = {
         let formatter = DateFormatter()
         formatter.timeZone = TimeZone.current
-        formatter.locale = Locale.current
+        formatter.locale = Locale.current.withLatinDigits
+        formatter.calendar = Calendar(identifier: .gregorian)
         return formatter
     }()
 
@@ -75,6 +76,22 @@ public struct TRPDateHelper {
     /// - Returns: Date string like "2025-01-15"
     public static func formatDateString(_ date: Date) -> String {
         formatter.dateFormat = dateOnly
+        return formatter.string(from: date)
+    }
+
+    /// Format date to datetime string (yyyy-MM-dd HH:mm). Counterpart to `parseDateTime`.
+    /// - Parameter date: Date to format
+    /// - Returns: Datetime string like "2025-01-15 10:00"
+    public static func formatDateTime(_ date: Date) -> String {
+        formatter.dateFormat = dateTimeWithoutSeconds
+        return formatter.string(from: date)
+    }
+
+    /// Format date to datetime string with seconds (yyyy-MM-dd HH:mm:ss).
+    /// - Parameter date: Date to format
+    /// - Returns: Datetime string like "2025-01-15 10:00:00"
+    public static func formatDateTimeWithSeconds(_ date: Date) -> String {
+        formatter.dateFormat = dateTimeWithSeconds
         return formatter.string(from: date)
     }
 
@@ -144,6 +161,67 @@ public struct TRPDateHelper {
         guard let dateStr = extractDateString(dateTimeString) else { return false }
         let targetDateStr = formatDateString(targetDate)
         return dateStr == targetDateStr
+    }
+
+    // MARK: - Flexible Extraction
+
+    /// Extract "HH:mm" from either "yyyy-MM-dd HH:mm[:ss]" or a bare "HH:mm[:ss]".
+    /// Returns nil for empty/unparseable input. Unlike `extractTimeString`, this does
+    /// not assume a fixed character offset — it splits on the date/time separator — so
+    /// it also handles time-only inputs (e.g. a step's "HH:mm" start string).
+    public static func extractHourMinute(from raw: String?) -> String? {
+        guard let raw = raw, !raw.isEmpty else { return nil }
+        let timePart: String
+        if let spaceIndex = raw.firstIndex(of: " ") {
+            timePart = String(raw[raw.index(after: spaceIndex)...])
+        } else {
+            timePart = raw
+        }
+        let parts = timePart.split(separator: ":")
+        guard parts.count >= 2 else { return nil }
+        return "\(parts[0]):\(parts[1])"
+    }
+
+    /// Extract a validated "yyyy-MM-dd" from "yyyy-MM-dd HH:mm[:ss]" (or pass-through
+    /// when the input is already date-only). Returns nil for empty input or a malformed
+    /// prefix. Stricter than `extractDateString` — it verifies the 10-char dashed shape
+    /// rather than blindly taking `prefix(10)`.
+    public static func extractDateOnly(from raw: String?) -> String? {
+        guard let raw = raw, !raw.isEmpty else { return nil }
+        let datePart: String
+        if let spaceIndex = raw.firstIndex(of: " ") {
+            datePart = String(raw[..<spaceIndex])
+        } else {
+            datePart = raw
+        }
+        let chars = Array(datePart)
+        guard chars.count == 10, chars[4] == "-", chars[7] == "-" else { return nil }
+        return datePart
+    }
+
+    // MARK: - Day Matching
+
+    /// Find the `Date` in `days` whose local calendar day matches `ymd` ("yyyy-MM-dd").
+    public static func matchDay(ymd: String?, in days: [Date]) -> Date? {
+        guard let ymd = ymd else { return nil }
+        return days.first { formatDateString($0) == ymd }
+    }
+
+    // MARK: - Time Arithmetic
+
+    /// Add `minutes` to a "HH:mm[:ss]" time string and return "HH:mm", wrapping at 24h.
+    /// Returns nil for unparseable input so the caller can decide its own fallback.
+    public static func addMinutes(toTime time: String, minutes: Int) -> String? {
+        let components = time.split(separator: ":")
+        guard components.count >= 2,
+              let hour = Int(components[0]),
+              let minute = Int(components[1]) else {
+            return nil
+        }
+        let totalMinutes = hour * 60 + minute + minutes
+        let endHour = (totalMinutes / 60) % 24
+        let endMinute = totalMinutes % 60
+        return String(format: "%02d:%02d", endHour, endMinute)
     }
 
     // MARK: - Range Methods

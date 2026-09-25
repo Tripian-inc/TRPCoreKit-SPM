@@ -27,7 +27,9 @@ class PoiSearchVM {
         }
     }
     private var lastSearch : [PoiLastSearchModel] = []
-    private var nextPageLink: String = ""
+    private var currentPage: Int = 1
+    private var totalPages: Int = 1
+    private var hasMorePages: Bool = false
     
     public weak var delegate: ViewModelDelegate?
     public var isUserInCity: Bool = false
@@ -109,11 +111,8 @@ class PoiSearchVM {
     
     private func poiSearchUseCaseResult(result: Result<[TRPPoi], Error>, pagination: TRPPagination?) {
         self.delegate?.viewModel(showPreloader: false)
-        
-        if let pagination = pagination, case .continues(let link) = pagination {
-            self.nextPageLink = link
-        }
-        
+        updatePaginationInfo(pagination)
+
         switch result {
         case .success(let models):
             self.pois = models.map({ (place) -> PoiWithLocation in
@@ -121,6 +120,21 @@ class PoiSearchVM {
             })
         case .failure(let error):
             self.delegate?.viewModel(error: error)
+        }
+    }
+
+    private func updatePaginationInfo(_ pagination: TRPPagination?) {
+        if let pagination = pagination {
+            switch pagination {
+            case .completed:
+                hasMorePages = false
+            case .continues(let paginationInfo):
+                currentPage = paginationInfo.currentPage
+                totalPages = paginationInfo.totalPages
+                hasMorePages = paginationInfo.hasMore
+            }
+        } else {
+            hasMorePages = false
         }
     }
     
@@ -153,8 +167,9 @@ class PoiSearchVM {
     }
     
     public func loadNextPage() {
-        if nextPageLink.count < 5 {return}
+        guard hasMorePages else { return }
         preLoader(show: true)
+        // TODO: Implement page-based fetch when needed
     }
     
     fileprivate func preLoader(show:Bool) {

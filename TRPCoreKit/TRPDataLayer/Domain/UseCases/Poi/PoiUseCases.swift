@@ -39,6 +39,15 @@ public protocol SearchPoiUseCase {
                           page: Int?,
                           completion: ((Result<[TRPPoi], Error>, TRPPagination?)-> Void)?
                             )
+
+    /// CityId ile sayfalı + sort'lu arama yapar (`sort` query param)
+    func executeSearchPoi(text: String,
+                          categories: [Int],
+                          cityId: Int,
+                          page: Int?,
+                          sort: String?,
+                          completion: ((Result<[TRPPoi], Error>, TRPPagination?)-> Void)?
+                            )
 }
 
 

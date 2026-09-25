@@ -22,7 +22,7 @@ public class TRPFloatingActionButton: UIButton {
     private var buttonSize: CGFloat
 
     // MARK: - Initialization
-    public init(icon: UIImage?, backgroundColor: UIColor = ColorSet.primary.uiColor, size: CGFloat = 52) {
+    public init(icon: UIImage?, backgroundColor: UIColor = ColorSet.primary.uiColor, size: CGFloat = 56) {
         self.buttonSize = size
         super.init(frame: .zero)
 
@@ -37,31 +37,27 @@ public class TRPFloatingActionButton: UIButton {
     private func setupButton(icon: UIImage?, backgroundColor: UIColor) {
         translatesAutoresizingMaskIntoConstraints = false
 
-        // Button styling
         self.backgroundColor = backgroundColor
         layer.cornerRadius = buttonSize / 2
         clipsToBounds = true
 
-        // Shadow
         layer.shadowColor = ColorSet.fg.uiColor.cgColor
         layer.shadowOffset = CGSize(width: 0, height: 4)
         layer.shadowRadius = 8
         layer.shadowOpacity = 0.15
         layer.masksToBounds = false
 
-        // Size constraints
         widthAnchor.constraint(equalToConstant: buttonSize).isActive = true
         heightAnchor.constraint(equalToConstant: buttonSize).isActive = true
 
-        // Add icon
         iconImageView.image = icon
         addSubview(iconImageView)
 
         NSLayoutConstraint.activate([
             iconImageView.centerXAnchor.constraint(equalTo: centerXAnchor),
             iconImageView.centerYAnchor.constraint(equalTo: centerYAnchor),
-            iconImageView.widthAnchor.constraint(equalToConstant: 24),
-            iconImageView.heightAnchor.constraint(equalToConstant: 24)
+            iconImageView.widthAnchor.constraint(equalToConstant: 20),
+            iconImageView.heightAnchor.constraint(equalToConstant: 20)
         ])
     }
 

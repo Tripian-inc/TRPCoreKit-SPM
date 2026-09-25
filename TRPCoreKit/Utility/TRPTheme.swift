@@ -273,6 +273,7 @@ public enum ColorSet {
     case bgDisabled
     case bgOrange
     case bgBlue
+    case bgPurple
     case primaryText
     case primaryWeakText
     case inactive
@@ -292,18 +293,46 @@ public enum ColorSet {
     case fgGray
     case fgTertiary
     case borderActive
+    case borderDefault
     case mainDark
-    
+    case errorIcon
+    case errorBg
+    case errorFg
+    case infoBg
+    case infoIcon
+    case warningBg
+    case warningIcon
+    case warningBorder
+    case civiOrange
+
+    private static var brandPrimary: UIColor {
+        TRPCoreKit.shared.provider == .nexus
+            ? UIColor(red: 255, green: 98, blue: 29)
+            : UIColor(red: 234, green: 5, blue: 88)
+    }
+
+    private static var brandPinkForeground: UIColor {
+        TRPCoreKit.shared.provider == .civitatis
+            ? UIColor(red: 194, green: 4, blue: 75)
+            : brandPrimary
+    }
+
+    private static var brandPrimaryBg: UIColor {
+        TRPCoreKit.shared.provider == .nexus
+            ? UIColor(red: 255, green: 236, blue: 228)
+            : UIColor(red: 255, green: 234, blue: 241)
+    }
+
     public var uiColor: UIColor {
         switch self {
         case .primary, .ratingStar, .fgSecondary:
-            return UIColor(red: 234, green: 5, blue: 88)
+            return Self.brandPrimary
         case .neutral100:
             return UIColor(red: 247, green: 247, blue: 247)
         case .neutral200:
             return UIColor(red: 234, green: 234, blue: 234)
         case .bgPink:
-            return UIColor(red: 255, green: 234, blue: 241)
+            return Self.brandPrimaryBg
         case .bgGreen:
             return UIColor(red: 218, green: 250, blue: 235)
         case .bgDisabled:
@@ -324,6 +353,8 @@ public enum ColorSet {
             return UIColor(red: 0, green: 130, blue: 91)
         case .line, .fgWeaker:
             return UIColor(red: 140, green: 140, blue: 140)
+        case .borderDefault:
+            return UIColor(red: 204, green: 204, blue: 204)
         case .lineWeak:
             return UIColor(red: 207, green: 207, blue: 207)
         case .bgOrange:
@@ -331,15 +362,35 @@ public enum ColorSet {
         case .fgOrange:
             return UIColor(red: 125, green: 41, blue: 35)
         case .fgPink:
-            return UIColor(red: 194, green: 4, blue: 75)
+            return Self.brandPinkForeground
         case .fgBlue:
             return UIColor(red: 5, green: 90, blue: 128)
         case .mainDark:
             return UIColor(red: 36, green: 35, blue: 35)
         case .fgTertiary:
-            return UIColor(red: 234, green: 5, blue: 88)
+            return Self.brandPrimary
         case .fgGray:
             return UIColor(red: 33, green: 32, blue: 32)
+        case .bgPurple:
+            return UIColor(red: 154, green: 62, blue: 170)
+        case .errorIcon:
+            return UIColor(red: 234, green: 57, blue: 53)
+        case .errorBg:
+            return UIColor(red: 255, green: 235, blue: 238)
+        case .errorFg:
+            return UIColor(red: 197, green: 63, blue: 55)
+        case .infoBg:
+            return UIColor(red: 242, green: 250, blue: 253)
+        case .infoIcon:
+            return UIColor(red: 9, green: 138, blue: 195)
+        case .warningBg:
+            return UIColor(red: 255, green: 249, blue: 225)
+        case .warningIcon:
+            return UIColor(red: 214, green: 119, blue: 26)
+        case .warningBorder:
+            return UIColor(red: 248, green: 195, blue: 22)
+        case .civiOrange:
+            return UIColor(red: 214, green: 119, blue: 26)
         }
     }
     
@@ -349,12 +400,14 @@ public enum ColorSet {
     }
     
     public static func getMapColor(_ index: Int) -> UIColor {
-        let colors = [ColorSet.fgBlue.uiColor,
-                      ColorSet.greenAdvantage.uiColor,
-                      ColorSet.fgPink.uiColor,
-                      ColorSet.fgOrange.uiColor,
-                      ColorSet.primaryText.uiColor]
-        
+        let colors = [
+            ColorSet.fg.uiColor,           // 0 = Siyah (ilk şehir)
+            ColorSet.primary.uiColor,      // 1 = Primary (ikinci şehir)
+            ColorSet.fgBlue.uiColor,       // 2 = Mavi
+            ColorSet.greenAdvantage.uiColor, // 3 = Yeşil
+            ColorSet.fgOrange.uiColor      // 4 = Turuncu
+        ]
+
         let safeIndex = index % colors.count
         return colors[safeIndex]
     }

@@ -50,6 +50,12 @@ extension TRPLanguagesUseCases : FetchLanguagesUseCase {
     }
     
     
+    public func executeFetchCurrentLanguageTranslations(completion: ((Result<[String: Any], Error>) -> Void)?) {
+        repository.fetchCurrentLanguageTranslations { result in
+            completion?(result)
+        }
+    }
+
     public func executeFetchLanguages(completion: ((Result<TRPLanguagesInfoModel, Error>) -> Void)?) {
         let onComplete = completion ?? { result in }
         repository.fetchLanguages {  result in

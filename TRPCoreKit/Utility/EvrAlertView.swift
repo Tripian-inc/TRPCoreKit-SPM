@@ -31,6 +31,7 @@ public enum EvrAlertLevel {
 }
 public class EvrAlertView {
     
+    /// Errors are rendered by `TRPErrorBanner` and stay until the user closes them, so `showTime` does not apply to them.
     public static func showAlert(
         contentText: String,
         type: EvrAlertLevel = .error,
@@ -38,7 +39,11 @@ public class EvrAlertView {
         showTime:TimeInterval = 3,
         showAnimation: TimeInterval = 0.7)
     {
-        
+        if type == .error {
+            TRPErrorBanner.show(message: contentText)
+            return
+        }
+
         guard let topViewController = UIApplication.getTopViewController() else {
             Log.e("[Error] TopViewController is nil")
             return

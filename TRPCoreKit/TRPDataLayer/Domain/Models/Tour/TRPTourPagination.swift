@@ -24,7 +24,7 @@ public struct TRPTourPagination: Hashable {
 
     /// Check if there are more results to load
     public var hasMore: Bool {
-        return limit <= total
+        return offset + limit < total
     }
 
     /// Get next offset for pagination

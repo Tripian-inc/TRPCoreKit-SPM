@@ -19,6 +19,7 @@ class ItineraryStepPoiDetailViewController: TRPBaseUIViewController {
         tableView.translatesAutoresizingMaskIntoConstraints = false
         tableView.backgroundColor = .clear
         tableView.separatorStyle = .none
+        tableView.showsVerticalScrollIndicator = false
         tableView.contentInsetAdjustmentBehavior = .never
         tableView.contentInset = UIEdgeInsets(top: 0, left: 0, bottom: 0, right: 0)
         return tableView
@@ -46,10 +47,8 @@ class ItineraryStepPoiDetailViewController: TRPBaseUIViewController {
         setupTableView()
         viewModel.delegate = self
 
-        // Set navigation bar title
         title = viewModel.step.poi.name
 
-        // Show navigation bar with back button
         navigationController?.setNavigationBarHidden(false, animated: false)
     }
 
@@ -84,8 +83,7 @@ class ItineraryStepPoiDetailViewController: TRPBaseUIViewController {
         tableView.dataSource = self
         tableView.rowHeight = UITableView.automaticDimension
         tableView.estimatedRowHeight = 72
-        
-        // Register cells
+
         tableView.register(cellClass: UITableViewCell.self)
         tableView.register(cellClass: ImageCarouselTableViewCell.self)
         tableView.register(cellClass: TitleTableViewCell.self)
@@ -95,13 +93,12 @@ class ItineraryStepPoiDetailViewController: TRPBaseUIViewController {
         tableView.register(cellClass: ButtonTableViewCell.self)
         tableView.register(cellClass: MapTableViewCell.self)
 
-        // Register PoiDetailImageAndTitle from XIB if available
         let bundle = Bundle(for: PoiDetailImageAndTitle.self)
         if let _ = bundle.path(forResource: "PoiDetailImageAndTitle", ofType: "nib") {
             let nib = UINib(nibName: "PoiDetailImageAndTitle", bundle: bundle)
             tableView.register(nib, forCellReuseIdentifier: String(describing: PoiDetailImageAndTitle.self))
         } else {
-            // Fallback: register class (won't work with IBOutlets but prevents crash)
+            // Fallback class registration won't bind IBOutlets but prevents a crash.
             tableView.register(cellClass: PoiDetailImageAndTitle.self)
         }
     }
@@ -164,10 +161,7 @@ extension ItineraryStepPoiDetailViewController {
     }
     
     private func makeGalleryWithTitleCell(_ tableView: UITableView, cellForRowAt indexPath: IndexPath, model: ItineraryStepPoiDetailCellContent) -> UITableViewCell {
-        // Create a simple cell with image gallery programmatically
-        // Since PoiDetailImageAndTitle requires XIB and we don't have it,
-        // we'll create a basic cell with the POI name and rating
-
+        // Basic name + rating cell; PoiDetailImageAndTitle requires an XIB we don't have.
         let cell = UITableViewCell(style: .subtitle, reuseIdentifier: "GalleryTitleCell")
         cell.selectionStyle = .none
 
@@ -176,7 +170,6 @@ extension ItineraryStepPoiDetailViewController {
             cell.textLabel?.font = FontSet.montserratSemiBold.font(18)
             cell.textLabel?.textColor = ColorSet.fg.uiColor
 
-            // Show rating if available
             if cellModel.globalRating && cellModel.starCount > 0 {
                 let ratingText = String(repeating: "⭐️", count: cellModel.starCount) + " (\(cellModel.reviewCount) reviews)"
                 cell.detailTextLabel?.text = ratingText
@@ -230,7 +223,6 @@ extension ItineraryStepPoiDetailViewController: ItineraryStepPoiDetailViewModelD
     }
     
     override func viewModel(showPreloader: Bool) {
-        // Handle preloader if needed
     }
 }
 

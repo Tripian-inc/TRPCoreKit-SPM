@@ -37,10 +37,13 @@ public class TRPRouteCalculator {
     private var dailyPlanId:Int?
     private var legCount: Int?
     
-    public init(providerApiKey: String, wayPoints: [TRPLocation], dailyPlanId:Int? = nil) {
+    /// - Parameter profile: Routing profile for the request. A walking request that finds no route
+    ///   is retried by automobile; an automobile request is never retried.
+    public init(providerApiKey: String, wayPoints: [TRPLocation], dailyPlanId:Int? = nil, profile: DirectionProfile = .walking) {
         self.providerApiKey = providerApiKey
         self.wayPoints = wayPoints
         self.dailyPlanId = dailyPlanId
+        self.directionProfile = profile
     }
     
     public func calculateRoute(_ handler: @escaping CompletationHandler) {
@@ -65,7 +68,7 @@ public class TRPRouteCalculator {
         let mapBoxWayPoints = trpLocationsToWayPoints(mWayPoints)
         let options = RouteOptions(waypoints: mapBoxWayPoints,
                                    profileIdentifier: mapBoxProfileIdentify)
-        options.includesSteps = false
+        options.includesSteps = true
         options.includesAlternativeRoutes = true
         options.roadClassesToAvoid = [.ferry]
         options.routeShapeResolution = .full
@@ -89,7 +92,7 @@ public class TRPRouteCalculator {
                 
             case .failure(let error):
                 //Eski error yapısı yeni Mapbox api' ından dolayı değiştirildi.
-                if self.isErrorAboutNoRoute(error.localizedDescription) && self.routeErrorStatus == .none {
+                if self.isErrorAboutNoRoute(error.localizedDescription) && self.routeErrorStatus == .none && directionProfile == .walking {
                     self.routeErrorStatus = .walking
                     self.calculate(DirectionProfile.automobile, mWayPoints)
                     return

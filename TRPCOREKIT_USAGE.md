@@ -73,9 +73,19 @@ extension ViewController: TRPCoreKitDelegate {
         // Open your activity detail screen
     }
 
+    func trpCoreKitDidRequestActivityReservation(activityId: String) {
+        print("User wants to reserve activity: \(activityId)")
+        // Open your reservation/booking screen
+    }
+
     func trpCoreKitDidCreateTimeline(tripHash: String) {
         print("Timeline created: \(tripHash)")
         // Save tripHash, send analytics, etc.
+    }
+
+    func trpCoreKitDidAddActivity(activityId: String) {
+        print("User added activity: \(activityId)")
+        // Handle newly added activity
     }
 }
 ```
@@ -290,6 +300,44 @@ func trpCoreKitDidCreateTimeline(tripHash: String) {
 
 ---
 
+### Activity Reservation Request
+
+Called when user taps the reservation button on an activity:
+
+```swift
+func trpCoreKitDidRequestActivityReservation(activityId: String) {
+    print("User wants to reserve activity: \(activityId)")
+
+    // Open your booking/reservation flow
+    let bookingVC = YourBookingViewController(activityId: activityId)
+    navigationController?.pushViewController(bookingVC, animated: true)
+}
+```
+
+---
+
+### Activity Added
+
+Called when user manually adds an activity to the timeline:
+
+```swift
+func trpCoreKitDidAddActivity(activityId: String) {
+    print("User added activity to timeline: \(activityId)")
+
+    // Sync with your backend
+    syncAddedActivityToBackend(activityId)
+
+    // Send analytics event
+    Analytics.logEvent("activity_added", parameters: [
+        "activity_id": activityId
+    ])
+}
+```
+
+**Activity ID:** The unique identifier of the activity that was added to the timeline.
+
+---
+
 ## Complete Integration Example
 
 Here's a complete example showing all integration points:
@@ -411,6 +459,17 @@ class AppCoordinator: TRPCoreKitDelegate {
         // openWebView(url: url)
     }
 
+    // Handle activity reservation requests
+    func trpCoreKitDidRequestActivityReservation(activityId: String) {
+        print("🎫 Activity reservation requested: \(activityId)")
+
+        // Open your booking flow
+        if let topVC = UIApplication.shared.topViewController() {
+            let bookingVC = BookingViewController(activityId: activityId)
+            topVC.navigationController?.pushViewController(bookingVC, animated: true)
+        }
+    }
+
     // Handle timeline creation
     func trpCoreKitDidCreateTimeline(tripHash: String) {
         print("✅ Timeline created: \(tripHash)")
@@ -435,9 +494,28 @@ class AppCoordinator: TRPCoreKitDelegate {
         )
     }
 
+    // Handle activity added to timeline
+    func trpCoreKitDidAddActivity(activityId: String) {
+        print("➕ Activity added to timeline: \(activityId)")
+
+        // Sync to backend
+        syncAddedActivityToBackend(activityId)
+
+        // Send analytics
+        Analytics.logEvent("activity_added", parameters: [
+            "activity_id": activityId,
+            "timestamp": Date().timeIntervalSince1970
+        ])
+    }
+
     private func syncTripHashToBackend(_ tripHash: String) {
         // Call your backend API
         // BackendAPI.saveTripHash(tripHash) { result in ... }
+    }
+
+    private func syncAddedActivityToBackend(_ activityId: String) {
+        // Call your backend API
+        // BackendAPI.syncAddedActivity(activityId) { result in ... }
     }
 }
 
@@ -582,11 +660,17 @@ static func dismiss(animated: Bool = true)
 ```swift
 public protocol TRPCoreKitDelegate: AnyObject {
 
-    /// Called when user selects an activity
+    /// Called when user selects an activity to view details
     func trpCoreKitDidRequestActivityDetail(activityId: String)
+
+    /// Called when user wants to book/reserve an activity
+    func trpCoreKitDidRequestActivityReservation(activityId: String)
 
     /// Called when timeline is created
     func trpCoreKitDidCreateTimeline(tripHash: String)
+
+    /// Called when user manually adds an activity to the timeline
+    func trpCoreKitDidAddActivity(activityId: String)
 }
 ```
 

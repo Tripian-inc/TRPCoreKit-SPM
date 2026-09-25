@@ -1,644 +1,231 @@
-//
-//  TRPTimelineModeUseCasesTests.swift
-//  TRPCoreKitTests
-//
-//  Created by Unit Tests Generator on 04.12.2024.
-//  Copyright © 2024 Tripian Inc. All rights reserved.
-//
-
-import Testing
-import Foundation
-@testable import TRPCoreKit
+import XCTest
 import TRPFoundationKit
+@testable import TRPCoreKit
 
-/// Test suite for TRPTimelineModeUseCases focusing on timeline CRUD operations
-@Suite("Timeline Mode Use Cases Tests")
-struct TRPTimelineModeUseCasesTests {
-    
-    // MARK: - Helper Methods
-    
-    /// Creates a mock use cases instance for testing
-    func createMockUseCases() -> TRPTimelineModeUseCases {
-        let mockTimelineRepo = MockTimelineRepository()
-        let mockPlanRepo = MockTimelinePlanRepository()
-        let mockStepRepo = MockTimelineStepRepository()
-        let mockTimelineModelRepo = MockTimelineModelRepository()
-        let mockPoiRepo = MockPoiRepository()
-        
-        return TRPTimelineModeUseCases(
-            timelineRepository: mockTimelineRepo,
-            planRepository: mockPlanRepo,
-            stepRepository: mockStepRepo,
-            timelineModelRepository: mockTimelineModelRepo,
-            poiRepository: mockPoiRepo
+final class TRPTimelineModeUseCasesTests: XCTestCase {
+
+    private var timelineRepository: MockTimelineRepository!
+    private var planRepository: MockTimelinePlanRepository!
+    private var stepRepository: MockTimelineStepRepository!
+    private var modelRepository: MockTimelineModelRepository!
+    private var poiRepository: MockPoiRepository!
+    private var useCases: TRPTimelineModeUseCases!
+
+    override func setUp() {
+        super.setUp()
+        timelineRepository = MockTimelineRepository()
+        planRepository = MockTimelinePlanRepository()
+        stepRepository = MockTimelineStepRepository()
+        modelRepository = MockTimelineModelRepository()
+        poiRepository = MockPoiRepository()
+        useCases = TRPTimelineModeUseCases(
+            timelineRepository: timelineRepository,
+            planRepository: planRepository,
+            stepRepository: stepRepository,
+            timelineModelRepository: modelRepository,
+            poiRepository: poiRepository
         )
     }
-    
-    // MARK: - Fetch Timeline Tests (Getting)
-    
-    @Test("Fetch timeline successfully")
-    func testFetchTimelineSuccessfully() async {
-        // Given: Mock use cases with a successful response
-        let useCases = createMockUseCases()
-        let tripHash = "7cbeea9f5ddc40cd807b15d8778736f6"
-        
-        // When: Fetching timeline
-        var fetchedTimeline: TRPTimeline?
-        var fetchError: Error?
-        
-        let expectation = TestExpectation(description: "Timeline fetch completed")
-        
-        useCases.executeFetchTimeline(tripHash: tripHash) { result in
-            switch result {
-            case .success(let timeline):
-                fetchedTimeline = timeline
-            case .failure(let error):
-                fetchError = error
-            }
-            expectation.fulfill()
+
+    private func generatedTimeline() -> TRPTimeline {
+        var timeline = TRPTimelineMockData.getMockTimeline()
+        timeline.plans = timeline.plans?.map { plan in
+            var plan = plan
+            plan.generatedStatus = 1
+            return plan
         }
-        
-        // Wait for async operation (simulated)
-        try? await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
-        
-        // Then: Should successfully fetch timeline
-        #expect(fetchedTimeline != nil || fetchError != nil) // One should be set
+        return timeline
     }
-    
-    @Test("Fetch timeline with invalid trip hash")
-    func testFetchTimelineWithInvalidTripHash() async {
-        // Given: Mock use cases
-        let useCases = createMockUseCases()
-        let invalidTripHash = ""
-        
-        // When: Fetching timeline with invalid hash
-        var fetchError: Error?
-        
-        let expectation = TestExpectation(description: "Timeline fetch failed")
-        
-        useCases.executeFetchTimeline(tripHash: invalidTripHash) { result in
-            switch result {
-            case .success:
-                break
-            case .failure(let error):
-                fetchError = error
-            }
-            expectation.fulfill()
+
+    func testFetchTimelineStoresTripAndItsPois() {
+        let expected = generatedTimeline()
+        timelineRepository.timeline = expected
+        let done = expectation(description: "fetch")
+
+        useCases.executeFetchTimeline(tripHash: expected.tripHash) { result in
+            guard case .success(let trip) = result else { return XCTFail("expected success") }
+            XCTAssertEqual(trip.tripHash, expected.tripHash)
+            done.fulfill()
         }
-        
-        // Wait for async operation
-        try? await Task.sleep(nanoseconds: 100_000_000)
-        
-        // Then: Should handle invalid hash appropriately
-        // Error may or may not be set depending on repository behavior
-        #expect(true) // Test completes without crash
+
+        wait(for: [done], timeout: 2)
+        XCTAssertEqual(useCases.timeline.value?.tripHash, expected.tripHash)
+        XCTAssertEqual(timelineRepository.savedTripHash, expected.tripHash)
+        XCTAssertEqual(Set(poiRepository.pois.map { $0.id }), Set(expected.getPois().map { $0.id }))
     }
-    
-    // MARK: - Fetch Plan Tests (Getting)
-    
-    @Test("Fetch plan by ID")
-    func testFetchPlanById() async {
-        // Given: Mock use cases
-        let useCases = createMockUseCases()
-        let planId = "25459"
-        
-        // When: Fetching a specific plan
-        var fetchedPlan: TRPTimelinePlan?
-        var fetchError: Error?
-        
-        let expectation = TestExpectation(description: "Plan fetch completed")
-        
-        useCases.executeFetchPlan(id: planId) { result in
-            switch result {
-            case .success(let plan):
-                fetchedPlan = plan
-            case .failure(let error):
-                fetchError = error
-            }
-            expectation.fulfill()
+
+    func testFetchTimelineFailurePropagates() {
+        timelineRepository.error = GeneralError.customMessage("boom")
+        let done = expectation(description: "fetch")
+
+        useCases.executeFetchTimeline(tripHash: "missing") { result in
+            guard case .failure = result else { return XCTFail("expected failure") }
+            done.fulfill()
         }
-        
-        // Wait for async operation
-        try? await Task.sleep(nanoseconds: 100_000_000)
-        
-        // Then: Should complete (success or error)
-        #expect(fetchedPlan != nil || fetchError != nil)
+
+        wait(for: [done], timeout: 2)
+        XCTAssertNil(useCases.timeline.value)
     }
-    
-    @Test("Change daily plan")
-    func testChangeDailyPlan() async {
-        // Given: Mock use cases with timeline set
-        let useCases = createMockUseCases()
-        let planId = "25459"
-        
-        // When: Changing daily plan
-        var changedPlan: TRPTimelinePlan?
-        
-        let expectation = TestExpectation(description: "Daily plan changed")
-        
-        useCases.executeChangeDailyPlan(id: planId) { result in
-            switch result {
-            case .success(let plan):
-                changedPlan = plan
-            case .failure:
-                break
-            }
-            expectation.fulfill()
+
+    func testFetchPlanReplacesPlanInsideTrip() {
+        let timeline = generatedTimeline()
+        modelRepository.timeline.value = timeline
+        var renamed = timeline.plans!.first!
+        renamed.name = "Renamed"
+        planRepository.plan = renamed
+        let done = expectation(description: "plan")
+
+        useCases.executeFetchPlan(id: renamed.id) { result in
+            guard case .success(let plan) = result else { return XCTFail("expected success") }
+            XCTAssertEqual(plan.name, "Renamed")
+            done.fulfill()
         }
-        
-        // Wait for async operation
-        try? await Task.sleep(nanoseconds: 100_000_000)
-        
-        // Then: Test completes
-        #expect(changedPlan != nil || changedPlan == nil)
+
+        wait(for: [done], timeout: 2)
+        XCTAssertEqual(planRepository.fetchedPlanIds, [renamed.id])
+        XCTAssertEqual(useCases.timeline.value?.plans?.first?.name, "Renamed")
     }
-    
-    // MARK: - Edit Plan Tests (Editing)
-    
-    @Test("Edit plan hours")
-    func testEditPlanHours() async {
-        // Given: Mock use cases
-        let useCases = createMockUseCases()
-        let startTime = "09:00"
-        let endTime = "21:00"
-        
-        // When: Editing plan hours
-        var editedPlan: TRPTimelinePlan?
-        
-        let expectation = TestExpectation(description: "Plan hours edited")
-        
-        useCases.executeEditPlanHours(startTime: startTime, endTime: endTime) { result in
-            switch result {
-            case .success(let plan):
-                editedPlan = plan
-            case .failure:
-                break
-            }
-            expectation.fulfill()
+
+    func testChangeDailyPlanPublishesAnAlreadyGeneratedPlan() {
+        let timeline = generatedTimeline()
+        modelRepository.timeline.value = timeline
+        let target = timeline.plans![1]
+        let done = expectation(description: "change")
+
+        useCases.executeChangeDailyPlan(id: target.id) { result in
+            guard case .success(let plan) = result else { return XCTFail("expected success") }
+            XCTAssertEqual(plan.id, target.id)
+            done.fulfill()
         }
-        
-        // Wait for async operation
-        try? await Task.sleep(nanoseconds: 100_000_000)
-        
-        // Then: Test completes
-        #expect(true)
+
+        wait(for: [done], timeout: 2)
+        XCTAssertEqual(useCases.currentPlan.value?.id, target.id)
     }
-    
-    @Test("Edit plan step order")
-    func testEditPlanStepOrder() async {
-        // Given: Mock use cases
-        let useCases = createMockUseCases()
-        let stepOrders = [126392, 126393, 126394]
-        
-        // When: Reordering steps
-        var editedPlan: TRPTimelinePlan?
-        
-        let expectation = TestExpectation(description: "Step order edited")
-        
-        useCases.executeEditPlanStepOrder(stepOrders: stepOrders) { result in
-            switch result {
-            case .success(let plan):
-                editedPlan = plan
-            case .failure:
-                break
-            }
-            expectation.fulfill()
+
+    func testDeleteStepRemovesItFromCurrentPlanAndRefetches() {
+        let timeline = generatedTimeline()
+        modelRepository.timeline.value = timeline
+        let plan = timeline.plans!.first!
+        modelRepository.dailySegment.value = plan
+        planRepository.plan = plan
+        let removedStep = plan.steps.first!
+        let done = expectation(description: "delete")
+
+        useCases.executeDeleteStep(id: removedStep.id) { result in
+            guard case .success(let ok) = result, ok else { return XCTFail("expected success") }
+            done.fulfill()
         }
-        
-        // Wait for async operation
-        try? await Task.sleep(nanoseconds: 100_000_000)
-        
-        // Then: Test completes
-        #expect(true)
+
+        wait(for: [done], timeout: 2)
+        XCTAssertEqual(stepRepository.deletedStepIds, [removedStep.id])
+        XCTAssertEqual(planRepository.fetchedPlanIds, [plan.id])
     }
-    
-    // MARK: - Add Step Tests (Creating)
-    
-    @Test("Add step to plan")
-    func testAddStepToPlan() async {
-        // Given: Mock use cases
-        let useCases = createMockUseCases()
-        let poiId = "540484" // Casa Batlló
-        let stepDate = "2025-12-07 12:00:00"
-        let startTime = "12:00"
-        let endTime = "14:00"
-        
-        // When: Adding a step
-        var addedStep: TRPTimelineStep?
-        
-        let expectation = TestExpectation(description: "Step added")
-        
-        useCases.executeAddStep(poiId: poiId, stepDate: stepDate, startTime: startTime, endTime: endTime) { result in
-            switch result {
-            case .success(let step):
-                addedStep = step
-            case .failure:
-                break
-            }
-            expectation.fulfill()
+
+    func testEditStepSendsThePoiAndRefetchesDailyPlan() {
+        let timeline = generatedTimeline()
+        modelRepository.timeline.value = timeline
+        let plan = timeline.plans!.first!
+        modelRepository.dailySegment.value = plan
+        planRepository.plan = plan
+        stepRepository.step = plan.steps.first!
+        let done = expectation(description: "edit")
+
+        useCases.executeEditStep(id: 42, poiId: "540484") { result in
+            guard case .success = result else { return XCTFail("expected success") }
+            done.fulfill()
         }
-        
-        // Wait for async operation
-        try? await Task.sleep(nanoseconds: 100_000_000)
-        
-        // Then: Test completes
-        #expect(true)
-    }
-    
-    @Test("Add custom step to plan")
-    func testAddCustomStepToPlan() async {
-        // Given: Mock use cases
-        let useCases = createMockUseCases()
-        let planId = "25459"
-        let stepDate = "2025-12-07 15:00:00"
-        let startTime = "15:00"
-        let endTime = "16:00"
-        
-        let customPoi = TRPTimelineStepCustomPoi(
-            name: "Custom Restaurant",
-            address: "Custom Address, Barcelona",
-            coordinate: TRPLocation(lat: 41.3851, lon: 2.1734)
-        )
-        
-        // When: Adding a custom step
-        var addedStep: TRPTimelineStep?
-        
-        let expectation = TestExpectation(description: "Custom step added")
-        
-        useCases.executeAddCustomStep(planId: planId, stepDate: stepDate, startTime: startTime, endTime: endTime, customStep: customPoi) { result in
-            switch result {
-            case .success(let step):
-                addedStep = step
-            case .failure:
-                break
-            }
-            expectation.fulfill()
-        }
-        
-        // Wait for async operation
-        try? await Task.sleep(nanoseconds: 100_000_000)
-        
-        // Then: Test completes
-        #expect(true)
-    }
-    
-    // MARK: - Delete Step Tests (Editing)
-    
-    @Test("Delete step by POI ID")
-    func testDeleteStepByPoiId() async {
-        // Given: Mock use cases
-        let useCases = createMockUseCases()
-        let poiId = "540484"
-        
-        // When: Deleting a step by POI ID
-        var deleteSuccess: Bool?
-        
-        let expectation = TestExpectation(description: "Step deleted by POI ID")
-        
-        useCases.executeDeletePoi(id: poiId) { result in
-            switch result {
-            case .success(let success):
-                deleteSuccess = success
-            case .failure:
-                break
-            }
-            expectation.fulfill()
-        }
-        
-        // Wait for async operation
-        try? await Task.sleep(nanoseconds: 100_000_000)
-        
-        // Then: Test completes
-        #expect(true)
-    }
-    
-    @Test("Delete step by step ID")
-    func testDeleteStepByStepId() async {
-        // Given: Mock use cases
-        let useCases = createMockUseCases()
-        let stepId = 126392
-        
-        // When: Deleting a step by step ID
-        var deleteSuccess: Bool?
-        
-        let expectation = TestExpectation(description: "Step deleted by step ID")
-        
-        useCases.executeDeleteStep(id: stepId) { result in
-            switch result {
-            case .success(let success):
-                deleteSuccess = success
-            case .failure:
-                break
-            }
-            expectation.fulfill()
-        }
-        
-        // Wait for async operation
-        try? await Task.sleep(nanoseconds: 100_000_000)
-        
-        // Then: Test completes
-        #expect(true)
-    }
-    
-    // MARK: - Edit Step Tests (Editing)
-    
-    @Test("Edit step POI")
-    func testEditStepPoi() async {
-        // Given: Mock use cases
-        let useCases = createMockUseCases()
-        let stepId = 126392
-        let newPoiId = "543194" // La Pedrera
-        
-        // When: Editing step POI
-        var editedStep: TRPTimelineStep?
-        
-        let expectation = TestExpectation(description: "Step POI edited")
-        
-        useCases.executeEditStep(id: stepId, poiId: newPoiId) { result in
-            switch result {
-            case .success(let step):
-                editedStep = step
-            case .failure:
-                break
-            }
-            expectation.fulfill()
-        }
-        
-        // Wait for async operation
-        try? await Task.sleep(nanoseconds: 100_000_000)
-        
-        // Then: Test completes
-        #expect(true)
-    }
-    
-    @Test("Edit step hours")
-    func testEditStepHours() async {
-        // Given: Mock use cases
-        let useCases = createMockUseCases()
-        let stepId = 126392
-        let startTime = "10:00"
-        let endTime = "12:00"
-        
-        // When: Editing step hours
-        var editedStep: TRPTimelineStep?
-        
-        let expectation = TestExpectation(description: "Step hours edited")
-        
-        useCases.executeEditStepHour(id: stepId, startTime: startTime, endTime: endTime) { result in
-            switch result {
-            case .success(let step):
-                editedStep = step
-            case .failure:
-                break
-            }
-            expectation.fulfill()
-        }
-        
-        // Wait for async operation
-        try? await Task.sleep(nanoseconds: 100_000_000)
-        
-        // Then: Test completes
-        #expect(true)
-    }
-    
-    // MARK: - Alternative Fetching Tests
-    
-    @Test("Fetch step alternatives")
-    func testFetchStepAlternatives() async {
-        // Given: Mock use cases
-        let useCases = createMockUseCases()
-        let stepId = 126392
-        
-        // When: Fetching step alternatives
-        var alternatives: [TRPPoi]?
-        
-        let expectation = TestExpectation(description: "Alternatives fetched")
-        
-        useCases.executeFetchStepAlternative(stepId: stepId) { result in
-            switch result {
-            case .success(let pois):
-                alternatives = pois
-            case .failure:
-                break
-            }
-            expectation.fulfill()
-        }
-        
-        // Wait for async operation
-        try? await Task.sleep(nanoseconds: 100_000_000)
-        
-        // Then: Test completes
-        #expect(true)
-    }
-    
-    @Test("Fetch plan alternatives")
-    func testFetchPlanAlternatives() async {
-        // Given: Mock use cases
-        let useCases = createMockUseCases()
-        
-        // When: Fetching plan alternatives
-        var alternatives: [TRPPoi]?
-        
-        let expectation = TestExpectation(description: "Plan alternatives fetched")
-        
-        useCases.executeFetchPlanAlternative { result, pagination in
-            switch result {
-            case .success(let pois):
-                alternatives = pois
-            case .failure:
-                break
-            }
-            expectation.fulfill()
-        }
-        
-        // Wait for async operation
-        try? await Task.sleep(nanoseconds: 100_000_000)
-        
-        // Then: Test completes
-        #expect(true)
-    }
-    
-    @Test("Fetch alternatives with category")
-    func testFetchAlternativesWithCategory() async {
-        // Given: Mock use cases
-        let useCases = createMockUseCases()
-        let categories = [1, 3] // Attractions and Restaurants
-        
-        // When: Fetching alternatives by category
-        var alternatives: [TRPPoi]?
-        
-        let expectation = TestExpectation(description: "Category alternatives fetched")
-        
-        useCases.executeFetchAlternativeWithCategory(categories: categories) { result, pagination in
-            switch result {
-            case .success(let pois):
-                alternatives = pois
-            case .failure:
-                break
-            }
-            expectation.fulfill()
-        }
-        
-        // Wait for async operation
-        try? await Task.sleep(nanoseconds: 100_000_000)
-        
-        // Then: Test completes
-        #expect(true)
+
+        wait(for: [done], timeout: 2)
+        XCTAssertEqual(stepRepository.editedSteps.map { $0.stepId }, [42])
+        XCTAssertEqual(stepRepository.editedSteps.first?.poiId, "540484")
+        XCTAssertEqual(planRepository.fetchedPlanIds, [plan.id])
     }
 }
 
-// MARK: - Mock Repositories
+// MARK: - Mocks
 
-/// Mock timeline repository for testing
-class MockTimelineRepository: TimelineRepository {
-    func fetchTimeline(tripHash: String, completion: @escaping (Result<TRPTimeline, Error>) -> Void) {
-        // Return mock timeline
-        let timeline = TRPTimelineMockData.getMockTimeline()
+final class MockTimelineRepository: TimelineRepository {
+    var timeline: TRPTimeline?
+    var error: Error?
+    var savedTripHash: String?
+
+    private func respond(_ completion: (TimelineResultValue) -> Void) {
+        if let error = error { return completion(.failure(error)) }
+        guard let timeline = timeline else { return completion(.failure(GeneralError.customMessage("no timeline"))) }
         completion(.success(timeline))
     }
-    
-    func createTimeline(profile: TRPTimelineProfile, completion: @escaping (Result<TRPTimeline, Error>) -> Void) {
-        let timeline = TRPTimelineMockData.getMockTimeline()
-        completion(.success(timeline))
+
+    func fetchTimeline(tripHash: String, completion: @escaping (TimelineResultValue) -> Void) { respond(completion) }
+    func createTimeline(profile: TRPTimelineProfile, completion: @escaping (TimelineResultValue) -> Void) { respond(completion) }
+    func createEditTimelineSegment(profile: TRPCreateEditTimelineSegmentProfile, completion: @escaping (TimelineResultStatus) -> Void) { completion(.success(true)) }
+    func deleteTimeline(tripHash: String, completion: @escaping (TimelineResultStatus) -> Void) { completion(.success(true)) }
+    func deleteTimelineSegment(tripHash: String, segmentIndex: Int, completion: @escaping (TimelineResultStatus) -> Void) { completion(.success(true)) }
+    func fetchLocalTimeline(tripHash: String, completion: @escaping (TimelineResultValue) -> Void) { respond(completion) }
+    func saveTimeline(tripHash: String, data: TRPTimeline) { savedTripHash = tripHash }
+}
+
+final class MockTimelinePlanRepository: TimelinePlanRepository {
+    var plan: TRPTimelinePlan?
+    var fetchedPlanIds: [String] = []
+
+    private func respond(_ completion: (TimelinePlanResultValue) -> Void) {
+        guard let plan = plan else { return completion(.failure(GeneralError.customMessage("no plan"))) }
+        completion(.success(plan))
     }
-    
-    func createEditTimelineSegment(profile: TRPCreateEditTimelineSegmentProfile, completion: @escaping (Result<Bool, Error>) -> Void) {
+
+    func fetchPlan(id: String, completion: @escaping (TimelinePlanResultValue) -> Void) {
+        fetchedPlanIds.append(id)
+        respond(completion)
+    }
+    func editPlanHours(planId: Int, start: String, end: String, completion: @escaping (TimelinePlanResultValue) -> Void) { respond(completion) }
+    func editPlanStepOrder(planId: Int, stepOrders: [Int], completion: @escaping (TimelinePlanResultValue) -> Void) { respond(completion) }
+    func exportItinerary(planId: Int, tripHash: String, completion: @escaping (TimelinePlanExportResultValue) -> Void) {
+        completion(.failure(GeneralError.customMessage("not supported")))
+    }
+}
+
+final class MockTimelineStepRepository: TimelineStepRepository {
+    var step: TRPTimelineStep?
+    var deletedStepIds: [Int] = []
+    var editedSteps: [TRPTimelineStepEdit] = []
+
+    func addStep(step: TRPTimelineStepCreate, completion: @escaping (TimelineStepResultValue) -> Void) {
+        guard let step = self.step else { return completion(.failure(GeneralError.customMessage("no step"))) }
+        completion(.success(step))
+    }
+    func deleteStep(id: Int, completion: @escaping (TimelineStepStatusValue) -> Void) {
+        deletedStepIds.append(id)
         completion(.success(true))
     }
-    
-    func deleteTimeline(tripHash: String, completion: @escaping (Result<Bool, Error>) -> Void) {
-        completion(.success(true))
-    }
-    
-    func deleteTimelineSegment(tripHash: String, segmentIndex: Int, completion: @escaping (Result<Bool, Error>) -> Void) {
-        completion(.success(true))
-    }
-    
-    func fetchLocalTimeline(tripHash: String, completion: @escaping (Result<TRPTimeline, Error>) -> Void) {
-        let timeline = TRPTimelineMockData.getMockTimeline()
-        completion(.success(timeline))
-    }
-    
-    func saveTimeline(tripHash: String, data: TRPTimeline) {
-        // Mock save - do nothing
+    func editStep(step: TRPTimelineStepEdit, completion: @escaping (TimelineStepResultValue) -> Void) {
+        editedSteps.append(step)
+        guard let stored = self.step else { return completion(.failure(GeneralError.customMessage("no step"))) }
+        completion(.success(stored))
     }
 }
 
-/// Mock timeline plan repository for testing
-class MockTimelinePlanRepository: TimelinePlanRepository {
-    func fetchPlan(id: String, completion: @escaping (Result<TRPTimelinePlan, Error>) -> Void) {
-        let timeline = TRPTimelineMockData.getMockTimeline()
-        if let plan = timeline.plans?.first(where: { $0.id == id }) {
-            completion(.success(plan))
-        } else {
-            completion(.failure(NSError(domain: "Mock", code: 404, userInfo: [NSLocalizedDescriptionKey: "Plan not found"])))
-        }
-    }
-    
-    func editPlanHours(planId: Int, start: String, end: String, completion: @escaping (Result<TRPTimelinePlan, Error>) -> Void) {
-        let timeline = TRPTimelineMockData.getMockTimeline()
-        if let plan = timeline.plans?.first {
-            var editedPlan = plan
-            editedPlan.startDate = "\(editedPlan.startDate.split(separator: " ")[0]) \(start)"
-            editedPlan.endDate = "\(editedPlan.endDate.split(separator: " ")[0]) \(end)"
-            completion(.success(editedPlan))
-        } else {
-            completion(.failure(NSError(domain: "Mock", code: 404, userInfo: [NSLocalizedDescriptionKey: "Plan not found"])))
-        }
-    }
-    
-    func editPlanStepOrder(planId: Int, stepOrders: [Int], completion: @escaping (Result<TRPTimelinePlan, Error>) -> Void) {
-        let timeline = TRPTimelineMockData.getMockTimeline()
-        if let plan = timeline.plans?.first {
-            completion(.success(plan))
-        } else {
-            completion(.failure(NSError(domain: "Mock", code: 404, userInfo: [NSLocalizedDescriptionKey: "Plan not found"])))
-        }
-    }
-    
-    func exportItinerary(planId: Int, tripHash: String, completion: @escaping (Result<TRPExportItinerary, Error>) -> Void) {
-        // Return mock export result
-        let exportResult = TRPExportItinerary(url: "https://example.com/itinerary.pdf")
-        completion(.success(exportResult))
-    }
+final class MockTimelineModelRepository: TimelineModelRepository {
+    var timeline: ValueObserver<TRPTimeline> = .init(nil)
+    var dailySegment: ValueObserver<TRPTimelinePlan> = .init(nil)
+    var allSegmentGenerated: ValueObserver<Bool> = .init(nil)
+    var generationError: ValueObserver<Error?> = .init(nil)
 }
 
-/// Mock timeline step repository for testing
-class MockTimelineStepRepository: TimelineStepRepository {
-    func addStep(step: TRPTimelineStepCreate, completion: @escaping (Result<TRPTimelineStep, Error>) -> Void) {
-        let newStep = TRPTimelineStep(
-            id: Int.random(in: 100000...999999),
-            poi: nil,
-            score: 85.0,
-            planId: step.planId,
-            scoreDetails: [],
-            order: 0,
-            startDateTimes: "2025-12-07 \(step.startTime ?? "09:00"):00",
-            endDateTimes: "2025-12-07 \(step.endTime ?? "10:00"):00",
-            stepType: "poi",
-            attention: nil,
-            alternatives: [],
-            warningMessage: []
-        )
-        completion(.success(newStep))
-    }
-    
-    func deleteStep(id: Int, completion: @escaping (Result<Bool, Error>) -> Void) {
-        completion(.success(true))
-    }
-    
-    func editStep(step: TRPTimelineStepEdit, completion: @escaping (Result<TRPTimelineStep, Error>) -> Void) {
-        let editedStep = TRPTimelineStep(
-            id: step.stepId,
-            poi: nil,
-            score: 85.0,
-            planId: nil,
-            scoreDetails: [],
-            order: 0,
-            startDateTimes: "2025-12-07 \(step.startTime ?? "09:00"):00",
-            endDateTimes: "2025-12-07 \(step.endTime ?? "10:00"):00",
-            stepType: "poi",
-            attention: nil,
-            alternatives: [],
-            warningMessage: []
-        )
-        completion(.success(editedStep))
-    }
-}
+final class MockPoiRepository: PoiRepository {
+    var pois: [TRPPoi] = []
+    var poisWithParameters: [PoiParameters: [TRPPoi]] = [:]
+    var poiCategories: [TRPPoiCategoyGroup] = []
 
-/// Mock timeline model repository for testing
-class MockTimelineModelRepository: TimelineModelRepository {
-    var timeline: ValueObserver<TRPTimeline> = ValueObserver(TRPTimelineMockData.getMockTimeline())
-    var dailySegment: ValueObserver<TRPTimelinePlan> = ValueObserver(TRPTimelineMockData.getMockTimeline().plans?.first)
-    var allSegmentGenerated: ValueObserver<Bool> = ValueObserver(true)
-    var generationError: ValueObserver<Error?> = ValueObserver(nil)
+    func fetchPoi(poiId: String, completion: @escaping (PoiResultValue) -> Void) {
+        guard let poi = pois.first(where: { $0.id == poiId }) else { return completion(.failure(GeneralError.customMessage("no poi"))) }
+        completion(.success(poi))
+    }
+    func fetchPoi(cityId: Int, parameters: PoiParameters, completion: @escaping (PoiResultsValue) -> Void) { completion((.success(pois), nil)) }
+    func fetchPoi(coordinate: TRPLocation, parameters: PoiParameters, completion: @escaping (PoiResultsValue) -> Void) { completion((.success(pois), nil)) }
+    func fetchPoi(url: String, completion: @escaping (PoiResultsValue) -> Void) { completion((.success(pois), nil)) }
+    func addPois(contentsOf newPois: [TRPPoi]) {
+        for poi in newPois where !pois.contains(where: { $0.id == poi.id }) { pois.append(poi) }
+    }
+    func fetchLocalPoi(completion: @escaping (PoiResultsValue) -> Void) { completion((.success(pois), nil)) }
+    func fetchPoiCategories(completion: @escaping (PoiCategoriesResultValue) -> Void) { completion(.success(poiCategories)) }
 }
-
-/// Mock POI repository for testing
-class MockPoiRepository: PoiRepository {
-    func addPois(contentsOf pois: [TRPPoi]) {
-        // Mock add - do nothing
-    }
-    
-    func fetchPoi(cityId: Int, parameters: PoiParameters, completion: @escaping (Result<[TRPPoi], Error>, TRPPagination?) -> Void) {
-        // Return mock POIs
-        let timeline = TRPTimelineMockData.getMockTimeline()
-        let pois = timeline.getPois()
-        completion(.success(pois), nil)
-    }
-}
-
-/// Test expectation helper for async tests
-class TestExpectation {
-    let description: String
-    var isFulfilled = false
-    
-    init(description: String) {
-        self.description = description
-    }
-    
-    func fulfill() {
-        isFulfilled = true
-    }
-}
-

@@ -59,8 +59,8 @@ public class TRPTimelineMockCoordinator {
 
 // MARK: - TRPTimelineItineraryVCDelegate
 extension TRPTimelineMockCoordinator: TRPTimelineItineraryVCDelegate {
-    public func timelineItineraryDidRequestActivityReservation(_ viewController: TRPTimelineItineraryVC, activityId: String) {
-        
+    public func timelineItineraryDidRequestActivityReservation(_ viewController: TRPTimelineItineraryVC, activityId: String, date: Date) {
+
     }
     
     

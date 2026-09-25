@@ -23,13 +23,16 @@ public class TRPTourRemoteApi: TourRemoteApi {
         var request = TRPTourSearchRequestModel(cityId: cityId)
 
         // Set provider ID
-        request.providerId = 15
+        request.providerId = TRPCoreKit.shared.provider.id
 
         // Always require instant availability
         request.instantAvailability = 1
 
-        // Set city center coordinates from cache
-        if let cityCoordinate = TRPCityCache.shared.getCityCoordinate(cityId: cityId) {
+        request.poiId = parameters.poiId
+
+        // A poiId search targets one POI, so location filters would only narrow it further
+        if parameters.poiId == nil,
+           let cityCoordinate = TRPCityCache.shared.getCityCoordinate(cityId: cityId) {
             request.lat = cityCoordinate.lat
             request.lng = cityCoordinate.lon
         }
@@ -37,52 +40,60 @@ public class TRPTourRemoteApi: TourRemoteApi {
         // Map search text to keywords
         request.keywords = parameters.search
 
-        // Map tour categories array to comma-separated tagIds
+        // Map tour categories array to comma-separated tagIds (legacy keyword path)
         if let categories = parameters.tourCategories, !categories.isEmpty {
             request.tagIds = categories.joined(separator: ",")
         }
 
+        // Map facet category IDs to comma-separated `categories` parameter
+        if let categoryIds = parameters.categoryIds, !categoryIds.isEmpty {
+            request.categories = categoryIds.joined(separator: ",")
+        }
+
         // Map distance to radius (convert Float to Double if needed)
-        if let distance = parameters.distance {
+        if parameters.poiId == nil, let distance = parameters.distance {
             request.radius = Double(distance)
         }
 
-        // Map date
+        // Map date range
         request.date = parameters.date
+        request.to = parameters.dateTo
 
-        // Map pagination
+        // Server requires an explicit limit
         request.limit = parameters.limit ?? 10
         request.offset = parameters.offset ?? 0
 
         // Map price filters
-        request.minPrice = parameters.minPrice
-        request.maxPrice = parameters.maxPrice
+        request.minPrice = parameters.minPrice.map { Int($0) }
+        request.maxPrice = parameters.maxPrice.map { Int($0) }
 
         // Map rating filter
         request.minRating = parameters.minRating
 
         // Map duration filters
-        request.minDuration = parameters.minDuration
-        request.maxDuration = parameters.maxDuration
+        request.minDuration = parameters.minDuration.map { Int($0) }
+        request.maxDuration = parameters.maxDuration.map { Int($0) }
 
         // Map sorting (default to score descending)
-        request.sortingBy = parameters.sortingBy ?? "score"
+        request.sortingBy = parameters.sortingBy ?? "rating"
         request.sortingType = parameters.sortingType ?? "desc"
+
+        // Map currency and adults
+        request.currency = parameters.currency
+        request.adults = parameters.adults
 
         TRPRestKit().searchTours(request: request) { (result, error) in
 
             if let error = error {
-                completion((.failure(error), nil))
+                completion(.failure(error))
                 return
             }
 
             if let result = result as? TRPTourSearchDataModel {
-                let mapper = TourMapper()
-                let converted = mapper.mapDataModel(result)
-                let pagination = mapper.mapPagination(result)
-                completion((.success(converted), pagination))
+                let outcome = TourMapper().mapDataModel(result)
+                completion(.success(outcome))
             } else {
-                completion((.failure(GeneralError.customMessage("Couldn't convert tour data")), nil))
+                completion(.failure(GeneralError.customMessage("Couldn't convert tour data")))
             }
 
         }
@@ -95,14 +106,14 @@ public class TRPTourRemoteApi: TourRemoteApi {
                            completion: @escaping (TourResultsValue) -> Void) {
 
         guard let cityId = parameters.cityId else {
-            completion((.failure(GeneralError.customMessage("City id is required for tour search")), nil))
+            completion(.failure(GeneralError.customMessage("City id is required for tour search")))
             return
         }
 
         var request = TRPTourSearchRequestModel(cityId: cityId)
 
         // Set provider ID
-        request.providerId = 15
+        request.providerId = TRPCoreKit.shared.provider.id
 
         // Always require instant availability
         request.instantAvailability = 1
@@ -114,9 +125,14 @@ public class TRPTourRemoteApi: TourRemoteApi {
         // Map search text to keywords
         request.keywords = parameters.search
 
-        // Map tour categories array to comma-separated tagIds
+        // Map tour categories array to comma-separated tagIds (legacy keyword path)
         if let categories = parameters.tourCategories, !categories.isEmpty {
             request.tagIds = categories.joined(separator: ",")
+        }
+
+        // Map facet category IDs to comma-separated `categories` parameter
+        if let categoryIds = parameters.categoryIds, !categoryIds.isEmpty {
+            request.categories = categoryIds.joined(separator: ",")
         }
 
         // Map distance to radius (convert Float to Double if needed)
@@ -124,42 +140,44 @@ public class TRPTourRemoteApi: TourRemoteApi {
             request.radius = Double(distance)
         }
 
-        // Map date
+        // Map date range
         request.date = parameters.date
+        request.to = parameters.dateTo
 
-        // Map pagination
-        request.limit = parameters.limit ?? 10
-        request.offset = parameters.offset ?? 0
+        // Hardcoded request limit (server requires it; pagination still disabled client-side)
+        request.limit = 10
 
         // Map price filters
-        request.minPrice = parameters.minPrice
-        request.maxPrice = parameters.maxPrice
+        request.minPrice = parameters.minPrice.map { Int($0) }
+        request.maxPrice = parameters.maxPrice.map { Int($0) }
 
         // Map rating filter
         request.minRating = parameters.minRating
 
         // Map duration filters
-        request.minDuration = parameters.minDuration
-        request.maxDuration = parameters.maxDuration
+        request.minDuration = parameters.minDuration.map { Int($0) }
+        request.maxDuration = parameters.maxDuration.map { Int($0) }
 
         // Map sorting (default to score descending)
         request.sortingBy = parameters.sortingBy ?? "score"
         request.sortingType = parameters.sortingType ?? "desc"
 
+        // Map currency and adults
+        request.currency = parameters.currency
+        request.adults = parameters.adults
+
         TRPRestKit().searchTours(request: request) { (result, error) in
 
             if let error = error {
-                completion((.failure(error), nil))
+                completion(.failure(error))
                 return
             }
 
             if let result = result as? TRPTourSearchDataModel {
-                let mapper = TourMapper()
-                let converted = mapper.mapDataModel(result)
-                let pagination = mapper.mapPagination(result)
-                completion((.success(converted), pagination))
+                let outcome = TourMapper().mapDataModel(result)
+                completion(.success(outcome))
             } else {
-                completion((.failure(GeneralError.customMessage("Couldn't convert tour data")), nil))
+                completion(.failure(GeneralError.customMessage("Couldn't convert tour data")))
             }
 
         }
@@ -168,6 +186,7 @@ public class TRPTourRemoteApi: TourRemoteApi {
 
     public func getTourSchedule(productId: String,
                                 date: String,
+                                to: String?,
                                 currency: String,
                                 lang: String,
                                 completion: @escaping (Result<TRPTourSchedule, Error>) -> Void) {
@@ -175,6 +194,7 @@ public class TRPTourRemoteApi: TourRemoteApi {
         let request = TRPTourScheduleRequestModel(
             productId: productId,
             date: date,
+            to: to,
             currency: currency,
             lang: lang
         )
@@ -191,6 +211,57 @@ public class TRPTourRemoteApi: TourRemoteApi {
                 completion(.success(converted))
             } else {
                 completion(.failure(GeneralError.customMessage("Couldn't convert tour schedule data")))
+            }
+        }
+    }
+
+
+    public func lookupTourProduct(providerId: Int,
+                                  productId: String,
+                                  completion: @escaping (TourResultValue) -> Void) {
+
+        let request = TRPTourProductLookupRequestModel(providerId: providerId, productId: productId)
+
+        TRPRestKit().lookupTourProduct(request: request) { (result, error) in
+            if let error = error {
+                completion(.failure(error))
+                return
+            }
+
+            if let info = result as? TRPTourProductInfoModel,
+               let product = TourMapper().map(info) {
+                completion(.success(product))
+            } else {
+                completion(.failure(GeneralError.customMessage("Couldn't convert tour product data")))
+            }
+        }
+    }
+
+
+    public func getTourScheduleAvailability(items: [String],
+                                            date: String,
+                                            currency: String?,
+                                            lang: String?,
+                                            completion: @escaping (Result<[TRPTourScheduleAvailability], Error>) -> Void) {
+
+        let request = TRPTourScheduleAvailabilityRequestModel(
+            items: items,
+            date: date,
+            currency: currency,
+            lang: lang
+        )
+
+        TRPRestKit().getTourScheduleAvailability(request: request) { (result, error) in
+            if let error = error {
+                completion(.failure(error))
+                return
+            }
+
+            if let data = result as? TRPTourScheduleAvailabilityDataModel {
+                let mapped = TourMapper().mapAvailability(data)
+                completion(.success(mapped))
+            } else {
+                completion(.failure(GeneralError.customMessage("Couldn't convert tour schedule availability data")))
             }
         }
     }

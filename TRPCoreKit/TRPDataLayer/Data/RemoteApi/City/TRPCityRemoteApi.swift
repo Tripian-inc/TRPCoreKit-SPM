@@ -8,6 +8,7 @@
 
 import Foundation
 import TRPRestKit
+import TRPFoundationKit
 
 /// Sehir bilgilenirini API den getiri.
 final public class TRPCityRemoteApi: CityRemoteApi {
@@ -29,13 +30,16 @@ final public class TRPCityRemoteApi: CityRemoteApi {
             }
             
             if let resultCities = result as? [TRPCityInfoModel] {
-                
-                let convertedModels = CityMapper().map(resultCities)
-                cities.append(contentsOf: convertedModels)
-                
-                if let pag = pagination, pag == Pagination.completed{
-                    completion(.success(cities))
-                }
+                cities.append(contentsOf: CityMapper().map(resultCities))
+            }
+
+            guard let pagination = pagination else {
+                completion(.success(cities))
+                return
+            }
+
+            if pagination == Pagination.completed {
+                completion(.success(cities))
             }
         }
     }
@@ -118,6 +122,42 @@ final public class TRPCityRemoteApi: CityRemoteApi {
             } else {
                 completion(.failure(GeneralError.customMessage("City not found: \(name)")))
             }
+        }
+    }
+
+    /// Resolves city IDs for given coordinates using the resolveCities API
+    /// - Parameters:
+    ///   - coordinates: Array of TRPLocation coordinates to resolve
+    ///   - completion: Completion handler with array of city IDs (in same order as coordinates)
+    public func resolveCities(coordinates: [TRPLocation], completion: @escaping (Result<[Int], Error>) -> Void) {
+
+        TRPRestKit().resolveCities(coordinates: coordinates) { (result, error) in
+
+            if let error = error {
+                completion(.failure(error))
+                return
+            }
+
+            // Unwrap the optional first
+            guard let unwrappedResult = result else {
+                completion(.failure(GeneralError.customMessage("Cities resolve API returned nil")))
+                return
+            }
+
+            // Parse as array of TRPCityResolveInfoModel (TRPRestKit model)
+            if let models = unwrappedResult as? [TRPCityResolveInfoModel] {
+                let cityIds = models.map { $0.cityId }
+                completion(.success(cityIds))
+                return
+            }
+
+            // Backward compatibility: Try parsing as array of integers
+            if let cityIds = unwrappedResult as? [Int] {
+                completion(.success(cityIds))
+                return
+            }
+
+            completion(.failure(GeneralError.customMessage("Unexpected response format for cities/resolve API")))
         }
     }
 

@@ -100,10 +100,10 @@ extension ExperiencesCell: UICollectionViewDelegate, UICollectionViewDataSource,
             cell.typeLabel.text = category.name
         }
         
-        //TODO: $ gelen veriden çekilecek
+        // TODO: Currency should come from model when GYGTour has currency field
         if let price = model.price?.values?.amount {
-            cell.priceLabel.text = "$\(price)"
-        }else {
+            cell.priceLabel.text = TRPCurrencyHelper.formatPrice(price, currency: "USD")
+        } else {
             cell.priceLabel.text = ""
         }
         
@@ -128,4 +128,5 @@ extension ExperiencesCell: UICollectionViewDelegate, UICollectionViewDataSource,
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         selectedTourAction?(tours[indexPath.row].tourID)
     }
+
 }

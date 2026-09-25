@@ -7,6 +7,7 @@
 //
 
 import Foundation
+import TRPFoundationKit
 public protocol CityRemoteApi {
 
     func fetchCities(completion: @escaping (CityResultsValue) -> Void)
@@ -22,5 +23,11 @@ public protocol CityRemoteApi {
     ///   - name: City name to search for
     ///   - completion: Completion handler with optional TRPCity result
     func fetchCityByName(_ name: String, completion: @escaping (CityResultValue) -> Void)
+
+    /// Resolves city IDs for given coordinates using the resolveCities API
+    /// - Parameters:
+    ///   - coordinates: Array of TRPLocation coordinates to resolve
+    ///   - completion: Completion handler with array of city IDs (in same order as coordinates)
+    func resolveCities(coordinates: [TRPLocation], completion: @escaping (Result<[Int], Error>) -> Void)
 
 }

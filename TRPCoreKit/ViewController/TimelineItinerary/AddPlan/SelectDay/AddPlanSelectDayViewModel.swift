@@ -26,6 +26,10 @@ public class AddPlanSelectDayViewModel {
     public func getAvailableCities() -> [TRPCity] {
         return containerViewModel?.getAvailableCities() ?? []
     }
+
+    public func hasSingleCity() -> Bool {
+        return getAvailableCities().count == 1
+    }
     
     public func getSelectedDay() -> Date? {
         return containerViewModel?.planData.selectedDay
@@ -53,7 +57,14 @@ public class AddPlanSelectDayViewModel {
     
     public func clearSelection() {
         if let days = containerViewModel?.getAvailableDays(), !days.isEmpty {
-            containerViewModel?.planData.selectedDay = days.first
+            // Past days are non-selectable in AddPlan; default to today, then first non-past, then last.
+            if let today = days.first(where: { $0.isToday() }) {
+                containerViewModel?.planData.selectedDay = today
+            } else if let firstFuture = days.first(where: { !$0.isPastDay() }) {
+                containerViewModel?.planData.selectedDay = firstFuture
+            } else {
+                containerViewModel?.planData.selectedDay = days.last
+            }
         }
         if let cities = containerViewModel?.getAvailableCities(), !cities.isEmpty {
             containerViewModel?.planData.selectedCity = cities.first
@@ -79,8 +90,45 @@ public class AddPlanSelectDayViewModel {
     public func getSelectedManualCategory() -> String? {
         return containerViewModel?.planData.selectedCategories.first
     }
-    
+
     public func setSelectedManualCategory(_ categoryId: String?) {
         containerViewModel?.planData.selectedCategories = categoryId != nil ? [categoryId!] : []
+
+        if categoryId == "activities" && (containerViewModel?.planData.travelers ?? 0) == 0 {
+            containerViewModel?.planData.travelers = 1
+        }
+    }
+
+    // MARK: - Travelers
+
+    public func getTravelerCount() -> Int {
+        let count = containerViewModel?.planData.travelers ?? 1
+        return count > 0 ? count : 1
+    }
+
+    public func incrementTravelers() {
+        let current = containerViewModel?.planData.travelers ?? 1
+        containerViewModel?.planData.travelers = current + 1
+    }
+
+    public func decrementTravelers() {
+        let current = containerViewModel?.planData.travelers ?? 1
+        if current > 1 {
+            containerViewModel?.planData.travelers = current - 1
+        }
+    }
+
+    // MARK: - Date-City Mapping
+
+    /// Cities for the selected day: mapped cities first, then others.
+    public func getCitiesForSelectedDay() -> (mapped: [TRPCity], other: [TRPCity]) {
+        guard let selectedDay = containerViewModel?.planData.selectedDay else {
+            return (mapped: [], other: getAvailableCities())
+        }
+        return containerViewModel?.getCitiesForDate(selectedDay) ?? (mapped: [], other: getAvailableCities())
+    }
+
+    public func hasDateCityMapping() -> Bool {
+        return containerViewModel?.hasDateCityMapping() ?? false
     }
 }

@@ -49,31 +49,10 @@ final class TimelinePlanMapper {
     /// Accommondation varsa onu PLANIN ilk basamağına ekler
     /// - Parameter dailyPlan: DailyPlan
     /// - Returns: Accommondation eklenmiş plan
+    /// - Note: Accommodation artık TRPTimelineRecommendationsCell içinde ayrı bir view olarak gösteriliyor,
+    ///         bu yüzden step olarak eklenmesine gerek yok.
     private func addHomeBaseIfExist(_ restModel: TRPTimelinePlansInfoModel, profileSegment: TRPTimelineSegment?) -> [TRPTimelineStep] {
-        var steps = TimelineStepMapper().map(restModel.steps)
-        
-        guard let city = restModel.city, let accommodation = profileSegment?.accommodation else { return steps}
-        
-        let stayAddress = getStepFromAccommodation(accommodation, cityId: city.id)
-        if let firstStep = steps.first, firstStep.poi?.id != accommodation.referanceId {
-            steps.insert(stayAddress, at: 0)
-        }
-        
-        guard let destinationAccommodation = profileSegment?.destinationAccommodation else { return steps}
-        
-        let destinationAddress = getStepFromAccommodation(destinationAccommodation, cityId: city.id)
-        if let lastStep = steps.last, lastStep.poi?.id != destinationAccommodation.referanceId {
-            steps.append(destinationAddress)
-        }
-        
-        return steps
+        // Accommodation bilgisi artık cell'de ayrı gösterildiği için step olarak eklemiyoruz
+        return TimelineStepMapper().map(restModel.steps)
     }
-    
-    private func getStepFromAccommodation(_ accommodation: TRPAccommodation, cityId: Int) -> TRPTimelineStep {
-        
-        let hotel = PoiMapper().accommodation(accommodation, cityId: cityId)
-        let hotelStep = TRPTimelineStep(id: 1, poi: hotel, stepType: "hotel", alternatives: [])
-        return hotelStep
-    }
-    
 }

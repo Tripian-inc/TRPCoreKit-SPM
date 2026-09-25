@@ -24,18 +24,24 @@ public class TRPSDKCoordinater {
     private var tripCreateCoordinater: TRPCreateTripCoordinater?
     private var userProfileCoordinater: TRPUserProfileCoordinater?
     private var tripModeCoordinater: TRPTripModeCoordinater?
-    private var userProfileAnswers = [Int]()
-    
+
     private var canBackFromMyTrip = true
 
     // Timeline-related properties
-    private var timelineFromItineraryViewModel: TRPTimelineFromItineraryViewModel?
     private var timelineModelRepository: TRPTimelineModelRepository?
     private var timelineRepository: TRPTimelineRepository?
 
     // Store itinerary data for opening after splash completes
     private var pendingItineraryModel: TRPItineraryWithActivities?
     private var pendingTripHash: String?
+
+    // Nexus flow: kept so back from a freshly-created timeline can land on My Plans.
+    private var nexusMyPlansVC: NexusMyPlansVC?
+    // Nexus flow: set before the splash so datasFetchCompleted() routes Nexus data
+    // processing instead of the default My-Trips opening. Login is the splash's
+    // light-login; the plugin performs no login/register itself.
+    private var nexusFlow = false
+    private var pendingNexusReservations: String?
     
     private var alertMessage: (title: String?, message: String)? {
         didSet {
@@ -101,6 +107,12 @@ public class TRPSDKCoordinater {
     }
     
     private func startWithSplashVC(uniqueId: String? = nil, email: String? = nil, password: String? = nil) {
+        // Fetch cities for coordinate-based city lookup (async, no auth required)
+        TRPCityCache.shared.fetchCitiesIfNeeded()
+
+        // Prefetch POI categories for filtering (async, no auth required)
+        TRPPoiUseCases.prefetchCategories()
+
         let vc = SplashViewController()
         vc.delegate = self
         vc.uniqueId = uniqueId
@@ -116,11 +128,11 @@ public class TRPSDKCoordinater {
     public func startForGuest(uniqueId: String? = nil) {
         startWithSplashVC(uniqueId: uniqueId)
     }
-    
+
     public func startWithEmail(_ email: String) {
         startWithSplashVC(email: email)
     }
-    
+
     public func startWithEmailAndPassword(_ email: String, _ password: String) {
         startWithSplashVC(email: email, password: password)
     }
@@ -130,99 +142,67 @@ public class TRPSDKCoordinater {
     /// - Parameters:
     ///   - itineraryModel: TRPItineraryWithActivities model containing timeline data
     ///   - tripHash: Optional trip hash. If provided, fetches existing timeline instead of creating new one
-    public func startWithItinerary(_ itineraryModel: TRPItineraryWithActivities, tripHash: String? = nil) {
+    ///   - uniqueId: Optional unique identifier. If not provided, uses device's identifierForVendor
+    public func startWithItinerary(_ itineraryModel: TRPItineraryWithActivities, tripHash: String? = nil, uniqueId: String? = nil) {
         checkAllApiKey()
-        userProfile()
+        // Note: get-user is not fetched anywhere — there is no profile screen in this SDK.
+        // Fetch cities for coordinate-based city lookup (async, no auth required)
+        TRPCityCache.shared.fetchCitiesIfNeeded()
 
         // Store itinerary data to be used after splash completes
         pendingItineraryModel = itineraryModel
         pendingTripHash = tripHash
 
-        // Start with splash screen to handle translations and login
-        startWithSplashVC(uniqueId: itineraryModel.uniqueId)
-    }
-
-    /// Opens timeline with existing trip hash (fetch existing timeline)
-    /// - Parameters:
-    ///   - tripHash: The trip hash for the existing timeline
-    ///   - itineraryModel: The itinerary model containing additional data like favouriteItems
-    private func openTimelineWithTripHash(_ tripHash: String, itineraryModel: TRPItineraryWithActivities) {
-        // Show loading
-        showTripianLoader(true)
-
-        // Fetch timeline using repository
-        let repo = timelineRepository ?? TRPTimelineRepository()
-        repo.fetchTimeline(tripHash: tripHash) { [weak self] result in
-            guard let self = self else { return }
-
-            DispatchQueue.main.async {
-                // Hide loading
-                self.showTripianLoader(false)
-
-                switch result {
-                case .success(let timeline):
-                    // Merge itinerary model data with fetched timeline
-                    self.openTimelineItineraryViewControllerWithItineraryData(timeline: timeline, itineraryModel: itineraryModel)
-
-                case .failure(let error):
-                    // Show error alert
-                    let alert = UIAlertController(
-                        title: "Error",
-                        message: "Failed to load timeline. Please try again.",
-                        preferredStyle: .alert
-                    )
-                    alert.addAction(UIAlertAction(title: "OK", style: .default))
-                    self.navigationController.present(alert, animated: true)
-                }
-            }
+        // Determine uniqueId: use provided value, fall back to itinerary's uniqueId, then device ID
+        let effectiveUniqueId: String
+        if let providedId = uniqueId, !providedId.isEmpty {
+            effectiveUniqueId = providedId
+        } else if !itineraryModel.uniqueId.isEmpty {
+            effectiveUniqueId = itineraryModel.uniqueId
+        } else {
+            effectiveUniqueId = UIDevice.current.identifierForVendor?.uuidString ?? UUID().uuidString
         }
+
+        // Start with splash screen to handle translations and login
+        startWithSplashVC(uniqueId: effectiveUniqueId)
     }
 
-    /// Sets up the timeline creation view model and starts the creation process
-    private func setupTimelineCreationViewModel(_ itineraryModel: TRPItineraryWithActivities) {
-        // Create view model
-        let viewModel = TRPTimelineFromItineraryViewModel(itineraryModel: itineraryModel)
-        viewModel.delegate = self
-
-        // Set up use cases
-        viewModel.createTimelineUseCase = createTimelineUseCase
-        viewModel.observeTimelineAllPlan = fetchTimelineCheckAllPlanUseCase
-        viewModel.fetchTimelineAllPlan = fetchTimelineCheckAllPlanUseCase
-
-        // Store reference
-        timelineFromItineraryViewModel = viewModel
-
-        // Start timeline creation
-        viewModel.createTimeline()
-    }
-    
     public func start() {
         checkAllApiKey()
-        userProfile()
-//        getLanguages()
+        // Note: get-user is not fetched anywhere — there is no profile screen in this SDK.
+        // Fetch cities for coordinate-based city lookup (async, no auth required)
+        TRPCityCache.shared.fetchCitiesIfNeeded()
+        // Prefetch POI categories for filtering (async, no auth required)
+        TRPPoiUseCases.prefetchCategories()
         startFirstVC()
     }
     
     private func startFirstVC() {
-        
+
         let vc = myTrip
 //        myTrip.isNexus = isAppForNexus
         //navigationController.pushViewController(vc, animated: true)
         DispatchQueue.main.async {
             self.navigationController.pushViewController(vc, animated: true)
             self.setupSomeGeneralAppearances()
+            // Show onboarding after VC is visible
+            self.showOnboardingIfNeeded(from: vc)
         }
     }
     
-    public func startForNexus(bookingDetailUrl: String, startDate: String?, endDate: String?, meetingPoint: String?, numberOfAdults: Int?, numberOfChildren: Int?) {
+    public func startForNexus(bookingDetailUrl: String, startDate: String?, endDate: String?, meetingPoint: String?, numberOfAdults: Int?, numberOfChildren: Int?, bookingReferenceId: String? = nil, reservations: String? = nil) {
         checkAllApiKey()
-        userProfile()
+        // Note: get-user is not fetched anywhere — there is no profile screen in this SDK.
+        // Fetch cities for coordinate-based city lookup (async, no auth required)
+        TRPCityCache.shared.fetchCitiesIfNeeded()
         let vc = myTrip
         vc.bookingDetailUrl = bookingDetailUrl
         //navigationController.pushViewController(vc, animated: true)
         DispatchQueue.main.async {
             self.navigationController.pushViewController(vc, animated: true)
             self.setupSomeGeneralAppearances()
+            // Show onboarding after VC is visible
+            self.showOnboardingIfNeeded(from: vc)
         }
         //navigationController.pushViewController(makePaymetnViewController(), animated: true)
         //navigationController.pushViewController(makeBilling(), animated: true)
@@ -242,16 +222,6 @@ public class TRPSDKCoordinater {
     
     public func addAlertMessage(title: String?, message: String) {
         alertMessage = (title: title, message: message)
-    }
-    
-    private func userProfile() {
-        userInfoUseCases.executeFetchUserInfo { [weak self] result in
-            switch result {
-            case .success(let userInfo):
-                self?.userProfileAnswers = userInfo.answers ?? []
-            case .failure(_): ()
-            }
-        }
     }
     
     internal var isLoaderOnView = false
@@ -290,27 +260,51 @@ public class TRPSDKCoordinater {
      public func remove() {
         self.navigationController.dismiss(animated: true)
     }
-    
+
+    /// Resets the onboarding state, allowing it to be shown again
+    /// Call this method if you want to show the onboarding to the user again
+    public static func resetOnboarding() {
+        TRPOnboardingStorage.reset()
+    }
+
 }
 
 extension TRPSDKCoordinater: SplashViewControllerDelegate {
     func datasFetchCompleted() {
-        // Check if we have pending itinerary model to open
-        if let itineraryModel = pendingItineraryModel {
-            // Remove splash from navigation stack (it's the current top VC)
-            // Use setViewControllers to replace splash with timeline in one operation
-            let viewModel = TRPTimelineItineraryViewModel(itineraryModel: itineraryModel, tripHash: pendingTripHash)
-            let viewController = TRPTimelineItineraryVC(viewModel: viewModel)
+        // Nexus flow: run Nexus data processing (reservations → route) instead of
+        // the default My-Trips opening. Onboarding is intentionally skipped for Nexus.
+        if nexusFlow {
+            nexusFlow = false
+            routeNexusEntry()
+            return
+        }
 
-            // Replace splash with timeline
-            navigationController.setViewControllers([viewController], animated: true)
+        // Note: get-user (userProfile) is intentionally not fetched — there is no
+        // profile screen in this SDK, so the user info is not needed on any flow.
 
-            // Clear pending data
-            pendingItineraryModel = nil
-            pendingTripHash = nil
-        } else {
-            // Normal flow: open MyTrips screen
-            start()
+        // Show onboarding first (if needed), then proceed with flow
+        showOnboardingThenProceed { [weak self] in
+            guard let self = self else { return }
+
+            // Check if we have pending itinerary model to open
+            if let itineraryModel = self.pendingItineraryModel {
+                // Clear pending data first
+                let tripHash = self.pendingTripHash
+                self.pendingItineraryModel = nil
+                self.pendingTripHash = nil
+
+                // Always open TimelineVC immediately - it will show loading
+                // ViewModel handles city resolution and either creates timeline or shows no-city state
+                let viewModel = TRPTimelineItineraryViewModel(itineraryModel: itineraryModel, tripHash: tripHash)
+                let viewController = TRPTimelineItineraryVC(viewModel: viewModel)
+                viewController.delegate = self
+
+                // Replace splash with timeline VC
+                self.navigationController.setViewControllers([viewController], animated: true)
+            } else {
+                // Normal flow: open MyTrips screen
+                self.startFirstVC()
+            }
         }
     }
 
@@ -322,6 +316,175 @@ extension TRPSDKCoordinater: SplashViewControllerDelegate {
         pendingTripHash = nil
     }
 
+}
+
+// MARK: - Nexus create-trip flow
+// Built from scratch; does NOT use MyTripVC / TRPCreateTripCoordinater. The host
+// (TripianPlugin) has already logged in + fetched languages before calling this,
+// so we route directly without re-entering the splash login (which would re-auth
+// by uniqueId and could switch away from the host's session). This reuses the
+// same create path that startWithItinerary funnels into post-splash.
+extension TRPSDKCoordinater {
+
+    /// Single Nexus entry. With reservations → parse → create a timeline. Without
+    /// reservations → show the user's not-past timelines (My Plans), or the
+    /// create-from-scratch flow when there are none.
+    public func startForNexusFlow(reservations: String?, uniqueId: String?) {
+        // The plugin only forwards data. The SDK splash does the light-login
+        // (uniqueId) + languages, exactly like startWithItinerary; afterwards
+        // datasFetchCompleted() calls routeNexusEntry(). No register/plain login.
+        pendingNexusReservations = reservations
+        nexusFlow = true
+        NexusTripStore.isNexusFlow = true
+        // Nexus uses the Juniper provider (id 7, "J_" activity-id prefix); all
+        // provider-dependent code reads TRPCoreKit.shared.provider.
+        TRPCoreKit.shared.provider = .nexus
+        startWithSplashVC(uniqueId: uniqueId)
+    }
+
+    /// Nexus-specific data processing, run after the splash's light-login. Parses
+    /// the host-sent reservations, then:
+    ///  - no reservations → My Plans / create-from-scratch;
+    ///  - reservations + a stored timeline whose booked/reserved segments share at
+    ///    least one activityId with the incoming reservations → RESUME it (the
+    ///    fetch+reconcile path syncs: adds new, drops out-of-range/removed-city);
+    ///  - otherwise (no stored timeline, unreachable, or zero overlap) → CREATE new.
+    private func routeNexusEntry() {
+        let reservations = pendingNexusReservations
+        pendingNexusReservations = nil
+        NexusItineraryBuilder.build(reservationsJson: reservations) { [weak self] itinerary in
+            guard let self = self else { return }
+            guard let itinerary = itinerary,
+                  !(itinerary.destinationItems.isEmpty && (itinerary.tripItems ?? []).isEmpty) else {
+                self.routeNexusEmptyEntry()
+                return
+            }
+            guard let storedHash = NexusTripStore.tripHash else {
+                self.openNexusTimeline(itinerary: itinerary, tripHash: nil, keepMyPlansRoot: false)
+                return
+            }
+            TRPTimelineRepository().fetchTimeline(tripHash: storedHash) { [weak self] result in
+                guard let self = self else { return }
+                DispatchQueue.main.async {
+                    switch result {
+                    case .success(let existing) where self.reservationsOverlap(itinerary: itinerary, existing: existing):
+                        self.openNexusTimeline(itinerary: itinerary, tripHash: storedHash, keepMyPlansRoot: false)
+                    default:
+                        self.openNexusTimeline(itinerary: itinerary, tripHash: nil, keepMyPlansRoot: false)
+                    }
+                }
+            }
+        }
+    }
+
+    /// Resume gate: true when ≥1 incoming reservation activityId is already a
+    /// booked/reserved segment in the stored timeline.
+    private func reservationsOverlap(itinerary: TRPItineraryWithActivities, existing: TRPTimeline) -> Bool {
+        let incoming = Set((itinerary.tripItems ?? []).compactMap { $0.activityId?.cleanedAsActivityId() })
+        guard !incoming.isEmpty else { return false }
+
+        var existingIds = Set<String>()
+        for segment in (existing.segments ?? []) {
+            if let id = segment.additionalData?.activityId { existingIds.insert(id.cleanedAsActivityId()) }
+        }
+        for segment in (existing.tripProfile?.segments ?? []) {
+            if let id = segment.additionalData?.activityId { existingIds.insert(id.cleanedAsActivityId()) }
+        }
+        return !incoming.isDisjoint(with: existingIds)
+    }
+
+    private func routeNexusEmptyEntry() {
+        let useCase = TRPUserTimelineUseCases()
+        useCase.executeUpcomingTimeline { [weak self] result in
+            DispatchQueue.main.async {
+                guard let self = self else { return }
+                let trips = (try? result.get()) ?? []
+                print("[NexusSDK] routeNexusEmptyEntry upcoming trips=\(trips.count)")
+                if trips.isEmpty {
+                    self.presentNexusCitySelection(asRoot: true)
+                } else {
+                    self.presentNexusMyPlans()
+                }
+            }
+        }
+    }
+
+    private func presentNexusMyPlans() {
+        let vc = NexusMyPlansVC()
+        nexusMyPlansVC = vc
+        vc.onClose = { [weak self] in self?.remove() }
+        vc.onAddTrip = { [weak self] in self?.presentNexusCitySelection(asRoot: false) }
+        vc.onSelectTrip = { [weak self] trip in self?.openNexusTimeline(forExisting: trip) }
+        navigationController.setViewControllers([vc], animated: true)
+    }
+
+    private func presentNexusCitySelection(asRoot: Bool) {
+        // City selection manages its own loader (only when the city cache is cold),
+        // so drop the entry overlay here to avoid a stuck loader on the warm path.
+        TRPLottieLoadingVC.shared.hideFromWindow(completion: nil)
+        let vc = NexusCitySelectionVC()
+        vc.onBack = { [weak self] in
+            guard let self = self else { return }
+            if asRoot { self.remove() } else { self.navigationController.popViewController(animated: true) }
+        }
+        vc.onNext = { [weak self] city in self?.presentNexusDateSelection(city: city) }
+        if asRoot {
+            navigationController.setViewControllers([vc], animated: true)
+        } else {
+            navigationController.pushViewController(vc, animated: true)
+        }
+    }
+
+    private func presentNexusDateSelection(city: TRPCity) {
+        let vc = NexusDateSelectionVC()
+        vc.city = city
+        vc.onBack = { [weak self] in self?.navigationController.popViewController(animated: true) }
+        vc.onComplete = { [weak self] itinerary in
+            self?.openNexusTimeline(itinerary: itinerary, tripHash: nil, keepMyPlansRoot: true)
+        }
+        navigationController.pushViewController(vc, animated: true)
+    }
+
+    private func openNexusTimeline(itinerary: TRPItineraryWithActivities, tripHash: String?, keepMyPlansRoot: Bool) {
+        // The timeline view model shows its own loader on init; drop the entry overlay.
+        TRPLottieLoadingVC.shared.hideFromWindow(completion: nil)
+        let viewModel = TRPTimelineItineraryViewModel(itineraryModel: itinerary, tripHash: tripHash)
+        let vc = TRPTimelineItineraryVC(viewModel: viewModel)
+        vc.delegate = self
+        if keepMyPlansRoot, let myPlans = nexusMyPlansVC {
+            // Back from the timeline returns to My Plans.
+            navigationController.setViewControllers([myPlans, vc], animated: true)
+        } else {
+            navigationController.setViewControllers([vc], animated: true)
+        }
+    }
+
+    /// Open an existing timeline (My Plans tap) by building a minimal itinerary
+    /// from the trip and passing its tripHash so the VM fetches instead of creating.
+    private func openNexusTimeline(forExisting trip: TRPTimeline) {
+        let destination = TRPSegmentDestinationItem(
+            title: trip.city.name,
+            coordinate: "\(trip.city.coordinate.lat),\(trip.city.coordinate.lon)",
+            cityId: trip.city.id,
+            dates: nil
+        )
+        let start = trip.tripProfile?.getOldestStartDate() ?? Date()
+        let end = trip.tripProfile?.getMaxEndDate() ?? start
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "yyyy-MM-dd HH:mm"
+        let itinerary = TRPItineraryWithActivities(
+            tripName: nil,
+            startDatetime: formatter.string(from: start),
+            endDatetime: formatter.string(from: end),
+            uniqueId: "",
+            tripianHash: trip.tripHash,
+            destinationItems: [destination],
+            favouriteItems: nil,
+            tripItems: []
+        )
+        openNexusTimeline(itinerary: itinerary, tripHash: trip.tripHash, keepMyPlansRoot: true)
+    }
 }
 
 //extension TRPSDKCoordinater: ExperienceDetailViewControllerDelegate, ExperienceAvailabilityViewControllerDelegate {
@@ -635,62 +798,112 @@ extension TRPSDKCoordinater {
             Log.e("Could not find '\(missingValus)' key in Info.plist")
         }
     }
-    
+
 }
 
-// MARK: - Timeline Creation Delegate
-extension TRPSDKCoordinater: TRPTimelineFromItineraryViewModelDelegate {
+// MARK: - Onboarding
+extension TRPSDKCoordinater {
 
-    public func timelineGenerated(timeline: TRPTimeline) {
-        DispatchQueue.main.async {
-            // Hide loading
-            self.showTripianLoader(false)
+    /// Shows the onboarding bottom sheet if needed (non-blocking)
+    /// - Parameter presenter: The view controller to present the onboarding from
+    private func showOnboardingIfNeeded(from presenter: UIViewController) {
+        guard TRPOnboardingViewModel.shouldShowOnboarding() else { return }
 
-            // Open timeline itinerary view with generated timeline
-            self.openTimelineItineraryViewController(timeline: timeline)
+        // Small delay to ensure the presenter is fully visible
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+            let viewModel = TRPOnboardingViewModel()
+            let onboardingVC = TRPOnboardingVC(viewModel: viewModel)
+
+            // Both Continue and Skip just dismiss onboarding, flow continues
+            presenter.presentVCWithDynamicHeight(
+                onboardingVC,
+                prefersGrabberVisible: false,
+                isDimmed: true
+            )
         }
     }
 
-    /// Opens Timeline Itinerary View Controller with the generated timeline (without itinerary data merge)
-    private func openTimelineItineraryViewController(timeline: TRPTimeline) {
-        // Create view model with timeline
-        let viewModel = TRPTimelineItineraryViewModel(timeline: timeline)
-
-        // Create view controller
-        let viewController = TRPTimelineItineraryVC(viewModel: viewModel)
-
-        // Push onto navigation stack
-        DispatchQueue.main.async {
-            self.navigationController.pushViewController(viewController, animated: true)
-        }
-    }
-
-    /// Opens Timeline Itinerary View Controller with fetched timeline and itinerary model data
-    /// - Parameters:
-    ///   - timeline: Fetched timeline from server
-    ///   - itineraryModel: Itinerary model containing additional data (favouriteItems, tripItems, etc.)
-    private func openTimelineItineraryViewControllerWithItineraryData(timeline: TRPTimeline, itineraryModel: TRPItineraryWithActivities) {
-
-        // Add favouriteItems to timeline
-        var updatedTimeline = timeline
-        updatedTimeline.favouriteItems = itineraryModel.favouriteItems
-
-        // Also add favouriteItems to tripProfile if it exists
-        if var tripProfile = updatedTimeline.tripProfile {
-            tripProfile.favouriteItems = itineraryModel.favouriteItems
-            updatedTimeline.tripProfile = tripProfile
+    /// Shows onboarding if needed, then calls completion. If not needed, calls completion immediately.
+    /// Used for splash flows where we need to wait for onboarding before proceeding.
+    /// - Parameter completion: Closure to execute after onboarding is dismissed (or immediately if not needed)
+    private func showOnboardingThenProceed(completion: @escaping () -> Void) {
+        guard TRPOnboardingViewModel.shouldShowOnboarding() else {
+            // No onboarding needed, proceed immediately
+            completion()
+            return
         }
 
-        // Create view model with timeline
-        // ViewModel will handle adding missing booked activities via API
-        let viewModel = TRPTimelineItineraryViewModel(timeline: updatedTimeline, itineraryModel: itineraryModel)
+        // Get the current visible view controller to present from
+        guard let presenter = navigationController.visibleViewController else {
+            completion()
+            return
+        }
 
-        // Create view controller
-        let viewController = TRPTimelineItineraryVC(viewModel: viewModel)
+        // Small delay to ensure the presenter is fully visible
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+            let viewModel = TRPOnboardingViewModel()
+            let onboardingVC = TRPOnboardingVC(viewModel: viewModel)
 
-        // Push onto navigation stack
-        DispatchQueue.main.async {
-            self.navigationController.pushViewController(viewController, animated: true)
+            // Both Continue and Skip proceed with normal flow
+            onboardingVC.onContinue = {
+                completion()
+            }
+            onboardingVC.onSkip = {
+                completion()
+            }
+
+            presenter.presentVCWithDynamicHeight(
+                onboardingVC,
+                prefersGrabberVisible: false,
+                isDimmed: true
+            )
         }
     }
 }
+
+// MARK: - TRPTimelineItineraryVCDelegate
+
+extension TRPSDKCoordinater: TRPTimelineItineraryVCDelegate {
+
+    public func timelineItineraryFilterPressed(_ viewController: TRPTimelineItineraryVC) {
+        // Filter functionality
+    }
+
+    public func timelineItineraryAddPlansPressed(_ viewController: TRPTimelineItineraryVC) {
+        // Add plans functionality
+    }
+
+    public func timelineItineraryDidSelectStep(_ viewController: TRPTimelineItineraryVC, step: TRPTimelineStep) {
+        guard let poi = step.poi else { return }
+        let dateRange = viewController.viewModel.getTripDateRange()
+        let detailVM = TimelinePoiDetailViewModel(poi: poi,
+                                                  tripStartDate: dateRange?.start,
+                                                  tripEndDate: dateRange?.end)
+        let detailVC = TimelinePoiDetailViewController(viewModel: detailVM)
+        viewController.navigationController?.pushViewController(detailVC, animated: true)
+    }
+
+    public func timelineItineraryDidSelectBookedActivity(_ viewController: TRPTimelineItineraryVC, segment: TRPTimelineSegment) {
+        guard let activityId = segment.additionalData?.activityId else { return }
+        // Normalize to the bare product id so the host receives the same shape
+        // it gets from the cell-delegate paths in TRPTimelineItineraryVC.
+        TRPCoreKit.shared.delegate?.trpCoreKitDidRequestActivityDetail(activityId: activityId.cleanedAsActivityId())
+    }
+
+    public func timelineItineraryAddButtonPressed(_ viewController: TRPTimelineItineraryVC, atSectionIndex: Int) {
+        // Add button functionality
+    }
+
+    public func timelineItineraryChangeTimePressed(_ viewController: TRPTimelineItineraryVC, step: TRPTimelineStep) {
+        // Change time functionality
+    }
+
+    public func timelineItineraryRemoveStepPressed(_ viewController: TRPTimelineItineraryVC, step: TRPTimelineStep) {
+        // Remove step functionality
+    }
+
+    public func timelineItineraryDidRequestActivityReservation(_ viewController: TRPTimelineItineraryVC, activityId: String, date: Date) {
+        TRPCoreKit.shared.delegate?.trpCoreKitDidRequestActivityReservation(activityId: activityId, date: date)
+    }
+}
+

@@ -20,7 +20,7 @@ struct Storage<T> {
             return userDefault.object(forKey: key) as? T ?? defaultValue
         }
         
-        set {
+        nonmutating set {
             userDefault.set(newValue, forKey: key)
         }
     }
