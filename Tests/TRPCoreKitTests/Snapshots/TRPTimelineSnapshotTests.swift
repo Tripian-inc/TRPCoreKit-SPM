@@ -28,6 +28,7 @@ final class TRPTimelineSnapshotTests: XCTestCase {
 
     private var originalProvider: TripianProvider = .civitatis
     private var originalZone: TimeZone!
+    private var originalSystemZoneVariable: String?
     private var originalLanguage: String = "en"
 
     override func setUpWithError() throws {
@@ -35,6 +36,8 @@ final class TRPTimelineSnapshotTests: XCTestCase {
         originalProvider = TRPCoreKit.shared.provider
         originalZone = NSTimeZone.default
         originalLanguage = TRPClient.getLanguage()
+        originalSystemZoneVariable = ProcessInfo.processInfo.environment["TZ"]
+        setSystemZone("Europe/Madrid")
         NSTimeZone.default = TimeZone(identifier: "Europe/Madrid")!
         TRPClient.changeLanguage("en")
         TRPFonts.registerAll()
@@ -46,8 +49,21 @@ final class TRPTimelineSnapshotTests: XCTestCase {
     override func tearDown() {
         TRPCoreKit.shared.provider = originalProvider
         NSTimeZone.default = originalZone
+        setSystemZone(originalSystemZoneVariable)
         TRPClient.changeLanguage(originalLanguage)
         super.tearDown()
+    }
+
+    /// Points the process's system time zone at `identifier`, or back at the machine's when nil, so code that
+    /// reads the system zone rather than `NSTimeZone.default` draws the same days on every machine.
+    private func setSystemZone(_ identifier: String?) {
+        if let identifier {
+            setenv("TZ", identifier, 1)
+        } else {
+            unsetenv("TZ")
+        }
+        tzset()
+        NSTimeZone.resetSystemTimeZone()
     }
 
     // MARK: - Mock data without images
