@@ -16,6 +16,8 @@ public class TRPTourRemoteApi: TourRemoteApi {
     public init() {}
 
 
+    /// Instant availability needs the city's coordinate, so a search for a city that does not
+    /// exist answers with no tours rather than being sent without one.
     public func fetchTours(cityId: Int,
                            parameters: TourParameters,
                            completion: @escaping (TourResultsValue) -> Void) {
@@ -29,13 +31,6 @@ public class TRPTourRemoteApi: TourRemoteApi {
         request.instantAvailability = 1
 
         request.poiId = parameters.poiId
-
-        // A poiId search targets one POI, so location filters would only narrow it further
-        if parameters.poiId == nil,
-           let cityCoordinate = TRPCityCache.shared.getCityCoordinate(cityId: cityId) {
-            request.lat = cityCoordinate.lat
-            request.lng = cityCoordinate.lon
-        }
 
         // Map search text to keywords
         request.keywords = parameters.search
@@ -82,6 +77,27 @@ public class TRPTourRemoteApi: TourRemoteApi {
         request.currency = parameters.currency
         request.adults = parameters.adults
 
+        guard parameters.poiId == nil else {
+            search(request, completion: completion)
+            return
+        }
+
+        TRPCityCache.shared.city(withId: cityId) { result in
+            switch result {
+            case .failure(let error):
+                completion(.failure(error))
+            case .success(nil):
+                completion(.success(TRPTourSearchOutcome(products: [], facets: nil)))
+            case .success(let city?):
+                var locatedRequest = request
+                locatedRequest.lat = city.coordinate.lat
+                locatedRequest.lng = city.coordinate.lon
+                self.search(locatedRequest, completion: completion)
+            }
+        }
+    }
+
+    private func search(_ request: TRPTourSearchRequestModel, completion: @escaping (TourResultsValue) -> Void) {
         TRPRestKit().searchTours(request: request) { (result, error) in
 
             if let error = error {
