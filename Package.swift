@@ -14,6 +14,9 @@ let package = Package(
         .library(
             name: "TRPCoreKit",
             targets: ["TRPCoreKit"]),
+        .library(
+            name: "TRPCoreKitBooking",
+            targets: ["TRPCoreKitBooking"]),
     ],
     dependencies: [
         .package(url: "https://github.com/Alamofire/Alamofire.git", from: "5.8.1"),
@@ -25,6 +28,7 @@ let package = Package(
         .package(url: "https://github.com/Tripian-inc/TRPRestKit.git", branch: "master"),
         .package(url: "https://github.com/airbnb/lottie-ios.git", from: "4.4.0"),
         .package(url: "https://github.com/pointfreeco/swift-snapshot-testing", from: "1.17.0"),
+        .package(path: "/Users/cemcaygoz/Documents/GitHub/TRPBookingKit"),
 //        .package(url: "https://github.com/mapbox/mapbox-events-ios.git", from: "2.0.0"),
     ],
     targets: [
@@ -47,6 +51,18 @@ let package = Package(
                 .copy("Resources/Fonts"),
                 .copy("Resources/Animations")
             ]
+        ),
+        .target(
+            name: "TRPCoreKitBooking",
+            dependencies: [
+                .product(name: "TRPBookingKit", package: "TRPBookingKit"),
+            ],
+            path: "TRPCoreKitBooking"
+        ),
+        .testTarget(
+            name: "TRPCoreKitBookingTests",
+            dependencies: ["TRPCoreKitBooking"],
+            path: "Tests/TRPCoreKitBookingTests"
         ),
         .testTarget(
             name: "TRPCoreKitTests",
