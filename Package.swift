@@ -61,7 +61,10 @@ let package = Package(
         ),
         .testTarget(
             name: "TRPCoreKitBookingTests",
-            dependencies: ["TRPCoreKitBooking"],
+            dependencies: [
+                "TRPCoreKitBooking",
+                .product(name: "TRPBookingKit", package: "TRPBookingKit"),
+            ],
             path: "Tests/TRPCoreKitBookingTests"
         ),
         .testTarget(
