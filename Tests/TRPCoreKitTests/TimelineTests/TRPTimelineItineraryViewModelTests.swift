@@ -39,6 +39,23 @@ final class TRPTimelineItineraryViewModelTests: XCTestCase {
         XCTAssertTrue(viewModel.isSelectedDayPast)
     }
 
+    func testPreferredInitialDayInsideTheTripWins() {
+        let viewModel = makeViewModel()
+        let preferred = viewModel.getDayDates()[3]
+        viewModel.preferredInitialDay = preferred.addingTimeInterval(15 * 60 * 60)
+
+        XCTAssertEqual(viewModel.computeInitialSelectedDayIndex(), 3)
+    }
+
+    func testPreferredInitialDayOutsideTheTripFallsBackToTheUsualRule() {
+        let viewModel = makeViewModel()
+        let lastIndex = viewModel.getDayDates().count - 1
+        viewModel.preferredInitialDay = Calendar.current.date(byAdding: .day, value: -30,
+                                                              to: viewModel.getDayDates()[0])
+
+        XCTAssertEqual(viewModel.computeInitialSelectedDayIndex(), lastIndex)
+    }
+
     func testCitiesComeFromTimelinePlansAndSegments() {
         let names = makeViewModel().getCities().map { $0.name }
 

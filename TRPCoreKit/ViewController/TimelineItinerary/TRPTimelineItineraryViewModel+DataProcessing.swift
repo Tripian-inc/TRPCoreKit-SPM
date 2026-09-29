@@ -455,11 +455,16 @@ extension TRPTimelineItineraryViewModel {
         return (startDate: startDate, endDate: endDate)
     }
 
-    /// First-load index: today if in range, 0 if before the trip, last index if after, 0 if empty.
+    /// First-load index: `preferredInitialDay` if in range, else today if in range, 0 if before the trip,
+    /// last index if after, 0 if empty.
     internal func computeInitialSelectedDayIndex() -> Int {
         guard !allTripDates.isEmpty else { return 0 }
         let today = Date()
         let calendar = Calendar.current
+        if let preferredInitialDay = preferredInitialDay,
+           let idx = allTripDates.firstIndex(where: { calendar.isDate($0, inSameDayAs: preferredInitialDay) }) {
+            return idx
+        }
         if let idx = allTripDates.firstIndex(where: { calendar.isDate($0, inSameDayAs: today) }) {
             return idx
         }

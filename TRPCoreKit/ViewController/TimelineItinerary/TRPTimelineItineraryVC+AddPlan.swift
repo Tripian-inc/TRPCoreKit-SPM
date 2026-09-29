@@ -16,47 +16,7 @@ import TRPFoundationKit
 extension TRPTimelineItineraryVC {
 
     public func showAddPlanFlow() {
-        let days = viewModel.getDayDates()
-        let cities = viewModel.getCities()
-        let selectedDayIndex = viewModel.selectedDayIndex
-        let bookedActivities = viewModel.getAllBookedActivities()
-        let destinationItems = viewModel.getDestinationItems()
-        let favouriteItems = viewModel.getFavoriteItems()
-
-        let containerViewModel = AddPlanContainerViewModel(days: days,
-                                                           cities: cities,
-                                                           selectedDayIndex: selectedDayIndex,
-                                                           bookedActivities: bookedActivities,
-                                                           destinationItems: destinationItems,
-                                                           favouriteItems: favouriteItems,
-                                                           defaultTravelers: viewModel.defaultTravelerCount())
-
-        containerViewModel.planData.tripHash = viewModel.getTripHash()
-
-        let containerVC = AddPlanContainerVC()
-        containerVC.viewModel = containerViewModel
-        containerVC.delegate = self
-
-        let selectDayViewModel = AddPlanSelectDayViewModel(containerViewModel: containerViewModel)
-        let selectDayVC = AddPlanSelectDayVC()
-        selectDayVC.viewModel = selectDayViewModel
-        selectDayVC.containerVC = containerVC
-
-        let timeAndTravelersViewModel = AddPlanTimeAndTravelersViewModel(containerViewModel: containerViewModel)
-        let timeAndTravelersVC = AddPlanTimeAndTravelersVC()
-        timeAndTravelersVC.viewModel = timeAndTravelersViewModel
-        timeAndTravelersVC.containerVC = containerVC
-
-        let categoryViewModel = AddPlanCategorySelectionViewModel(containerViewModel: containerViewModel)
-        let categoryVC = AddPlanCategorySelectionVC()
-        categoryVC.viewModel = categoryViewModel
-        categoryVC.containerVC = containerVC
-
-        containerVC.addViewController(selectDayVC)
-        containerVC.addViewController(timeAndTravelersVC)
-        containerVC.addViewController(categoryVC)
-
-        presentVCWithDynamicHeight(containerVC)
+        presentVCWithDynamicHeight(AddPlanFlowBuilder.makeContainer(viewModel: viewModel, delegate: self))
     }
 }
 
@@ -77,37 +37,17 @@ extension TRPTimelineItineraryVC: AddPlanContainerVCDelegate {
     }
 
     public func addPlanContainerShouldShowActivityListing(_ viewController: AddPlanContainerVC, data: AddPlanData) {
-        let activityListingViewModel = AddPlanActivityListingViewModel(
-            planData: data,
-            activityIdsByDay: viewModel.plannedActivityIdsByDay()
-        )
-        let activityListingVC = AddPlanActivityListingVC()
-        activityListingVC.viewModel = activityListingViewModel
-
-        activityListingVC.onSegmentCreatedSilent = { [weak self] selectedDay in
+        let navController = AddPlanFlowBuilder.makeActivityListing(data: data, viewModel: viewModel) { [weak self] selectedDay in
             self?.refreshTimelineSilently(selectedDay: selectedDay)
         }
-
-        let navController = UINavigationController(rootViewController: activityListingVC)
-        navController.modalPresentationStyle = .fullScreen
-
         // Present from the AddPlan sheet (kept underneath) so the transition has no gap; back handler tears down the whole stack.
         viewController.present(navController, animated: true)
     }
 
     public func addPlanContainerShouldShowPOIListing(_ viewController: AddPlanContainerVC, data: AddPlanData, categoryType: POIListingCategoryType) {
-        let poiListingViewModel = AddPlanPOIListingViewModel(planData: data, categoryType: categoryType)
-        poiListingViewModel.poiIdsByDay = viewModel.plannedPoiIdsByDay()
-        let poiListingVC = AddPlanPOIListingVC()
-        poiListingVC.viewModel = poiListingViewModel
-
-        poiListingVC.onSegmentCreatedSilent = { [weak self] selectedDay in
+        let navController = AddPlanFlowBuilder.makePOIListing(data: data, categoryType: categoryType, viewModel: viewModel) { [weak self] selectedDay in
             self?.refreshTimelineSilently(selectedDay: selectedDay)
         }
-
-        let navController = UINavigationController(rootViewController: poiListingVC)
-        navController.modalPresentationStyle = .fullScreen
-
         // Same pattern as activity listing — present on top of AddPlan; back handler tears down the chain.
         viewController.present(navController, animated: true)
     }

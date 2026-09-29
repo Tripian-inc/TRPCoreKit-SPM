@@ -144,6 +144,9 @@ public class TRPTimelineItineraryViewModel {
     /// Profile whose segments/favourites the create flow merges into the fetched timeline on first load.
     internal var pendingMergeProfile: TRPTimelineProfile?
 
+    /// Day the first load opens on when the trip covers it, ahead of the today/first/last rule.
+    internal var preferredInitialDay: Date?
+
     // MARK: - Initialization
 
     /// Trip-hash-only init; timeline is fetched on first VC load with the Lottie loader shown by the VC.

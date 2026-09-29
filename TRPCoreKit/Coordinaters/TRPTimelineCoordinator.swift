@@ -36,6 +36,7 @@ public class TRPTimelineCoordinator: CoordinatorProtocol {
     public weak var delegate: TRPTimelineCoordinatorDelegate?
 
     private var timelineViewController: TRPTimelineItineraryVC?
+    private var addPlanViewController: AddPlanStandaloneVC?
     private var timelineRepository: TimelineRepository
     private var timelineModelRepository: TimelineModelRepository
     private var currentTripHash: String?
@@ -97,6 +98,21 @@ public class TRPTimelineCoordinator: CoordinatorProtocol {
         self.currentTripHash = tripHash
         self.opensAddPlan = openingAddPlan
         fetchTimeline(tripHash: tripHash)
+    }
+
+    /// Shows only the add plan sheet of an existing timeline over the host's current screen,
+    /// without opening the timeline. Once the user adds to the plan, the timeline opens on the
+    /// day it went to and fetches itself behind its own loader; when they leave without adding,
+    /// `timelineCoordinatorDidClose` is called.
+    /// - Parameter day: Day the sheet starts on when the trip covers it.
+    public func startAddPlan(tripHash: String, day: Date? = nil) {
+        self.currentTripHash = tripHash
+        let viewController = AddPlanStandaloneVC(tripHash: tripHash, initialDay: day)
+        viewController.onFinish = { [weak self] outcome in
+            self?.addPlanFlowDidFinish(outcome, tripHash: tripHash)
+        }
+        addPlanViewController = viewController
+        navigationController?.present(viewController, animated: false)
     }
 
     /// Start with default implementation (for protocol conformance)
@@ -174,13 +190,26 @@ public class TRPTimelineCoordinator: CoordinatorProtocol {
 
     // MARK: - Private Methods - View Controllers
 
+    private func addPlanFlowDidFinish(_ outcome: AddPlanStandaloneOutcome, tripHash: String) {
+        addPlanViewController = nil
+        switch outcome {
+        case .closed:
+            delegate?.timelineCoordinatorDidClose(self)
+        case .openTimeline(let day):
+            openTimelineViewController(withTripHash: tripHash, initialDay: day)
+        }
+    }
+
     /// Opens the timeline VC with a trip hash; the VC fetches the timeline itself and shows
     /// its own Lottie loader. Coordinator does not perform a GetTimeline call here.
     /// - Parameter mergeProfile: Optional create-flow profile whose segments/favourites are merged
     ///   into the fetched timeline by the ViewModel.
+    /// - Parameter initialDay: Day the timeline opens on when the trip covers it.
     private func openTimelineViewController(withTripHash tripHash: String,
-                                            mergeProfile: TRPTimelineProfile? = nil) {
+                                            mergeProfile: TRPTimelineProfile? = nil,
+                                            initialDay: Date? = nil) {
         let viewModel = TRPTimelineItineraryViewModel(tripHash: tripHash, mergeProfile: mergeProfile)
+        viewModel.preferredInitialDay = initialDay
         let viewController = TRPTimelineItineraryVC(viewModel: viewModel)
         viewController.delegate = self
         viewController.opensAddPlanWhenReady = opensAddPlan
