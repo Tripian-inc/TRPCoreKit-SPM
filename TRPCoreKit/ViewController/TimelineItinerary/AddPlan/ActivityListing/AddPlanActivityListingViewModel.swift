@@ -332,6 +332,7 @@ public class AddPlanActivityListingViewModel {
             params.maxPrice = filterData.maxPrice.map { Int($0) }
             params.minDuration = filterData.minDuration
             params.maxDuration = filterData.maxDuration
+            params.minRating = filterData.minRating
             params.sortingBy = selectedSortOption.apiParameters.sortingBy
             params.sortingType = selectedSortOption.apiParameters.sortingType
         }
@@ -451,7 +452,7 @@ public class AddPlanActivityListingViewModel {
     }
 
     /// Publishes the loaded pages as they are when the API already narrowed them; otherwise runs
-    /// search, price/duration filter and sort locally on `originalTours`.
+    /// search, price/duration/rating filter and sort locally on `originalTours`.
     private func applyLocalSortAndFilter() {
         if serverNarrowingActive {
             filteredTours = originalTours
@@ -482,6 +483,13 @@ public class AddPlanActivityListingViewModel {
                 if let lo = filterData.minDuration, duration < lo { return false }
                 if let hi = filterData.maxDuration, duration > hi { return false }
                 return true
+            }
+        }
+
+        if let minRating = filterData.minRating {
+            working = working.filter { tour in
+                guard let rating = tour.rating else { return false }
+                return Double(rating) >= minRating
             }
         }
 

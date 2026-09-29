@@ -113,6 +113,24 @@ public enum TripianProvider {
         }
     }
 
+    /// Whether the activity filter offers a minimum rating alongside price and duration.
+    public var offersActivityRatingFilter: Bool {
+        switch self {
+        case .civitatis:    return false
+        case .nexus:        return true
+        case .getYourGuide: return true
+        }
+    }
+
+    /// How the filter's range sliders place their selected values.
+    public var rangeSliderValueLabelPlacement: TRPRangeSlider.ValueLabelPlacement {
+        switch self {
+        case .civitatis:    return .followingThumbs
+        case .nexus:        return .pinnedToEdges
+        case .getYourGuide: return .pinnedToEdges
+        }
+    }
+
     public func activityDetailId(fromRaw rawId: String) -> String {
         switch self {
         case .civitatis, .getYourGuide:

@@ -91,6 +91,8 @@ public struct AddPlanLocalizationKeys {
     public static let filterDuration = "addPlan.filter.duration"
     public static let filterFree = "addPlan.filter.free"
     public static let filterDays = "addPlan.filter.days"
+    public static let filterRating = "addPlan.filter.rating"
+    public static let filterRatingAny = "addPlan.filter.ratingAny"
 
     // MARK: - POI Listing
     public static let searchPOIPlace = "addPlan.search.poiPlace"
@@ -204,6 +206,8 @@ public struct AddPlanLocalizationKeys {
         filterDuration: "Duration",
         filterFree: "Free",
         filterDays: "days",
+        filterRating: "Rating",
+        filterRatingAny: "Any",
         opinions: "opinions",
         activity: "activity",
         activities: "activities",

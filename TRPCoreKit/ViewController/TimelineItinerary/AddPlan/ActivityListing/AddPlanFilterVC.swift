@@ -15,16 +15,19 @@ public struct FilterData {
     public var maxPrice: Double?
     public var minDuration: Int?
     public var maxDuration: Int?
+    /// Lowest rating, out of five, an activity needs to be listed.
+    public var minRating: Double?
 
-    public init(minPrice: Double? = nil, maxPrice: Double? = nil, minDuration: Int? = nil, maxDuration: Int? = nil) {
+    public init(minPrice: Double? = nil, maxPrice: Double? = nil, minDuration: Int? = nil, maxDuration: Int? = nil, minRating: Double? = nil) {
         self.minPrice = minPrice
         self.maxPrice = maxPrice
         self.minDuration = minDuration
         self.maxDuration = maxDuration
+        self.minRating = minRating
     }
 
     public var isEmpty: Bool {
-        return minPrice == nil && maxPrice == nil && minDuration == nil && maxDuration == nil
+        return minPrice == nil && maxPrice == nil && minDuration == nil && maxDuration == nil && minRating == nil
     }
 
     public var activeFilterCount: Int {
@@ -33,6 +36,9 @@ public struct FilterData {
             count += 1
         }
         if minDuration != nil || maxDuration != nil {
+            count += 1
+        }
+        if minRating != nil {
             count += 1
         }
         return count
@@ -44,8 +50,12 @@ public class AddPlanFilterVC: TRPBaseUIViewController, DynamicHeightPresentable 
 
     // MARK: - DynamicHeightPresentable
     public var preferredContentHeight: CGFloat {
-        return 56 + 252 + 80
+        let ratingSectionHeight: CGFloat = offersRatingFilter ? 104 : 0
+        return 56 + 252 + ratingSectionHeight + 80
     }
+
+    /// Ratings offered as a lower bound, out of five; the first chip clears the bound.
+    static let minimumRatingOptions: [Double] = [3.0, 3.5, 4.0, 4.5]
 
     // MARK: - Properties
     private var filterData: FilterData
@@ -63,6 +73,10 @@ public class AddPlanFilterVC: TRPBaseUIViewController, DynamicHeightPresentable 
     private var priceMaxValue: Double = 1500
     private var durationMinValue: Double = 0
     private var durationMaxValue: Double = 1440
+
+    private let offersRatingFilter = TRPCoreKit.shared.provider.offersActivityRatingFilter
+    private var selectedMinRating: Double?
+    private var ratingChips: [(rating: Double?, button: RatingChipButton)] = []
 
     // MARK: - UI Components
     private let headerView: UIView = {
@@ -149,6 +163,24 @@ public class AddPlanFilterVC: TRPBaseUIViewController, DynamicHeightPresentable 
         return slider
     }()
 
+    private let ratingTitleLabel: UILabel = {
+        let label = UILabel()
+        label.text = AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.filterRating)
+        label.font = FontSet.montserratSemiBold.font(16)
+        label.textColor = ColorSet.primaryText.uiColor
+        label.translatesAutoresizingMaskIntoConstraints = false
+        return label
+    }()
+
+    private let ratingStackView: UIStackView = {
+        let stackView = UIStackView()
+        stackView.axis = .horizontal
+        stackView.spacing = 8
+        stackView.distribution = .fillEqually
+        stackView.translatesAutoresizingMaskIntoConstraints = false
+        return stackView
+    }()
+
     private lazy var comfitmButton: TRPButton = {
         let button = TRPButton(
             title: CommonLocalizationKeys.localized(CommonLocalizationKeys.confirm),
@@ -160,6 +192,7 @@ public class AddPlanFilterVC: TRPBaseUIViewController, DynamicHeightPresentable 
     // MARK: - Initialization
     public init(filterData: FilterData = FilterData()) {
         self.filterData = filterData
+        self.selectedMinRating = filterData.minRating
         super.init(nibName: nil, bundle: nil)
     }
 
@@ -172,6 +205,7 @@ public class AddPlanFilterVC: TRPBaseUIViewController, DynamicHeightPresentable 
         super.viewDidLoad()
         setupUI()
         setupSliders()
+        setupRatingChips()
     }
 
     // MARK: - Setup
@@ -238,7 +272,6 @@ public class AddPlanFilterVC: TRPBaseUIViewController, DynamicHeightPresentable 
             durationSlider.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
             durationSlider.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
             durationSlider.heightAnchor.constraint(equalToConstant: 50),
-            durationSlider.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -24),
 
             buttonContainerView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             buttonContainerView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
@@ -253,6 +286,48 @@ public class AddPlanFilterVC: TRPBaseUIViewController, DynamicHeightPresentable 
             comfitmButton.topAnchor.constraint(equalTo: buttonContainerView.topAnchor, constant: 16),
             comfitmButton.widthAnchor.constraint(equalTo: clearButton.widthAnchor)
         ])
+
+        guard offersRatingFilter else {
+            durationSlider.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -24).isActive = true
+            return
+        }
+        contentView.addSubview(ratingTitleLabel)
+        contentView.addSubview(ratingStackView)
+        NSLayoutConstraint.activate([
+            ratingTitleLabel.topAnchor.constraint(equalTo: durationSlider.bottomAnchor, constant: 32),
+            ratingTitleLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
+
+            ratingStackView.topAnchor.constraint(equalTo: ratingTitleLabel.bottomAnchor, constant: 16),
+            ratingStackView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
+            ratingStackView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
+            ratingStackView.heightAnchor.constraint(equalToConstant: 36),
+            ratingStackView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -24)
+        ])
+    }
+
+    private func setupRatingChips() {
+        guard offersRatingFilter else { return }
+        let options: [Double?] = [nil] + Self.minimumRatingOptions
+        ratingChips = options.map { rating in
+            let button = RatingChipButton(title: rating.map(Self.ratingChipTitle) ?? AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.filterRatingAny),
+                                          showsStar: rating != nil)
+            button.addTarget(self, action: #selector(ratingChipTapped(_:)), for: .touchUpInside)
+            ratingStackView.addArrangedSubview(button)
+            return (rating, button)
+        }
+        updateRatingChips()
+    }
+
+    private func updateRatingChips() {
+        ratingChips.forEach { $0.button.isChosen = $0.rating == selectedMinRating }
+    }
+
+    /// "4.5+" in the device's number format.
+    static func ratingChipTitle(for rating: Double) -> String {
+        let formatter = NumberFormatter()
+        formatter.minimumFractionDigits = 1
+        formatter.maximumFractionDigits = 1
+        return (formatter.string(from: NSNumber(value: rating)) ?? "\(rating)") + "+"
     }
 
     private func setupSliders() {
@@ -269,6 +344,10 @@ public class AddPlanFilterVC: TRPBaseUIViewController, DynamicHeightPresentable 
             durationMinValue = durationFallbackMin
             durationMaxValue = durationFallbackMax
         }
+
+        let labelPlacement = TRPCoreKit.shared.provider.rangeSliderValueLabelPlacement
+        priceSlider.valueLabelPlacement = labelPlacement
+        durationSlider.valueLabelPlacement = labelPlacement
 
         priceSlider.minimumValue = priceMinValue
         priceSlider.maximumValue = priceMaxValue
@@ -305,6 +384,14 @@ public class AddPlanFilterVC: TRPBaseUIViewController, DynamicHeightPresentable 
         priceSlider.upperValue = priceMaxValue
         durationSlider.lowerValue = durationMinValue
         durationSlider.upperValue = durationMaxValue
+        selectedMinRating = nil
+        updateRatingChips()
+    }
+
+    @objc private func ratingChipTapped(_ sender: RatingChipButton) {
+        guard let chip = ratingChips.first(where: { $0.button === sender }) else { return }
+        selectedMinRating = chip.rating
+        updateRatingChips()
     }
 
     @objc private func applyButtonTapped() {
@@ -322,6 +409,10 @@ public class AddPlanFilterVC: TRPBaseUIViewController, DynamicHeightPresentable 
         }
         if durationSlider.upperValue < durationMaxValue {
             newFilterData.maxDuration = Int(durationSlider.upperValue)
+        }
+
+        if offersRatingFilter {
+            newFilterData.minRating = selectedMinRating
         }
 
         onFilterApplied?(newFilterData)
@@ -351,5 +442,51 @@ public class AddPlanFilterVC: TRPBaseUIViewController, DynamicHeightPresentable 
         } else {
             return "\(mins)m"
         }
+    }
+}
+
+// MARK: - RatingChipButton
+/// A pill offering one lower rating bound, filled while it is the chosen one.
+private final class RatingChipButton: UIButton {
+
+    var isChosen = false {
+        didSet { applyStyle() }
+    }
+
+    private let title: String
+    private let showsStar: Bool
+
+    init(title: String, showsStar: Bool) {
+        self.title = title
+        self.showsStar = showsStar
+        super.init(frame: .zero)
+        layer.cornerRadius = 18
+        layer.borderWidth = 1
+        clipsToBounds = true
+        applyStyle()
+    }
+
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    private func applyStyle() {
+        let foreground: UIColor = isChosen ? .white : ColorSet.primaryText.uiColor
+        var configuration = UIButton.Configuration.plain()
+        configuration.contentInsets = NSDirectionalEdgeInsets(top: 0, leading: 4, bottom: 0, trailing: 4)
+        configuration.imagePadding = 4
+        configuration.attributedTitle = AttributedString(title, attributes: AttributeContainer([
+            .font: FontSet.montserratMedium.font(14),
+            .foregroundColor: foreground
+        ]))
+        if showsStar {
+            configuration.image = UIImage(systemName: "star.fill")?
+                .withConfiguration(UIImage.SymbolConfiguration(pointSize: 11, weight: .semibold))
+            let starColor: UIColor = isChosen ? .white : ColorSet.ratingStar.uiColor
+            configuration.imageColorTransformer = UIConfigurationColorTransformer { _ in starColor }
+        }
+        self.configuration = configuration
+        backgroundColor = isChosen ? ColorSet.primary.uiColor : .white
+        layer.borderColor = (isChosen ? ColorSet.primary.uiColor : ColorSet.lineWeak.uiColor).cgColor
     }
 }

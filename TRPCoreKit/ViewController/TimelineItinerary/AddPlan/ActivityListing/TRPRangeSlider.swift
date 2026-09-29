@@ -11,7 +11,19 @@ import TRPFoundationKit
 
 public class TRPRangeSlider: UIControl {
 
+    /// Where the lower and upper values are written above the track.
+    public enum ValueLabelPlacement {
+        /// Each value is centred over its thumb and moves with it.
+        case followingThumbs
+        /// The lower value stays at the leading edge and the upper value at the trailing edge.
+        case pinnedToEdges
+    }
+
     // MARK: - Properties
+    public var valueLabelPlacement: ValueLabelPlacement = .followingThumbs {
+        didSet { updateLayerFrames() }
+    }
+
     public var minimumValue: Double = 0 {
         didSet { updateLayerFrames() }
     }
@@ -158,19 +170,18 @@ public class TRPRangeSlider: UIControl {
     private func updateValueLabels() {
         lowerValueLabel.text = valueLabelFormatter(lowerValue)
         lowerValueLabel.sizeToFit()
-        let lowerThumbCenter = positionForValue(lowerValue)
-        lowerValueLabel.center = CGPoint(
-            x: lowerThumbCenter,
-            y: valueLabelHeight / 2
-        )
-
         upperValueLabel.text = valueLabelFormatter(upperValue)
         upperValueLabel.sizeToFit()
-        let upperThumbCenter = positionForValue(upperValue)
-        upperValueLabel.center = CGPoint(
-            x: upperThumbCenter,
-            y: valueLabelHeight / 2
-        )
+
+        switch valueLabelPlacement {
+        case .followingThumbs:
+            lowerValueLabel.center = CGPoint(x: positionForValue(lowerValue), y: valueLabelHeight / 2)
+            upperValueLabel.center = CGPoint(x: positionForValue(upperValue), y: valueLabelHeight / 2)
+        case .pinnedToEdges:
+            lowerValueLabel.frame.origin = CGPoint(x: 0, y: (valueLabelHeight - lowerValueLabel.frame.height) / 2)
+            upperValueLabel.frame.origin = CGPoint(x: bounds.width - upperValueLabel.frame.width,
+                                                   y: (valueLabelHeight - upperValueLabel.frame.height) / 2)
+        }
     }
 
     private func positionForValue(_ value: Double) -> CGFloat {
