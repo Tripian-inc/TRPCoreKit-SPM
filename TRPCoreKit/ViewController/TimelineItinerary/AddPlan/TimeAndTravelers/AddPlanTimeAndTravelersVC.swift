@@ -498,7 +498,7 @@ public class AddPlanTimeAndTravelersVC: TRPBaseUIViewController, AddPlanChildVie
 // MARK: - TRPSingleTimePickerDelegate
 extension AddPlanTimeAndTravelersVC: TRPSingleTimePickerDelegate {
 
-    func singleTimePickerDidSelectTime(_ picker: TRPSingleTimePickerViewController, time: Date) {
+    public func singleTimePickerDidSelectTime(_ picker: TRPSingleTimePickerViewController, time: Date) {
         let combinedTime = combineDate(viewModel.getSelectedDay(), withTime: time)
 
         if editingStartTime {
@@ -521,7 +521,7 @@ extension AddPlanTimeAndTravelersVC: TRPSingleTimePickerDelegate {
         containerVC?.updateContinueButtonState()
     }
 
-    func singleTimePickerDidCancel(_ picker: TRPSingleTimePickerViewController) {
+    public func singleTimePickerDidCancel(_ picker: TRPSingleTimePickerViewController) {
     }
 }
 
