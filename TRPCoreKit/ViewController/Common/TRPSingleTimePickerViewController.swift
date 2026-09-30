@@ -8,21 +8,25 @@
 import UIKit
 import TRPFoundationKit
 
-protocol TRPSingleTimePickerDelegate: AnyObject {
+/// Receives the time picked on a `TRPSingleTimePickerViewController`, or its dismissal.
+public protocol TRPSingleTimePickerDelegate: AnyObject {
     func singleTimePickerDidSelectTime(_ picker: TRPSingleTimePickerViewController, time: Date)
     func singleTimePickerDidCancel(_ picker: TRPSingleTimePickerViewController)
 }
 
-class TRPSingleTimePickerViewController: TRPBaseUIViewController, DynamicHeightPresentable {
+/// A bottom sheet with an hour and minute wheel, the one the add plan flow uses for start and end times.
+/// Only the hour and minute of the dates passed in and handed back are meaningful.
+@objc(SPMTRPSingleTimePickerViewController)
+public class TRPSingleTimePickerViewController: TRPBaseUIViewController, DynamicHeightPresentable {
 
     // MARK: - DynamicHeightPresentable
-    var preferredContentHeight: CGFloat {
+    public var preferredContentHeight: CGFloat {
         // Header (56) + separator (0.5) + content padding (24) + picker (200) + button padding (16) + button (52) + bottom (16)
         return 56 + 0.5 + 24 + 200 + 16 + 52 + 16  // ~364.5
     }
 
     // MARK: - Properties
-    weak var delegate: TRPSingleTimePickerDelegate?
+    public weak var delegate: TRPSingleTimePickerDelegate?
     private var selectedTime: Date?
     private var selectedDate: Date?      // Day being planned for
     private var minimumTime: Date?       // Min selectable time
@@ -102,7 +106,7 @@ class TRPSingleTimePickerViewController: TRPBaseUIViewController, DynamicHeightP
     }()
 
     // MARK: - Initialization
-    init(title: String,
+    public init(title: String,
          selectedDate: Date?,
          minimumTime: Date? = nil,
          maximumTime: Date? = nil,
@@ -119,18 +123,18 @@ class TRPSingleTimePickerViewController: TRPBaseUIViewController, DynamicHeightP
         super.init(nibName: nil, bundle: nil)
     }
 
-    required init?(coder: NSCoder) {
+    public required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
 
     // MARK: - Lifecycle
-    override func viewDidLoad() {
+    public override func viewDidLoad() {
         super.viewDidLoad()
         setupUI()
         setupActions()
     }
 
-    override func viewWillAppear(_ animated: Bool) {
+    public override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         setupPickerView()
         applyTimeRestrictions()
@@ -362,7 +366,7 @@ class TRPSingleTimePickerViewController: TRPBaseUIViewController, DynamicHeightP
     }
 
     // MARK: - Public Methods
-    func show(from parentViewController: UIViewController? = nil) {
+    public func show(from parentViewController: UIViewController? = nil) {
         guard let presentingViewController = parentViewController ?? UIApplication.getTopViewController() else {
             print("[Error] TopViewController is nil")
             return
