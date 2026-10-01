@@ -93,11 +93,12 @@ public final class CheckoutSession {
         await perform { key in try await client.create(request, idempotencyKey: key) }
     }
 
-    /// Sends the answers of the current step with the displayed amount as `expectedAmount`.
+    /// Sends the answers of the current step with the checkout's current `amount` as `expectedAmount`, on every
+    /// submit while that amount is known, since only the server knows which submit moves it to `awaiting_payment`.
     public func submit(answers: BookingContract.Answers) async {
         guard case .step(let step, let checkout) = state else { return }
         let client = client, lang = lang
-        let expectedAmount = registry.layout(for: step).displayedAmount
+        let expectedAmount = checkout.amount
         await perform { key in
             try await client.submit(checkoutId: checkout.id, stepId: step.id, answers: answers,
                                     expectedAmount: expectedAmount, lang: lang, idempotencyKey: key)

@@ -14,7 +14,7 @@ final class CheckoutSessionProviderFlowTests: XCTestCase {
         let (session, script) = try await walk("toristy")
         guard case .finished(let checkout) = session.state else { return XCTFail("\(session.state)") }
         XCTAssertEqual(checkout.status.value, .confirmed)
-        try await assertAnsweredAsRecorded(script, "toristy")
+        try await assertSentWhatWasRecorded(script, "toristy")
     }
 
     /// Ticket Evolution confirms asynchronously, so the Victory fixture's flow is terminal at `pending`, not `confirmed`.
@@ -22,7 +22,7 @@ final class CheckoutSessionProviderFlowTests: XCTestCase {
         let (session, script) = try await walk("victory", currency: "USD")
         guard case .finished(let checkout) = session.state else { return XCTFail("\(session.state)") }
         XCTAssertEqual(checkout.status.value, .pending)
-        try await assertAnsweredAsRecorded(script, "victory")
+        try await assertSentWhatWasRecorded(script, "victory")
     }
 
     func testForwardCompatStepFallsBack() async throws {
@@ -103,26 +103,6 @@ final class CheckoutSessionProviderFlowTests: XCTestCase {
     private func failure(_ label: String, _ session: CheckoutSession) -> CheckoutSession {
         XCTFail("\(label) reached in state \(session.state)")
         return session
-    }
-
-    /// Compares every recorded field except `expectedAmount`, which `CheckoutSession.submit` computes from the
-    /// current step's own summary block rather than the checkout's known `amount`, and so diverges from these fixtures.
-    private func assertAnsweredAsRecorded(_ script: BC.ReplayScript, _ directory: String) async throws {
-        let recorded = try ContractFixtures.exchanges(in: directory).filter { $0.request.path.contains("/checkouts") }
-        let sent = await script.sent
-        XCTAssertEqual(sent.map(\.signature), recorded.map(\.request.signature))
-        for (request, exchange) in zip(sent, recorded) {
-            XCTAssertEqual(request.body?.withoutNullMembers.withoutExpectedAmount,
-                           exchange.request.body?.withoutNullMembers.withoutExpectedAmount, exchange.name)
-        }
-        XCTAssertTrue(sent.filter { $0.method == "POST" }.allSatisfy { $0.idempotencyKey != nil })
-    }
-}
-
-private extension BC.JSONValue {
-    var withoutExpectedAmount: BC.JSONValue {
-        guard case .object(let members) = self else { return self }
-        return .object(members.filter { $0.key != "expectedAmount" })
     }
 }
 

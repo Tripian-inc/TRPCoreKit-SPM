@@ -57,3 +57,19 @@ extension BC.JSONValue {
         }
     }
 }
+
+extension XCTestCase {
+
+    /// Checks that `script` received the checkout requests recorded in `directory`, in order and body for body.
+    func assertSentWhatWasRecorded(_ script: BC.ReplayScript, _ directory: String,
+                                   file: StaticString = #filePath, line: UInt = #line) async throws {
+        let recorded = try ContractFixtures.exchanges(in: directory).filter { $0.request.path.contains("/checkouts") }
+        let sent = await script.sent
+        XCTAssertEqual(sent.map(\.signature), recorded.map(\.request.signature), file: file, line: line)
+        for (request, exchange) in zip(sent, recorded) {
+            XCTAssertEqual(request.body?.withoutNullMembers, exchange.request.body?.withoutNullMembers, exchange.name,
+                           file: file, line: line)
+        }
+        XCTAssertTrue(sent.filter { $0.method == "POST" }.allSatisfy { $0.idempotencyKey != nil }, file: file, line: line)
+    }
+}

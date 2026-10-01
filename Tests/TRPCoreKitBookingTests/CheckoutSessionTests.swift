@@ -105,16 +105,6 @@ final class CheckoutSessionTests: XCTestCase {
         XCTFail("\(label) reached in state \(session.state)")
         return (session, BC.ReplayScript([]))
     }
-
-    private func assertSentWhatWasRecorded(_ script: BC.ReplayScript, _ directory: String) async throws {
-        let recorded = try ContractFixtures.exchanges(in: directory).filter { $0.request.path.contains("/checkouts") }
-        let sent = await script.sent
-        XCTAssertEqual(sent.map(\.signature), recorded.map(\.request.signature))
-        for (request, exchange) in zip(sent, recorded) {
-            XCTAssertEqual(request.body?.withoutNullMembers, exchange.request.body?.withoutNullMembers, exchange.name)
-        }
-        XCTAssertTrue(sent.filter { $0.method == "POST" }.allSatisfy { $0.idempotencyKey != nil })
-    }
 }
 
 /// Throws a transport error on the call after `failNext` is set, then forwards to `base`; records submit keys.

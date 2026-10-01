@@ -66,12 +66,4 @@ public struct StepLayout: Hashable {
     public var isRenderable: Bool { unsupported.isEmpty }
 
     public var rows: [FormRow] { groups.flatMap(\.rows) }
-
-    /// The total of the step's summary, the amount on screen that a submit sends as `expectedAmount`.
-    public var displayedAmount: BookingContract.Money? {
-        for row in rows {
-            if case .summary(let summary) = row.kind { return summary.total }
-        }
-        return nil
-    }
 }

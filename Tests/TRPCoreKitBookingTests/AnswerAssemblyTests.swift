@@ -2,10 +2,10 @@ import XCTest
 import TRPBookingKit
 @testable import TRPCoreKitBooking
 
-/// Fills each step's form with the values a recorded submit sent and checks that it assembles the same request.
+/// Fills each step's form with the values a recorded submit sent and checks that it assembles the same answers.
 final class AnswerAssemblyTests: XCTestCase {
 
-    func testFormsAssembleTheRecordedAnswersAndExpectedAmount() throws {
+    func testFormsAssembleTheRecordedAnswers() throws {
         for directory in ["viator", "_synthetic/a-full-flow", "_synthetic/f-hold-expired"] {
             let submits = try ContractFixtures.exchanges(in: directory).filter { $0.request.path.contains("/steps/") }
             XCTAssertFalse(submits.isEmpty, directory)
@@ -21,7 +21,6 @@ final class AnswerAssemblyTests: XCTestCase {
                 }
                 XCTAssertEqual(form.answers, request.answers, label)
                 XCTAssertTrue(form.problems().isEmpty, "\(label): \(form.problems())")
-                XCTAssertEqual(layout.displayedAmount, request.expectedAmount, label)
             }
         }
     }
