@@ -14,6 +14,7 @@ public struct TimelineLocalizationKeys {
 
     // MARK: - Booked Activity Cell
     public static let reservation = "timeline.bookedActivity.reservation"
+    public static let checkAvailability = "check_availability"
     public static let confirmed = "timeline.bookedActivity.confirmed"
     public static let adults = "timeline.bookedActivity.adults"
     public static let child = "timeline.bookedActivity.child"
@@ -92,6 +93,7 @@ public struct TimelineLocalizationKeys {
     private static let defaultValues: [String: String] = [
         navigationTitle: "Plan Your Itinerary",
         reservation: "Reservation",
+        checkAvailability: "Check availability",
         confirmed: "Confirmed",
         adults: "Adults",
         child: "Child",
@@ -146,6 +148,11 @@ public struct TimelineLocalizationKeys {
         }
 
         return localizedValue
+    }
+
+    /// Reservation CTA label; an expired availability asks the user to re-check it.
+    public static func reservationButtonTitle(isAvailabilityExpired: Bool) -> String {
+        localized(isAvailabilityExpired ? checkAvailability : reservation)
     }
 
     // MARK: - Format Helpers

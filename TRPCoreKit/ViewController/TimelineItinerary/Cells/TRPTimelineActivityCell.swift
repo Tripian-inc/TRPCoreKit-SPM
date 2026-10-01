@@ -452,6 +452,7 @@ class TRPTimelineActivityCell: UITableViewCell {
         actionButtonsStack.isHidden = isBooked
         changeTimeButton.isHidden = content.kind != .reserved
         removeButton.isHidden = isBooked
+        reservationButton.updateTitle(TimelineLocalizationKeys.reservationButtonTitle(isAvailabilityExpired: content.isAvailabilityExpired))
         reservationButton.isHidden = isBooked
         titleTrailingConstraint?.constant = isBooked ? 0 : -8
     }
@@ -464,7 +465,8 @@ class TRPTimelineActivityCell: UITableViewCell {
         guard !isFlexible else {
             flexibleTimeBadgeView.configure(
                 title: TimelineLocalizationKeys.localized(TimelineLocalizationKeys.flexibleEntryTitle),
-                subtitle: TimelineLocalizationKeys.localized(TimelineLocalizationKeys.flexibleEntrySubtitle)
+                subtitle: TimelineLocalizationKeys.localized(TimelineLocalizationKeys.flexibleEntrySubtitle),
+                isAvailabilityExpired: content.isAvailabilityExpired
             )
             return
         }
@@ -594,7 +596,7 @@ private extension ActivityCellContent {
         order = 0
         hasConflict = false
         showTimeOverlapText = false
-        isAvailabilityExpired = false
+        isAvailabilityExpired = data.isAvailabilityExpired
         adultCount = data.adultCount
         childCount = data.childCount
         duration = data.duration

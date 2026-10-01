@@ -58,6 +58,35 @@ class TRPTimelineFlexibleTimeBadgeView: UIView {
         return label
     }()
 
+    private let dotLabel: UILabel = {
+        let label = UILabel()
+        label.translatesAutoresizingMaskIntoConstraints = false
+        label.font = FontSet.montserratMedium.font(14)
+        label.text = "·"
+        label.textColor = ColorSet.primaryText.uiColor
+        label.isHidden = true
+        return label
+    }()
+
+    private let warningIconView: UIImageView = {
+        let iv = UIImageView()
+        iv.translatesAutoresizingMaskIntoConstraints = false
+        iv.image = TRPImageController().getImage(inFramework: "ic_warning", inApp: nil)?.withRenderingMode(.alwaysTemplate)
+        iv.contentMode = .scaleAspectFit
+        iv.tintColor = ColorSet.errorIcon.uiColor
+        iv.isHidden = true
+        return iv
+    }()
+
+    private let statusLabel: UILabel = {
+        let label = UILabel()
+        label.translatesAutoresizingMaskIntoConstraints = false
+        label.font = FontSet.montserratMedium.font(14)
+        label.textColor = ColorSet.primaryText.uiColor
+        label.isHidden = true
+        return label
+    }()
+
     private let textStack: UIStackView = {
         let stack = UIStackView()
         stack.translatesAutoresizingMaskIntoConstraints = false
@@ -93,6 +122,10 @@ class TRPTimelineFlexibleTimeBadgeView: UIView {
         containerView.addSubview(textStack)
         textStack.addArrangedSubview(titleLabel)
         textStack.addArrangedSubview(subtitleLabel)
+        textStack.addArrangedSubview(dotLabel)
+        textStack.addArrangedSubview(warningIconView)
+        textStack.addArrangedSubview(statusLabel)
+        textStack.setCustomSpacing(2, after: warningIconView)
 
         NSLayoutConstraint.activate([
             containerView.topAnchor.constraint(equalTo: topAnchor),
@@ -108,6 +141,9 @@ class TRPTimelineFlexibleTimeBadgeView: UIView {
             textStack.leadingAnchor.constraint(equalTo: orderLabel.trailingAnchor, constant: 10),
             textStack.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -12),
             textStack.centerYAnchor.constraint(equalTo: containerView.centerYAnchor),
+
+            warningIconView.widthAnchor.constraint(equalToConstant: 16),
+            warningIconView.heightAnchor.constraint(equalToConstant: 16),
 
             verticalLineView.topAnchor.constraint(equalTo: containerView.bottomAnchor),
             verticalLineView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 16),
@@ -134,9 +170,29 @@ class TRPTimelineFlexibleTimeBadgeView: UIView {
 
     // MARK: - Configuration
 
-    func configure(title: String, subtitle: String) {
+    /// An expired availability swaps the subtitle for a red "Not available" status, matching the timed badge.
+    func configure(title: String, subtitle: String, isAvailabilityExpired: Bool = false) {
         titleLabel.text = title
         subtitleLabel.text = subtitle
+        statusLabel.text = TimelineLocalizationKeys.localized(TimelineLocalizationKeys.notAvailable)
+        applyAvailabilityStyle(isExpired: isAvailabilityExpired)
+    }
+
+    private func applyAvailabilityStyle(isExpired: Bool) {
+        subtitleLabel.isHidden = isExpired
+        dotLabel.isHidden = !isExpired
+        warningIconView.isHidden = !isExpired
+        statusLabel.isHidden = !isExpired
+
+        textStack.alignment = isExpired ? .center : .firstBaseline
+        textStack.spacing = isExpired ? 8 : 6
+        titleLabel.font = isExpired ? FontSet.montserratMedium.font(14) : FontSet.montserratSemiBold.font(14)
+        titleLabel.textColor = isExpired ? ColorSet.primaryText.uiColor : ColorSet.fg.uiColor
+
+        containerView.backgroundColor = isExpired ? ColorSet.errorBg.uiColor : .clear
+        dashedBorderLayer.strokeColor = isExpired ? ColorSet.errorIcon.uiColor.cgColor : ColorSet.lineWeak.uiColor.cgColor
+        dashedBorderLayer.lineDashPattern = isExpired ? nil : [4, 3]
+        orderLabel.backgroundColor = isExpired ? ColorSet.errorIcon.uiColor : ColorSet.fg.uiColor
     }
 
     /// Past-day recolor: `trp_recolorLabelsAndBorders` skips CAShapeLayer.strokeColor, so set it here.
@@ -150,10 +206,8 @@ class TRPTimelineFlexibleTimeBadgeView: UIView {
 
     /// Reset all colors to default styling (used in cell.prepareForReuse).
     func resetStyle() {
-        titleLabel.textColor = ColorSet.fg.uiColor
+        applyAvailabilityStyle(isExpired: false)
         subtitleLabel.textColor = ColorSet.fg.uiColor
-        orderLabel.backgroundColor = ColorSet.fg.uiColor
-        dashedBorderLayer.strokeColor = ColorSet.lineWeak.uiColor.cgColor
         verticalLineView.backgroundColor = ColorSet.lineWeak.uiColor
     }
 }

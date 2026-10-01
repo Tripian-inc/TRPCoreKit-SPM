@@ -184,10 +184,12 @@ class TRPTimelineActivityStepCell: UITableViewCell {
         }
 
         if let startTime = step.getStartTime(), let endTime = step.getEndTime() {
-            timeBadgeView.configure(order: order, startTime: startTime, endTime: endTime)
+            timeBadgeView.configure(order: order, startTime: startTime, endTime: endTime,
+                                    isAvailabilityExpired: step.isAvailabilityExpired)
         }
 
         titleLabel.text = poi.name
+        reservationButton.updateTitle(TimelineLocalizationKeys.reservationButtonTitle(isAvailabilityExpired: step.isAvailabilityExpired))
 
         ratingStack.arrangedSubviews.forEach { $0.removeFromSuperview() }
 
@@ -224,10 +226,19 @@ class TRPTimelineActivityStepCell: UITableViewCell {
             descriptionLabel.isHidden = true
         }
 
-        if let image = poi.image {
-            activityImageView.sd_setImage(with: URL(string: image.url), placeholderImage: nil)
-        } else if let gallery = poi.gallery, let firstImage = gallery.compactMap({ $0 }).first {
-            activityImageView.sd_setImage(with: URL(string: firstImage.url), placeholderImage: nil)
+        let imageUrl = poi.image?.url ?? poi.gallery?.compactMap({ $0 }).first?.url
+        loadImage(urlString: imageUrl, desaturated: step.isAvailabilityExpired)
+    }
+
+    /// `desaturated` greys the photo out for an activity whose slot is no longer offered.
+    private func loadImage(urlString: String?, desaturated: Bool) {
+        guard let urlString = urlString, let url = URL(string: urlString) else {
+            activityImageView.image = nil
+            return
+        }
+        activityImageView.sd_setImage(with: url, placeholderImage: nil) { [weak activityImageView] image, _, _, _ in
+            guard let activityImageView = activityImageView, let image = image else { return }
+            activityImageView.image = desaturated ? (image.convertToGrayScale() ?? image) : image
         }
     }
 

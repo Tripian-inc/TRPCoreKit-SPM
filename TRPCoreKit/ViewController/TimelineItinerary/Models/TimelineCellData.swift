@@ -145,6 +145,7 @@ public struct FlexibleActivityCellData: TimelineCellData {
     public let rating: Float?
     public let ratingCount: Int?
     public let isNoLocation: Bool
+    public let isAvailabilityExpired: Bool
     public let segment: TRPTimelineSegment
 
     public init(from item: TRPMergedTimelineItem) {
@@ -159,6 +160,7 @@ public struct FlexibleActivityCellData: TimelineCellData {
         self.rating = item.rating
         self.ratingCount = item.ratingCount
         self.isNoLocation = item.isNoLocation
+        self.isAvailabilityExpired = item.isAvailabilityExpired
         self.segment = item.segment
     }
 }

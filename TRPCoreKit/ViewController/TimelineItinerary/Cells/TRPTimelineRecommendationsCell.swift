@@ -584,7 +584,7 @@ class TRPTimelineRecommendationsCell: UITableViewCell {
             priceRow.configure(value: resolvedPrice, currency: currency)
         }
 
-        let reservationButton = TRPButton(title: TimelineLocalizationKeys.localized(TimelineLocalizationKeys.reservation), style: .primary, height: 40)
+        let reservationButton = TRPButton(title: TimelineLocalizationKeys.reservationButtonTitle(isAvailabilityExpired: isExpired), style: .primary, height: 40)
         reservationButton.translatesAutoresizingMaskIntoConstraints = false
         reservationButton.tag = steps.firstIndex(where: { $0.id == step.id }) ?? 0
         reservationButton.addTarget(self, action: #selector(reservationTapped(_:)), for: .touchUpInside)
