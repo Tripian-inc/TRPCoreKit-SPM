@@ -28,7 +28,7 @@ let package = Package(
         .package(url: "https://github.com/Tripian-inc/TRPRestKit.git", branch: "master"),
         .package(url: "https://github.com/airbnb/lottie-ios.git", from: "4.4.0"),
         .package(url: "https://github.com/pointfreeco/swift-snapshot-testing", from: "1.17.0"),
-        .package(path: "/Users/cemcaygoz/Documents/GitHub/TRPBookingKit"),
+        .package(path: "/Users/cemcaygoz/Documents/GitHub/TRPBookingKit-contract"),
 //        .package(url: "https://github.com/mapbox/mapbox-events-ios.git", from: "2.0.0"),
     ],
     targets: [
@@ -55,7 +55,7 @@ let package = Package(
         .target(
             name: "TRPCoreKitBooking",
             dependencies: [
-                .product(name: "TRPBookingKit", package: "TRPBookingKit"),
+                .product(name: "TRPBookingKit", package: "TRPBookingKit-contract"),
             ],
             path: "TRPCoreKitBooking"
         ),
@@ -63,7 +63,7 @@ let package = Package(
             name: "TRPCoreKitBookingTests",
             dependencies: [
                 "TRPCoreKitBooking",
-                .product(name: "TRPBookingKit", package: "TRPBookingKit"),
+                .product(name: "TRPBookingKit", package: "TRPBookingKit-contract"),
             ],
             path: "Tests/TRPCoreKitBookingTests"
         ),
