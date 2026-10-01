@@ -230,6 +230,23 @@ extension TRPSegmentActivityItem {
         guard let raw = activityId, !raw.isEmpty else { return nil }
         return (raw.cleanedAsActivityId(), raw.trp_parsedProviderId() ?? trpDefaultLookupProviderId)
     }
+
+    /// `endDate` for the booking's segment, which the API rejects when missing: the booking's own end,
+    /// else its start plus a positive `duration` in minutes, else its start.
+    var segmentEndDatetime: String? {
+        if let end = endDatetime, !end.isEmpty { return end }
+        if let duration = duration, duration > 0, let start = TRPDateHelper.parseDateTime(startDatetime) {
+            return TRPDateHelper.formatDateTime(start.addingTimeInterval(duration * 60))
+        }
+        return startDatetime
+    }
+
+    /// The booking with a blank `endDatetime` cleared, so an unknown end is omitted instead of sent empty.
+    var withoutBlankEnd: TRPSegmentActivityItem {
+        var item = self
+        if item.endDatetime?.isEmpty == true { item.endDatetime = nil }
+        return item
+    }
 }
 
 extension TRPSegmentFavoriteItem {
@@ -419,7 +436,7 @@ extension TRPItineraryWithActivities {
         segment.distinctPlan = true
 
         segment.startDate = tripItem.startDatetime ?? startDatetime
-        segment.endDate = tripItem.endDatetime ?? derivedEndDate(of: tripItem)
+        segment.endDate = tripItem.segmentEndDatetime ?? segment.startDate
 
         segment.coordinate = tripItem.coordinate
 
@@ -429,21 +446,12 @@ extension TRPItineraryWithActivities {
         segment.pets = 0
 
         // Set additional data (this is CRITICAL for booked activities)
-        segment.additionalData = tripItem
+        segment.additionalData = tripItem.withoutBlankEnd
 
         // City is populated on fetch by resolveSegmentCity (dayIds → plan, then the segment's own cityId).
         segment.city = nil
 
         return segment
-    }
-
-    /// End of a booking sent without an end time: its start plus `duration` minutes, or nil when either is missing.
-    private func derivedEndDate(of tripItem: TRPSegmentActivityItem) -> String? {
-        guard let duration = tripItem.duration, duration > 0,
-              let start = TRPDateHelper.parseDateTime(tripItem.startDatetime) else {
-            return nil
-        }
-        return TRPDateHelper.formatDateTime(start.addingTimeInterval(duration * 60))
     }
 }
 

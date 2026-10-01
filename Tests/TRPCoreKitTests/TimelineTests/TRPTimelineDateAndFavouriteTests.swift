@@ -336,8 +336,8 @@ extension TRPTimelineDateAndFavouriteTests {
         return itinerary.createTimelineProfileFromBookings().segments.first { $0.segmentType == .bookedActivity }
     }
 
-    func testBookingWithoutEndTimeDoesNotEndAtTheTripEnd() {
-        XCTAssertNil(bookedSegmentFromHost(start: "2026-10-24 21:00", end: nil, duration: nil)?.endDate)
+    func testBookingWithoutEndTimeEndsAtItsStartInsteadOfTheTripEnd() {
+        XCTAssertEqual(bookedSegmentFromHost(start: "2026-10-24 21:00", end: nil, duration: nil)?.endDate, "2026-10-24 21:00")
     }
 
     func testBookingWithoutEndTimeEndsAfterItsDuration() {

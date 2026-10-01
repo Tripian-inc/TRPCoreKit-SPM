@@ -431,7 +431,7 @@ extension TRPTimelineItineraryViewModel {
         profile.distinctPlan = true
 
         profile.startDate = tripItem.startDatetime
-        profile.endDate = tripItem.endDatetime
+        profile.endDate = tripItem.segmentEndDatetime
 
         // Resolve city first so we can fall back to its coordinate when the trip item has none (isNoLocation or (0, 0)).
         // A booking whose city could not be resolved still lands in the trip: it takes the trip's own city.
@@ -458,7 +458,7 @@ extension TRPTimelineItineraryViewModel {
         profile.city = resolvedCity
 
         // Fall back to the city's coordinate when the trip item has none, stamping isNoLocation so the UI badge stays consistent (additionalData is the cell's source of truth for the flag).
-        var enrichedTripItem = tripItem
+        var enrichedTripItem = tripItem.withoutBlankEnd
         if !tripItem.coordinate.isMissingOrZero {
             profile.coordinate = tripItem.coordinate
         } else if let cityCoordinate = resolvedCity?.coordinate, !cityCoordinate.isMissingOrZero {
