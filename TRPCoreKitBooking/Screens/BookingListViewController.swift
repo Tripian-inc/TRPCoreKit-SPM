@@ -1,17 +1,23 @@
 import UIKit
 import TRPBookingKit
 
-/// The bookings made on this device, with a status refresh and, for Viator, a cancellation.
+/// The customer's bookings from the server, a page at a time; a booking opens its details.
 final class BookingListViewController: BookingBaseViewController, UITableViewDataSource, UITableViewDelegate {
 
-    private let booking: TRPBooking
+    static let pageSize = 20
+
+    private let client: BookingClient
+    private let lang: String
     private let tableView = UITableView(frame: .zero, style: .insetGrouped)
     private let refreshControl = UIRefreshControl()
-    private var records: [BookingRecord] = []
+    private var bookings: [BookingContract.Booking] = []
+    private var nextPage: Int? = 1
+    private var isLoading = false
     private let formatting = BookingFormatting()
 
-    init(booking: TRPBooking, theme: TRPBookingTheme, text: TRPBookingText) {
-        self.booking = booking
+    init(client: BookingClient, lang: String, theme: TRPBookingTheme, text: TRPBookingText) {
+        self.client = client
+        self.lang = lang
         super.init(theme: theme, text: text)
         title = text(.myBookingsTitle)
     }
@@ -23,33 +29,68 @@ final class BookingListViewController: BookingBaseViewController, UITableViewDat
         tableView.backgroundColor = theme.background
         tableView.translatesAutoresizingMaskIntoConstraints = false
         refreshControl.tintColor = theme.primary
-        refreshControl.addTarget(self, action: #selector(pulled), for: .valueChanged)
+        refreshControl.addTarget(self, action: #selector(reload), for: .valueChanged)
         tableView.refreshControl = refreshControl
         view.addSubview(tableView)
         tableView.pin(to: view)
-        reload(resolving: true)
+        setLoading(true)
+        reload()
     }
 
-    @objc private func pulled() {
-        reload(resolving: true)
+    @objc private func reload() {
+        load(page: 1, replacing: true)
     }
 
-    private func reload(resolving: Bool) {
-        Task { @MainActor [weak self, booking] in
-            if resolving {
-                _ = await booking.resolveUnfinished()
+    private func load(page: Int, replacing: Bool) {
+        guard !isLoading || replacing else { return }
+        isLoading = true
+        Task { @MainActor [weak self, client, lang] in
+            do {
+                let result = try await client.list(status: [], page: page, limit: Self.pageSize, lang: lang)
+                guard let self else { return }
+                self.bookings = replacing ? result.bookings : self.bookings + result.bookings
+                self.nextPage = Self.page(after: page, of: result)
+                self.finishLoading()
+            } catch {
+                guard let self else { return }
+                self.finishLoading()
+                self.show(error) { [weak self] in self?.load(page: page, replacing: replacing) }
             }
-            let records = await booking.records()
-            guard let self else { return }
-            self.records = records
-            self.refreshControl.endRefreshing()
-            self.tableView.reloadData()
-            self.showEmptyStateIfNeeded()
         }
     }
 
+    /// The page to load next, or nil when the last page has arrived.
+    static func page(after page: Int, of result: BookingContract.BookingPage) -> Int? {
+        guard let pagination = result.pagination else { return nil }
+        return pagination.currentPage < pagination.totalPages ? pagination.currentPage + 1 : nil
+    }
+
+    private func finishLoading() {
+        isLoading = false
+        setLoading(false)
+        refreshControl.endRefreshing()
+        tableView.reloadData()
+        tableView.tableFooterView = nextPage == nil ? nil : makeLoadMoreButton()
+        showEmptyStateIfNeeded()
+    }
+
+    private func makeLoadMoreButton() -> UIView {
+        let button = UIButton(type: .system)
+        button.setTitle(text(.loadMore), for: .normal)
+        button.titleLabel?.font = theme.body
+        button.tintColor = theme.primary
+        button.frame = CGRect(x: 0, y: 0, width: tableView.bounds.width, height: 52)
+        button.addTarget(self, action: #selector(loadMore), for: .touchUpInside)
+        return button
+    }
+
+    @objc private func loadMore() {
+        guard let nextPage else { return }
+        load(page: nextPage, replacing: false)
+    }
+
     private func showEmptyStateIfNeeded() {
-        guard records.isEmpty else {
+        guard bookings.isEmpty else {
             tableView.backgroundView = nil
             return
         }
@@ -60,112 +101,186 @@ final class BookingListViewController: BookingBaseViewController, UITableViewDat
     }
 
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        records.count
+        bookings.count
     }
 
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let record = records[indexPath.row]
-        let cell = tableView.dequeueReusableCell(withIdentifier: "record") ?? UITableViewCell(style: .subtitle, reuseIdentifier: "record")
+        let cell = UITableViewCell(style: .subtitle, reuseIdentifier: nil)
+        let booking = bookings[indexPath.row]
         cell.backgroundColor = theme.surface
-        cell.textLabel?.text = record.title
+        cell.textLabel?.text = booking.product.title
         cell.textLabel?.font = theme.headline
         cell.textLabel?.textColor = theme.text
         cell.textLabel?.numberOfLines = 0
-        let parts = [record.travelDate.map(formatting.day), text(record.status.textKey), formatting.price(record.total, currency: record.currency)]
-        cell.detailTextLabel?.text = parts.compactMap { $0 }.joined(separator: "  ·  ")
+        cell.detailTextLabel?.text = [formatting.day(booking.start.date), booking.status.statusText(text)].joined(separator: " · ")
         cell.detailTextLabel?.font = theme.caption
-        cell.detailTextLabel?.textColor = record.status.isLive ? theme.secondaryText : theme.warning
-        cell.detailTextLabel?.numberOfLines = 0
+        cell.detailTextLabel?.textColor = theme.secondaryText
         cell.accessoryType = .disclosureIndicator
         return cell
     }
 
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         tableView.deselectRow(at: indexPath, animated: true)
-        let record = records[indexPath.row]
-        let sheet = UIAlertController(title: record.title, message: "\(text(.reference)): \(record.reference.primary)", preferredStyle: .actionSheet)
-        sheet.addAction(UIAlertAction(title: text(.refreshStatus), style: .default) { [weak self] _ in self?.refresh(record) })
-        if record.reference.provider == .viator, record.status.isLive {
-            sheet.addAction(UIAlertAction(title: text(.cancelBooking), style: .destructive) { [weak self] _ in self?.quoteCancellation(record) })
+        let detail = BookingDetailViewController(booking: bookings[indexPath.row], client: client, lang: lang, theme: theme, text: text)
+        detail.onChange = { [weak self] updated in
+            guard let self, let index = self.bookings.firstIndex(where: { $0.uuid == updated.uuid }) else { return }
+            self.bookings[index] = updated
+            self.tableView.reloadData()
         }
-        sheet.addAction(UIAlertAction(title: text(.close), style: .cancel))
-        if let popover = sheet.popoverPresentationController, let cell = tableView.cellForRow(at: indexPath) {
-            popover.sourceView = cell
-            popover.sourceRect = cell.bounds
-        }
-        present(sheet, animated: true)
+        navigationController?.pushViewController(detail, animated: true)
+    }
+}
+
+/// One booking: when and where, the amount, its vouchers and, while allowed, a cancellation.
+final class BookingDetailViewController: BookingBaseViewController {
+
+    var onChange: ((BookingContract.Booking) -> Void)?
+
+    private var booking: BookingContract.Booking
+    private let client: BookingClient
+    private let lang: String
+    private let layout = BookingScrollLayout()
+    private let formatting = BookingFormatting()
+
+    init(booking: BookingContract.Booking, client: BookingClient, lang: String, theme: TRPBookingTheme, text: TRPBookingText) {
+        self.booking = booking
+        self.client = client
+        self.lang = lang
+        super.init(theme: theme, text: text)
+        title = booking.product.title
     }
 
-    private func refresh(_ record: BookingRecord) {
-        setLoading(true)
-        Task { @MainActor [weak self, booking] in
-            do {
-                switch record.reference.provider {
-                case .toristy:
-                    _ = try await Self.require(booking.toristy, .toristy).status(of: record.reference)
-                case .viator:
-                    _ = try await Self.require(booking.viator, .viator).status(of: record.reference)
-                case .victory:
-                    _ = try await Self.require(booking.victory, .victory).status(of: record.reference)
-                }
-                self?.setLoading(false)
-                self?.reload(resolving: false)
-            } catch {
-                self?.setLoading(false)
-                self?.show(error)
-            }
-        }
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        layout.install(in: view, theme: theme)
+        render()
+        refresh()
     }
 
-    private func quoteCancellation(_ record: BookingRecord) {
-        guard let viator = booking.viator else { return show(BookingError.providerNotConfigured(.viator)) }
-        setLoading(true)
-        Task { @MainActor [weak self] in
-            do {
-                let quote = try await viator.cancelQuote(record.reference)
-                self?.setLoading(false)
-                self?.confirmCancellation(record, quote: quote)
-            } catch {
-                self?.setLoading(false)
-                self?.show(error)
-            }
+    private func refresh() {
+        Task { @MainActor [weak self, client, lang, uuid = booking.uuid] in
+            guard let updated = try? await client.get(uuid: uuid, lang: lang), let self else { return }
+            self.update(updated)
         }
     }
 
-    private func confirmCancellation(_ record: BookingRecord, quote: ViatorCancelQuote) {
-        let refund = quote.refundAmount.flatMap { $0 > 0 ? formatting.price($0, currency: quote.currencyCode ?? record.currency) : nil }
-        let message = refund.map { text(.cancelQuoteMessage, $0) } ?? text(.cancelQuoteNoRefund)
-        let alert = UIAlertController(title: text(.cancelBooking), message: message, preferredStyle: .alert)
-        alert.addAction(UIAlertAction(title: text(.stay), style: .cancel))
-        alert.addAction(UIAlertAction(title: text(.cancelConfirm), style: .destructive) { [weak self] _ in self?.cancel(record) })
+    private func update(_ updated: BookingContract.Booking) {
+        booking = updated
+        onChange?(updated)
+        render()
+    }
+
+    private func render() {
+        layout.stack.arrangedSubviews.forEach { $0.removeFromSuperview() }
+        layout.footer.arrangedSubviews.forEach { $0.removeFromSuperview() }
+        layout.stack.addArrangedSubview(BookingScrollLayout.card([BookingKeyValueView(rows: rows, theme: theme)], theme: theme))
+        if let policy = policyText {
+            let label = makeLabel(theme.body, color: theme.text)
+            label.text = policy
+            let heading = makeLabel(theme.headline, color: theme.text)
+            heading.text = text(.cancellationPolicy)
+            layout.stack.addArrangedSubview(BookingScrollLayout.card([heading, label], theme: theme))
+        }
+        for (index, voucher) in booking.vouchers.enumerated() where URL(string: voucher.url) != nil {
+            let button = BookingPrimaryButton(theme: theme, title: text(.voucher))
+            button.tag = index
+            button.addTarget(self, action: #selector(openVoucher(_:)), for: .touchUpInside)
+            layout.footer.addArrangedSubview(button)
+        }
+        if booking.cancellation.allowed {
+            let cancel = UIButton(type: .system)
+            cancel.setTitle(text(.cancelBooking), for: .normal)
+            cancel.titleLabel?.font = theme.body
+            cancel.tintColor = theme.error
+            cancel.heightAnchor.constraint(greaterThanOrEqualToConstant: 44).isActive = true
+            cancel.addTarget(self, action: #selector(confirmCancel), for: .touchUpInside)
+            layout.footer.addArrangedSubview(cancel)
+        }
+    }
+
+    private var rows: [BookingSummaryRow] {
+        var rows = [BookingSummaryRow(title: text(.reference), value: booking.uuid),
+                    BookingSummaryRow(title: text(.date), value: formatting.day(booking.start.date))]
+        if let time = booking.start.time { rows.append(BookingSummaryRow(title: text(.time), value: formatting.time(time))) }
+        if let point = booking.meetingPoint {
+            rows.append(BookingSummaryRow(title: text(.meetingPoint), value: [point.name, point.address].compactMap { $0 }.joined(separator: "\n")))
+        }
+        rows.append(BookingSummaryRow(title: text(.total), value: formatting.price(booking.amount) ?? booking.amount.amount, isEmphasized: true))
+        if let refund = booking.refund, let amount = formatting.price(refund.amount) {
+            rows.append(BookingSummaryRow(title: text(.refund), value: amount))
+        }
+        rows.append(BookingSummaryRow(title: "", value: booking.status.statusText(text), isEmphasized: true))
+        return rows
+    }
+
+    private var policyText: String? {
+        guard booking.cancellation.allowed else { return nil }
+        var parts: [String] = []
+        if let deadline = booking.cancellation.deadline.flatMap(CheckoutDeadline.date(from:)) {
+            parts.append(text(.cancelUntil, DateFormatter.localizedString(from: deadline, dateStyle: .medium, timeStyle: .short)))
+        }
+        parts.append(refundText)
+        return parts.joined(separator: "\n")
+    }
+
+    private var refundText: String {
+        switch booking.cancellation.refund.value {
+        case .none: return text(.cancelQuoteNoRefund)
+        case .full: return text(.cancelQuoteMessage, formatting.price(booking.amount) ?? booking.amount.amount)
+        case .partial, .unknown:
+            guard let amount = formatting.price(booking.cancellation.refundAmount) else { return text(.cancelQuoteNoRefund) }
+            return text(.cancelQuoteMessage, amount)
+        }
+    }
+
+    private func showCancelled() {
+        let alert = UIAlertController(title: text(.cancelDone), message: nil, preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: text(.done), style: .default))
         present(alert, animated: true)
     }
 
-    private func cancel(_ record: BookingRecord) {
-        guard let viator = booking.viator else { return }
+    @objc private func openVoucher(_ sender: UIButton) {
+        guard booking.vouchers.indices.contains(sender.tag), let url = URL(string: booking.vouchers[sender.tag].url) else { return }
+        UIApplication.shared.open(url)
+    }
+
+    @objc private func confirmCancel() {
+        let alert = UIAlertController(title: text(.cancelBooking), message: refundText, preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: text(.stay), style: .cancel))
+        alert.addAction(UIAlertAction(title: text(.cancelConfirm), style: .destructive) { [weak self] _ in self?.cancelBooking() })
+        present(alert, animated: true)
+    }
+
+    private func cancelBooking() {
         setLoading(true)
-        Task { @MainActor [weak self] in
+        Task { @MainActor [weak self, client, lang, uuid = booking.uuid] in
             do {
-                let cancellation = try await viator.cancel(record.reference)
+                let updated = try await client.cancel(uuid: uuid, lang: lang)
                 guard let self else { return }
                 self.setLoading(false)
-                if cancellation.isAccepted {
-                    let alert = UIAlertController(title: self.text(.cancelDone), message: nil, preferredStyle: .alert)
-                    alert.addAction(UIAlertAction(title: self.text(.close), style: .cancel))
-                    self.present(alert, animated: true)
-                } else {
-                    self.show(message: cancellation.reason ?? cancellation.status)
-                }
-                self.reload(resolving: false)
+                self.update(updated)
+                self.showCancelled()
             } catch {
-                self?.setLoading(false)
-                self?.show(error)
+                guard let self else { return }
+                self.setLoading(false)
+                self.show(error)
             }
         }
     }
+}
 
-    private static func require<T>(_ checkout: T?, _ kind: BookingProviderKind) throws -> T {
-        guard let checkout else { throw BookingError.providerNotConfigured(kind) }
-        return checkout
+extension BookingContract.OpenEnum where Value == BookingContract.BookingStatus {
+
+    /// The status as the customer reads it.
+    func statusText(_ text: TRPBookingText) -> String {
+        switch value {
+        case .onHold: return text(.statusOnHold)
+        case .confirmed: return text(.statusConfirmed)
+        case .pending: return text(.statusPending)
+        case .expired: return text(.statusExpired)
+        case .cancelled: return text(.statusCancelled)
+        case .rejected: return text(.statusRejected)
+        case .unknown: return rawValue
+        }
     }
 }
