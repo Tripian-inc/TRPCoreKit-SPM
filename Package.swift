@@ -65,7 +65,8 @@ let package = Package(
                 "TRPCoreKitBooking",
                 .product(name: "TRPBookingKit", package: "TRPBookingKit-contract"),
             ],
-            path: "Tests/TRPCoreKitBookingTests"
+            path: "Tests/TRPCoreKitBookingTests",
+            resources: [.copy("Fixtures")]
         ),
         .testTarget(
             name: "TRPCoreKitTests",
