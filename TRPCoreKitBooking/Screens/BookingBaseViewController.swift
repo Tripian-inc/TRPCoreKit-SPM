@@ -83,23 +83,22 @@ class BookingBaseViewController: UIViewController {
     }
 }
 
-/// Turns a booking error into text for the customer.
+/// Turns a contract error, or a failure to reach the server, into text for the customer.
 struct BookingErrorMessage {
 
     let text: TRPBookingText
 
     func message(for error: Error) -> String {
-        switch error as? BookingError {
-        case .holdExpired?:
-            return text(.holdExpired)
-        case .confirmationFailedAfterCharge?:
-            return text(.chargedNotConfirmed)
-        case .invalidSelection(let issues)?:
-            return issues.joined(separator: "\n")
-        case let bookingError?:
-            return bookingError.errorDescription ?? error.localizedDescription
-        case nil:
-            return error.localizedDescription
+        guard let contractError = error as? BookingContract.ContractError else { return text(.unavailable) }
+        switch contractError.code {
+        case .priceChanged: return text(.priceChanged)
+        case .holdExpired: return text(.holdExpired)
+        case .soldOut: return text(.soldOutMessage)
+        case .stepMismatch: return text(.stepChanged)
+        case .paymentDeclined: return text(.paymentDeclined)
+        case .notCancellable: return text(.notCancellable)
+        case .inProgress: return text(.awaitingConfirmation)
+        case .validation, .supplierUnavailable, .idempotencyMismatch, .versionUnsupported, .unknown: return text(.unavailable)
         }
     }
 }

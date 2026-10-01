@@ -45,7 +45,7 @@ final class BookingChoiceListViewController: BookingBaseViewController, UITableV
         }
         if items.isEmpty {
             let label = makeLabel(theme.body, color: theme.secondaryText)
-            label.text = message ?? text(.noAvailability)
+            label.text = message ?? text(.noOptions)
             label.textAlignment = .center
             tableView.backgroundView = label
         }

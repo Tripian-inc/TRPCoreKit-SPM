@@ -49,7 +49,7 @@ public final class CheckoutSession {
     public let lang: String
     public let currency: String
     private let client: CheckoutClient
-    private let registry: BlockRegistry
+    public let registry: BlockRegistry
     private let clock: () -> Date
     private let identifiers: () -> UUID
     private let sleep: (TimeInterval) async throws -> Void
