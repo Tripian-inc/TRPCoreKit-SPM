@@ -212,4 +212,15 @@ extension TRPTimelineItineraryVC {
             noCityView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
         ])
     }
+
+    internal func setupInitialLoadErrorView() {
+        view.addSubview(initialLoadErrorView)
+
+        NSLayoutConstraint.activate([
+            initialLoadErrorView.topAnchor.constraint(equalTo: customNavigationBar.bottomAnchor),
+            initialLoadErrorView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            initialLoadErrorView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            initialLoadErrorView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
+        ])
+    }
 }

@@ -457,7 +457,7 @@ class TRPTimelineActivityCell: UITableViewCell {
     }
 
     private func configureTimeBadge(_ content: ActivityCellContent) {
-        let isFlexible = content.kind == .flexible
+        let isFlexible = content.isFlexibleTime
         timeBadgeView.isHidden = isFlexible
         flexibleTimeBadgeView.isHidden = !isFlexible
 
@@ -542,6 +542,7 @@ private struct ActivityCellContent {
     let title: String
     let imageUrl: String?
     let timeRange: String
+    let isFlexibleTime: Bool
     let order: Int
     let hasConflict: Bool
     let showTimeOverlapText: Bool
@@ -568,6 +569,7 @@ private extension ActivityCellContent {
         title = data.title
         imageUrl = data.imageUrl
         timeRange = data.timeRange
+        isFlexibleTime = data.isFlexible
         order = data.order
         hasConflict = data.hasConflict
         showTimeOverlapText = isReserved ? data.showTimeOverlapText : false
@@ -588,6 +590,7 @@ private extension ActivityCellContent {
         title = data.title
         imageUrl = data.imageUrl
         timeRange = ""
+        isFlexibleTime = true
         order = 0
         hasConflict = false
         showTimeOverlapText = false

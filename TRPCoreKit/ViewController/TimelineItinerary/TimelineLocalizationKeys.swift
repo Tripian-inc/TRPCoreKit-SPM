@@ -86,6 +86,7 @@ public struct TimelineLocalizationKeys {
     public static let errorSomethingWentWrong = "timeline.error.somethingWentWrong"
     public static let errorGenerationFailed = "timeline.error.generationFailed"
     public static let errorTimeout = "timeline.error.timeout"
+    public static let tryAgain = "trips.myTrips.localExperiences.tourDetails.tryAgain"
 
     // MARK: - Default English Values
     private static let defaultValues: [String: String] = [
@@ -126,6 +127,7 @@ public struct TimelineLocalizationKeys {
         errorSomethingWentWrong: "Something went wrong. Please try again.",
         errorGenerationFailed: "Failed to generate your itinerary. Please try again.",
         errorTimeout: "Request timed out. Please try again.",
+        tryAgain: "Try Again",
         mapMainView: "Main View",
         timeOverlap: "Time Overlap",
         conflictWarning: "Some of your planned activities overlap. Please review the timing to resolve any conflicts.",

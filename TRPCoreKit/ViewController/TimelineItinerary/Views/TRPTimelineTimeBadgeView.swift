@@ -147,7 +147,7 @@ class TRPTimelineTimeBadgeView: UIView {
                    hasConflict: Bool = false, showTimeOverlapText: Bool = false,
                    isAvailabilityExpired: Bool = false) {
         orderLabel.text = "\(order)"
-        timeLabel.text = "\(startTime) - \(endTime)"
+        timeLabel.text = endTime.isEmpty ? startTime : "\(startTime) - \(endTime)"
 
         // "Not available" wins over "Time Overlap" when both apply.
         let statusText: String?

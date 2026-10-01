@@ -159,6 +159,17 @@ public class TRPTimelineItineraryVC: TRPBaseUIViewController {
         return view
     }()
 
+    internal lazy var initialLoadErrorView: TRPNoCityView = {
+        let view = TRPNoCityView()
+        view.translatesAutoresizingMaskIntoConstraints = false
+        view.configure(title: TimelineLocalizationKeys.localized(TimelineLocalizationKeys.errorSomethingWentWrong),
+                       description: nil,
+                       buttonTitle: TimelineLocalizationKeys.localized(TimelineLocalizationKeys.tryAgain))
+        view.delegate = self
+        view.isHidden = true
+        return view
+    }()
+
     internal var poiPreviewBottomConstraint: NSLayoutConstraint?
     internal var addPlanButtonBottomConstraint: NSLayoutConstraint?
     internal var dayFilterViewTopConstraint: NSLayoutConstraint?
@@ -260,6 +271,7 @@ public class TRPTimelineItineraryVC: TRPBaseUIViewController {
         setupMainViewButton()
         setupFloatingButtons()
         setupNoCityView()
+        setupInitialLoadErrorView()
         registerCells()
 
         // Bring these to front so they appear above the map

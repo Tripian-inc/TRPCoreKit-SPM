@@ -19,10 +19,16 @@ public protocol TRPTimelineItineraryViewModelDelegate: ViewModelDelegate {
     func timelineItineraryViewModel(someCitiesUnavailable cityNames: [String])
     /// `textMode` controls what's rendered next to the animation: `.none`, `.single(text)`, or `.rotating([texts])`.
     func timelineItineraryViewModel(showLottieLoading: Bool, textMode: LottieLoadingTextMode)
+    /// The first load failed, so there is no timeline to show; `retryInitialLoad()` runs the same request again.
+    func timelineItineraryViewModel(didFailInitialLoad error: Error)
 }
 
 // MARK: - Default Implementations
 extension TRPTimelineItineraryViewModelDelegate {
+    public func timelineItineraryViewModel(didFailInitialLoad error: Error) {
+        viewModel(error: error)
+    }
+
     /// Falls back to the standard preloader when the conformer has no Lottie-aware override.
     public func timelineItineraryViewModel(showLottieLoading: Bool, textMode: LottieLoadingTextMode) {
         viewModel(showPreloader: showLottieLoading)
@@ -130,6 +136,9 @@ public class TRPTimelineItineraryViewModel {
     /// Profile whose segments/favourites the create flow merges into the fetched timeline on first load.
     internal var pendingMergeProfile: TRPTimelineProfile?
 
+    /// Re-runs the request whose failure left the screen without a timeline; set only while that error is shown.
+    internal var initialLoadRetry: (() -> Void)?
+
     // MARK: - Initialization
 
     /// Trip-hash-only init; timeline is fetched on first VC load with the Lottie loader shown by the VC.
@@ -200,61 +209,63 @@ public class TRPTimelineItineraryViewModel {
 
         // Deferred so the delegate can be set up first.
         DispatchQueue.main.async { [weak self] in
+            self?.loadInitialTimeline(from: itineraryModel, tripHash: tripHash)
+        }
+    }
+
+    /// Resolves the itinerary's cities, then fetches the timeline for `tripHash` or creates one when it is nil.
+    internal func loadInitialTimeline(from itineraryModel: TRPItineraryWithActivities, tripHash: String?) {
+        showInitialLoading()
+
+        // Resolve ALL cityIds first (both create and fetch paths).
+        self.resolveMissingCityIds(in: itineraryModel) { [weak self] resolvedItinerary in
             guard let self = self else { return }
 
-            let initialLoadText = LoadingLocalizationKeys.localized(LoadingLocalizationKeys.gettingYourItineraryPlan)
-            self.delegate?.timelineItineraryViewModel(showLottieLoading: true, textMode: .single(initialLoadText))
+            self.destinationItems = resolvedItinerary.destinationItems
 
-            // Resolve ALL cityIds first (both create and fetch paths).
-            self.resolveMissingCityIds(in: itineraryModel) { [weak self] resolvedItinerary in
-                guard let self = self else { return }
+            let invalidItems = resolvedItinerary.destinationItems.filter { item in
+                guard let cityId = item.cityId else { return true }
+                return cityId <= 0
+            }
 
-                self.destinationItems = resolvedItinerary.destinationItems
+            let validItems = resolvedItinerary.destinationItems.filter { item in
+                guard let cityId = item.cityId else { return false }
+                return cityId > 0
+            }
 
-                let invalidItems = resolvedItinerary.destinationItems.filter { item in
-                    guard let cityId = item.cityId else { return true }
-                    return cityId <= 0
+            if validItems.isEmpty {
+                DispatchQueue.main.async {
+                    self.delegate?.timelineItineraryViewModel(showLottieLoading: false)
+                    self.delegate?.timelineItineraryViewModel(noCitiesAvailable: true)
                 }
+                return
+            }
 
-                let validItems = resolvedItinerary.destinationItems.filter { item in
-                    guard let cityId = item.cityId else { return false }
-                    return cityId > 0
-                }
+            if !invalidItems.isEmpty {
+                let unavailableCityNames = invalidItems.map { $0.title }
 
-                if validItems.isEmpty {
-                    DispatchQueue.main.async {
-                        self.delegate?.timelineItineraryViewModel(showLottieLoading: false)
-                        self.delegate?.timelineItineraryViewModel(noCitiesAvailable: true)
-                    }
-                    return
-                }
+                var filteredItinerary = resolvedItinerary
+                filteredItinerary.destinationItems = validItems
 
-                if !invalidItems.isEmpty {
-                    let unavailableCityNames = invalidItems.map { $0.title }
+                self.destinationItems = validItems
 
-                    var filteredItinerary = resolvedItinerary
-                    filteredItinerary.destinationItems = validItems
-
-                    self.destinationItems = validItems
-
-                    // Non-blocking, fire and forget.
-                    DispatchQueue.main.async {
-                        self.delegate?.timelineItineraryViewModel(someCitiesUnavailable: unavailableCityNames)
-                    }
-
-                    if let tripHash = tripHash {
-                        self.fetchTimeline(tripHash: tripHash, itineraryModel: filteredItinerary)
-                    } else {
-                        self.createTimelineInternal(from: filteredItinerary)
-                    }
-                    return
+                // Non-blocking, fire and forget.
+                DispatchQueue.main.async {
+                    self.delegate?.timelineItineraryViewModel(someCitiesUnavailable: unavailableCityNames)
                 }
 
                 if let tripHash = tripHash {
-                    self.fetchTimeline(tripHash: tripHash, itineraryModel: resolvedItinerary)
+                    self.fetchTimeline(tripHash: tripHash, itineraryModel: filteredItinerary)
                 } else {
-                    self.createTimelineInternal(from: resolvedItinerary)
+                    self.createTimelineInternal(from: filteredItinerary)
                 }
+                return
+            }
+
+            if let tripHash = tripHash {
+                self.fetchTimeline(tripHash: tripHash, itineraryModel: resolvedItinerary)
+            } else {
+                self.createTimelineInternal(from: resolvedItinerary)
             }
         }
     }

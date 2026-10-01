@@ -10,6 +10,7 @@
 
 import UIKit
 import TRPFoundationKit
+import TRPRestKit
 
 // MARK: - Add Plan Flow
 
@@ -193,6 +194,16 @@ extension TRPTimelineItineraryVC: TRPTimelineItineraryViewModelDelegate {
         }
     }
 
+    /// Covers the empty screen with a retryable error; an expired session still goes through the base handler, which closes the SDK.
+    public func timelineItineraryViewModel(didFailInitialLoad error: Error) {
+        if let trpError = error as? TRPErrors, case .refreshTokenError = trpError {
+            viewModel(error: error)
+            return
+        }
+        view.bringSubviewToFront(initialLoadErrorView)
+        initialLoadErrorView.isHidden = false
+    }
+
     private func showNoCityState() {
         dayFilterView.isHidden = true
         savedPlansButton.isHidden = true
@@ -210,6 +221,11 @@ extension TRPTimelineItineraryVC: TRPTimelineItineraryViewModelDelegate {
 extension TRPTimelineItineraryVC: TRPNoCityViewDelegate {
 
     func noCityViewDidTapButton(_ view: TRPNoCityView) {
+        if view === initialLoadErrorView {
+            initialLoadErrorView.isHidden = true
+            viewModel.retryInitialLoad()
+            return
+        }
         if let navController = navigationController {
             navController.dismiss(animated: true, completion: nil)
         } else {

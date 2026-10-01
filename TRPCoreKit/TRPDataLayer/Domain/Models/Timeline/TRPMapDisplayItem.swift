@@ -104,21 +104,10 @@ public enum TRPMapDisplayItem {
         }
     }
 
-    /// Check if this map item is a flexible-time reserved activity.
-    /// Detection: activity segment + additionalData.duration == -1 + start/end times in {00:00, 23:59}.
+    /// Check if this map item is a flexible-time activity, using the same rules as the timeline list.
     public var isFlexibleActivity: Bool {
         guard case .activity(let segment) = self else { return false }
-        guard let duration = segment.additionalData?.duration, duration == -1 else { return false }
-
-        let flexibleTimes: Set<String> = ["00:00", "23:59"]
-        let startStr = segment.additionalData?.startDatetime ?? segment.startDate
-        let endStr = segment.additionalData?.endDatetime ?? segment.endDate
-
-        guard let startTime = Self.extractHHmm(startStr),
-              let endTime = Self.extractHHmm(endStr) else {
-            return false
-        }
-        return flexibleTimes.contains(startTime) && flexibleTimes.contains(endTime)
+        return TRPMergedTimelineItem(segment: segment, plan: nil, originalSegmentIndex: 0).isFlexibleActivity
     }
 
     private static func extractHHmm(_ raw: String?) -> String? {

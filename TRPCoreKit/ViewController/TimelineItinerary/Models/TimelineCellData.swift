@@ -60,6 +60,9 @@ public struct BookedActivityCellData: TimelineCellData {
     /// Set by the post-load availability sweep when the provider no longer offers the scheduled slot.
     public var isAvailabilityExpired: Bool = false
 
+    /// Flexible-time booked activity: the time badge shows the flexible entry text instead of a time range.
+    public let isFlexible: Bool
+
     // MARK: - Initialization
 
     public init(
@@ -80,7 +83,8 @@ public struct BookedActivityCellData: TimelineCellData {
         segment: TRPTimelineSegment,
         hasConflict: Bool = false,
         showTimeOverlapText: Bool = false,
-        isAvailabilityExpired: Bool = false
+        isAvailabilityExpired: Bool = false,
+        isFlexible: Bool = false
     ) {
         self.segmentIndex = segmentIndex
         self.order = order
@@ -100,6 +104,7 @@ public struct BookedActivityCellData: TimelineCellData {
         self.hasConflict = hasConflict
         self.showTimeOverlapText = showTimeOverlapText
         self.isAvailabilityExpired = isAvailabilityExpired
+        self.isFlexible = isFlexible
     }
 
     public init(from item: TRPMergedTimelineItem, order: Int) {
@@ -121,6 +126,7 @@ public struct BookedActivityCellData: TimelineCellData {
         self.hasConflict = item.hasConflict
         self.showTimeOverlapText = item.showTimeOverlapText
         self.isAvailabilityExpired = item.isAvailabilityExpired
+        self.isFlexible = item.isFlexibleActivity
     }
 }
 

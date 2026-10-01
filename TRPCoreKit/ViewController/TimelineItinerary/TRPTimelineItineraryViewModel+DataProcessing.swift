@@ -230,14 +230,15 @@ extension TRPTimelineItineraryViewModel {
         return end.timeIntervalSince(start) >= 24 * 60 * 60
     }
 
-    /// Excludes flexible reserved activities and full-day-or-longer spans; `.bookedActivity` participates but with text suppressed.
+    /// Excludes flexible activities and full-day-or-longer spans; `.bookedActivity` participates but with text suppressed.
     private func collectTimeRanges(from items: [TRPMergedTimelineItem]) -> [TimeRangeInfo] {
         var timeRanges: [TimeRangeInfo] = []
 
         for (itemIndex, item) in items.enumerated() {
             switch item.segmentType {
             case .bookedActivity:
-                guard let startDate = item.startDate, let endDate = item.endDate,
+                if item.isFlexibleActivity { break }
+                guard let startDate = item.startDate, let endDate = item.occupiedEndDate,
                       !spansFullDayOrLonger(start: startDate, end: endDate) else { break }
                 timeRanges.append(TimeRangeInfo(startTime: startDate, endTime: endDate,
                                                 itemIndex: itemIndex, stepIndex: nil))
@@ -245,7 +246,7 @@ extension TRPTimelineItineraryViewModel {
             case .reservedActivity:
                 // Skip flexible activities — 00:00/23:59 placeholders would falsely overlap everything.
                 if item.isFlexibleActivity { break }
-                guard let startDate = item.startDate, let endDate = item.endDate,
+                guard let startDate = item.startDate, let endDate = item.occupiedEndDate,
                       !spansFullDayOrLonger(start: startDate, end: endDate) else { break }
                 timeRanges.append(TimeRangeInfo(startTime: startDate, endTime: endDate,
                                                 itemIndex: itemIndex, stepIndex: nil))

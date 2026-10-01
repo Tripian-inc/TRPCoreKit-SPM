@@ -89,21 +89,31 @@ public class TRPMergedTimelineItem {
         return segmentType == .itinerary
     }
 
-    /// Check if this reserved activity was created with a flexible-time slot.
-    /// Detection: reservedActivity + additionalData.duration == -1 + start/end time in {00:00, 23:59}.
+    /// Check if this activity has a flexible-time slot: additionalData.duration == -1 + start time, and end time
+    /// when present, in {00:00, 23:59}. A booked activity without a start time is flexible as well.
     public var isFlexibleActivity: Bool {
-        guard segmentType == .reservedActivity else { return false }
+        switch segmentType {
+        case .reservedActivity:
+            return hasFlexibleSlotTimes
+        case .bookedActivity:
+            return hasFlexibleSlotTimes || timeRangeString == nil
+        default:
+            return false
+        }
+    }
+
+    private var hasFlexibleSlotTimes: Bool {
         guard let duration = segment.additionalData?.duration, duration == -1 else { return false }
 
         let flexibleTimes: Set<String> = ["00:00", "23:59"]
         let startStr = segment.additionalData?.startDatetime ?? segment.startDate
         let endStr = segment.additionalData?.endDatetime ?? segment.endDate
 
-        guard let startTime = TRPDateHelper.extractTimeString(startStr),
-              let endTime = TRPDateHelper.extractTimeString(endStr) else {
+        guard let startTime = TRPDateHelper.extractTimeString(startStr), flexibleTimes.contains(startTime) else {
             return false
         }
-        return flexibleTimes.contains(startTime) && flexibleTimes.contains(endTime)
+        guard let endTime = TRPDateHelper.extractTimeString(endStr) else { return true }
+        return flexibleTimes.contains(endTime)
     }
 
     // MARK: - Computed Properties (Dates)
@@ -120,17 +130,31 @@ public class TRPMergedTimelineItem {
         return TRPDateHelper.parseDateTime(dateStr)
     }
 
+    /// End used for overlap checks: the end time, or the start plus a positive `additionalData.duration` when no end time was sent.
+    public var occupiedEndDate: Date? {
+        if let endDate = endDate { return endDate }
+        guard let startDate = startDate, let minutes = segment.additionalData?.duration, minutes > 0 else { return nil }
+        return startDate.addingTimeInterval(minutes * 60)
+    }
+
     /// Date-only string for grouping/filtering (yyyy-MM-dd)
     public var dateString: String? {
         let dateStr = segment.additionalData?.startDatetime ?? segment.startDate
         return TRPDateHelper.extractDateString(dateStr)
     }
 
-    /// Formatted time range string (e.g., "10:00 - 12:00")
+    /// Formatted time range string (e.g., "10:00 - 12:00"). Without an end time the end is the start plus
+    /// `duration`, and without a duration only the start time is returned.
     public var timeRangeString: String? {
-        let startStr = segment.additionalData?.startDatetime ?? segment.startDate
-        let endStr = segment.additionalData?.endDatetime ?? segment.endDate
-        return TRPDateHelper.formatTimeRange(fromString: startStr, toString: endStr)
+        guard let startTime = TRPDateHelper.extractTimeString(segment.additionalData?.startDatetime)
+                ?? TRPDateHelper.extractTimeString(segment.startDate) else {
+            return nil
+        }
+        let endTime = TRPDateHelper.extractTimeString(segment.additionalData?.endDatetime)
+            ?? TRPDateHelper.extractTimeString(segment.endDate)
+            ?? duration.flatMap { TRPDateHelper.addMinutes(toTime: startTime, minutes: Int($0)) }
+        guard let endTime = endTime else { return startTime }
+        return "\(startTime) - \(endTime)"
     }
 
     // MARK: - Computed Properties (Location)

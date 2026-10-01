@@ -54,12 +54,13 @@ extension TRPTimelineItineraryViewModel {
 
             switch result {
             case .success(let createdTimeline):
+                TRPCoreKit.shared.delegate?.trpCoreKitDidCreateTimeline(tripHash: createdTimeline.tripHash)
                 self.waitForTimelineGeneration(tripHash: createdTimeline.tripHash, itineraryModel: itineraryModel)
 
             case .failure(let error):
-                DispatchQueue.main.async {
-                    self.delegate?.timelineItineraryViewModel(showLottieLoading: false)
-                    self.delegate?.viewModel(error: error)
+                self.reportInitialLoadFailure(error) { [weak self] in
+                    self?.showInitialLoading()
+                    self?.createTimelineInternal(from: itineraryModel)
                 }
             }
         }
@@ -119,7 +120,6 @@ extension TRPTimelineItineraryViewModel {
     internal func waitForTimelineGeneration(tripHash: String, itineraryModel: TRPItineraryWithActivities) {
         let repository = TRPTimelineRepository()
         let modelRepository = TRPTimelineModelRepository()
-        TRPCoreKit.shared.delegate?.trpCoreKitDidCreateTimeline(tripHash: tripHash)
 
         // Held as an instance var to prevent deallocation during the poll.
         checkAllPlanUseCase = TRPTimelineCheckAllPlanUseCases(
@@ -145,9 +145,11 @@ extension TRPTimelineItineraryViewModel {
 
             case .failure(let error):
                 DispatchQueue.main.async {
-                    self.delegate?.timelineItineraryViewModel(showLottieLoading: false)
-                    self.delegate?.viewModel(error: error)
                     self.checkAllPlanUseCase = nil
+                }
+                self.reportInitialLoadFailure(error) { [weak self] in
+                    self?.showInitialLoading()
+                    self?.waitForTimelineGeneration(tripHash: tripHash, itineraryModel: itineraryModel)
                 }
             }
         }
@@ -187,9 +189,9 @@ extension TRPTimelineItineraryViewModel {
                 }
 
             case .failure(let error):
-                DispatchQueue.main.async {
-                    self.delegate?.timelineItineraryViewModel(showLottieLoading: false)
-                    self.delegate?.viewModel(error: error)
+                self.reportInitialLoadFailure(error) { [weak self] in
+                    self?.showInitialLoading()
+                    self?.fetchTimeline(tripHash: tripHash, itineraryModel: itineraryModel)
                 }
             }
         }
@@ -373,16 +375,24 @@ extension TRPTimelineItineraryViewModel {
     /// Host bookings not yet present as a booked segment. Only `.bookedActivity` segments count: a reserved
     /// segment for the same product is removed by the reconcile cascade, so it must not hide the booking.
     internal func missingBookedTripItems(from tripItems: [TRPSegmentActivityItem], in timeline: TRPTimeline) -> [TRPSegmentActivityItem] {
-        let bookedSegments = (timeline.segments ?? []) + (timeline.tripProfile?.segments ?? [])
-        let bookedActivityIds = Set(bookedSegments.compactMap { segment -> String? in
-            guard segment.segmentType == .bookedActivity else { return nil }
-            return segment.additionalData?.activityId?.cleanedAsActivityId()
-        })
+        let bookedSegments = ((timeline.segments ?? []) + (timeline.tripProfile?.segments ?? []))
+            .filter { $0.segmentType == .bookedActivity }
 
         return tripItems.filter { tripItem in
-            guard let activityId = tripItem.activityId else { return false }
-            return !bookedActivityIds.contains(activityId.cleanedAsActivityId())
+            guard tripItem.activityId != nil else { return false }
+            return !bookedSegments.contains { isSameBooking($0, tripItem) }
         }
+    }
+
+    /// Matches a booked segment to a host booking by `bookingId` when both carry one, otherwise by activity id.
+    internal func isSameBooking(_ segment: TRPTimelineSegment, _ tripItem: TRPSegmentActivityItem) -> Bool {
+        if let segmentBookingId = segment.additionalData?.bookingId, !segmentBookingId.isEmpty,
+           let tripItemBookingId = tripItem.bookingId, !tripItemBookingId.isEmpty {
+            return segmentBookingId.cleanedAsActivityId() == tripItemBookingId.cleanedAsActivityId()
+        }
+        guard let segmentActivityId = segment.additionalData?.activityId,
+              let tripItemActivityId = tripItem.activityId else { return false }
+        return segmentActivityId.cleanedAsActivityId() == tripItemActivityId.cleanedAsActivityId()
     }
 
     internal func addMissingTripItemsSequentially(tripItems: [TRPSegmentActivityItem], tripHash: String, index: Int) {
@@ -542,8 +552,7 @@ extension TRPTimelineItineraryViewModel {
         let mergeProfile = pendingMergeProfile
         pendingMergeProfile = nil
 
-        let initialLoadText = LoadingLocalizationKeys.localized(LoadingLocalizationKeys.gettingYourItineraryPlan)
-        delegate?.timelineItineraryViewModel(showLottieLoading: true, textMode: .single(initialLoadText))
+        showInitialLoading()
 
         let repository = TRPTimelineRepository()
         repository.fetchTimeline(tripHash: tripHash) { [weak self] result in
@@ -574,11 +583,33 @@ extension TRPTimelineItineraryViewModel {
                 }
 
             case .failure(let error):
-                DispatchQueue.main.async {
-                    self.delegate?.timelineItineraryViewModel(showLottieLoading: false)
-                    self.delegate?.viewModel(error: error)
+                self.reportInitialLoadFailure(error) { [weak self] in
+                    self?.pendingInitialTripHash = tripHash
+                    self?.pendingMergeProfile = mergeProfile
+                    self?.loadInitialTimelineIfNeeded()
                 }
             }
+        }
+    }
+
+    /// Runs the request whose failure is on screen again; does nothing when no initial load has failed.
+    public func retryInitialLoad() {
+        guard let retry = initialLoadRetry else { return }
+        initialLoadRetry = nil
+        retry()
+    }
+
+    internal func showInitialLoading() {
+        let initialLoadText = LoadingLocalizationKeys.localized(LoadingLocalizationKeys.gettingYourItineraryPlan)
+        delegate?.timelineItineraryViewModel(showLottieLoading: true, textMode: .single(initialLoadText))
+    }
+
+    /// Hides the loader and hands the error to the delegate, keeping `retry` for `retryInitialLoad()`.
+    internal func reportInitialLoadFailure(_ error: Error, retry: @escaping () -> Void) {
+        DispatchQueue.main.async {
+            self.initialLoadRetry = retry
+            self.delegate?.timelineItineraryViewModel(showLottieLoading: false)
+            self.delegate?.timelineItineraryViewModel(didFailInitialLoad: error)
         }
     }
 
@@ -733,6 +764,7 @@ extension TRPTimelineItineraryViewModel {
 
         enum Reason {
             case reservedNowBooked   // reserved activity that host now reports as booked
+            case bookingCancelled
             case cityRemoved         // segment's city is not in the incoming destinations
             case outOfDateRange      // segment's day falls outside the new trip range
         }
@@ -761,6 +793,25 @@ extension TRPTimelineItineraryViewModel {
             if bookedActivityIds.contains(activityId.cleanedAsActivityId()) {
                 out.append(.init(index: index, segment: segment, reason: .reservedNowBooked))
             }
+        }
+        return out
+    }
+
+    /// Booked activities the host no longer reports in `tripItems`, i.e. cancelled on the host side. Pure: no mutation, no I/O.
+    /// Matching follows `isSameBooking`.
+    /// A nil `tripItems` is treated as an empty list, so every booked activity is removed.
+    internal func collectCancelledBookedSegments(
+        in segments: [TRPTimelineSegment],
+        itinerary: TRPItineraryWithActivities
+    ) -> [SegmentRemovalCandidate] {
+        let tripItems = itinerary.tripItems ?? []
+
+        var out: [SegmentRemovalCandidate] = []
+        for (index, segment) in segments.enumerated() {
+            guard segment.segmentType == .bookedActivity,
+                  segment.additionalData?.activityId != nil || segment.additionalData?.bookingId?.isEmpty == false,
+                  !tripItems.contains(where: { isSameBooking(segment, $0) }) else { continue }
+            out.append(.init(index: index, segment: segment, reason: .bookingCancelled))
         }
         return out
     }
@@ -837,13 +888,14 @@ extension TRPTimelineItineraryViewModel {
         }
 
         let reserved = collectReservedNowBookedSegments(in: segments, itinerary: itinerary)
+        let cancelled = collectCancelledBookedSegments(in: segments, itinerary: itinerary)
         let cities   = collectSegmentsForRemovedCities(in: segments, itinerary: itinerary)
         let dates    = collectSegmentsOutOfDateRange(in: segments, itinerary: itinerary)
-        print("🔁 [Reconcile] candidates — reserved→booked: \(reserved.count), cityRemoved: \(cities.count), outOfDateRange: \(dates.count)")
+        print("🔁 [Reconcile] candidates — reserved→booked: \(reserved.count), cancelled: \(cancelled.count), cityRemoved: \(cities.count), outOfDateRange: \(dates.count)")
 
         // Union by index (one DELETE per segment even if it matches multiple reasons); first-wins matches source priority above.
         var byIndex: [Int: SegmentRemovalCandidate] = [:]
-        for candidate in (reserved + cities + dates) where byIndex[candidate.index] == nil {
+        for candidate in (reserved + cancelled + cities + dates) where byIndex[candidate.index] == nil {
             byIndex[candidate.index] = candidate
         }
         let unified = byIndex.values.sorted { $0.index > $1.index }   // highest index first
@@ -886,6 +938,7 @@ extension TRPTimelineItineraryViewModel {
         let reasonTag: String
         switch candidate.reason {
         case .reservedNowBooked: reasonTag = "reservedNowBooked"
+        case .bookingCancelled:  reasonTag = "bookingCancelled"
         case .cityRemoved:       reasonTag = "cityRemoved"
         case .outOfDateRange:    reasonTag = "outOfDateRange"
         }

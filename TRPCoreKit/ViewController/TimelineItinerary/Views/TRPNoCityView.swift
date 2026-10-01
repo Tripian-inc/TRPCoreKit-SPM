@@ -125,6 +125,13 @@ class TRPNoCityView: UIView {
         actionButton.setTitle(TimelineLocalizationKeys.localized(TimelineLocalizationKeys.noCityButton), for: .normal)
     }
 
+    /// Replaces the no-city texts so the same layout can present another full-screen state.
+    func configure(title: String, description: String?, buttonTitle: String) {
+        titleLabel.text = title
+        descriptionLabel.text = description
+        actionButton.setTitle(buttonTitle, for: .normal)
+    }
+
     // MARK: - Actions
 
     @objc private func actionButtonTapped() {

@@ -418,9 +418,8 @@ extension TRPItineraryWithActivities {
         segment.available = false // Booking products are fixed activities
         segment.distinctPlan = true
 
-        // Use item-specific dates if available, otherwise use base parameters
         segment.startDate = tripItem.startDatetime ?? startDatetime
-        segment.endDate = tripItem.endDatetime ?? endDatetime
+        segment.endDate = tripItem.endDatetime ?? derivedEndDate(of: tripItem)
 
         segment.coordinate = tripItem.coordinate
 
@@ -436,6 +435,15 @@ extension TRPItineraryWithActivities {
         segment.city = nil
 
         return segment
+    }
+
+    /// End of a booking sent without an end time: its start plus `duration` minutes, or nil when either is missing.
+    private func derivedEndDate(of tripItem: TRPSegmentActivityItem) -> String? {
+        guard let duration = tripItem.duration, duration > 0,
+              let start = TRPDateHelper.parseDateTime(tripItem.startDatetime) else {
+            return nil
+        }
+        return TRPDateHelper.formatDateTime(start.addingTimeInterval(duration * 60))
     }
 }
 
