@@ -184,6 +184,9 @@ public struct ManualPoiCellData: TimelineCellData {
     public var hasConflict: Bool = false
     public var showTimeOverlapText: Bool = false
 
+    /// True only when the POI's hours are known and the planned span falls outside them.
+    public var isOutsideOpeningHours: Bool = false
+
     // MARK: - Initialization
 
     public init(
@@ -198,7 +201,8 @@ public struct ManualPoiCellData: TimelineCellData {
         segment: TRPTimelineSegment,
         poi: TRPPoi?,
         hasConflict: Bool = false,
-        showTimeOverlapText: Bool = false
+        showTimeOverlapText: Bool = false,
+        isOutsideOpeningHours: Bool = false
     ) {
         self.segmentIndex = segmentIndex
         self.order = order
@@ -212,6 +216,7 @@ public struct ManualPoiCellData: TimelineCellData {
         self.poi = poi
         self.hasConflict = hasConflict
         self.showTimeOverlapText = showTimeOverlapText
+        self.isOutsideOpeningHours = isOutsideOpeningHours
     }
 
     public init(from item: TRPMergedTimelineItem, order: Int) {
@@ -227,6 +232,12 @@ public struct ManualPoiCellData: TimelineCellData {
         self.poi = item.manualPoi
         self.hasConflict = item.hasConflict
         self.showTimeOverlapText = item.showTimeOverlapText
+        self.isOutsideOpeningHours = TRPOpeningHours.coversSelection(
+            item.manualPoi?.hours,
+            date: item.startDate,
+            startTime: item.startDate.map(TRPDateHelper.formatTime),
+            endTime: item.endDate.map(TRPDateHelper.formatTime)
+        ) == false
     }
 }
 

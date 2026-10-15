@@ -328,22 +328,25 @@ class TRPTimeRangeSelectionViewController: TRPBaseUIViewController, DynamicHeigh
         // a re-picked end is rebuilt on "today" by TimePickerBounds.defaultInitialEndTime),
         // so `toDate > fromDate` can be false even when end-of-day > start-of-day.
         // Mirrors the picker's own strict-minimum HH:mm comparison.
-        let isValid = minutesOfDay(toDate) > minutesOfDay(fromDate)
+        let isValid = minutesOfDay(toDate) > minutesOfDay(fromDate) && !isSelectionOutsideOpeningHours()
         confirmButton.setEnabled(isValid)
     }
 
-    /// Shows a non-blocking notice when the picked span falls outside the POI's
-    /// opening hours for `selectedDate`. Stays hidden when the hours are unknown or
-    /// unparsable, so a missing `hours` string never blocks or nags the user.
-    private func updateClosedWarning() {
-        let isOpen = TRPOpeningHours.coversSelection(
+    /// True only when the hours are known and the picked span falls outside them.
+    private func isSelectionOutsideOpeningHours() -> Bool {
+        TRPOpeningHours.coversSelection(
             openingHours,
             date: openingHoursDay ?? selectedDate,
             startTime: fromDate.map(convertTo24HourFormat),
             endTime: toDate.map(convertTo24HourFormat)
-        )
+        ) == false
+    }
 
-        let shouldShow = isOpen == false
+    /// Shows the closed notice when the picked span falls outside the POI's opening
+    /// hours for `selectedDate`; Confirm stays disabled while it is visible. Hidden when
+    /// the hours are unknown or unparsable, so a missing `hours` string never blocks the user.
+    private func updateClosedWarning() {
+        let shouldShow = isSelectionOutsideOpeningHours()
         if shouldShow {
             let closedLabel = AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.closedAtSelectedTime)
             if let dayText = TRPOpeningHours.dayText(openingHours, date: openingHoursDay ?? selectedDate) {

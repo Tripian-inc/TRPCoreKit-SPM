@@ -143,18 +143,20 @@ class TRPTimelineTimeBadgeView: UIView {
     // MARK: - Configuration
 
     /// `isAvailabilityExpired` overrides `hasConflict`: red palette + "Not available" suffix instead of yellow + "Time Overlap".
+    /// `isOutsideOpeningHours` uses the yellow palette with a "Closed" suffix and yields to both of the above.
     func configure(order: Int, startTime: String, endTime: String,
                    hasConflict: Bool = false, showTimeOverlapText: Bool = false,
-                   isAvailabilityExpired: Bool = false) {
+                   isAvailabilityExpired: Bool = false, isOutsideOpeningHours: Bool = false) {
         orderLabel.text = "\(order)"
-        timeLabel.text = "\(startTime) - \(endTime)"
+        timeLabel.text = endTime.isEmpty ? startTime : "\(startTime) - \(endTime)"
 
-        // "Not available" wins over "Time Overlap" when both apply.
         let statusText: String?
         if isAvailabilityExpired {
             statusText = TimelineLocalizationKeys.localized(TimelineLocalizationKeys.notAvailable)
         } else if showTimeOverlapText {
             statusText = TimelineLocalizationKeys.localized(TimelineLocalizationKeys.timeOverlap)
+        } else if isOutsideOpeningHours {
+            statusText = PoiDetailLocalizationKeys.localized(PoiDetailLocalizationKeys.closed)
         } else {
             statusText = nil
         }
@@ -176,7 +178,7 @@ class TRPTimelineTimeBadgeView: UIView {
             containerView.backgroundColor = ColorSet.errorBg.uiColor
             containerView.layer.borderColor = ColorSet.errorIcon.uiColor.cgColor
             warningIconView.tintColor = ColorSet.errorIcon.uiColor
-        } else if hasConflict {
+        } else if hasConflict || isOutsideOpeningHours {
             orderLabel.backgroundColor = ColorSet.civiOrange.uiColor
             containerView.backgroundColor = ColorSet.warningBg.uiColor
             containerView.layer.borderColor = ColorSet.warningBorder.uiColor.cgColor

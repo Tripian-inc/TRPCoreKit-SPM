@@ -361,7 +361,8 @@ class TRPTimelineManualPoiCell: UITableViewCell {
             startTime: startTime,
             endTime: endTime,
             hasConflict: cellData.hasConflict,
-            showTimeOverlapText: cellData.showTimeOverlapText
+            showTimeOverlapText: cellData.showTimeOverlapText,
+            isOutsideOpeningHours: cellData.isOutsideOpeningHours
         )
 
         if let imageUrl = cellData.imageUrl {
