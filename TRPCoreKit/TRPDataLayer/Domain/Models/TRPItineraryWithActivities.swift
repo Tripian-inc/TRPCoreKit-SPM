@@ -151,10 +151,10 @@ public struct TRPSegmentActivityItem: Codable {
     public var rating: Float?
     /// Number of ratings backing `rating`.
     public var ratingCount: Int?
-    /// `true` when the source activity has no precise coordinate and the segment
-    /// was created using the city's coordinate as a fallback. UI uses this to
-    /// surface a "no exact location" tag and to skip rendering the activity on
-    /// the map. Defaults to `false` for legacy / coordinate-bearing activities.
+    /// `true` when the source activity has no precise coordinate; the segment is
+    /// then sent without one. UI uses this to surface a "no exact location" tag
+    /// and to skip rendering the activity on the map. Defaults to `false` for
+    /// legacy / coordinate-bearing activities.
     public var isNoLocation: Bool = false
 
     /// Transient runtime flag set by the post-load availability sweep when the
@@ -422,7 +422,7 @@ extension TRPItineraryWithActivities {
         segment.startDate = tripItem.startDatetime ?? startDatetime
         segment.endDate = tripItem.endDatetime ?? endDatetime
 
-        segment.coordinate = tripItem.coordinate
+        segment.coordinate = tripItem.lacksLocation ? nil : tripItem.coordinate
 
         // Set traveler counts
         segment.adults = tripItem.adultCount

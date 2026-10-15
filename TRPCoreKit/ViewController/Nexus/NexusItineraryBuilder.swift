@@ -7,8 +7,9 @@
 //  ACSplashVM.buildItinerary:
 //   - the trip range comes from each reservation's service Date; the detailURL's
 //     startDate/endDate are the host site's search window (they move with today)
-//     and only fill in when Date is missing; detailURL also carries destinationID/productID;
-//   - destinationID → cityId via TripianCommonApi.getCityIdFromDestination, then the
+//     and only fill in when Date is missing; productId/destinationId come from the
+//     reservation JSON first, then from the detailURL query (productID/destinationID);
+//   - destinationId → cityId via TripianCommonApi.getCityIdFromDestination, then the
 //     city centre coordinate from TRPCityCache;
 //   - one destination per unique city + one booked activity per reservation;
 //   - the trip range starts at the EARLIEST start across reservations and ends at
@@ -16,8 +17,9 @@
 //     services can be planned after the last booked reservation.
 //
 //  Activity coordinates are not resolved here (no single-product lookup), so booked
-//  activities are marked `isNoLocation` and anchored to the city. Completion runs
-//  on the main queue with nil when nothing resolvable was found.
+//  activities are marked `isNoLocation` and sent without a coordinate; the backend
+//  places them in their city. Completion runs on the main queue with nil when
+//  nothing resolvable was found.
 //
 
 import Foundation
@@ -59,10 +61,10 @@ enum NexusItineraryBuilder {
             let items = comps?.queryItems ?? []
             func q(_ name: String) -> String? { items.first(where: { $0.name == name })?.value }
             return Parsed(
-                destinationId: q("destinationID") ?? q("destinationId"),
+                destinationId: r.zoneId ?? q("destinationID") ?? q("destinationId"),
                 startDate: q("startDate"),
                 endDate: q("endDate"),
-                productId: q("productID") ?? q("productId"),
+                productId: r.catalogueProductId ?? q("productID") ?? q("productId"),
                 reservation: r
             )
         }
@@ -96,6 +98,20 @@ enum NexusItineraryBuilder {
         }
     }
 
+    /// Start/end/duration of a reservation. A reservation whose meeting time the host has not
+    /// assigned yet (MeetingTimeAssigned == false) becomes a pending all-day slot (00:00–23:59,
+    /// duration -1) instead of a midnight placeholder; otherwise the end sits on the start slot.
+    private static func activityTiming(for p: Parsed) -> (start: String?, end: String?, duration: Double?) {
+        let start = reservationDatetime(p.reservation.date)
+            ?? p.startDate.map { "\($0.prefix(10)) 09:00" }
+        if p.reservation.meetingTimeAssigned == false, let day = start.map({ String($0.prefix(10)) }) {
+            return ("\(day) \(TRPDateHelper.placeholderStartTime)",
+                    "\(day) \(TRPDateHelper.placeholderEndTime)",
+                    TRPDateHelper.placeholderDuration)
+        }
+        return (start, start, nil)
+    }
+
     private static func assemble(parsed: [Parsed], cityIdByDestination: [String: Int]) -> TRPItineraryWithActivities? {
         var destinations: [Int: TRPSegmentDestinationItem] = [:]
         var orderedCityIds: [Int] = []
@@ -122,8 +138,7 @@ enum NexusItineraryBuilder {
                 orderedCityIds.append(cityId)
             }
 
-            let start = reservationDatetime(p.reservation.date)
-                ?? p.startDate.map { "\($0.prefix(10)) 09:00" }
+            let timing = activityTiming(for: p)
 
             let activity = TRPSegmentActivityItem(
                 activityId: p.productId,
@@ -131,13 +146,14 @@ enum NexusItineraryBuilder {
                 title: p.reservation.title,
                 imageUrl: p.reservation.nexusBookingInformation?.coverImageUrl,
                 description: p.reservation.nexusBookingInformation?.description,
-                startDatetime: start,
-                endDatetime: start,
+                startDatetime: timing.start,
+                endDatetime: timing.end,
                 coordinate: TRPLocation(lat: 0, lon: 0),
                 cancellation: p.reservation.nexusBookingInformation?.cancellationPolicyDescription,
                 adultCount: p.reservation.paxAdults ?? 1,
                 childCount: (p.reservation.paxChildren ?? 0) + (p.reservation.paxBabies ?? 0),
                 bookingUrl: p.reservation.detailURL,
+                duration: timing.duration,
                 cityId: cityId,
                 isNoLocation: true
             )

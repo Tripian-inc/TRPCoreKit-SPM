@@ -124,9 +124,24 @@ extension TRPTimelineItineraryViewModel {
     }
 
 
+    internal func logTimelineLoaded() {
+        TRPAnalytics.log(TRPAnalyticsEvent.timelineLoaded, [
+            TRPAnalyticsParam.tripHash: timeline?.tripHash,
+            TRPAnalyticsParam.cityId: timeline?.city.id,
+            TRPAnalyticsParam.cityName: timeline?.city.name,
+            TRPAnalyticsParam.dayCount: getDayDates().count
+        ])
+    }
+
     internal func waitForTimelineGeneration(tripHash: String, itineraryModel: TRPItineraryWithActivities) {
         let repository = TRPTimelineRepository()
         let modelRepository = TRPTimelineModelRepository()
+        TRPAnalytics.log(TRPAnalyticsEvent.timelineCreated, [
+            TRPAnalyticsParam.tripHash: tripHash,
+            TRPAnalyticsParam.startDate: itineraryModel.startDatetime,
+            TRPAnalyticsParam.endDate: itineraryModel.endDatetime,
+            TRPAnalyticsParam.reservationCount: itineraryModel.tripItems?.count ?? 0
+        ])
         TRPCoreKit.shared.delegate?.trpCoreKitDidCreateTimeline(tripHash: tripHash)
 
         // Held as an instance var to prevent deallocation during the poll.
@@ -185,10 +200,11 @@ extension TRPTimelineItineraryViewModel {
 
                         self.reconcileSegmentsWithItinerary { [weak self] in
                             guard let self = self else { return }
-                            print("🔁 [Reconcile] Cascade completed, adding missing booked activities")
-                            self.addMissingBookedActivities(from: itineraryModel)
+                            print("🔁 [Reconcile] Cascade completed, syncing booked activity times")
+                            self.syncBookedActivityTimesThenAddMissing(from: itineraryModel)
                         }
 
+                        self.logTimelineLoaded()
                         self.delegate?.timelineItineraryViewModel(showLottieLoading: false)
                         self.delegate?.timelineItineraryViewModel(didUpdateTimeline: true)
                     }
@@ -354,6 +370,84 @@ extension TRPTimelineItineraryViewModel {
         }
     }
 
+    // MARK: - Sync Booked Activity Times
+
+    /// Runs `syncBookedActivityTimes` and, after a refresh when something changed, `addMissingBookedActivities`.
+    internal func syncBookedActivityTimesThenAddMissing(from itineraryModel: TRPItineraryWithActivities) {
+        syncBookedActivityTimes(from: itineraryModel) { [weak self] mutated in
+            guard let self = self else { return }
+            let addMissing = { self.addMissingBookedActivities(from: itineraryModel) }
+            if mutated {
+                self.fetchAndRefreshTimeline { _ in addMissing() }
+            } else {
+                addMissing()
+            }
+        }
+    }
+
+    /// Re-times stored booked-activity segments whose start/end/duration no longer match the host
+    /// reservation (e.g. a transfer whose meeting time was assigned after the segment was created
+    /// with a pending slot). Only the time fields change; the segment keeps its index and payload.
+    /// Completion receives whether any segment was edited.
+    internal func syncBookedActivityTimes(from itineraryModel: TRPItineraryWithActivities, completion: @escaping (Bool) -> Void) {
+        guard let timeline = timeline,
+              let segments = timeline.tripProfile?.segments,
+              let tripItems = itineraryModel.tripItems, !tripItems.isEmpty else {
+            completion(false)
+            return
+        }
+
+        var tripItemsByKey: [String: TRPSegmentActivityItem] = [:]
+        for item in tripItems {
+            guard let key = item.activityId?.trp_activityMatchKey() else { continue }
+            if tripItemsByKey[key] == nil { tripItemsByKey[key] = item }
+        }
+
+        var profiles: [TRPCreateEditTimelineSegmentProfile] = []
+        for (index, segment) in segments.enumerated() {
+            guard segment.segmentType == .bookedActivity,
+                  var data = segment.additionalData,
+                  let key = data.activityId?.trp_activityMatchKey(),
+                  let tripItem = tripItemsByKey[key],
+                  let desiredStart = tripItem.startDatetime,
+                  let desiredEnd = tripItem.endDatetime else { continue }
+
+            let sameStart = TRPDateHelper.parseDateTime(data.startDatetime ?? segment.startDate) == TRPDateHelper.parseDateTime(desiredStart)
+            let sameEnd = TRPDateHelper.parseDateTime(data.endDatetime ?? segment.endDate) == TRPDateHelper.parseDateTime(desiredEnd)
+            let sameDuration = data.duration == tripItem.duration
+            if sameStart && sameEnd && sameDuration { continue }
+
+            data.startDatetime = desiredStart
+            data.endDatetime = desiredEnd
+            data.duration = tripItem.duration
+
+            let profile = TRPCreateEditTimelineSegmentProfile(from: segment, tripHash: timeline.tripHash, segmentIndex: index)
+            profile.startDate = desiredStart
+            profile.endDate = desiredEnd
+            profile.additionalData = data
+            profiles.append(profile)
+        }
+
+        guard !profiles.isEmpty else {
+            completion(false)
+            return
+        }
+        editSegmentProfilesSequentially(profiles, index: 0, mutated: false, completion: completion)
+    }
+
+    private func editSegmentProfilesSequentially(_ profiles: [TRPCreateEditTimelineSegmentProfile], index: Int, mutated: Bool, completion: @escaping (Bool) -> Void) {
+        guard index < profiles.count else {
+            completion(mutated)
+            return
+        }
+        TRPTimelineRepository().createEditTimelineSegment(profile: profiles[index]) { [weak self] result in
+            guard let self = self else { return }
+            let succeeded: Bool
+            if case .success = result { succeeded = true } else { succeeded = false }
+            self.editSegmentProfilesSequentially(profiles, index: index + 1, mutated: mutated || succeeded, completion: completion)
+        }
+    }
+
     // MARK: - Add Missing Booked Activities
 
     /// Adds tripItems that aren't already on the timeline (by activityId) via the API.
@@ -368,11 +462,10 @@ extension TRPTimelineItineraryViewModel {
 
         var existingActivityIds = Set<String>()
 
-        // Normalize to the core id so format differences (plain vs `C_`-prefixed) don't re-add an already-present activity.
         if let segments = timeline.segments {
             for segment in segments {
                 if let activityId = segment.additionalData?.activityId {
-                    existingActivityIds.insert(activityId.cleanedAsActivityId())
+                    existingActivityIds.insert(activityId.trp_activityMatchKey())
                 }
             }
         }
@@ -380,14 +473,14 @@ extension TRPTimelineItineraryViewModel {
         if let profileSegments = timeline.tripProfile?.segments {
             for segment in profileSegments {
                 if let activityId = segment.additionalData?.activityId {
-                    existingActivityIds.insert(activityId.cleanedAsActivityId())
+                    existingActivityIds.insert(activityId.trp_activityMatchKey())
                 }
             }
         }
 
         let missingTripItems = tripItems.filter { tripItem in
             guard let activityId = tripItem.activityId else { return false }
-            return !existingActivityIds.contains(activityId.cleanedAsActivityId())
+            return !existingActivityIds.contains(activityId.trp_activityMatchKey())
         }
 
         guard !missingTripItems.isEmpty else {
@@ -446,7 +539,6 @@ extension TRPTimelineItineraryViewModel {
         profile.startDate = tripItem.startDatetime
         profile.endDate = tripItem.endDatetime
 
-        // Resolve city first so we can fall back to its coordinate when the trip item has none (isNoLocation or (0, 0)).
         var resolvedCity: TRPCity? = nil
         if let cityId = tripItem.cityId, cityId > 0 {
             if let city = TRPCityCache.shared.getCity(byId: cityId) {
@@ -465,18 +557,12 @@ extension TRPTimelineItineraryViewModel {
         }
         profile.city = resolvedCity
 
-        // Fall back to the city's coordinate when the trip item has none, stamping isNoLocation so the UI badge stays consistent (additionalData is the cell's source of truth for the flag).
         var enrichedTripItem = tripItem
-        if !tripItem.coordinate.isMissingOrZero {
-            profile.coordinate = tripItem.coordinate
-        } else if let cityCoordinate = resolvedCity?.coordinate, !cityCoordinate.isMissingOrZero {
-            profile.coordinate = cityCoordinate
-            enrichedTripItem.coordinate = cityCoordinate
+        if tripItem.lacksLocation {
+            profile.coordinate = nil
             enrichedTripItem.isNoLocation = true
         } else {
             profile.coordinate = tripItem.coordinate
-            // No usable coordinate anywhere — flag so the UI won't pin it at (0, 0).
-            enrichedTripItem.isNoLocation = true
         }
 
         profile.adults = tripItem.adultCount
@@ -584,6 +670,7 @@ extension TRPTimelineItineraryViewModel {
                 self.resolveFavouriteItemCities { [weak self] in
                     guard let self = self else { return }
                     DispatchQueue.main.async {
+                        self.logTimelineLoaded()
                         self.delegate?.timelineItineraryViewModel(showLottieLoading: false)
                         self.processTimelineData()
                         self.filterFavoriteItems()
@@ -769,14 +856,13 @@ extension TRPTimelineItineraryViewModel {
         itinerary: TRPItineraryWithActivities
     ) -> [SegmentRemovalCandidate] {
         guard let tripItems = itinerary.tripItems, !tripItems.isEmpty else { return [] }
-        // Normalize to the core id so a plain booked id ("11223") matches a `C_`-prefixed reserved id ("C_11223_15").
-        let bookedActivityIds = Set(tripItems.compactMap { $0.activityId?.cleanedAsActivityId() })
+        let bookedActivityIds = Set(tripItems.compactMap { $0.activityId?.trp_activityMatchKey() })
 
         var out: [SegmentRemovalCandidate] = []
         for (index, segment) in segments.enumerated() {
             guard segment.segmentType == .reservedActivity else { continue }
             guard let activityId = segment.additionalData?.activityId else { continue }
-            if bookedActivityIds.contains(activityId.cleanedAsActivityId()) {
+            if bookedActivityIds.contains(activityId.trp_activityMatchKey()) {
                 out.append(.init(index: index, segment: segment, reason: .reservedNowBooked))
             }
         }

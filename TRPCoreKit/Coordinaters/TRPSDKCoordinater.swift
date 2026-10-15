@@ -258,6 +258,7 @@ public class TRPSDKCoordinater {
 //    }
     
      public func remove() {
+        TRPAnalytics.log(TRPAnalyticsEvent.sdkClosed)
         self.navigationController.dismiss(animated: true)
     }
 
@@ -309,6 +310,7 @@ extension TRPSDKCoordinater: SplashViewControllerDelegate {
     }
 
     func datasFetchFailed() {
+        TRPAnalytics.log(TRPAnalyticsEvent.sdkClosed)
         navigationController.dismiss(animated: true)
 
         // Clear pending data on failure
@@ -356,10 +358,13 @@ extension TRPSDKCoordinater {
             guard let self = self else { return }
             guard let itinerary = itinerary,
                   !(itinerary.destinationItems.isEmpty && (itinerary.tripItems ?? []).isEmpty) else {
+                self.logSdkOpened(entry: "empty", reservationCount: 0)
                 self.routeNexusEmptyEntry()
                 return
             }
+            let reservationCount = itinerary.tripItems?.count ?? 0
             guard let storedHash = NexusTripStore.tripHash else {
+                self.logSdkOpened(entry: "create", reservationCount: reservationCount)
                 self.openNexusTimeline(itinerary: itinerary, tripHash: nil, keepMyPlansRoot: false)
                 return
             }
@@ -368,8 +373,10 @@ extension TRPSDKCoordinater {
                 DispatchQueue.main.async {
                     switch result {
                     case .success(let existing) where self.reservationsOverlap(itinerary: itinerary, existing: existing):
+                        self.logSdkOpened(entry: "resume", reservationCount: reservationCount, tripHash: storedHash)
                         self.openNexusTimeline(itinerary: itinerary, tripHash: storedHash, keepMyPlansRoot: false)
                     default:
+                        self.logSdkOpened(entry: "create", reservationCount: reservationCount)
                         self.openNexusTimeline(itinerary: itinerary, tripHash: nil, keepMyPlansRoot: false)
                     }
                 }
@@ -380,17 +387,25 @@ extension TRPSDKCoordinater {
     /// Resume gate: true when ≥1 incoming reservation activityId is already a
     /// booked/reserved segment in the stored timeline.
     private func reservationsOverlap(itinerary: TRPItineraryWithActivities, existing: TRPTimeline) -> Bool {
-        let incoming = Set((itinerary.tripItems ?? []).compactMap { $0.activityId?.cleanedAsActivityId() })
+        let incoming = Set((itinerary.tripItems ?? []).compactMap { $0.activityId?.trp_activityMatchKey() })
         guard !incoming.isEmpty else { return false }
 
         var existingIds = Set<String>()
         for segment in (existing.segments ?? []) {
-            if let id = segment.additionalData?.activityId { existingIds.insert(id.cleanedAsActivityId()) }
+            if let id = segment.additionalData?.activityId { existingIds.insert(id.trp_activityMatchKey()) }
         }
         for segment in (existing.tripProfile?.segments ?? []) {
-            if let id = segment.additionalData?.activityId { existingIds.insert(id.cleanedAsActivityId()) }
+            if let id = segment.additionalData?.activityId { existingIds.insert(id.trp_activityMatchKey()) }
         }
         return !incoming.isDisjoint(with: existingIds)
+    }
+
+    private func logSdkOpened(entry: String, reservationCount: Int, tripHash: String? = nil) {
+        TRPAnalytics.log(TRPAnalyticsEvent.sdkOpened, [
+            TRPAnalyticsParam.entry: entry,
+            TRPAnalyticsParam.reservationCount: reservationCount,
+            TRPAnalyticsParam.tripHash: tripHash
+        ])
     }
 
     private func routeNexusEmptyEntry() {
@@ -414,7 +429,14 @@ extension TRPSDKCoordinater {
         nexusMyPlansVC = vc
         vc.onClose = { [weak self] in self?.remove() }
         vc.onAddTrip = { [weak self] in self?.presentNexusCitySelection(asRoot: false) }
-        vc.onSelectTrip = { [weak self] trip in self?.openNexusTimeline(forExisting: trip) }
+        vc.onSelectTrip = { [weak self] trip in
+            TRPAnalytics.log(TRPAnalyticsEvent.tripSelected, [
+                TRPAnalyticsParam.tripHash: trip.tripHash,
+                TRPAnalyticsParam.cityId: trip.city.id,
+                TRPAnalyticsParam.cityName: trip.city.name
+            ])
+            self?.openNexusTimeline(forExisting: trip)
+        }
         navigationController.setViewControllers([vc], animated: true)
     }
 
@@ -427,7 +449,13 @@ extension TRPSDKCoordinater {
             guard let self = self else { return }
             if asRoot { self.remove() } else { self.navigationController.popViewController(animated: true) }
         }
-        vc.onNext = { [weak self] city in self?.presentNexusDateSelection(city: city) }
+        vc.onNext = { [weak self] city in
+            TRPAnalytics.log(TRPAnalyticsEvent.citySelected, [
+                TRPAnalyticsParam.cityId: city.id,
+                TRPAnalyticsParam.cityName: city.name
+            ])
+            self?.presentNexusDateSelection(city: city)
+        }
         if asRoot {
             navigationController.setViewControllers([vc], animated: true)
         } else {
@@ -440,6 +468,12 @@ extension TRPSDKCoordinater {
         vc.city = city
         vc.onBack = { [weak self] in self?.navigationController.popViewController(animated: true) }
         vc.onComplete = { [weak self] itinerary in
+            TRPAnalytics.log(TRPAnalyticsEvent.datesSelected, [
+                TRPAnalyticsParam.cityId: city.id,
+                TRPAnalyticsParam.cityName: city.name,
+                TRPAnalyticsParam.startDate: itinerary.startDatetime,
+                TRPAnalyticsParam.endDate: itinerary.endDatetime
+            ])
             self?.openNexusTimeline(itinerary: itinerary, tripHash: nil, keepMyPlansRoot: true)
         }
         navigationController.pushViewController(vc, animated: true)

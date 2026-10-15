@@ -225,6 +225,15 @@ extension String {
         return self
     }
 
+    /// Comparison key shared by every activity id form the SDK sees: the bare product id
+    /// (`cleanedAsActivityId()`) without the Nexus product-type suffix, so a host booking
+    /// ("4695") matches the reserved segment made from the tour-api code ("4695¬TKT").
+    func trp_activityMatchKey() -> String {
+        let bare = cleanedAsActivityId()
+        guard let separator = bare.range(of: "¬") else { return bare }
+        return String(bare[..<separator.lowerBound])
+    }
+
     /// Parses the providerId out of a `{prefix}{productId}_{providerId}[_{cityId}]`
     /// activity id (prefix is provider-based). Returns nil for plain ids (no
     /// matching prefix) or when the second segment isn't a valid Int.

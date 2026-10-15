@@ -150,7 +150,7 @@ final class TimelineProfileMapper {
         additionalData.imageUrl = data.imageUrl
         additionalData.startDatetime = data.startDatetime
         additionalData.endDatetime = data.endDatetime
-        additionalData.coordinate = data.coordinate
+        additionalData.coordinate = data.lacksLocation ? nil : data.coordinate
         additionalData.cancellation = data.cancellation
         additionalData.duration = data.duration
         if let price = data.price {

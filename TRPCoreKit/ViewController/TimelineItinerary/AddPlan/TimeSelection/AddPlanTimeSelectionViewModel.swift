@@ -336,8 +336,8 @@ public class AddPlanTimeSelectionViewModel {
     }
 
     private func isDayAlreadyAdded(_ date: Date) -> Bool {
-        let target = tour.productId.cleanedAsActivityId()
-        return plannedActivityIds(on: date).contains { $0.cleanedAsActivityId() == target }
+        let target = tour.productId.trp_activityMatchKey()
+        return plannedActivityIds(on: date).contains { $0.trp_activityMatchKey() == target }
     }
 
     /// Ids the day already holds — sent as `excludedActivityIds` so the server knows what's booked there.
@@ -498,19 +498,8 @@ public class AddPlanTimeSelectionViewModel {
             return
         }
 
-        // Prefer the tour coordinate; fall back to the city's `resolvedCoordinate()` (re-fetched from cache) and flag `isNoLocation`.
-        let resolvedCoordinate: TRPLocation
-        let isNoLocationActivity: Bool
-        if let tourCoordinate = tour.coordinate, !tourCoordinate.isMissingOrZero {
-            resolvedCoordinate = tourCoordinate
-            isNoLocationActivity = false
-        } else if let cityCoordinate = planData.selectedCity?.resolvedCoordinate() {
-            resolvedCoordinate = cityCoordinate
-            isNoLocationActivity = true
-        } else {
-            delegate?.viewModel(error: makeLocalizedError(code: -2, key: AddPlanLocalizationKeys.errorActivityLocationNotAvailable))
-            return
-        }
+        let tourCoordinate = tour.coordinate.flatMap { $0.isMissingOrZero ? nil : $0 }
+        let isNoLocationActivity = tourCoordinate == nil
 
         guard let selectedDate = selectedDate else {
             delegate?.viewModel(error: makeLocalizedError(code: -3, key: AddPlanLocalizationKeys.errorSelectDate))
@@ -546,7 +535,7 @@ public class AddPlanTimeSelectionViewModel {
             description: nil,
             startDatetime: startDatetimeString,
             endDatetime: endDatetimeString,
-            coordinate: resolvedCoordinate,
+            coordinate: tourCoordinate ?? TRPLocation(lat: 0, lon: 0),
             cancellation: nil,
             adultCount: planData.travelers,
             childCount: 0,
@@ -565,7 +554,7 @@ public class AddPlanTimeSelectionViewModel {
         profile.title = tour.name
         profile.startDate = startDateString
         profile.endDate = endDateString
-        profile.coordinate = resolvedCoordinate
+        profile.coordinate = tourCoordinate
         profile.city = planData.selectedCity
         profile.adults = planData.travelers
         profile.children = 0

@@ -244,6 +244,7 @@ extension TRPTimelineItineraryViewModel {
         for (itemIndex, item) in items.enumerated() {
             switch item.segmentType {
             case .bookedActivity:
+                if item.isBookedTimePending { break }
                 guard let startDate = item.startDate, let endDate = item.endDate,
                       !spansFullDayOrLonger(start: startDate, end: endDate) else { break }
                 timeRanges.append(TimeRangeInfo(startTime: startDate, endTime: endDate,
@@ -504,7 +505,7 @@ extension TRPTimelineItineraryViewModel {
             return
         }
 
-        let plannedActivityIds = Set(plannedActivities().map { $0.productId })
+        let plannedActivityKeys = Set(plannedActivities().map { $0.productId.trp_activityMatchKey() })
 
         let excludedIds: Set<String>
         if let tripHash = timeline?.tripHash {
@@ -516,7 +517,7 @@ extension TRPTimelineItineraryViewModel {
         filteredFavoriteItems = favouriteItems.filter { item in
             guard let activityId = item.activityId else { return true }
             let baseId = activityId.cleanedAsActivityId()
-            return !plannedActivityIds.contains(baseId) && !excludedIds.contains(baseId)
+            return !plannedActivityKeys.contains(baseId.trp_activityMatchKey()) && !excludedIds.contains(baseId)
         }
     }
 

@@ -18,6 +18,14 @@ public struct TRPDateHelper {
     private static let dateTimeWithoutSeconds = "yyyy-MM-dd HH:mm"
     private static let dateOnly = "yyyy-MM-dd"
     private static let timeOnly = "HH:mm"
+
+    /// Shown in place of a time range while the host has not assigned one.
+    public static let pendingTimeText = "--:--"
+    /// Duration marker of a placeholder slot (flexible reserved activity or booked activity with pending time).
+    public static let placeholderDuration: Double = -1
+    public static let placeholderStartTime = "00:00"
+    public static let placeholderEndTime = "23:59"
+    public static let placeholderTimes: Set<String> = [placeholderStartTime, placeholderEndTime]
     private static let displayDate = "dd/MM/yyyy"
     private static let displayDateTime = "dd/MM/yyyy HH:mm"
     private static let dayMonth = "EEEE dd/MM"
@@ -244,9 +252,7 @@ public struct TRPDateHelper {
     /// - Returns: Time range string like "10:00 - 12:00"
     public static func formatTimeRange(from startDate: Date?, to endDate: Date?) -> String? {
         guard let start = startDate, let end = endDate else { return nil }
-        let startStr = formatTime(start)
-        let endStr = formatTime(end)
-        return "\(startStr) - \(endStr)"
+        return joinTimeRange(formatTime(start), formatTime(end))
     }
 
     /// Format time range string from start and end datetime strings
@@ -259,6 +265,11 @@ public struct TRPDateHelper {
               let endTime = extractTimeString(endDateString) else {
             return nil
         }
-        return "\(startTime) - \(endTime)"
+        return joinTimeRange(startTime, endTime)
+    }
+
+    /// "10:00 - 12:00", or just the start when both times are identical.
+    private static func joinTimeRange(_ startTime: String, _ endTime: String) -> String {
+        return startTime == endTime ? startTime : "\(startTime) - \(endTime)"
     }
 }

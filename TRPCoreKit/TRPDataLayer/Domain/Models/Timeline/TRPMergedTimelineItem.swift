@@ -92,18 +92,26 @@ public class TRPMergedTimelineItem {
     /// Check if this reserved activity was created with a flexible-time slot.
     /// Detection: reservedActivity + additionalData.duration == -1 + start/end time in {00:00, 23:59}.
     public var isFlexibleActivity: Bool {
-        guard segmentType == .reservedActivity else { return false }
-        guard let duration = segment.additionalData?.duration, duration == -1 else { return false }
+        return segmentType == .reservedActivity && hasPlaceholderTimeSlot
+    }
 
-        let flexibleTimes: Set<String> = ["00:00", "23:59"]
+    /// Booked activity whose host has not assigned a time yet (same placeholder slot as a flexible activity).
+    /// Rendered as a pending time and excluded from conflict detection.
+    public var isBookedTimePending: Bool {
+        return segmentType == .bookedActivity && hasPlaceholderTimeSlot
+    }
+
+    private var hasPlaceholderTimeSlot: Bool {
+        guard let duration = segment.additionalData?.duration,
+              duration == TRPDateHelper.placeholderDuration else { return false }
         let startStr = segment.additionalData?.startDatetime ?? segment.startDate
         let endStr = segment.additionalData?.endDatetime ?? segment.endDate
-
         guard let startTime = TRPDateHelper.extractTimeString(startStr),
               let endTime = TRPDateHelper.extractTimeString(endStr) else {
             return false
         }
-        return flexibleTimes.contains(startTime) && flexibleTimes.contains(endTime)
+        return TRPDateHelper.placeholderTimes.contains(startTime)
+            && TRPDateHelper.placeholderTimes.contains(endTime)
     }
 
     // MARK: - Computed Properties (Dates)
@@ -128,6 +136,7 @@ public class TRPMergedTimelineItem {
 
     /// Formatted time range string (e.g., "10:00 - 12:00")
     public var timeRangeString: String? {
+        if isBookedTimePending { return TRPDateHelper.pendingTimeText }
         let startStr = segment.additionalData?.startDatetime ?? segment.startDate
         let endStr = segment.additionalData?.endDatetime ?? segment.endDate
         return TRPDateHelper.formatTimeRange(fromString: startStr, toString: endStr)
@@ -226,9 +235,9 @@ public class TRPMergedTimelineItem {
         return segment.additionalData?.ratingCount
     }
 
-    /// `true` when the activity was created without a precise coordinate and
-    /// uses the city's coordinate as a fallback. Drives the "no exact location"
-    /// tag in the cell and excludes the item from map annotations.
+    /// `true` when the activity was created without a precise coordinate.
+    /// Drives the "no exact location" tag in the cell and excludes the item
+    /// from map annotations.
     public var isNoLocation: Bool {
         guard isBookedActivity || isReservedActivity else {
             return segment.additionalData?.isNoLocation ?? false
