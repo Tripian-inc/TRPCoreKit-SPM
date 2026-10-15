@@ -39,6 +39,10 @@ public class AddPlanPOIListingVC: TRPBaseUIViewController {
         navigationController?.setNavigationBarHidden(true, animated: false)
         viewModel.delegate = self
         viewModel.performInitialFetch()
+        TRPAnalytics.screen(TRPAnalyticsScreen.poiListing, [
+            TRPAnalyticsParam.tripHash: viewModel.planData.tripHash,
+            TRPAnalyticsParam.listingType: viewModel.categoryType.rawValue
+        ])
     }
 
     // MARK: - UI Components
@@ -229,6 +233,11 @@ public class AddPlanPOIListingVC: TRPBaseUIViewController {
         filterVC.onFilterApplied = { [weak self] filterData in
             self?.viewModel.updateFilterData(filterData)
             self?.updateFilterButtonAppearance()
+            TRPAnalytics.log(TRPAnalyticsEvent.filterApplied, [
+                TRPAnalyticsParam.screenName: TRPAnalyticsScreen.poiListing,
+                TRPAnalyticsParam.listingType: self?.viewModel.categoryType.rawValue,
+                TRPAnalyticsParam.resultCount: filterData.activeFilterCount
+            ])
 
             // `setContentOffset(.zero)` returns to true top; `scrollToRow(.top)` would hide the header.
             self?.tableView.setContentOffset(.zero, animated: true)
@@ -241,6 +250,11 @@ public class AddPlanPOIListingVC: TRPBaseUIViewController {
         let sortVC = AddPlanSortByVC(selectedOption: viewModel.selectedSortOption, availableOptions: poiSortOptions)
         sortVC.onSortOptionSelected = { [weak self] option in
             self?.viewModel.updateSortOption(option)
+            TRPAnalytics.log(TRPAnalyticsEvent.sortApplied, [
+                TRPAnalyticsParam.screenName: TRPAnalyticsScreen.poiListing,
+                TRPAnalyticsParam.listingType: self?.viewModel.categoryType.rawValue,
+                TRPAnalyticsParam.sort: "\(option)"
+            ])
 
             self?.tableView.setContentOffset(.zero, animated: true)
         }
@@ -345,6 +359,11 @@ extension AddPlanPOIListingVC: TRPSearchBarDelegate {
 
     public func searchBar(_ searchBar: TRPSearchBar, queryDidChange query: String) {
         viewModel.updateSearchText(query)
+        TRPAnalytics.log(TRPAnalyticsEvent.search, [
+            TRPAnalyticsParam.screenName: TRPAnalyticsScreen.poiListing,
+            TRPAnalyticsParam.listingType: viewModel.categoryType.rawValue,
+            TRPAnalyticsParam.query: query
+        ])
     }
 
     public func searchBarSearchButtonClicked(_ searchBar: TRPSearchBar) {
@@ -386,6 +405,14 @@ extension AddPlanPOIListingVC: AddPlanPOIListingViewModelDelegate {
     public func segmentCreatedSuccessfully() {
         let activityName = pendingPoiName ?? ""
         let selectedDay = viewModel.getSelectedDay()
+        TRPAnalytics.log(TRPAnalyticsEvent.stepAdded, [
+            TRPAnalyticsParam.source: TRPAnalyticsScreen.poiListing,
+            TRPAnalyticsParam.listingType: viewModel.categoryType.rawValue,
+            TRPAnalyticsParam.tripHash: viewModel.planData.tripHash,
+            TRPAnalyticsParam.itemType: TRPAnalyticsItemType.poi,
+            TRPAnalyticsParam.itemName: activityName,
+            TRPAnalyticsParam.date: selectedDay?.toString(format: "yyyy-MM-dd")
+        ])
         viewModel(hideLottie: .bottomSheet, completion: { [weak self] in
             guard let self = self else { return }
             let dayLabel = selectedDay?.weekdayWithDayMonth() ?? ""

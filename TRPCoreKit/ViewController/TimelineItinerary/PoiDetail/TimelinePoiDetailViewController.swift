@@ -464,6 +464,15 @@ public class TimelinePoiDetailViewController: TRPBaseUIViewController {
         setupUI()
         configureContent()
         viewModel.loadProducts()
+        TRPAnalytics.screen(TRPAnalyticsScreen.poiDetail, [
+            TRPAnalyticsParam.itemId: viewModel.poi.id,
+            TRPAnalyticsParam.itemName: viewModel.poi.name
+        ])
+        TRPAnalytics.log(TRPAnalyticsEvent.poiDetailViewed, [
+            TRPAnalyticsParam.itemId: viewModel.poi.id,
+            TRPAnalyticsParam.itemType: TRPAnalyticsItemType.poi,
+            TRPAnalyticsParam.itemName: viewModel.poi.name
+        ])
     }
 
     public override func viewWillAppear(_ animated: Bool) {
@@ -514,6 +523,11 @@ public class TimelinePoiDetailViewController: TRPBaseUIViewController {
     @objc private func viewMapTapped() {
         guard let coordinate = viewModel.getCoordinate() else { return }
         let poiName = viewModel.poi.name
+        TRPAnalytics.log(TRPAnalyticsEvent.directionsClick, [
+            TRPAnalyticsParam.itemId: viewModel.poi.id,
+            TRPAnalyticsParam.itemType: TRPAnalyticsItemType.poi,
+            TRPAnalyticsParam.itemName: poiName
+        ])
 
         let clCoordinate = CLLocationCoordinate2D(latitude: coordinate.lat, longitude: coordinate.lon)
         let placemark = MKPlacemark(coordinate: clCoordinate)

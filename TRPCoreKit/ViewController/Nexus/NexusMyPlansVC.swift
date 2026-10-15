@@ -133,6 +133,7 @@ public class NexusMyPlansVC: TRPBaseUIViewController {
 
         viewModel.delegate = self
         viewModel.loadTrips()
+        TRPAnalytics.screen(TRPAnalyticsScreen.myPlans)
     }
 
     public override func viewWillAppear(_ animated: Bool) {

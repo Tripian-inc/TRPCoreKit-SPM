@@ -206,6 +206,14 @@ extension TRPTimelineItineraryViewModel {
                 switch result {
                 case .success(let success):
                     if success {
+                        TRPAnalytics.log(TRPAnalyticsEvent.stepAdded, [
+                            TRPAnalyticsParam.tripHash: tripHash,
+                            TRPAnalyticsParam.dayIndex: self.selectedDayIndex,
+                            TRPAnalyticsParam.itemType: TRPAnalyticsItemType.smartRecommendation,
+                            TRPAnalyticsParam.categories: data.selectedCategories,
+                            TRPAnalyticsParam.cityId: city.id,
+                            TRPAnalyticsParam.time: "\(startTime)-\(endTime)"
+                        ])
                         self.waitForSegmentGeneration(tripHash: tripHash)
                     } else {
                         self.delegate?.timelineItineraryViewModel(showLottieLoading: false)
@@ -298,6 +306,7 @@ extension TRPTimelineItineraryViewModel {
                 switch result {
                 case .success(let success):
                     if success {
+                        self.logSegmentEvent(TRPAnalyticsEvent.stepRemoved, segment: segment)
                         // Drop the cached availability decision so a later re-add starts clean.
                         self.clearCachedAvailability(for: segment)
                         // Keep the sheet up through the refresh so the loader covers the full operation.

@@ -32,6 +32,10 @@ public class AddPlanActivityListingVC: TRPBaseUIViewController {
         navigationController?.setNavigationBarHidden(true, animated: false)
         viewModel.delegate = self
         viewModel.performInitialSearch()
+        TRPAnalytics.screen(TRPAnalyticsScreen.activityListing, [
+            TRPAnalyticsParam.tripHash: viewModel.planData.tripHash,
+            TRPAnalyticsParam.listingType: "activities"
+        ])
     }
     
     // MARK: - UI Components
@@ -262,6 +266,10 @@ public class AddPlanActivityListingVC: TRPBaseUIViewController {
         filterVC.onFilterApplied = { [weak self] filterData in
             self?.viewModel.updateFilterData(filterData)
             self?.updateFilterButtonAppearance()
+            TRPAnalytics.log(TRPAnalyticsEvent.filterApplied, [
+                TRPAnalyticsParam.screenName: TRPAnalyticsScreen.activityListing,
+                TRPAnalyticsParam.resultCount: filterData.activeFilterCount
+            ])
 
             // `setContentOffset(.zero)` returns to true top so the header is visible (scrollToRow would push it off-screen).
             self?.tableView.setContentOffset(.zero, animated: true)
@@ -273,6 +281,10 @@ public class AddPlanActivityListingVC: TRPBaseUIViewController {
         let sortVC = AddPlanSortByVC(selectedOption: viewModel.selectedSortOption)
         sortVC.onSortOptionSelected = { [weak self] option in
             self?.viewModel.updateSortOption(option)
+            TRPAnalytics.log(TRPAnalyticsEvent.sortApplied, [
+                TRPAnalyticsParam.screenName: TRPAnalyticsScreen.activityListing,
+                TRPAnalyticsParam.sort: "\(option)"
+            ])
 
             self?.tableView.setContentOffset(.zero, animated: true)
         }
@@ -378,6 +390,13 @@ extension AddPlanActivityListingVC: UITableViewDataSource, UITableViewDelegate {
 
         // `tour.productId` is `C_{id}_{provider}` from the search mapper — strip to the bare id the host expects.
         if let tour = viewModel.getTourAt(index: indexPath.row) {
+            TRPAnalytics.log(TRPAnalyticsEvent.activityDetailClick, [
+                TRPAnalyticsParam.source: TRPAnalyticsScreen.activityListing,
+                TRPAnalyticsParam.itemId: tour.productId.cleanedAsActivityId(),
+                TRPAnalyticsParam.itemType: TRPAnalyticsItemType.activity,
+                TRPAnalyticsParam.itemName: tour.name,
+                TRPAnalyticsParam.tripHash: viewModel.planData.tripHash
+            ])
             TRPCoreKit.shared.delegate?.trpCoreKitDidRequestActivityDetail(activityId: tour.productId.cleanedAsActivityId())
         }
     }
@@ -393,6 +412,10 @@ extension AddPlanActivityListingVC: TRPSearchBarDelegate {
 
     public func searchBar(_ searchBar: TRPSearchBar, queryDidChange query: String) {
         viewModel.updateSearchText(query)
+        TRPAnalytics.log(TRPAnalyticsEvent.search, [
+            TRPAnalyticsParam.screenName: TRPAnalyticsScreen.activityListing,
+            TRPAnalyticsParam.query: query
+        ])
     }
 
     public func searchBarSearchButtonClicked(_ searchBar: TRPSearchBar) {

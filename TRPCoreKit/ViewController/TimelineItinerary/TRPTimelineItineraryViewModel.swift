@@ -191,7 +191,7 @@ public class TRPTimelineItineraryViewModel {
         // `addMissingBookedActivities` runs once the DELETE cascade settles so new segments aren't inserted while indices shift.
         reconcileSegmentsWithItinerary { [weak self] in
             guard let self = self else { return }
-            self.addMissingBookedActivities(from: itineraryModel)
+            self.syncBookedActivityTimesThenAddMissing(from: itineraryModel)
         }
 
         resolveFavouriteItemCities { [weak self] in

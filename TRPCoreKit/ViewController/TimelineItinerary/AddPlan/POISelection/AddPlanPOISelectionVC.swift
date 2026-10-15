@@ -116,6 +116,7 @@ public class AddPlanPOISelectionVC: TRPBaseUIViewController {
     public override func setupViews() {
         super.setupViews()
         view.backgroundColor = .white
+        TRPAnalytics.screen(TRPAnalyticsScreen.poiSelection)
 
         setupNavigationArea()
         setupDefaultContentView()
@@ -344,6 +345,10 @@ extension AddPlanPOISelectionVC: TRPSearchBarDelegate {
             viewModel.clearSearchResults()
         } else {
             viewModel.searchAddress(text: query)
+            TRPAnalytics.log(TRPAnalyticsEvent.search, [
+                TRPAnalyticsParam.screenName: TRPAnalyticsScreen.poiSelection,
+                TRPAnalyticsParam.query: query
+            ])
         }
     }
 

@@ -131,6 +131,7 @@ public class AddPlanContainerVC: TRPBaseUIViewController, DynamicHeightPresentab
 
         viewModel.delegate = self
         viewModel.start()
+        TRPAnalytics.screen(TRPAnalyticsScreen.addPlan, [TRPAnalyticsParam.tripHash: viewModel.planData.tripHash])
     }
     
     public override func setupViews() {

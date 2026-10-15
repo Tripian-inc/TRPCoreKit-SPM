@@ -238,6 +238,7 @@ public class TRPTimelineItineraryVC: TRPBaseUIViewController {
         navigationController?.setNavigationBarHidden(true, animated: false)
 
         updateSavedPlansButton()
+        TRPAnalytics.screen(TRPAnalyticsScreen.timeline, [TRPAnalyticsParam.tripHash: viewModel.getTripHash()])
 
         if viewModel.showNoCityStateOnLoad {
             timelineItineraryViewModel(noCitiesAvailable: true)
@@ -288,6 +289,10 @@ public class TRPTimelineItineraryVC: TRPBaseUIViewController {
         isShowingMap.toggle()
 
         if isShowingMap {
+            TRPAnalytics.log(TRPAnalyticsEvent.mapOpened, [
+                TRPAnalyticsParam.tripHash: viewModel.getTripHash(),
+                TRPAnalyticsParam.dayIndex: viewModel.selectedDayIndex
+            ])
             showMapView()
         } else {
             showListView()

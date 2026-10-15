@@ -341,6 +341,17 @@ public class AddPlanTimeSelectionVC: TRPBaseUIViewController, DynamicHeightPrese
         setupActions()
 
         viewModel.fetchTimeSlots()
+        TRPAnalytics.screen(TRPAnalyticsScreen.timeSelection, [
+            TRPAnalyticsParam.tripHash: viewModel.planData.tripHash,
+            TRPAnalyticsParam.itemId: viewModel.tour.productId.cleanedAsActivityId(),
+            TRPAnalyticsParam.itemName: viewModel.tour.name,
+            TRPAnalyticsParam.source: analyticsSource
+        ])
+    }
+
+    private var analyticsSource: String {
+        if isSavedPlansContext { return TRPAnalyticsScreen.savedPlans }
+        return viewModel.isEditMode || viewModel.isStepEditMode ? TRPAnalyticsScreen.timeline : TRPAnalyticsScreen.activityListing
     }
 
     // MARK: - Setup
@@ -545,6 +556,12 @@ public class AddPlanTimeSelectionVC: TRPBaseUIViewController, DynamicHeightPrese
                 btnConfirmAction: { [weak self] in
                     guard let self = self else { return }
                     let baseId = self.viewModel.excludeFavouriteFromTimeline()
+                    TRPAnalytics.log(TRPAnalyticsEvent.favoriteRemoved, [
+                        TRPAnalyticsParam.tripHash: self.viewModel.planData.tripHash,
+                        TRPAnalyticsParam.itemId: baseId,
+                        TRPAnalyticsParam.itemType: TRPAnalyticsItemType.favorite,
+                        TRPAnalyticsParam.itemName: self.viewModel.tour.name
+                    ])
                     TRPCoreKit.shared.delegate?.trpCoreKitDidRemoveFavorite(activityId: baseId)
                     self.dismiss(animated: true) {
                         self.onRemoveFavourite?()
@@ -731,6 +748,15 @@ extension AddPlanTimeSelectionVC: AddPlanTimeSelectionViewModelDelegate {
 
     public func segmentCreationDidSucceed() {
         let activityId = viewModel.tour.productId.cleanedAsActivityId()
+        TRPAnalytics.log(TRPAnalyticsEvent.stepAdded, [
+            TRPAnalyticsParam.source: analyticsSource,
+            TRPAnalyticsParam.tripHash: viewModel.planData.tripHash,
+            TRPAnalyticsParam.itemId: activityId,
+            TRPAnalyticsParam.itemType: TRPAnalyticsItemType.activity,
+            TRPAnalyticsParam.itemName: viewModel.tour.name,
+            TRPAnalyticsParam.date: viewModel.getSelectedDate()?.toString(format: "yyyy-MM-dd"),
+            TRPAnalyticsParam.time: viewModel.getSelectedTimeSlot()?.time
+        ])
 
         TRPCoreKit.shared.delegate?.trpCoreKitDidAddActivity(activityId: activityId)
 
@@ -740,13 +766,28 @@ extension AddPlanTimeSelectionVC: AddPlanTimeSelectionViewModelDelegate {
     }
 
     public func segmentUpdateDidSucceed() {
+        logActivityTimeChanged()
         // Don't dismiss — the inline "Changing time" loader must stay until the host dismisses post-refresh.
         onSegmentUpdated?()
     }
 
     public func stepUpdateDidSucceed() {
+        logActivityTimeChanged()
         // Host dismisses post-refresh, same as `segmentUpdateDidSucceed`.
         onStepUpdated?()
+    }
+}
+
+extension AddPlanTimeSelectionVC {
+    internal func logActivityTimeChanged() {
+        TRPAnalytics.log(TRPAnalyticsEvent.stepTimeChanged, [
+            TRPAnalyticsParam.tripHash: viewModel.planData.tripHash,
+            TRPAnalyticsParam.itemId: viewModel.tour.productId.cleanedAsActivityId(),
+            TRPAnalyticsParam.itemType: TRPAnalyticsItemType.activity,
+            TRPAnalyticsParam.itemName: viewModel.tour.name,
+            TRPAnalyticsParam.date: viewModel.getSelectedDate()?.toString(format: "yyyy-MM-dd"),
+            TRPAnalyticsParam.time: viewModel.getSelectedTimeSlot()?.time
+        ])
     }
 }
 

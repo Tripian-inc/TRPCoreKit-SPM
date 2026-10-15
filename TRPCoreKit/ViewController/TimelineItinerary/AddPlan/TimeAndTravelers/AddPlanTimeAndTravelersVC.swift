@@ -403,6 +403,10 @@ public class AddPlanTimeAndTravelersVC: TRPBaseUIViewController, AddPlanChildVie
 
     private func handleLocationSelected(coordinate: TRPLocation, name: String) {
         viewModel.setStartingPoint(location: coordinate, name: name)
+        TRPAnalytics.log(TRPAnalyticsEvent.startingPointSelected, [
+            TRPAnalyticsParam.itemName: name,
+            TRPAnalyticsParam.cityId: viewModel.getCityId()
+        ])
         startingPointField.setValue(name)
         containerVC?.updateContinueButtonState()
     }

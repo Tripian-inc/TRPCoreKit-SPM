@@ -66,6 +66,10 @@ public class SavedPlansVC: TRPBaseUIViewController {
         super.viewDidLoad()
         navigationController?.setNavigationBarHidden(true, animated: false)
         viewModel.delegate = self
+        TRPAnalytics.screen(TRPAnalyticsScreen.savedPlans, [
+            TRPAnalyticsParam.tripHash: viewModel.tripHash,
+            TRPAnalyticsParam.resultCount: viewModel.getTotalItemCount()
+        ])
     }
 
     // MARK: - Setup Views
@@ -147,6 +151,13 @@ extension SavedPlansVC: UITableViewDelegate {
         // activityId may be raw or `C_{id}_{provider}` form — normalize to the bare product id.
         if let item = viewModel.getItem(at: indexPath),
            let activityId = item.activityId {
+            TRPAnalytics.log(TRPAnalyticsEvent.activityDetailClick, [
+                TRPAnalyticsParam.source: TRPAnalyticsScreen.savedPlans,
+                TRPAnalyticsParam.tripHash: viewModel.tripHash,
+                TRPAnalyticsParam.itemId: activityId.cleanedAsActivityId(),
+                TRPAnalyticsParam.itemType: TRPAnalyticsItemType.favorite,
+                TRPAnalyticsParam.itemName: item.title
+            ])
             TRPCoreKit.shared.delegate?.trpCoreKitDidRequestActivityDetail(activityId: activityId.cleanedAsActivityId())
         }
     }

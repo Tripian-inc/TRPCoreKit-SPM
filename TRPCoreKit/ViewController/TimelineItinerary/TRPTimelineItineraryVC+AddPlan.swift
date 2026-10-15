@@ -56,6 +56,7 @@ extension TRPTimelineItineraryVC {
         containerVC.addViewController(timeAndTravelersVC)
         containerVC.addViewController(categoryVC)
 
+        logTimelineEvent(TRPAnalyticsEvent.addPlanOpened)
         presentVCWithDynamicHeight(containerVC)
     }
 }
@@ -215,6 +216,7 @@ extension TRPTimelineItineraryVC: TRPTimelineItineraryViewModelDelegate {
 extension TRPTimelineItineraryVC: TRPNoCityViewDelegate {
 
     func noCityViewDidTapButton(_ view: TRPNoCityView) {
+        TRPAnalytics.log(TRPAnalyticsEvent.sdkClosed, [TRPAnalyticsParam.screenName: TRPAnalyticsScreen.timeline])
         if let navController = navigationController {
             navController.dismiss(animated: true, completion: nil)
         } else {
@@ -270,8 +272,9 @@ extension TRPTimelineItineraryVC: UICollectionViewDataSource, UICollectionViewDe
                 // Mirror Android: a product step (stepType present and != "poi")
                 // notifies the host for its detail; "poi" steps and manual POIs
                 // (no step) open the internal POI detail.
-                if let stepType = step?.stepType, stepType != "poi" {
+                if let step = step, let stepType = step.stepType, stepType != "poi" {
                     let activityId = extractActivityId(from: poi)
+                    logStepClick(TRPAnalyticsEvent.activityDetailClick, step: step, itemId: activityId, source: TRPAnalyticsScreen.map)
                     TRPCoreKit.shared.delegate?.trpCoreKitDidRequestActivityDetail(activityId: activityId)
                     return
                 }
@@ -287,9 +290,11 @@ extension TRPTimelineItineraryVC: UICollectionViewDataSource, UICollectionViewDe
                 // Booked → bookingDetail; Reserved → activityDetail. Ids normalized via `cleanedAsActivityId()`.
                 if segment.segmentType == .bookedActivity {
                     guard let bookingId = segment.additionalData?.bookingId else { return }
+                    logSegmentClick(TRPAnalyticsEvent.bookingDetailClick, segment: segment, itemId: bookingId.cleanedAsActivityId(), source: TRPAnalyticsScreen.map)
                     TRPCoreKit.shared.delegate?.trpCoreKitDidRequestBookingDetail(bookingId: bookingId.cleanedAsActivityId())
                 } else {
                     guard let activityId = segment.additionalData?.activityId else { return }
+                    logSegmentClick(TRPAnalyticsEvent.activityDetailClick, segment: segment, itemId: activityId.cleanedAsActivityId(), source: TRPAnalyticsScreen.map)
                     TRPCoreKit.shared.delegate?.trpCoreKitDidRequestActivityDetail(activityId: activityId.cleanedAsActivityId())
                 }
             }

@@ -44,6 +44,11 @@ public class TripianNavigateBridge {
         }
     }
 
+    /// Host analytics sink. Receives every SDK analytics event (name + parameters)
+    /// once `onNavigate` has installed the bridge as delegate; the host forwards
+    /// them to its analytics backend (e.g. Firebase Analytics).
+    public var onAnalyticsEvent: ((String, [String: Any]) -> Void)?
+
     private init() {}
 
     private static let dateFormatter: DateFormatter = {
@@ -81,5 +86,9 @@ extension TripianNavigateBridge: TRPCoreKitDelegate {
 
     public func trpCoreKitDidCreateTimeline(tripHash: String) {
         // No navigation; the Nexus create path persists the hash via NexusTripStore.
+    }
+
+    public func trpCoreKitDidLogAnalyticsEvent(name: String, parameters: [String: Any]) {
+        onAnalyticsEvent?(name, parameters)
     }
 }

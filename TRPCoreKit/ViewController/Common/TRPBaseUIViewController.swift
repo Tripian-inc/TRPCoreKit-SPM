@@ -206,6 +206,10 @@ extension TRPBaseUIViewController {
 extension TRPBaseUIViewController:  ViewModelDelegate {
     
     @objc nonisolated public func viewModel(error: Error) {
+        TRPAnalytics.log(TRPAnalyticsEvent.error, [
+            TRPAnalyticsParam.errorCode: (error as NSError).code,
+            TRPAnalyticsParam.errorMessage: error.localizedDescription
+        ])
         // Check for refresh token error - notify host app and dismiss SDK
         if let trpError = error as? TRPErrors {
             switch trpError {

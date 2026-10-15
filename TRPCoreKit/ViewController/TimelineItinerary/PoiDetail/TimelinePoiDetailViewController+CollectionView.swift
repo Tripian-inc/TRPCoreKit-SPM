@@ -73,6 +73,12 @@ extension TimelinePoiDetailViewController: UICollectionViewDelegateFlowLayout {
     public func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         if collectionView == productsCollectionView {
             guard let product = viewModel.getProducts()[safe: indexPath.item] else { return }
+            TRPAnalytics.log(TRPAnalyticsEvent.activityDetailClick, [
+                TRPAnalyticsParam.source: TRPAnalyticsScreen.poiDetail,
+                TRPAnalyticsParam.itemId: product.id.cleanedAsActivityId(),
+                TRPAnalyticsParam.itemType: TRPAnalyticsItemType.activity,
+                TRPAnalyticsParam.itemName: product.name
+            ])
             // `product.id` is the `C_{id}_{provider}` form; strip to the bare product id like every other callsite.
             TRPCoreKit.shared.delegate?.trpCoreKitDidRequestActivityDetail(activityId: product.id.cleanedAsActivityId())
         }

@@ -15,6 +15,30 @@ import TRPFoundationKit
 
 extension TRPTimelineItineraryViewModel {
 
+    internal func logStepEvent(_ event: String, step: TRPTimelineStep, _ params: [String: Any?] = [:]) {
+        var merged: [String: Any?] = [
+            TRPAnalyticsParam.tripHash: timeline?.tripHash,
+            TRPAnalyticsParam.dayIndex: selectedDayIndex,
+            TRPAnalyticsParam.itemId: step.poi?.id,
+            TRPAnalyticsParam.itemType: step.stepType == "poi" ? TRPAnalyticsItemType.poi : TRPAnalyticsItemType.activity,
+            TRPAnalyticsParam.itemName: step.poi?.name
+        ]
+        params.forEach { merged[$0.key] = $0.value }
+        TRPAnalytics.log(event, merged)
+    }
+
+    internal func logSegmentEvent(_ event: String, segment: TRPTimelineSegment, _ params: [String: Any?] = [:]) {
+        var merged: [String: Any?] = [
+            TRPAnalyticsParam.tripHash: timeline?.tripHash,
+            TRPAnalyticsParam.dayIndex: selectedDayIndex,
+            TRPAnalyticsParam.itemId: segment.additionalData?.activityId ?? segment.additionalData?.bookingId,
+            TRPAnalyticsParam.itemType: segment.segmentType == .bookedActivity ? TRPAnalyticsItemType.bookedActivity : (segment.segmentType == .manualPoi ? TRPAnalyticsItemType.poi : TRPAnalyticsItemType.activity),
+            TRPAnalyticsParam.itemName: segment.title
+        ]
+        params.forEach { merged[$0.key] = $0.value }
+        TRPAnalytics.log(event, merged)
+    }
+
     /// Updates a step's start/end times (format "yyyy-MM-dd HH:mm").
     public func updateStepTime(step: TRPTimelineStep, startTime: String, endTime: String, completion: @escaping (Result<TRPTimelineStep, Error>) -> Void) {
         let changingTimeText = LoadingLocalizationKeys.localized(LoadingLocalizationKeys.changingTime)
@@ -26,6 +50,7 @@ extension TRPTimelineItineraryViewModel {
             DispatchQueue.main.async {
                 switch result {
                 case .success(let updatedStep):
+                    self.logStepEvent(TRPAnalyticsEvent.stepTimeChanged, step: step, [TRPAnalyticsParam.time: "\(startTime)-\(endTime)"])
                     // Bottom sheet stays visible through the refresh; dismissed on didUpdateTimeline.
                     self.fetchAndRefreshTimeline { _ in
                         completion(.success(updatedStep))
@@ -68,6 +93,7 @@ extension TRPTimelineItineraryViewModel {
             DispatchQueue.main.async {
                 switch result {
                 case .success:
+                    self.logStepEvent(TRPAnalyticsEvent.stepRemoved, step: step)
                     // Keep the sheet visible through the refresh, then dismiss for one continuous loader.
                     self.fetchAndRefreshTimeline { _ in
                         self.delegate?.viewModel(hideLottie: .bottomSheet)
@@ -138,6 +164,7 @@ extension TRPTimelineItineraryViewModel {
                 switch result {
                 case .success(let success):
                     if success {
+                        self.logSegmentEvent(TRPAnalyticsEvent.stepTimeChanged, segment: segment, [TRPAnalyticsParam.time: "\(startTime)-\(endTime)"])
                         // Bottom sheet stays visible through the refresh; dismissed on didUpdateTimeline.
                         self.fetchAndRefreshTimeline { _ in
                             completion(.success(true))

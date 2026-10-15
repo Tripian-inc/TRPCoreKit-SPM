@@ -32,6 +32,7 @@ final class NexusMyPlansViewModel {
                 self.delegate?.viewModel(hideLottie: .fullScreen)
                 switch result {
                 case .success:
+                    TRPAnalytics.log(TRPAnalyticsEvent.timelineDeleted, [TRPAnalyticsParam.tripHash: tripHash])
                     self.trips.removeAll { $0.tripHash == tripHash }
                     self.delegate?.viewModel(dataLoaded: true)
                 case .failure(let error):

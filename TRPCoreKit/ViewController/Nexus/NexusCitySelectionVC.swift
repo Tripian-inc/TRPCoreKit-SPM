@@ -124,6 +124,7 @@ public class NexusCitySelectionVC: TRPBaseUIViewController {
         super.setupViews()
         view.backgroundColor = .white
         navigationController?.setNavigationBarHidden(true, animated: false)
+        TRPAnalytics.screen(TRPAnalyticsScreen.citySelection)
 
         view.addSubview(backButton)
         view.addSubview(titleLabel)
@@ -299,6 +300,11 @@ extension NexusCitySelectionVC: TRPSearchBarDelegate {
 
     public func searchBar(_ searchBar: TRPSearchBar, queryDidChange query: String) {
         viewModel.search(query)
+        TRPAnalytics.log(TRPAnalyticsEvent.search, [
+            TRPAnalyticsParam.screenName: TRPAnalyticsScreen.citySelection,
+            TRPAnalyticsParam.query: query,
+            TRPAnalyticsParam.resultCount: viewModel.filteredCities.count
+        ])
     }
 
     public func searchBarSearchButtonClicked(_ searchBar: TRPSearchBar) {

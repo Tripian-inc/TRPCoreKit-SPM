@@ -68,9 +68,14 @@ class SplashViewController: TRPBaseUIViewController {
     private func startForLightLogin() {
         TRPLoginHelper.shared.lightLogin(uniqueId: uniqueId!) { [weak self] (result) in
             if result {
+                TRPAnalytics.log(TRPAnalyticsEvent.loginSuccess)
                 self?.loginSuccess = true
                 self?.checkAllDatasFetched()
             } else {
+                TRPAnalytics.log(TRPAnalyticsEvent.error, [
+                    TRPAnalyticsParam.screenName: TRPAnalyticsScreen.splash,
+                    TRPAnalyticsParam.errorCode: "light_login_failed"
+                ])
                 self?.hideLottieLoader()
                 self?.delegate?.datasFetchFailed()
             }

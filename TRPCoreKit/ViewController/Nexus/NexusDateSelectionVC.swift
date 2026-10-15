@@ -116,6 +116,10 @@ public class NexusDateSelectionVC: TRPBaseUIViewController {
         super.setupViews()
         view.backgroundColor = .white
         navigationController?.setNavigationBarHidden(true, animated: false)
+        TRPAnalytics.screen(TRPAnalyticsScreen.dateSelection, [
+            TRPAnalyticsParam.cityId: city.id,
+            TRPAnalyticsParam.cityName: city.name
+        ])
 
         viewModel = NexusDateSelectionViewModel(city: city, uniqueId: uniqueId)
         cityLabel.text = city.name

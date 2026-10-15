@@ -19,6 +19,7 @@ extension TRPTimelineItineraryVC: TRPTimelineDayFilterViewDelegate {
         viewModel.cancelActiveRouteCalculations()
 
         viewModel.selectDay(at: dayIndex)
+        logTimelineEvent(TRPAnalyticsEvent.timelineDayChanged)
 
         reload()
 
@@ -55,10 +56,12 @@ extension TRPTimelineItineraryVC: TRPTimelineActivityCellDelegate {
         switch kind {
         case .booked:
             guard let bookingId = segment.additionalData?.bookingId else { return }
+            logSegmentClick(TRPAnalyticsEvent.bookingDetailClick, segment: segment, itemId: bookingId.cleanedAsActivityId())
             TRPCoreKit.shared.delegate?.trpCoreKitDidRequestBookingDetail(bookingId: bookingId.cleanedAsActivityId())
 
         case .reserved, .flexible:
             guard let activityId = segment.additionalData?.activityId else { return }
+            logSegmentClick(TRPAnalyticsEvent.activityDetailClick, segment: segment, itemId: activityId.cleanedAsActivityId())
             TRPCoreKit.shared.delegate?.trpCoreKitDidRequestActivityDetail(activityId: activityId.cleanedAsActivityId())
         }
     }
@@ -70,6 +73,7 @@ extension TRPTimelineItineraryVC: TRPTimelineActivityCellDelegate {
         let isFlexible = kind == .flexible || segment.additionalData?.isFlexible == true
         let preferred = segment.additionalData?.startDatetime ?? segment.startDate
         let reservationDate = resolveReservationDate(preferred: preferred, isFlexible: isFlexible)
+        logSegmentClick(TRPAnalyticsEvent.reserveClick, segment: segment, itemId: cleanedId)
         TRPCoreKit.shared.delegate?.trpCoreKitDidRequestActivityReservation(activityId: cleanedId, date: reservationDate)
     }
 
@@ -133,6 +137,7 @@ extension TRPTimelineItineraryVC: TRPTimelineActivityStepCellDelegate {
         guard let poi = step.poi else { return }
         let activityId = extractActivityId(from: poi)
         let reservationDate = resolveReservationDate(preferred: step.startDateTimes)
+        logStepClick(TRPAnalyticsEvent.reserveClick, step: step, itemId: activityId)
         TRPCoreKit.shared.delegate?.trpCoreKitDidRequestActivityReservation(activityId: activityId, date: reservationDate)
     }
 }
@@ -319,6 +324,7 @@ extension TRPTimelineItineraryVC {
         }
 
         let activityId = extractActivityId(from: poi)
+        logStepClick(TRPAnalyticsEvent.activityDetailClick, step: step, itemId: activityId)
         TRPCoreKit.shared.delegate?.trpCoreKitDidRequestActivityDetail(activityId: activityId)
     }
 
@@ -420,6 +426,7 @@ extension TRPTimelineItineraryVC {
         guard let poi = step.poi else { return }
         let activityId = extractActivityId(from: poi)
         let reservationDate = resolveReservationDate(preferred: step.startDateTimes)
+        logStepClick(TRPAnalyticsEvent.reserveClick, step: step, itemId: activityId)
         TRPCoreKit.shared.delegate?.trpCoreKitDidRequestActivityReservation(activityId: activityId, date: reservationDate)
     }
 }
@@ -508,6 +515,7 @@ extension TRPTimelineItineraryVC: TRPTimelineCustomNavigationBarDelegate {
         }
 
         // This is the root screen, so back closes the SDK by dismissing the nav controller.
+        TRPAnalytics.log(TRPAnalyticsEvent.sdkClosed, [TRPAnalyticsParam.screenName: TRPAnalyticsScreen.timeline])
         if let navController = navigationController {
             navController.dismiss(animated: true, completion: nil)
         } else {

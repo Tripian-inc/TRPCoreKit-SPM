@@ -73,6 +73,14 @@ public protocol TRPCoreKitDelegate: AnyObject {
     /// Called when authentication fails (refresh token error)
     /// Host app should dismiss SDK and re-authenticate the user
     func trpCoreKitDidFailWithAuthError()
+
+    /// Called for every analytics event the SDK emits (see `TRPAnalyticsEvent`).
+    /// Host app forwards the event to its own analytics backend (e.g. Firebase Analytics).
+    /// Names and parameter keys are GA4-compatible; values are String or NSNumber.
+    /// - Parameters:
+    ///   - name: Event name (e.g. "tripian_timeline_created")
+    ///   - parameters: Event parameters
+    func trpCoreKitDidLogAnalyticsEvent(name: String, parameters: [String: Any])
 }
 
 // MARK: - TRPCoreKitDelegate Default Implementations
@@ -80,6 +88,7 @@ public extension TRPCoreKitDelegate {
     func trpCoreKitDidFailWithAuthError() {}
     func trpCoreKitDidAddActivity(activityId: String) {}
     func trpCoreKitDidRemoveFavorite(activityId: String) {}
+    func trpCoreKitDidLogAnalyticsEvent(name: String, parameters: [String: Any]) {}
 }
 
 public class TRPCoreKit {
