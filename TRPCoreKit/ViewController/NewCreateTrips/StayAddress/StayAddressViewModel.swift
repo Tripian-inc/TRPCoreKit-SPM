@@ -52,7 +52,7 @@ class StayAddressViewModel {
         self.boundaryNE = boundaryNE
         self.accommondation = accommondation
 //        self.cityCenter = calculateCenter()
-        if let key = TRPApiKeyController.getKey(TRPApiKeys.trpGooglePlace) {
+        if let key = TRPProviderKeyResolver.shared.googlePlacesApiKey() {
             googleApiKey = key
         } else {
             TRPLogger(prefixText: "Tripian/TRPCoreKit").e("TRPGooglePlaceApi key not found")

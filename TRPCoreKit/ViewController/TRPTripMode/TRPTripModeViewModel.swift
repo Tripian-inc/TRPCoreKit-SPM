@@ -435,7 +435,7 @@ extension TRPTripModeViewModel {
     /// - Parameter pois: Poi listesi
     private func fetchRouteFromMapBoxServer(pois: [TRPLocation]) {
         guard let currentDailyPlanId = dailyPlan?.id else {return}
-        guard let accessToken = TRPApiKeyController.getKey(TRPApiKeys.mglMapboxAccessToken) else {
+        guard let accessToken = TRPProviderKeyResolver.shared.mapboxAccessToken() else {
             Log.e("MapBox access code is empty")
             return
         }
@@ -479,7 +479,7 @@ extension TRPTripModeViewModel {
     ///   - locations: PoiList
     ///   - completion:
     public func fetchRoutes(locations: [TRPLocation], completion: @escaping (_ drawRoute: Route?, _ locations:[TRPLocation], _ error: Error?) -> () ) {
-        guard let accessToken = TRPApiKeyController.getKey(TRPApiKeys.mglMapboxAccessToken) else {
+        guard let accessToken = TRPProviderKeyResolver.shared.mapboxAccessToken() else {
             print("MapBox access code is empty")
             return
         }

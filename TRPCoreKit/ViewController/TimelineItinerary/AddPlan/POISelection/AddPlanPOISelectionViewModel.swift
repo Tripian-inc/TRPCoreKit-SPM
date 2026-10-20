@@ -88,7 +88,7 @@ public class AddPlanPOISelectionViewModel {
         self.boundaryNE = boundaryNE
         self.cityCoordinate = cityCoordinate ?? cityCenterPOI?.coordinate
 
-        if let key = TRPApiKeyController.getKey(TRPApiKeys.trpGooglePlace) {
+        if let key = TRPProviderKeyResolver.shared.googlePlacesApiKey() {
             googleApiKey = key
         }
 

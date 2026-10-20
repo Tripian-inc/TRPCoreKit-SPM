@@ -282,7 +282,7 @@ extension TRPTimelineItineraryViewModel {
             return
         }
 
-        guard let accessToken = TRPApiKeyController.getKey(TRPApiKeys.mglMapboxAccessToken) else {
+        guard let accessToken = TRPProviderKeyResolver.shared.mapboxAccessToken() else {
             completion(nil, NSError(domain: "MapBox", code: -1, userInfo: [NSLocalizedDescriptionKey: "MapBox access token not found"]))
             return
         }

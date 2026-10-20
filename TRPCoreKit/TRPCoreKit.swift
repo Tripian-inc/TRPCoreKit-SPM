@@ -5,6 +5,7 @@ import Foundation
 import UIKit
 import TRPRestKit
 import TRPFoundationKit
+import MapboxMaps
 
 /// Environment configuration for TRPCoreKit SDK
 public enum TRPEnvironment {
@@ -98,10 +99,43 @@ public class TRPCoreKit {
     // Keep reference to SDK coordinator
     private var sdkCoordinator: TRPSDKCoordinater?
 
+    private let keyResolver: TRPProviderKeyResolver
+    private let mapboxTokenSink: (String) -> Void
+
     // MARK: - Initialization
-    private init() {
+    private convenience init() {
+        self.init(keyResolver: .shared, mapboxTokenSink: { MapboxOptions.accessToken = $0 })
+    }
+
+    init(keyResolver: TRPProviderKeyResolver, mapboxTokenSink: @escaping (String) -> Void) {
+        self.keyResolver = keyResolver
+        self.mapboxTokenSink = mapboxTokenSink
         // Register fonts
         TRPFonts.registerAll()
+    }
+
+    /// Hands the SDK the host's Mapbox token and Google Places key. A nil or empty value falls back to Info.plist.
+    /// The resolved Mapbox token is also applied to `MapboxOptions.accessToken` on the main thread.
+    public func setProviderKeys(_ keys: TRPProviderKeys) {
+        keyResolver.hostKeys = keys
+        guard let token = keyResolver.mapboxAccessToken(), !token.isEmpty else { return }
+        let sink = mapboxTokenSink
+        if Thread.isMainThread {
+            sink(token)
+        } else {
+            DispatchQueue.main.async { sink(token) }
+        }
+    }
+
+    /// The Mapbox token and Google Places key in effect: the host's non-empty value, else Info.plist, else nil.
+    public var providerKeys: TRPProviderKeys {
+        keyResolver.resolvedKeys()
+    }
+
+    static func forwardProviderKeys(mapboxAccessToken: String?, googlePlacesApiKey: String?) {
+        guard mapboxAccessToken != nil || googlePlacesApiKey != nil else { return }
+        shared.setProviderKeys(TRPProviderKeys(mapboxAccessToken: mapboxAccessToken,
+                                               googlePlacesApiKey: googlePlacesApiKey))
     }
 
     /// Initialize TRPCoreKit SDK with environment configuration
@@ -111,12 +145,16 @@ public class TRPCoreKit {
     ///   - language: Language code (e.g., "en", "es", "tr"). Defaults to "en"
     ///   - currency: Currency code (e.g., "USD", "EUR", "TRY"). Defaults to "USD"
     ///   - delegate: Delegate to receive SDK callbacks
+    ///   - mapboxAccessToken: Mapbox token overriding Info.plist `MBXAccessToken`
+    ///   - googlePlacesApiKey: Google Places key overriding Info.plist `TRPGooglePlaceApi`
     public static func initialize(
         environment: TRPEnvironment,
         apiKey: String,
         language: String = "en",
         currency: String = "USD",
-        delegate: TRPCoreKitDelegate? = nil
+        delegate: TRPCoreKitDelegate? = nil,
+        mapboxAccessToken: String? = nil,
+        googlePlacesApiKey: String? = nil
     ) {
         // Set delegate
         shared.delegate = delegate
@@ -126,6 +164,8 @@ public class TRPCoreKit {
         TRPClient.start(baseUrl: baseUrl, apiKey: apiKey, language: language, currency: currency)
 
         TRPUserAgentURLProtocol.register(host: baseUrl.baseUrl)
+
+        forwardProviderKeys(mapboxAccessToken: mapboxAccessToken, googlePlacesApiKey: googlePlacesApiKey)
     }
 
     /// Initialize TRPCoreKit SDK with custom base URL (for advanced use cases)
@@ -136,13 +176,17 @@ public class TRPCoreKit {
     ///   - language: Language code (e.g., "en", "es", "tr"). Defaults to "en"
     ///   - currency: Currency code (e.g., "USD", "EUR", "TRY"). Defaults to "USD"
     ///   - delegate: Delegate to receive SDK callbacks
+    ///   - mapboxAccessToken: Mapbox token overriding Info.plist `MBXAccessToken`
+    ///   - googlePlacesApiKey: Google Places key overriding Info.plist `TRPGooglePlaceApi`
     public static func initialize(
         baseUrl: String,
         basePath: String,
         apiKey: String,
         language: String = "en",
         currency: String = "USD",
-        delegate: TRPCoreKitDelegate? = nil
+        delegate: TRPCoreKitDelegate? = nil,
+        mapboxAccessToken: String? = nil,
+        googlePlacesApiKey: String? = nil
     ) {
         // Set delegate
         shared.delegate = delegate
@@ -152,6 +196,8 @@ public class TRPCoreKit {
         TRPClient.start(baseUrl: url, apiKey: apiKey, language: language, currency: currency)
 
         TRPUserAgentURLProtocol.register(host: url.baseUrl)
+
+        forwardProviderKeys(mapboxAccessToken: mapboxAccessToken, googlePlacesApiKey: googlePlacesApiKey)
     }
 
     // MARK: - Start SDK

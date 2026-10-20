@@ -791,7 +791,9 @@ extension TRPSDKCoordinater: TRPUserProfileCoordinaterDelegate {
 //MARK: - HELPER
 extension TRPSDKCoordinater {
     private func checkAllApiKey() {
-        let keys: [TRPApiKeys] = [.trpGooglePlace,.mglMapboxAccessToken]
+        let keys: [TRPApiKeys] = [.trpGooglePlace, .mglMapboxAccessToken].filter {
+            !TRPProviderKeyResolver.shared.hasHostValue(for: $0)
+        }
         let missingApiKey = TRPApiKeyController.checkMissingApiKeys(keys)
         if missingApiKey.count > 0 {
             let missingValus = missingApiKey.toString(", ")
