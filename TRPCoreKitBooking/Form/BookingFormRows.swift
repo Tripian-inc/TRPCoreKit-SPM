@@ -281,6 +281,17 @@ struct BookingPickOption: Hashable {
     var subtitle: String?
     var detail: String?
     var isEnabled = true
+    var price: String?
+    var badge: String?
+}
+
+extension BookingPickOption {
+
+    /// An option of a contract `.choice` block, with its price formatted and its badge kept apart.
+    init(_ option: BookingContract.ChoiceBlock.Option) {
+        self.init(value: option.value, title: option.title, subtitle: option.subtitle, isEnabled: option.disabled != true,
+                  price: BookingFormatting().price(option.price), badge: option.badge)
+    }
 }
 
 /// Picks one or several options: a segmented control for a few options, otherwise a list on its own screen.
@@ -322,7 +333,8 @@ final class BookingPickRow: BookingInputRowView {
     }
 
     @objc private func pick() {
-        let items = options.map { BookingChoiceItem(id: $0.value, title: $0.title, subtitle: $0.subtitle, detail: $0.detail, isEnabled: $0.isEnabled) }
+        let items = options.map { BookingChoiceItem(id: $0.value, title: $0.title, subtitle: $0.subtitle, detail: $0.detail, isEnabled: $0.isEnabled,
+                                                  price: $0.price, badge: $0.badge) }
         let list = BookingChoiceListViewController(title: listTitle, items: items, allowsMultiple: allowsMultiple,
                                                    selectedIds: selected, theme: theme, text: text)
         list.onSelect = { [weak self, weak list] item in

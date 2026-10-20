@@ -6,7 +6,18 @@ import TRPBookingKit
 @MainActor
 public protocol TRPBookingCoordinatorDelegate: AnyObject {
     /// `checkout` is the last checkout the server returned, or nil when the customer left before one was created.
+    /// A checkout handed off to a provider's own page arrives with status `handedOff` and no result screen shown.
     func bookingCoordinator(_ coordinator: TRPBookingCoordinator, didFinishWith checkout: BookingContract.Checkout?)
+    /// Fires once the supplier confirmed the booking, so the host can record it elsewhere.
+    func bookingCoordinator(_ coordinator: TRPBookingCoordinator, didConfirm booking: BookingContract.Booking)
+    /// Fires once a checkout starts, before its first step renders, with the uuid its booking will carry, so the host
+    /// can keep what it needs to record a booking that is only confirmed after a restart.
+    func bookingCoordinator(_ coordinator: TRPBookingCoordinator, didStartCheckout bookingUuid: String)
+}
+
+public extension TRPBookingCoordinatorDelegate {
+    func bookingCoordinator(_ coordinator: TRPBookingCoordinator, didConfirm booking: BookingContract.Booking) {}
+    func bookingCoordinator(_ coordinator: TRPBookingCoordinator, didStartCheckout bookingUuid: String) {}
 }
 
 /// Presents the server-driven checkout for any provider, and the customer's bookings.
@@ -29,7 +40,9 @@ public final class TRPBookingCoordinator: NSObject {
     private let text: TRPBookingText
     private var session: CheckoutSession?
     private var runningActionId: String?
+    private var canceledPayments = CanceledPaymentHandler()
     private var openedWebURLs: Set<URL> = []
+    private var confirmedBookingUuids: Set<String> = []
     private var refreshesOnSafariClose = false
     private weak var presented: UINavigationController?
     private weak var bookingsNavigation: UINavigationController?
@@ -44,8 +57,10 @@ public final class TRPBookingCoordinator: NSObject {
         self.theme = theme
         self.text = text
         blocks = .standard
-        actions = .standard(payments: payments, lang: lang, theme: theme, text: text)
+        actions = NextActionRegistry(presenters: [])
         super.init()
+        actions = .standard(payments: payments, lang: lang, theme: theme, text: text,
+                            settlement: { [weak self] actionId in try await self?.settlement(of: actionId) ?? .pending })
     }
 
     /// What this client renders, in the form of the contract's capabilities header.
@@ -69,6 +84,7 @@ public final class TRPBookingCoordinator: NSObject {
         let navigationController = makeNavigationController(root: root)
         presenter.present(navigationController, animated: true)
         let bookingUuid = UUID().uuidString.lowercased()
+        delegate?.bookingCoordinator(self, didStartCheckout: bookingUuid)
         Task { await session.start(productId: productId, optionId: optionId, date: date, bookingUuid: bookingUuid) }
         return true
     }
@@ -90,6 +106,7 @@ public final class TRPBookingCoordinator: NSObject {
 
     private func render(_ state: CheckoutSession.State) {
         guard let session, let navigationController = presented else { return }
+        canceledPayments.observe(state)
         if case .loading = state {
             top?.setLoading(true)
             return
@@ -109,8 +126,10 @@ public final class TRPBookingCoordinator: NSObject {
             screen.title = navigationController.viewControllers.first?.title
             screen.onRefresh = { Task { await session.refresh() } }
             show(screen)
+        case .finished(let checkout) where checkout.status == .handedOff:
+            finish(with: checkout)
         case .finished(let checkout):
-            show(makeResultScreen(for: checkout))
+            showResult(for: checkout)
         case .fallback(let fallback, _):
             show(makeFallbackScreen(fallback, session: session))
         }
@@ -136,6 +155,26 @@ public final class TRPBookingCoordinator: NSObject {
         return screen
     }
 
+    /// Shows the result at once, then loads the booking it created: its provider reference is swapped in, and a
+    /// confirmed booking is reported to the delegate even when the customer has already closed the result.
+    private func showResult(for checkout: BookingContract.Checkout) {
+        let screen = makeResultScreen(for: checkout)
+        show(screen)
+        guard let uuid = checkout.booking?.uuid ?? checkout.result?.bookingUuid else { return }
+        Task { [weak screen, bookingClient, lang] in
+            guard let booking = try? await bookingClient.get(uuid: uuid, lang: lang) else { return }
+            if let screen, booking.providerReference?.isEmpty == false {
+                screen.update(rows: BookingResultRows(checkout: checkout, booking: booking).rows(text: self.text))
+            }
+            self.reportConfirmation(of: booking)
+        }
+    }
+
+    private func reportConfirmation(of booking: BookingContract.Booking) {
+        guard booking.status.value == .confirmed, confirmedBookingUuids.insert(booking.uuid).inserted else { return }
+        delegate?.bookingCoordinator(self, didConfirm: booking)
+    }
+
     private func makeResultScreen(for checkout: BookingContract.Checkout) -> BookingResultViewController {
         let kind: BookingOutcomeKind
         switch checkout.status.value {
@@ -143,12 +182,7 @@ public final class TRPBookingCoordinator: NSObject {
         case .pending: kind = .pending
         default: kind = .failure
         }
-        var rows: [BookingSummaryRow] = []
-        rows.append(BookingSummaryRow(title: checkout.product.title, value: ""))
-        if let amount = BookingFormatting().price(checkout.amount) { rows.append(BookingSummaryRow(title: text(.total), value: amount)) }
-        if let uuid = checkout.booking?.uuid ?? checkout.result?.bookingUuid {
-            rows.append(BookingSummaryRow(title: text(.reference), value: uuid))
-        }
+        let rows = BookingResultRows(checkout: checkout, booking: nil).rows(text: text)
         let screen = BookingResultViewController(kind: kind, title: checkout.result?.title ?? defaultTitle(for: kind),
                                                  message: checkout.result?.message ?? defaultMessage(for: kind),
                                                  rows: rows, theme: theme, text: text)
@@ -187,7 +221,8 @@ public final class TRPBookingCoordinator: NSObject {
     }
 
     private func run(_ action: BookingContract.NextAction, session: CheckoutSession) {
-        guard let navigationController = presented, runningActionId != action.id else { return }
+        guard let navigationController = presented, runningActionId != action.id,
+              canceledPayments.shouldPresent(action) else { return }
         guard let presenter = actions.presenter(for: action) else {
             session.fallBack(reason: "action:\(action.typeRawValue)")
             return
@@ -201,13 +236,36 @@ public final class TRPBookingCoordinator: NSObject {
             self.top?.setLoading(false)
             switch outcome {
             case .result(let result):
-                await session.complete(action: action, result: result)
+                if await self.canceledPayments.complete(action, result: result, session: session) == .needsChoice {
+                    self.askAfterCanceledPayment(action, session: session)
+                }
             case .unsupported(let reason):
                 session.fallBack(reason: reason)
             case .failed(let error):
                 self.top?.show(error) { [weak self] in self?.run(action, session: session) }
             }
         }
+    }
+
+    private func settlement(of actionId: String) async throws -> BookingContract.ActionSettlement {
+        guard let checkoutId = session?.checkout?.id else { return .pending }
+        return try await checkoutClient.settlement(checkoutId: checkoutId, actionId: actionId)
+    }
+
+    /// Lets the customer try a payment they closed again, or leave the checkout.
+    private func askAfterCanceledPayment(_ action: BookingContract.NextAction, session: CheckoutSession) {
+        guard let presented else { return }
+        let alert = UIAlertController(title: text(.paymentCanceledTitle), message: text(.paymentCanceledMessage),
+                                      preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: text(.retry), style: .default) { [weak self] _ in
+            guard let self else { return }
+            self.canceledPayments.allowAgain()
+            self.run(action, session: session)
+        })
+        alert.addAction(UIAlertAction(title: text(.cancel), style: .cancel) { [weak self] _ in
+            self?.leave()
+        })
+        (presented.presentedViewController ?? presented).present(alert, animated: true)
     }
 
     private func handle(_ issue: CheckoutSession.Issue) {
@@ -288,6 +346,7 @@ public final class TRPBookingCoordinator: NSObject {
         session?.onIssue = nil
         session = nil
         runningActionId = nil
+        canceledPayments = CanceledPaymentHandler()
         navigationController?.dismiss(animated: true) { [weak self] in
             guard let self else { return }
             self.delegate?.bookingCoordinator(self, didFinishWith: checkout)

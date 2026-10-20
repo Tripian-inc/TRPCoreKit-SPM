@@ -47,7 +47,7 @@ extension TRPBookingTextKey {
          pendingMessage, failureTitle, reference, voucher, meetingPoint, cancellationPolicy, cancelUntil, refund,
          bookingsEmpty, loadMore, refreshStatus, cancelBooking, cancelQuoteMessage, cancelQuoteNoRefund, cancelConfirm,
          cancelDone, notCancellable, statusOnHold, statusConfirmed, statusPending, statusExpired, statusCancelled,
-         statusRejected]
+         statusRejected, paymentCanceledTitle, paymentCanceledMessage, hostedCheckoutDone]
     }
 
     static let bookTitle = TRPBookingTextKey("booking_title", "Book")
@@ -92,6 +92,9 @@ extension TRPBookingTextKey {
     static let awaitingConfirmation = TRPBookingTextKey("booking_awaiting_confirmation", "The supplier is still confirming. You can check again, or follow it in My bookings.")
     static let continueOnWeb = TRPBookingTextKey("booking_continue_on_web", "Continue on the web")
     static let paymentTitle = TRPBookingTextKey("booking_payment_title", "Payment")
+    static let paymentCanceledTitle = TRPBookingTextKey("booking_payment_canceled_title", "Payment not completed")
+    static let paymentCanceledMessage = TRPBookingTextKey("booking_payment_canceled_message", "You closed the payment before it finished. You can try again or cancel the booking.")
+    static let hostedCheckoutDone = TRPBookingTextKey("booking_hosted_checkout_done", "Done")
     static let successTitle = TRPBookingTextKey("booking_success_title", "You're booked")
     static let successMessage = TRPBookingTextKey("booking_success_message", "Your confirmation has been sent to your email.")
     static let pendingTitle = TRPBookingTextKey("booking_pending_title", "Booking requested")

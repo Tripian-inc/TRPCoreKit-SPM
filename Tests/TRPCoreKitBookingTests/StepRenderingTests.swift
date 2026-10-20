@@ -60,6 +60,30 @@ final class StepRenderingTests: XCTestCase {
         XCTAssertTrue(form.problems().isEmpty)
     }
 
+    func testVictoryHostedTicketsStepRendersTheSeatingChartAndInfoNotices() throws {
+        let exchange = try ContractFixtures.exchange("_synthetic/victory-hosted", "01-create")
+        let step = try XCTUnwrap(ContractFixtures.checkout(of: exchange)?.currentStep)
+        let layout = registry.layout(for: step)
+
+        XCTAssertTrue(layout.isRenderable, "\(layout.unsupported)")
+
+        let imageRow = try XCTUnwrap(layout.rows.first { row in
+            if case .image = row.kind { return true }
+            return false
+        })
+        guard case .image(let imageBlock) = imageRow.kind else { return XCTFail("expected an image row") }
+        XCTAssertEqual(imageBlock.aspectRatio, 1.5)
+
+        let noticeRows = layout.rows.compactMap { row -> BookingContract.NoticeBlock? in
+            guard case .notice(let notice) = row.kind else { return nil }
+            return notice
+        }
+        XCTAssertFalse(noticeRows.isEmpty)
+        for notice in noticeRows {
+            XCTAssertEqual(notice.tone.value, .info)
+        }
+    }
+
     func testUnknownBlocksFallBack() throws {
         let exchange = try ContractFixtures.exchange("_synthetic/g-forward-compat", "01-unknown-blocks")
         let step = try XCTUnwrap(ContractFixtures.checkout(of: exchange)?.currentStep)

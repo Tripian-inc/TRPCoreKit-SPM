@@ -1,0 +1,17 @@
+{
+  "method": "POST",
+  "path": "/tour-api/checkouts/chk_01VHOST01/actions/act_VHOST01",
+  "headers": {
+    "x-api-key": "tripian-test-api-key",
+    "Content-Type": "application/json",
+    "Accept": "application/json",
+    "Tripian-Booking-Version": "2026-10-01",
+    "Idempotency-Key": "0f1c6a52-6a0e-4d0b-9a77-2c1d0e6b4a04"
+  },
+  "body": {
+    "result": {
+      "status": "handed_off"
+    },
+    "lang": "en"
+  }
+}

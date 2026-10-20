@@ -19,11 +19,7 @@ struct BookingRowFactory {
                                        minimum: block.range?.from ?? block.min, maximum: block.range?.to ?? block.max,
                                        theme: theme, text: text)
         case .choice(let block):
-            let options = block.options.map {
-                BookingPickOption(value: $0.value, title: $0.title, subtitle: $0.subtitle,
-                                  detail: [$0.badge, BookingFormatting().price($0.price)].compactMap { $0 }.joined(separator: " · "),
-                                  isEnabled: $0.disabled != true)
-            }
+            let options = block.options.map(BookingPickOption.init)
             return BookingPickRow(rowId: row.id, title: text(.chooseOption), hint: nil, isOptional: false, options: options,
                                   allowsMultiple: block.multiple == true, segmented: false, value: value, theme: theme, text: text)
         case .quantity(let block):

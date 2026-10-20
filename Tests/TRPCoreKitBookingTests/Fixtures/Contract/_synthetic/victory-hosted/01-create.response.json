@@ -1,0 +1,133 @@
+{
+  "status": 200,
+  "headers": {
+    "Content-Type": "application/json",
+    "Tripian-Booking-Version": "2026-10-01"
+  },
+  "body": {
+    "status": 200,
+    "success": true,
+    "message": null,
+    "UUID": "7d0f2c1e-1b6a-4c55-9a0e-3e5b2f8c9d01",
+    "data": {
+      "id": "chk_01VHOST01",
+      "status": "collecting_details",
+      "provider": "victory",
+      "product": {
+        "id": "TEVO-2817364",
+        "optionId": null,
+        "title": "Hamilton on Broadway",
+        "imageUrl": "https://cdn.tripian.com/p/TEVO-2817364.jpg"
+      },
+      "amount": null,
+      "holdExpiresAt": null,
+      "priceValidUntil": null,
+      "currentStep": {
+        "id": "tickets",
+        "title": "Choose your tickets",
+        "subtitle": "Hamilton",
+        "progress": {
+          "index": 1,
+          "count": 2
+        },
+        "blocks": [
+          {
+            "type": "image",
+            "id": "seating-chart",
+            "onUnsupported": "skip",
+            "url": "https://cdn.te.com/chart-large.png",
+            "alt": "Seating chart",
+            "aspectRatio": 1.5
+          },
+          {
+            "type": "section",
+            "id": "event",
+            "onUnsupported": "skip",
+            "title": "Event",
+            "blocks": [
+              {
+                "type": "notice",
+                "id": "event-date",
+                "onUnsupported": "skip",
+                "tone": "info",
+                "text": "15 October 2026, 19:00"
+              },
+              {
+                "type": "notice",
+                "id": "event-venue",
+                "onUnsupported": "skip",
+                "tone": "info",
+                "text": "Richard Rodgers Theatre"
+              },
+              {
+                "type": "notice",
+                "id": "event-address",
+                "onUnsupported": "skip",
+                "tone": "info",
+                "text": "New York, US"
+              },
+              {
+                "type": "notice",
+                "id": "event-performers",
+                "onUnsupported": "skip",
+                "tone": "info",
+                "text": "Lin-Manuel Miranda, Ensemble"
+              }
+            ]
+          },
+          {
+            "type": "choice",
+            "id": "tickets",
+            "multiple": false,
+            "options": [
+              {
+                "value": "TG_9003",
+                "title": "Tickets",
+                "subtitle": "Obstructed view",
+                "price": {
+                  "amount": "60.00",
+                  "currency": "USD"
+                },
+                "badge": "In hand"
+              },
+              {
+                "value": "TG_9004",
+                "title": "Section Floor · Row 1",
+                "price": {
+                  "amount": "90.00",
+                  "currency": "USD"
+                },
+                "badge": "In hand 5 October 2026"
+              },
+              {
+                "value": "TG_9001",
+                "title": "Section 101 · Row A",
+                "subtitle": "+ fee 12.00 USD",
+                "price": {
+                  "amount": "150.00",
+                  "currency": "USD"
+                },
+                "badge": "E-ticket",
+                "disabled": true
+              }
+            ]
+          }
+        ],
+        "primaryAction": {
+          "title": "Continue"
+        }
+      },
+      "nextAction": null,
+      "allowedActions": [
+        "submit",
+        "cancel"
+      ],
+      "booking": null,
+      "result": null,
+      "fallback": {
+        "webUrl": "https://book.tripian.com/c/chk_01VHOST01",
+        "text": "Continue your booking on the web."
+      }
+    }
+  }
+}

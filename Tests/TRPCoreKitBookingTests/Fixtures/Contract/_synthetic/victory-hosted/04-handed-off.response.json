@@ -1,0 +1,36 @@
+{
+  "status": 200,
+  "headers": {
+    "Content-Type": "application/json",
+    "Tripian-Booking-Version": "2026-10-01"
+  },
+  "body": {
+    "status": 200,
+    "success": true,
+    "message": null,
+    "UUID": "7d0f2c1e-1b6a-4c55-9a0e-3e5b2f8c9d04",
+    "data": {
+      "id": "chk_01VHOST01",
+      "status": "handed_off",
+      "provider": "victory",
+      "product": {
+        "id": "TEVO-2817364",
+        "optionId": null,
+        "title": "Hamilton on Broadway",
+        "imageUrl": "https://cdn.tripian.com/p/TEVO-2817364.jpg"
+      },
+      "amount": null,
+      "holdExpiresAt": null,
+      "priceValidUntil": null,
+      "currentStep": null,
+      "nextAction": null,
+      "allowedActions": [],
+      "booking": null,
+      "result": null,
+      "fallback": {
+        "webUrl": "https://book.tripian.com/c/chk_01VHOST01",
+        "text": "Continue your booking on the web."
+      }
+    }
+  }
+}
