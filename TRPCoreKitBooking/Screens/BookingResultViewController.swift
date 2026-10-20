@@ -15,7 +15,8 @@ final class BookingResultViewController: BookingBaseViewController {
     private let kind: BookingOutcomeKind
     private let headline: String
     private let message: String
-    private let rows: [BookingSummaryRow]
+    private var rows: [BookingSummaryRow]
+    private var rowsCard: UIView?
     private let voucherURL: URL?
     private let layout = BookingScrollLayout()
 
@@ -51,9 +52,7 @@ final class BookingResultViewController: BookingBaseViewController {
         header.spacing = 12
         header.alignment = .fill
         layout.stack.addArrangedSubview(header)
-        if !rows.isEmpty {
-            layout.stack.addArrangedSubview(BookingScrollLayout.card([BookingKeyValueView(rows: rows, theme: theme)], theme: theme))
-        }
+        installRowsCard()
 
         if voucherURL != nil {
             let voucher = UIButton(type: .system)
@@ -66,6 +65,23 @@ final class BookingResultViewController: BookingBaseViewController {
         let done = BookingPrimaryButton(theme: theme, title: text(.done))
         done.addTarget(self, action: #selector(finish), for: .touchUpInside)
         layout.footer.addArrangedSubview(done)
+    }
+
+    /// Replaces the summary rows, for details that arrive after the screen is shown.
+    func update(rows: [BookingSummaryRow]) {
+        self.rows = rows
+        guard isViewLoaded else { return }
+        installRowsCard()
+    }
+
+    private func installRowsCard() {
+        let index = rowsCard.flatMap { layout.stack.arrangedSubviews.firstIndex(of: $0) } ?? layout.stack.arrangedSubviews.count
+        rowsCard?.removeFromSuperview()
+        rowsCard = nil
+        guard !rows.isEmpty else { return }
+        let card = BookingScrollLayout.card([BookingKeyValueView(rows: rows, theme: theme)], theme: theme)
+        layout.stack.insertArrangedSubview(card, at: index)
+        rowsCard = card
     }
 
     override func viewDidAppear(_ animated: Bool) {

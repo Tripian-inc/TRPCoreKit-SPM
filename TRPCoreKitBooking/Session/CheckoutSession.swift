@@ -54,6 +54,7 @@ public final class CheckoutSession {
     private let identifiers: () -> UUID
     private let sleep: (TimeInterval) async throws -> Void
     private var failedCall: Call?
+    private var lastStepId: String?
 
     private struct Call {
         let key: BookingContract.IdempotencyKey
@@ -75,7 +76,8 @@ public final class CheckoutSession {
         self.sleep = sleep
     }
 
-    public var canGoBack: Bool { isOnStep && checkout?.allows(.back) == true }
+    /// Whether `back()` can return to a step: from a step, or from an action to the step shown before it.
+    public var canGoBack: Bool { backFromStepId != nil && checkout?.allows(.back) == true }
     public var canExtend: Bool { checkout?.allows(.extend) == true && !isFinished }
     public var canCancel: Bool { checkout?.allows(.cancel) == true && !isFinished }
     /// Whether `retry()` has a failed call to send again.
@@ -105,12 +107,12 @@ public final class CheckoutSession {
         }
     }
 
-    /// Returns to the previous step.
+    /// Returns to the previous step, or from an action to the last step shown.
     public func back() async {
-        guard case .step(let step, let checkout) = state, canGoBack else { return }
+        guard let checkout, let fromStepId = backFromStepId, canGoBack else { return }
         let client = client, lang = lang
         await perform { key in
-            try await client.back(checkoutId: checkout.id, fromStepId: step.id, lang: lang, idempotencyKey: key)
+            try await client.back(checkoutId: checkout.id, fromStepId: fromStepId, lang: lang, idempotencyKey: key)
         }
     }
 
@@ -163,9 +165,12 @@ public final class CheckoutSession {
         state = .fallback(checkout?.fallback, reason: reason)
     }
 
-    private var isOnStep: Bool {
-        if case .step = state { return true }
-        return false
+    private var backFromStepId: String? {
+        switch state {
+        case .step(let step, _): return step.id
+        case .action: return lastStepId
+        default: return nil
+        }
     }
 
     private var isFinished: Bool {
@@ -208,8 +213,12 @@ public final class CheckoutSession {
             state = .action(action, checkout)
         } else if let step = checkout.currentStep {
             let layout = registry.layout(for: step)
-            state = layout.isRenderable ? .step(step, checkout)
-                : .fallback(checkout.fallback, reason: layout.unsupported.joined(separator: ", "))
+            if layout.isRenderable {
+                lastStepId = step.id
+                state = .step(step, checkout)
+            } else {
+                state = .fallback(checkout.fallback, reason: layout.unsupported.joined(separator: ", "))
+            }
         } else if checkout.status == .processing {
             state = .processing(checkout)
         } else {

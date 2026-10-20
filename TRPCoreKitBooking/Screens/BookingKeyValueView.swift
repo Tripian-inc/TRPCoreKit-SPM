@@ -8,6 +8,9 @@ struct BookingSummaryRow: Hashable {
 }
 
 /// Stacks summary rows as title on the left, value on the right.
+///
+/// A title keeps its natural width up to 60% of the row; the value takes the rest and wraps, breaking inside
+/// a word such as a booking reference when it has to.
 final class BookingKeyValueView: UIStackView {
 
     init(rows: [BookingSummaryRow], theme: TRPBookingTheme) {
@@ -28,10 +31,18 @@ final class BookingKeyValueView: UIStackView {
             value.numberOfLines = 0
             value.textAlignment = .right
             value.adjustsFontForContentSizeCategory = true
-            value.setContentCompressionResistancePriority(.required, for: .horizontal)
+            value.lineBreakMode = .byWordWrapping
+            value.isHidden = row.value.isEmpty
+            title.setContentHuggingPriority(.defaultHigh, for: .horizontal)
+            title.setContentCompressionResistancePriority(.defaultHigh, for: .horizontal)
+            value.setContentHuggingPriority(.defaultLow, for: .horizontal)
+            value.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
             let line = UIStackView(arrangedSubviews: [title, value])
             line.spacing = 12
             line.alignment = .firstBaseline
+            if !row.value.isEmpty {
+                title.widthAnchor.constraint(lessThanOrEqualTo: line.widthAnchor, multiplier: 0.6).isActive = true
+            }
             line.isAccessibilityElement = true
             line.accessibilityLabel = "\(row.title), \(row.value)"
             addArrangedSubview(line)

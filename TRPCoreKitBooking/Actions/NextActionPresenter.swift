@@ -29,15 +29,20 @@ public struct NextActionRegistry {
         self.presenters = Dictionary(presenters.map { ($0.type, $0) }, uniquingKeysWith: { _, last in last })
     }
 
-    /// Redirect and 3-D Secure always; the hosted form and the host payment sheets when `payments` provides them.
+    /// Redirect and 3-D Secure always; the hosted form and the host payment sheets when `payments` provides them;
+    /// the provider's hosted cart when `settlement` can tell whether its payment settled.
     public static func standard(payments: BookingPaymentPresenters, lang: String,
-                                theme: TRPBookingTheme, text: TRPBookingText) -> NextActionRegistry {
+                                theme: TRPBookingTheme, text: TRPBookingText,
+                                settlement: HostedCartSettlement? = nil) -> NextActionRegistry {
         var presenters: [NextActionPresenter] = [
             RedirectActionPresenter(type: BookingContract.NextActionType.redirect.rawValue, theme: theme, text: text),
             RedirectActionPresenter(type: BookingContract.NextActionType.threeDS.rawValue, theme: theme, text: text)
         ]
         if let pageURL = payments.hostedFormPageURL {
             presenters.append(HostedFormActionPresenter(pageURL: pageURL, lang: lang, theme: theme, text: text))
+        }
+        if let settlement {
+            presenters.append(HostedCartActionPresenter(settlement: settlement, theme: theme, text: text))
         }
         presenters += HostPaymentPresenters.make(from: payments)
         return NextActionRegistry(presenters: presenters)

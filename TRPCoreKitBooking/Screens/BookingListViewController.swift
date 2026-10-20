@@ -199,7 +199,8 @@ final class BookingDetailViewController: BookingBaseViewController {
     }
 
     private var rows: [BookingSummaryRow] {
-        var rows = [BookingSummaryRow(title: text(.reference), value: booking.uuid),
+        let reference = BookingReference.preferred(providerReference: booking.providerReference, uuid: booking.uuid) ?? booking.uuid
+        var rows = [BookingSummaryRow(title: text(.reference), value: reference),
                     BookingSummaryRow(title: text(.date), value: formatting.day(booking.start.date))]
         if let time = booking.start.time { rows.append(BookingSummaryRow(title: text(.time), value: formatting.time(time))) }
         if let point = booking.meetingPoint {
