@@ -628,8 +628,7 @@ extension TRPTimelineItineraryViewModel {
             return
         }
 
-        let repository = TRPTimelineRepository()
-        repository.fetchTimeline(tripHash: tripHash) { [weak self] result in
+        timelineRepository.fetchTimeline(tripHash: tripHash) { [weak self] result in
             guard let self = self else { return }
 
             switch result {

@@ -40,7 +40,9 @@ extension ViewModelDelegate {
                           textMode: LottieLoadingTextMode,
                           completion: (() -> Void)?) {}
     public func viewModel(hideLottie presentation: LottieLoaderPresentation,
-                          completion: (() -> Void)?) {}
+                          completion: (() -> Void)?) {
+        completion?()
+    }
 
     /// Convenience: no-completion variant. Most call sites don't need to sequence
     /// follow-up work and can use this shorter form.

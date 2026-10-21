@@ -130,6 +130,8 @@ public class TRPTimelineItineraryViewModel {
 
     internal lazy var timelineModeUseCases: TRPTimelineModeUseCases = TRPTimelineModeUseCases()
 
+    internal lazy var timelineRepository: TimelineRepository = TRPTimelineRepository()
+
     /// Set via `init(tripHash:)`; consumed once by `loadInitialTimelineIfNeeded()`.
     internal var pendingInitialTripHash: String?
 
