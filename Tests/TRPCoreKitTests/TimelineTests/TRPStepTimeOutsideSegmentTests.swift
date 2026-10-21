@@ -87,6 +87,10 @@ final class TRPStepTimeOutsideSegmentTests: XCTestCase {
     func testStepTimeOutsideSegmentRangeWidensTheSegmentBeforeEditingTheStep() {
         let (viewModel, repository, stepRepository, _) = makeViewModel()
         let step = narrowRangeStep(in: viewModel)
+        let originalSegment = viewModel.mergedItem(containing: step)!.segment
+        let originalSegmentType = originalSegment.segmentType
+        let originalDoNotGenerate = originalSegment.doNotGenerate
+        let originalSmartRecommendation = originalSegment.smartRecommendation
         stepRepository.editResult = .success(step)
         let done = expectation(description: "updateStepTime")
 
@@ -99,6 +103,9 @@ final class TRPStepTimeOutsideSegmentTests: XCTestCase {
         XCTAssertEqual(repository.createEditCalls.count, 1)
         XCTAssertEqual(repository.createEditCalls.first?.startDate, "2025-12-08 09:00")
         XCTAssertEqual(repository.createEditCalls.first?.endDate, "2025-12-08 23:00")
+        XCTAssertEqual(repository.createEditCalls.first?.segmentType, originalSegmentType)
+        XCTAssertEqual(repository.createEditCalls.first?.doNotGenerate, originalDoNotGenerate)
+        XCTAssertEqual(repository.createEditCalls.first?.smartRecommendation, originalSmartRecommendation)
         XCTAssertEqual(stepRepository.editedSteps.map { $0.stepId }, [step.id])
         XCTAssertEqual(repository.callOrder, ["createEditTimelineSegment", "editStep", "fetchTimeline"])
     }
@@ -153,6 +160,27 @@ final class TRPStepTimeOutsideSegmentTests: XCTestCase {
         waitShort(for: [done])
         XCTAssertEqual(repository.createEditCalls.count, 1, "the segment should still have been widened")
         XCTAssertEqual(repository.fetchTimelineCallCount, 1, "a failed step edit after widening must still refresh the timeline")
+        XCTAssertTrue(spy.errors.isEmpty, "error must not be reported before the loader finishes hiding")
+
+        spy.capturedHideLottieCompletion?()
+        XCTAssertEqual(spy.errors.count, 1)
+    }
+
+    // MARK: - removeStep
+
+    func testRemoveStepFailureReportsTheErrorOnlyAfterTheLoaderHides() {
+        let (viewModel, _, stepRepository, spy) = makeViewModel()
+        let step = wideRangeStep(in: viewModel)
+        stepRepository.deleteResult = .failure(GeneralError.customMessage("delete failed"))
+        let done = expectation(description: "removeStep")
+
+        viewModel.removeStep(step) { result in
+            guard case .failure = result else { return XCTFail("expected failure") }
+            done.fulfill()
+        }
+
+        waitShort(for: [done])
+        XCTAssertEqual(stepRepository.deletedStepIds, [step.id])
         XCTAssertTrue(spy.errors.isEmpty, "error must not be reported before the loader finishes hiding")
 
         spy.capturedHideLottieCompletion?()
@@ -227,6 +255,8 @@ final class RecordingStepRepository: TimelineStepRepository {
 
     var editResult: TimelineStepResultValue = .failure(GeneralError.customMessage("no step"))
     var editedSteps: [TRPTimelineStepEdit] = []
+    var deleteResult: TimelineStepStatusValue = .success(true)
+    var deletedStepIds: [Int] = []
 
     init(recorder: CallRecorder) {
         self.recorder = recorder
@@ -237,7 +267,8 @@ final class RecordingStepRepository: TimelineStepRepository {
     }
 
     func deleteStep(id: Int, completion: @escaping (TimelineStepStatusValue) -> Void) {
-        completion(.success(true))
+        deletedStepIds.append(id)
+        completion(deleteResult)
     }
 
     func editStep(step: TRPTimelineStepEdit, completion: @escaping (TimelineStepResultValue) -> Void) {

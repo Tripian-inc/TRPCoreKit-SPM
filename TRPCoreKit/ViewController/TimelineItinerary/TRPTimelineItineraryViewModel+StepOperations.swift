@@ -45,7 +45,6 @@ extension TRPTimelineItineraryViewModel {
             DispatchQueue.main.async {
                 switch result {
                 case .success(let updatedStep):
-                    // Bottom sheet stays visible through the refresh; dismissed on didUpdateTimeline.
                     self.fetchAndRefreshTimeline { _ in
                         completion(.success(updatedStep))
                     }
@@ -115,8 +114,7 @@ extension TRPTimelineItineraryViewModel {
                     }
 
                 case .failure(let error):
-                    self.delegate?.viewModel(hideLottie: .bottomSheet)
-                    self.delegate?.viewModel(error: error)
+                    self.hideBottomSheetLottie(thenShow: error)
                     completion?(.failure(error))
                 }
             }
@@ -169,7 +167,6 @@ extension TRPTimelineItineraryViewModel {
 
             switch result {
             case .success:
-                // Bottom sheet stays visible through the refresh; dismissed on didUpdateTimeline.
                 self.fetchAndRefreshTimeline { _ in
                     completion(.success(true))
                 }
