@@ -10,8 +10,8 @@ Pod::Spec.new do |s|
       }
     s.module_name = "TRPCoreKit"
     s.exclude_files = "Classes/Exclude"
-    s.ios.deployment_target = "11.0"
-    s.platform = :ios, "11.0"
+    s.ios.deployment_target = "15.0"
+    s.platform = :ios, "15.0"
     s.vendored_frameworks = "TRPCoreKit/TRPCoreKit.framework"
     s.swift_version = '5.1'
     s.frameworks = "TRPCoreKit"

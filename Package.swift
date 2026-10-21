@@ -7,7 +7,7 @@ let package = Package(
     name: "TRPCoreKit",
     defaultLocalization: "en",
     platforms: [
-        .iOS(.v14)
+        .iOS(.v15)
     ],
     products: [
         // Products define the executables and libraries a package produces, making them visible to other packages.

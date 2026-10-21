@@ -13,7 +13,7 @@ Tripian Core Kit is the official iOS SDK by [Tripian](https://www.tripian.com) f
 
 ## Requirements
 
-- iOS 14.0+
+- iOS 15.0+
 - Xcode 14.0+
 - Swift 5.0+
 
