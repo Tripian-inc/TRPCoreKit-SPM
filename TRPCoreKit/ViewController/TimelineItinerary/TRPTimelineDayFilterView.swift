@@ -32,7 +32,7 @@ public class TRPTimelineDayFilterView: UIView {
     public weak var delegate: TRPTimelineDayFilterViewDelegate?
     private var days: [DayDisplayData] = []
     private var rawDates: [Date] = []
-    private var selectedDayIndex: Int = 0
+    private var selectedDayIndex: Int?
     private var mode: Mode = .timeline
     /// Extra indices rendered disabled in `.addPlan` mode (e.g. days with no tour availability).
     private var unavailableIndices: Set<Int> = []
@@ -82,7 +82,8 @@ public class TRPTimelineDayFilterView: UIView {
     }
 
     // MARK: - Public Methods
-    public func configure(with dates: [Date], selectedDay: Int, mode: Mode = .timeline) {
+    /// Pass nil as `selectedDay` to render no chip as selected.
+    public func configure(with dates: [Date], selectedDay: Int?, mode: Mode = .timeline) {
         self.mode = mode
         self.rawDates = dates
         self.days = formatDays(dates)
@@ -90,7 +91,7 @@ public class TRPTimelineDayFilterView: UIView {
         self.unavailableIndices = []
         collectionView.reloadData()
 
-        if selectedDay < days.count {
+        if let selectedDay = selectedDay, days.indices.contains(selectedDay) {
             let indexPath = IndexPath(item: selectedDay, section: 0)
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
                 self?.collectionView.scrollToItem(at: indexPath, at: .centeredHorizontally, animated: false)

@@ -38,7 +38,6 @@ public class AddPlanTimeAndTravelersVC: TRPBaseUIViewController, AddPlanChildVie
     // MARK: - Properties
     public var viewModel: AddPlanTimeAndTravelersViewModel!
     public weak var containerVC: AddPlanContainerVC?
-    private var selectedDayIndex: Int = 0
     private var editingStartTime = false
 
     /// Midnight end-time picks are stored as 23:59 (so endTime > startTime / API sees end-of-day) but the field still shows "12:00 AM".
@@ -325,11 +324,9 @@ public class AddPlanTimeAndTravelersVC: TRPBaseUIViewController, AddPlanChildVie
     }
 
     private func configureDayFilterView() {
-        let days = viewModel.getAvailableDays()
-
-        selectedDayIndex = viewModel.getSelectedDayIndex()
-
-        dayFilterView.configure(with: days, selectedDay: selectedDayIndex, mode: .addPlan)
+        dayFilterView.configure(with: viewModel.getAvailableDays(),
+                                selectedDay: viewModel.getSelectedAvailableDayIndex(),
+                                mode: .addPlan)
     }
 
     private func updateUI() {
@@ -489,7 +486,6 @@ public class AddPlanTimeAndTravelersVC: TRPBaseUIViewController, AddPlanChildVie
         startTimeField.clear()
         endTimeField.clear()
         endTimeShownAsMidnight = false
-        selectedDayIndex = 0
         configureDayFilterView()
         updateUI()
     }
@@ -531,7 +527,6 @@ extension AddPlanTimeAndTravelersVC: TRPTimelineDayFilterViewDelegate {
     public func dayFilterViewDidSelectDay(_ view: TRPTimelineDayFilterView, dayIndex: Int) {
         let days = viewModel.getAvailableDays()
         guard dayIndex < days.count, !days[dayIndex].isPastDay() else { return }
-        selectedDayIndex = dayIndex
         viewModel.selectDay(days[dayIndex])
         updateCityCenterIfNeeded()
         updateUI()

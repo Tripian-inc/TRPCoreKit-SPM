@@ -47,8 +47,18 @@ public class AddPlanSelectDayViewModel {
         containerViewModel?.planData.selectedMode = mode
     }
     
+    /// Index of the selected day in the available days, or nil when no plannable day is selected.
+    public func getSelectedDayIndex() -> Int? {
+        return containerViewModel?.getSelectedAvailableDayIndex()
+    }
+
+    /// Whether Continue is allowed on this step; see `AddPlanContainerViewModel.canContinueFromSelectDay`.
+    public func canContinue() -> Bool {
+        return containerViewModel?.canContinueFromSelectDay ?? false
+    }
+
     public func selectDay(_ day: Date) {
-        containerViewModel?.planData.selectedDay = day
+        containerViewModel?.selectDay(day)
     }
     
     public func selectCity(_ city: TRPCity) {
@@ -56,16 +66,7 @@ public class AddPlanSelectDayViewModel {
     }
     
     public func clearSelection() {
-        if let days = containerViewModel?.getAvailableDays(), !days.isEmpty {
-            // Past days are non-selectable in AddPlan; default to today, then first non-past, then last.
-            if let today = days.first(where: { $0.isToday() }) {
-                containerViewModel?.planData.selectedDay = today
-            } else if let firstFuture = days.first(where: { !$0.isPastDay() }) {
-                containerViewModel?.planData.selectedDay = firstFuture
-            } else {
-                containerViewModel?.planData.selectedDay = days.last
-            }
-        }
+        containerViewModel?.resetSelectedDay()
         if let cities = containerViewModel?.getAvailableCities(), !cities.isEmpty {
             containerViewModel?.planData.selectedCity = cities.first
         }

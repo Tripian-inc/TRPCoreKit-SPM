@@ -21,7 +21,6 @@ public class AddPlanSelectDayVC: TRPBaseUIViewController, AddPlanChildViewContro
     // MARK: - Properties
     public var viewModel: AddPlanSelectDayViewModel!
     public weak var containerVC: AddPlanContainerVC?
-    private var selectedDayIndex: Int = 0
 
     // MARK: - AddPlanChildViewController
     public var preferredContentHeight: CGFloat {
@@ -448,14 +447,9 @@ public class AddPlanSelectDayVC: TRPBaseUIViewController, AddPlanChildViewContro
     
     // MARK: - Setup
     private func configureDayFilterView() {
-        let days = viewModel.getAvailableDays()
-
-        if let selectedDay = viewModel.getSelectedDay(),
-           let index = days.firstIndex(where: { Calendar.current.isDate($0, inSameDayAs: selectedDay) }) {
-            selectedDayIndex = index
-        }
-
-        dayFilterView.configure(with: days, selectedDay: selectedDayIndex, mode: .addPlan)
+        dayFilterView.configure(with: viewModel.getAvailableDays(),
+                                selectedDay: viewModel.getSelectedDayIndex(),
+                                mode: .addPlan)
     }
     
     private func updateCityButton() {
@@ -595,22 +589,13 @@ public class AddPlanSelectDayVC: TRPBaseUIViewController, AddPlanChildViewContro
     }
     
     private func updateContinueButtonState() {
-        let canContinue: Bool
-        if selectedMode == .manual {
-            canContinue = viewModel.getSelectedManualCategory() != nil
-        } else if selectedMode == .smartRecommendations {
-            canContinue = true
-        } else {
-            canContinue = false
-        }
-        containerVC?.setContinueButtonEnabled(canContinue)
+        containerVC?.updateContinueButtonState()
     }
     
     // MARK: - Public Methods
     public func clearSelection() {
         viewModel.clearSelection()
         viewModel.setSelectedManualCategory(nil)
-        selectedDayIndex = 0
         configureDayFilterView()
         updateCityButton()
 
@@ -627,9 +612,9 @@ extension AddPlanSelectDayVC: TRPTimelineDayFilterViewDelegate {
     public func dayFilterViewDidSelectDay(_ view: TRPTimelineDayFilterView, dayIndex: Int) {
         let days = viewModel.getAvailableDays()
         guard dayIndex < days.count, !days[dayIndex].isPastDay() else { return }
-        selectedDayIndex = dayIndex
         viewModel.selectDay(days[dayIndex])
         updateCityButton()
+        updateContinueButtonState()
     }
 }
 
