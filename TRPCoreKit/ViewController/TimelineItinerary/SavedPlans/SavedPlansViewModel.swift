@@ -30,6 +30,8 @@ public class SavedPlansViewModel {
     public let tripHash: String?
     public let availableDays: [Date]
     public let availableCities: [TRPCity]
+    /// Timeline day index the user had selected; Add Plan starts on it unless it is past or out of range.
+    public let selectedDayIndex: Int?
     private let activityIdsByDay: [String: [String]]
 
     // MARK: - Initialization
@@ -37,11 +39,13 @@ public class SavedPlansViewModel {
                 tripHash: String?,
                 availableDays: [Date],
                 availableCities: [TRPCity],
-                activityIdsByDay: [String: [String]] = [:]) {
+                activityIdsByDay: [String: [String]] = [:],
+                selectedDayIndex: Int? = nil) {
         self.favouriteItems = favouriteItems
         self.tripHash = tripHash
         self.availableDays = availableDays
         self.availableCities = availableCities
+        self.selectedDayIndex = selectedDayIndex
         self.activityIdsByDay = activityIdsByDay
 
         groupItemsByCity()
@@ -156,12 +160,13 @@ public class SavedPlansViewModel {
         )
     }
 
+    /// The selected day is the timeline's day when plannable, else the earliest non-past day, else nil.
     public func createAddPlanData(cityId: Int) -> AddPlanData {
         var planData = AddPlanData()
         planData.tripHash = tripHash
         planData.availableDays = availableDays
         planData.selectedCity = availableCities.first(where: { $0.id == cityId }) ?? availableCities.first
-        planData.selectedDay = availableDays.first
+        planData.selectedDay = AddPlanDaySelection.initialDay(in: availableDays, preferredIndex: selectedDayIndex)
         planData.travelers = 1
         return planData
     }

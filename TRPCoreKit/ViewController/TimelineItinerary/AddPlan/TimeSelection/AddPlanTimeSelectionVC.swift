@@ -500,10 +500,9 @@ public class AddPlanTimeSelectionVC: TRPBaseUIViewController, DynamicHeightPrese
     private func setupDayFilter() {
         dayFilterView.delegate = self
 
-        let days = viewModel.getAvailableDays()
-        let selectedIndex = viewModel.getSelectedDayIndex()
-
-        dayFilterView.configure(with: days, selectedDay: selectedIndex, mode: .addPlan)
+        dayFilterView.configure(with: viewModel.getAvailableDays(),
+                                selectedDay: viewModel.getSelectedAvailableDayIndex(),
+                                mode: .addPlan)
     }
 
     private func setupActions() {
@@ -515,7 +514,8 @@ public class AddPlanTimeSelectionVC: TRPBaseUIViewController, DynamicHeightPrese
 
     // MARK: - Actions
     @objc private func continueTapped() {
-        guard let selectedDate = viewModel.getAvailableDays()[safe: viewModel.getSelectedDayIndex()] else {
+        guard let selectedIndex = viewModel.getSelectedAvailableDayIndex(),
+              let selectedDate = viewModel.getAvailableDays()[safe: selectedIndex] else {
             return
         }
         // Flexible-time day: no slot is selected but Continue is still valid.
@@ -704,7 +704,9 @@ extension AddPlanTimeSelectionVC: AddPlanTimeSelectionViewModelDelegate {
 
         // Unavailable days render disabled in the filter; re-sync the visual selection here.
         dayFilterView.setUnavailableDayIndices(viewModel.unavailableDayIndices())
-        dayFilterView.updateSelectedDay(viewModel.getSelectedDayIndex())
+        if let selectedIndex = viewModel.getSelectedAvailableDayIndex() {
+            dayFilterView.updateSelectedDay(selectedIndex)
+        }
 
         updateSheetHeight()
     }
