@@ -212,9 +212,13 @@ public class AddPlanTimeSelectionViewModel {
     }
 
     public func getSelectedDayIndex() -> Int {
-        guard let selectedDate = selectedDate else { return 0 }
-        let days = getAvailableDays()
-        return days.firstIndex(where: { Calendar.current.isDate($0, inSameDayAs: selectedDate) }) ?? 0
+        return getSelectedAvailableDayIndex() ?? 0
+    }
+
+    /// Index of the selected day in the available days, or nil when no day is selected.
+    public func getSelectedAvailableDayIndex() -> Int? {
+        guard let selectedDate = selectedDate else { return nil }
+        return getAvailableDays().firstIndex(where: { Calendar.current.isDate($0, inSameDayAs: selectedDate) })
     }
 
     public func getSelectedDate() -> Date? {
@@ -468,7 +472,7 @@ public class AddPlanTimeSelectionViewModel {
 
         // Add flow only: jump to the first available day. Edit mode keeps the activity's own day so its saved time can show as a sold-out placeholder.
         if !isEditMode, let current = selectedDate, isDayUnavailable(current) {
-            if let firstAvailable = planData.availableDays.first(where: { !isDayUnavailable($0) }) {
+            if let firstAvailable = planData.availableDays.first(where: { !$0.isPastDay() && !isDayUnavailable($0) }) {
                 selectedDate = firstAvailable
                 selectedTimeSlot = nil
             }
@@ -498,7 +502,7 @@ public class AddPlanTimeSelectionViewModel {
 
         // Add flow only: auto-shift to the first available day (see `applyScheduleResponse`).
         if !isEditMode, let current = selectedDate, isDayUnavailable(current) {
-            if let firstAvailable = planData.availableDays.first(where: { !isDayUnavailable($0) }) {
+            if let firstAvailable = planData.availableDays.first(where: { !$0.isPastDay() && !isDayUnavailable($0) }) {
                 selectedDate = firstAvailable
             }
         }

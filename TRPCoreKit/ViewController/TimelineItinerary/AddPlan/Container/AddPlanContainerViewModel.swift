@@ -42,8 +42,7 @@ public class AddPlanContainerViewModel {
         self.planData.travelers = self.defaultTravelers
 
         if days.indices.contains(selectedDayIndex) {
-            let candidate = days[selectedDayIndex]
-            self.planData.selectedDay = candidate.isPastDay() ? Self.firstSelectableDay(in: days) : candidate
+            self.planData.selectedDay = AddPlanDaySelection.initialDay(in: days, preferredIndex: selectedDayIndex)
         }
         self.planData.selectedCity = cities.first
         self.planData.availableDays = days
@@ -105,7 +104,7 @@ public class AddPlanContainerViewModel {
 
     /// Resets the selected day to today, else the first future day, else nil when every day is past.
     public func resetSelectedDay() {
-        planData.selectedDay = Self.firstSelectableDay(in: availableDays)
+        planData.selectedDay = AddPlanDaySelection.firstSelectableDay(in: availableDays)
     }
 
     /// Whether the select-day step allows continuing: a non-past day, a city and a complete mode choice.
@@ -122,11 +121,6 @@ public class AddPlanContainerViewModel {
         case .none:
             return false
         }
-    }
-
-    /// Earliest non-past day (today when the trip includes it), or nil when every day is past.
-    private static func firstSelectableDay(in days: [Date]) -> Date? {
-        return days.filter { !$0.isPastDay() }.min()
     }
 
     public func getBookedActivities() -> [TRPTimelineSegment] {
