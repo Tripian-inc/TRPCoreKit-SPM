@@ -140,6 +140,11 @@ public class AddPlanTimeAndTravelersViewModel {
         return getAvailableCities().count == 1
     }
 
+    /// Index of the selected day in the available days, or nil when no plannable day is selected.
+    public func getSelectedAvailableDayIndex() -> Int? {
+        return containerViewModel?.getSelectedAvailableDayIndex()
+    }
+
     public func getSelectedDayIndex() -> Int {
         guard let selectedDay = containerViewModel?.planData.selectedDay else { return 0 }
         let days = getAvailableDays()
@@ -147,7 +152,7 @@ public class AddPlanTimeAndTravelersViewModel {
     }
 
     public func selectDay(_ day: Date) {
-        containerViewModel?.planData.selectedDay = day
+        containerViewModel?.selectDay(day)
     }
 
     public func selectCity(_ city: TRPCity) {

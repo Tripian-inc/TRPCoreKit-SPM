@@ -224,7 +224,7 @@ public class AddPlanTimeSelectionViewModel {
     /// Schedule cache is populated up-front for the whole trip range, so day switches are instant (no per-day fetch).
     public func selectDay(at index: Int) {
         let days = getAvailableDays()
-        guard index < days.count else { return }
+        guard days.indices.contains(index), !days[index].isPastDay() else { return }
         let newDate = days[index]
 
         if selectedDate != newDate {

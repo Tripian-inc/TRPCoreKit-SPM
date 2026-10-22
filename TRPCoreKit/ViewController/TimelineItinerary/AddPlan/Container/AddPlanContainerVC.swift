@@ -362,13 +362,7 @@ public class AddPlanContainerVC: TRPBaseUIViewController, DynamicHeightPresentab
     private func canContinue(currentStep: AddPlanSteps) -> Bool {
         switch currentStep {
         case .selectDayAndCity:
-            let hasDayAndCity = viewModel.planData.selectedDay != nil && 
-                               viewModel.planData.selectedCity != nil &&
-                               viewModel.planData.selectedMode != .none
-            if viewModel.planData.selectedMode == .manual {
-                return hasDayAndCity && !viewModel.planData.selectedCategories.isEmpty
-            }
-            return hasDayAndCity
+            return viewModel.canContinueFromSelectDay
         case .timeAndTravelers:
             guard let startTime = viewModel.planData.startTime,
                   let endTime = viewModel.planData.endTime else {

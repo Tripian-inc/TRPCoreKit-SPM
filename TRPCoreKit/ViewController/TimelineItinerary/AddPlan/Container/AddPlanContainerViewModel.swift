@@ -41,20 +41,9 @@ public class AddPlanContainerViewModel {
         self.defaultTravelers = max(defaultTravelers, 1)
         self.planData.travelers = self.defaultTravelers
 
-        // If selectedDayIndex points at a past day, jump forward so AddPlan never opens on an unplannable day.
-        if selectedDayIndex < days.count {
+        if days.indices.contains(selectedDayIndex) {
             let candidate = days[selectedDayIndex]
-            if candidate.isPastDay() {
-                if let todayIdx = days.firstIndex(where: { $0.isToday() }) {
-                    self.planData.selectedDay = days[todayIdx]
-                } else if let firstFuture = days.first(where: { !$0.isPastDay() }) {
-                    self.planData.selectedDay = firstFuture
-                } else {
-                    self.planData.selectedDay = days.last
-                }
-            } else {
-                self.planData.selectedDay = candidate
-            }
+            self.planData.selectedDay = candidate.isPastDay() ? Self.firstSelectableDay(in: days) : candidate
         }
         self.planData.selectedCity = cities.first
         self.planData.availableDays = days
@@ -100,6 +89,44 @@ public class AddPlanContainerViewModel {
     
     public func getSelectedDayIndex() -> Int {
         return selectedDayIndex
+    }
+
+    /// Index of the selected day in the available days, or nil when no plannable day is selected.
+    public func getSelectedAvailableDayIndex() -> Int? {
+        guard let selectedDay = planData.selectedDay, !selectedDay.isPastDay() else { return nil }
+        return availableDays.firstIndex(where: { Calendar.current.isDate($0, inSameDayAs: selectedDay) })
+    }
+
+    /// Selects `day` unless it is a past day; past days are never selectable in AddPlan.
+    public func selectDay(_ day: Date) {
+        guard !day.isPastDay() else { return }
+        planData.selectedDay = day
+    }
+
+    /// Resets the selected day to today, else the first future day, else nil when every day is past.
+    public func resetSelectedDay() {
+        planData.selectedDay = Self.firstSelectableDay(in: availableDays)
+    }
+
+    /// Whether the select-day step allows continuing: a non-past day, a city and a complete mode choice.
+    public var canContinueFromSelectDay: Bool {
+        guard let selectedDay = planData.selectedDay, !selectedDay.isPastDay(),
+              planData.selectedCity != nil else {
+            return false
+        }
+        switch planData.selectedMode {
+        case .smartRecommendations:
+            return true
+        case .manual:
+            return !planData.selectedCategories.isEmpty
+        case .none:
+            return false
+        }
+    }
+
+    /// Earliest non-past day (today when the trip includes it), or nil when every day is past.
+    private static func firstSelectableDay(in days: [Date]) -> Date? {
+        return days.filter { !$0.isPastDay() }.min()
     }
 
     public func getBookedActivities() -> [TRPTimelineSegment] {
