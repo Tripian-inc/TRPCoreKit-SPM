@@ -48,7 +48,7 @@ final class TimelineProfileMapper {
  
     public func makeTimelineSegmentSettings(editTimelineProfile: TRPCreateEditTimelineSegmentProfile, tripHash: String) ->  TRPTimelineSegmentSettings?{
         let timelineSettings = getTimelineSegmentSettings(from: editTimelineProfile)
-        timelineSettings.doNotGenerate = editTimelineProfile.doNotGenerate ?? 0
+        timelineSettings.doNotGenerate = editTimelineProfile.doNotGenerate
         timelineSettings.hash = tripHash
         if let segmentIndex = editTimelineProfile.segmentIndex {
             timelineSettings.segmentIndex = segmentIndex
