@@ -89,7 +89,6 @@ final class TRPStepTimeOutsideSegmentTests: XCTestCase {
         let step = narrowRangeStep(in: viewModel)
         let originalSegment = viewModel.mergedItem(containing: step)!.segment
         let originalSegmentType = originalSegment.segmentType
-        let originalDoNotGenerate = originalSegment.doNotGenerate
         let originalSmartRecommendation = originalSegment.smartRecommendation
         stepRepository.editResult = .success(step)
         let done = expectation(description: "updateStepTime")
@@ -104,7 +103,7 @@ final class TRPStepTimeOutsideSegmentTests: XCTestCase {
         XCTAssertEqual(repository.createEditCalls.first?.startDate, "2025-12-08 09:00")
         XCTAssertEqual(repository.createEditCalls.first?.endDate, "2025-12-08 23:00")
         XCTAssertEqual(repository.createEditCalls.first?.segmentType, originalSegmentType)
-        XCTAssertEqual(repository.createEditCalls.first?.doNotGenerate, originalDoNotGenerate)
+        XCTAssertEqual(repository.createEditCalls.first?.doNotGenerate, 1, "widening an existing segment must keep doNotGenerate at 1")
         XCTAssertEqual(repository.createEditCalls.first?.smartRecommendation, originalSmartRecommendation)
         XCTAssertEqual(stepRepository.editedSteps.map { $0.stepId }, [step.id])
         XCTAssertEqual(repository.callOrder, ["createEditTimelineSegment", "editStep", "fetchTimeline"])
@@ -188,6 +187,22 @@ final class TRPStepTimeOutsideSegmentTests: XCTestCase {
     }
 
     // MARK: - updateSegmentTime
+
+    func testUpdateSegmentTimeSendsDoNotGenerateEqualsOneForAnExistingSegment() {
+        let (viewModel, repository, _, _) = makeViewModel()
+        let segment = viewModel.timeline!.tripProfile!.segments.first { $0.title == "Gothic Quarter Deep Dive" }!
+        let done = expectation(description: "updateSegmentTime")
+
+        viewModel.updateSegmentTime(segment: segment, startTime: "09:00", endTime: "22:00") { result in
+            guard case .success = result else { return XCTFail("expected success") }
+            done.fulfill()
+        }
+
+        waitShort(for: [done])
+        XCTAssertEqual(repository.createEditCalls.count, 1)
+        XCTAssertNotNil(repository.createEditCalls.first?.segmentIndex)
+        XCTAssertEqual(repository.createEditCalls.first?.doNotGenerate, 1)
+    }
 
     func testUpdateSegmentTimeFailureReportsTheErrorOnlyAfterTheLoaderHides() {
         let (viewModel, repository, _, spy) = makeViewModel()

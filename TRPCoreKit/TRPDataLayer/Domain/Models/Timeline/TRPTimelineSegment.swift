@@ -82,7 +82,13 @@ public class TRPCreateEditTimelineSegmentProfile: TRPTimelineSegment {
     
     public var tripHash: String = ""
     public var segmentIndex: Int?
-    
+
+    /// Backend regeneration flag derived from `segmentIndex`: a create (no index) sends 0 so the backend generates the segment, an update of an existing segment sends 1 so it is kept as is. Assignments are ignored.
+    public override var doNotGenerate: Int {
+        get { segmentIndex == nil ? 0 : 1 }
+        set { }
+    }
+
     public init(tripHash: String) {
         super.init()
         self.tripHash = tripHash
@@ -129,7 +135,6 @@ extension TRPCreateEditTimelineSegmentProfile {
         self.activityIds           = base.activityIds
         self.smartRecommendation   = base.smartRecommendation
         self.excludedActivityIds   = base.excludedActivityIds
-        self.doNotGenerate         = base.doNotGenerate
 
         // Manual POI properties
         self.poiId                 = base.poiId
