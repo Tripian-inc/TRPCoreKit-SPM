@@ -45,11 +45,8 @@ public class AddPlanActivityListingViewModel {
     private(set) public var isLoadingTours: Bool = false
     private(set) public var loadingStyle: AddPlanLoadingStyle = .none
 
-    private let localChangeAnimationDuration: TimeInterval = 0.7
-
-    /// Untouched server response (popularity-sorted baseline); local sort + filter run on top.
-    private var originalTours: [TRPTourProduct] = []
-    private var filteredTours: [TRPTourProduct] = []
+    /// Pages loaded so far for the current query, in server order.
+    private var loadedTours: [TRPTourProduct] = []
 
     /// Backend returns at most this many tours per call.
     private let pageLimit = 10
@@ -61,9 +58,6 @@ public class AddPlanActivityListingViewModel {
     private(set) public var isLoadingMore = false
     /// Bumped on every fresh search so a late page of a previous query is dropped.
     private var searchGeneration = 0
-    /// True when the loaded list was fetched with search / filter / sort applied by the API.
-    private var serverNarrowingActive = false
-
 
     private var tourUseCases: TRPTourUseCases?
 
@@ -190,61 +184,26 @@ public class AddPlanActivityListingViewModel {
         return !hasLoadedInitialFacets
     }
 
-    /// Narrows locally when the whole base list is loaded; otherwise re-queries the API.
-    /// The search bar debounces typing.
+    /// Re-queries the API from the first page whenever the text changes; an empty text
+    /// fetches the unnarrowed list. The search bar debounces typing.
     public func updateSearchText(_ text: String) {
+        guard text != searchText else { return }
         searchText = text
-        if canNarrowLocally {
-            applyLocalSortAndFilter()
-            delegate?.activitiesDidLoad()
-        } else {
-            performSearch(style: .skeleton)
-        }
+        performSearch(style: .skeleton)
     }
 
     public func updateSortOption(_ option: SortOption) {
         selectedSortOption = option
-        applyNarrowingChange()
+        performSearch(style: .skeleton)
     }
 
     public func updateFilterData(_ data: FilterData) {
         filterData = data
-        applyNarrowingChange()
-    }
-
-    /// Search, price/duration filter and sort run locally only when every product of the
-    /// unfiltered query is already loaded; otherwise the API applies them and pagination
-    /// continues on that query.
-    private func applyNarrowingChange() {
-        if canNarrowLocally {
-            applyLocalChangeWithSkeletonFlash {
-                self.applyLocalSortAndFilter()
-            }
-        } else {
-            performSearch(style: .skeleton)
-        }
-    }
-
-    private var canNarrowLocally: Bool {
-        return !serverNarrowingActive && apiTotal > 0 && originalTours.count >= apiTotal
+        performSearch(style: .skeleton)
     }
 
     private var hasServerNarrowing: Bool {
         return !searchText.isEmpty || !filterData.isEmpty || selectedSortOption != .popularity
-    }
-
-    private func applyLocalChangeWithSkeletonFlash(_ work: @escaping () -> Void) {
-        loadingStyle = .skeleton
-        isLoadingTours = true
-        delegate?.tourLoadingStateDidChange()
-
-        DispatchQueue.main.asyncAfter(deadline: .now() + localChangeAnimationDuration) { [weak self] in
-            guard let self = self else { return }
-            work()
-            self.isLoadingTours = false
-            self.loadingStyle = .none
-            self.delegate?.activitiesDidLoad()
-        }
     }
 
     public func hasActiveFilters() -> Bool {
@@ -253,22 +212,17 @@ public class AddPlanActivityListingViewModel {
 
     // MARK: - Activity Fetching
     public func getActivities() -> [TRPTourProduct] {
-        return filteredTours
+        return loadedTours
     }
 
     public func getTourAt(index: Int) -> TRPTourProduct? {
-        guard index >= 0 && index < filteredTours.count else { return nil }
-        return filteredTours[index]
+        guard index >= 0 && index < loadedTours.count else { return nil }
+        return loadedTours[index]
     }
 
-    /// API total for the current query; the visible size once a local narrowing (search, price, duration) applies.
+    /// API total for the current query.
     public func getActivityCount() -> Int {
-        if serverNarrowingActive { return apiTotal }
-        return hasLocalNarrowing ? filteredTours.count : apiTotal
-    }
-
-    private var hasLocalNarrowing: Bool {
-        return !searchText.isEmpty || !filterData.isEmpty
+        return apiTotal
     }
 
     /// What each day already holds; the time-selection sheet blocks matching days and sends the
@@ -326,7 +280,7 @@ public class AddPlanActivityListingViewModel {
         params.sortingBy = SortOption.popularity.apiParameters.sortingBy
         params.sortingType = SortOption.popularity.apiParameters.sortingType
 
-        if serverNarrowingActive {
+        if hasServerNarrowing {
             params.search = searchText.isEmpty ? nil : searchText
             params.minPrice = max(1, filterData.minPrice.map { Int($0) } ?? 1)
             params.maxPrice = filterData.maxPrice.map { Int($0) }
@@ -347,7 +301,6 @@ public class AddPlanActivityListingViewModel {
     private func executeSearch(style: AddPlanLoadingStyle) {
         searchGeneration += 1
         isLoadingMore = false
-        serverNarrowingActive = hasServerNarrowing
         loadingStyle = style
         isLoadingTours = true
         delegate?.tourLoadingStateDidChange()
@@ -387,15 +340,14 @@ public class AddPlanActivityListingViewModel {
 
         switch result {
         case .success(let outcome):
-            if !isPagination { originalTours = [] }
-            var loadedIds = Set(originalTours.map { $0.productId })
+            if !isPagination { loadedTours = [] }
+            var loadedIds = Set(loadedTours.map { $0.productId })
             let newProducts = outcome.products.filter { loadedIds.insert($0.productId).inserted }
-            originalTours.append(contentsOf: newProducts)
-            apiTotal = outcome.pagination?.total ?? originalTours.count
+            loadedTours.append(contentsOf: newProducts)
+            apiTotal = outcome.pagination?.total ?? loadedTours.count
             nextOffset = offset + outcome.products.count
-            hasMorePages = !newProducts.isEmpty && originalTours.count < apiTotal
+            hasMorePages = !newProducts.isEmpty && loadedTours.count < apiTotal
             applyFirstResponseBaselines(facets: outcome.facets, products: outcome.products)
-            applyLocalSortAndFilter()
             delegate?.activitiesDidLoad()
         case .failure(let error):
             // 504 retry is handled inside TRPTourSearchService; no client-side retry to avoid compounding.
@@ -448,58 +400,5 @@ public class AddPlanActivityListingViewModel {
         }
 
         return (priceRange, durationRange)
-    }
-
-    /// Publishes the loaded pages as they are when the API already narrowed them; otherwise runs
-    /// search, price/duration filter and sort locally on `originalTours`.
-    private func applyLocalSortAndFilter() {
-        if serverNarrowingActive {
-            filteredTours = originalTours
-            return
-        }
-
-        var working = originalTours
-
-        if !searchText.isEmpty {
-            working = working.filter { tour in
-                tour.name.localizedCaseInsensitiveContains(searchText)
-            }
-        }
-
-        // Products without a price are excluded when a bound is active.
-        if filterData.minPrice != nil || filterData.maxPrice != nil {
-            working = working.filter { tour in
-                guard let price = tour.price else { return false }
-                if let lo = filterData.minPrice, price < lo { return false }
-                if let hi = filterData.maxPrice, price > hi { return false }
-                return true
-            }
-        }
-
-        if filterData.minDuration != nil || filterData.maxDuration != nil {
-            working = working.filter { tour in
-                guard let duration = tour.duration else { return false }
-                if let lo = filterData.minDuration, duration < lo { return false }
-                if let hi = filterData.maxDuration, duration > hi { return false }
-                return true
-            }
-        }
-
-        // `popularity` is preserved by leaving the server-supplied order alone.
-        switch selectedSortOption {
-        case .popularity:
-            break
-        case .rating:
-            working.sort { (Double($0.rating ?? -.greatestFiniteMagnitude)) > (Double($1.rating ?? -.greatestFiniteMagnitude)) }
-        case .priceLowToHigh:
-            // Push price-less tours to the end (Double has no `.max`).
-            working.sort { ($0.price ?? .greatestFiniteMagnitude) < ($1.price ?? .greatestFiniteMagnitude) }
-        case .durationShortToLong:
-            working.sort { ($0.duration ?? .max) < ($1.duration ?? .max) }
-        case .durationLongToShort:
-            working.sort { ($0.duration ?? .min) > ($1.duration ?? .min) }
-        }
-
-        filteredTours = working
     }
 }
