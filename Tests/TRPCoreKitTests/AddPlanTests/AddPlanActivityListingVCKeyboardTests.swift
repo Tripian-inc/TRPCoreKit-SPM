@@ -6,6 +6,15 @@ import UIKit
 /// and selecting a row resigns the keyboard before notifying the host.
 final class AddPlanActivityListingVCKeyboardTests: XCTestCase {
 
+    private var window: UIWindow?
+
+    override func tearDown() {
+        window?.isHidden = true
+        window?.rootViewController = nil
+        window = nil
+        super.tearDown()
+    }
+
     private func makeLoadedVC() -> AddPlanActivityListingVC {
         let vc = AddPlanActivityListingVC()
         vc.viewModel = AddPlanActivityListingViewModel(planData: AddPlanData())
@@ -32,6 +41,7 @@ final class AddPlanActivityListingVCKeyboardTests: XCTestCase {
         let vc = makeLoadedVC()
 
         let window = UIWindow(frame: UIScreen.main.bounds)
+        self.window = window
         window.rootViewController = vc
         window.isHidden = false
         window.makeKeyAndVisible()
