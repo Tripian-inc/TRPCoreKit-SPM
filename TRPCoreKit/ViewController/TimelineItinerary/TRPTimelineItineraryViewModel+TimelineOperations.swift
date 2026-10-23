@@ -386,9 +386,9 @@ extension TRPTimelineItineraryViewModel {
     }
 
     /// Re-times stored booked-activity segments whose start/end/duration no longer match the host
-    /// reservation (e.g. a transfer whose meeting time was assigned after the segment was created
-    /// with a pending slot). Only the time fields change; the segment keeps its index and payload.
-    /// Completion receives whether any segment was edited.
+    /// reservation they pair with (see `BookedActivityPairing`), e.g. a transfer whose meeting time
+    /// was assigned after the segment was created with a pending slot. Only the time fields change;
+    /// the segment keeps its index and payload. Completion receives whether any segment was edited.
     internal func syncBookedActivityTimes(from itineraryModel: TRPItineraryWithActivities, completion: @escaping (Bool) -> Void) {
         guard let timeline = timeline,
               let segments = timeline.tripProfile?.segments,
@@ -397,18 +397,13 @@ extension TRPTimelineItineraryViewModel {
             return
         }
 
-        var tripItemsByKey: [String: TRPSegmentActivityItem] = [:]
-        for item in tripItems {
-            guard let key = item.activityId?.trp_activityMatchKey() else { continue }
-            if tripItemsByKey[key] == nil { tripItemsByKey[key] = item }
-        }
+        let pairing = BookedActivityPairing.pairBooked(tripItems: tripItems, segments: segments)
 
         var profiles: [TRPCreateEditTimelineSegmentProfile] = []
-        for (index, segment) in segments.enumerated() {
-            guard segment.segmentType == .bookedActivity,
-                  var data = segment.additionalData,
-                  let key = data.activityId?.trp_activityMatchKey(),
-                  let tripItem = tripItemsByKey[key],
+        for pair in pairing.pairs {
+            let segment = segments[pair.storedIndex]
+            let tripItem = tripItems[pair.incomingIndex]
+            guard var data = segment.additionalData,
                   let desiredStart = tripItem.startDatetime,
                   let desiredEnd = tripItem.endDatetime else { continue }
 
@@ -421,7 +416,7 @@ extension TRPTimelineItineraryViewModel {
             data.endDatetime = desiredEnd
             data.duration = tripItem.duration
 
-            let profile = TRPCreateEditTimelineSegmentProfile(from: segment, tripHash: timeline.tripHash, segmentIndex: index)
+            let profile = TRPCreateEditTimelineSegmentProfile(from: segment, tripHash: timeline.tripHash, segmentIndex: pair.storedIndex)
             profile.startDate = desiredStart
             profile.endDate = desiredEnd
             profile.additionalData = data
@@ -450,7 +445,7 @@ extension TRPTimelineItineraryViewModel {
 
     // MARK: - Add Missing Booked Activities
 
-    /// Adds tripItems that aren't already on the timeline (by activityId) via the API.
+    /// Adds the tripItems that pair with no stored booked-activity segment (see `BookedActivityPairing`) via the API.
     public func addMissingBookedActivities(from itineraryModel: TRPItineraryWithActivities) {
         guard let timeline = timeline,
               let tripItems = itineraryModel.tripItems,
@@ -460,28 +455,12 @@ extension TRPTimelineItineraryViewModel {
 
         let tripHash = timeline.tripHash
 
-        var existingActivityIds = Set<String>()
-
-        if let segments = timeline.segments {
-            for segment in segments {
-                if let activityId = segment.additionalData?.activityId {
-                    existingActivityIds.insert(activityId.trp_activityMatchKey())
-                }
-            }
+        var seenSegmentIds = Set<String>()
+        let storedSegments = ((timeline.tripProfile?.segments ?? []) + (timeline.segments ?? [])).filter {
+            seenSegmentIds.insert(getSegmentUniqueId($0)).inserted
         }
-
-        if let profileSegments = timeline.tripProfile?.segments {
-            for segment in profileSegments {
-                if let activityId = segment.additionalData?.activityId {
-                    existingActivityIds.insert(activityId.trp_activityMatchKey())
-                }
-            }
-        }
-
-        let missingTripItems = tripItems.filter { tripItem in
-            guard let activityId = tripItem.activityId else { return false }
-            return !existingActivityIds.contains(activityId.trp_activityMatchKey())
-        }
+        let pairing = BookedActivityPairing.pairBooked(tripItems: tripItems, segments: storedSegments)
+        let missingTripItems = pairing.unmatchedIncoming.map { tripItems[$0] }
 
         guard !missingTripItems.isEmpty else {
             return
@@ -850,23 +829,17 @@ extension TRPTimelineItineraryViewModel {
         return deletable.contains(segment.segmentType)
     }
 
-    /// Reserved activities the host now reports as booked in `tripItems`. Pure: no mutation, no I/O.
+    /// Reserved activities the host now reports as booked in `tripItems`; each reserved segment consumes one
+    /// reservation of its product not already held by a booked segment (see `BookedActivityPairing.pairReserved`).
+    /// Pure: no mutation, no I/O.
     internal func collectReservedNowBookedSegments(
         in segments: [TRPTimelineSegment],
         itinerary: TRPItineraryWithActivities
     ) -> [SegmentRemovalCandidate] {
         guard let tripItems = itinerary.tripItems, !tripItems.isEmpty else { return [] }
-        let bookedActivityIds = Set(tripItems.compactMap { $0.activityId?.trp_activityMatchKey() })
-
-        var out: [SegmentRemovalCandidate] = []
-        for (index, segment) in segments.enumerated() {
-            guard segment.segmentType == .reservedActivity else { continue }
-            guard let activityId = segment.additionalData?.activityId else { continue }
-            if bookedActivityIds.contains(activityId.trp_activityMatchKey()) {
-                out.append(.init(index: index, segment: segment, reason: .reservedNowBooked))
-            }
+        return BookedActivityPairing.pairReserved(tripItems: tripItems, segments: segments).pairs.map {
+            SegmentRemovalCandidate(index: $0.storedIndex, segment: segments[$0.storedIndex], reason: .reservedNowBooked)
         }
-        return out
     }
 
     /// Segments whose city is known and no longer in the host's incoming destinations. Pure: no mutation, no I/O.

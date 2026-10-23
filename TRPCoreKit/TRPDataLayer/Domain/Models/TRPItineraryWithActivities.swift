@@ -156,6 +156,9 @@ public struct TRPSegmentActivityItem: Codable {
     /// and to skip rendering the activity on the map. Defaults to `false` for
     /// legacy / coordinate-bearing activities.
     public var isNoLocation: Bool = false
+    /// Host line id of the booked service (one per leg when several lines share a product).
+    /// Distinguishes reservations that share `activityId`; never encoded or decoded.
+    public var lineId: String?
 
     /// Transient runtime flag set by the post-load availability sweep when the
     /// provider's schedule for this activity's date no longer contains its
@@ -163,7 +166,7 @@ public struct TRPSegmentActivityItem: Codable {
     /// Not encoded — rebuilt on each cold load by the availability check.
     public var isAvailabilityExpired: Bool = false
 
-    public init(activityId: String?, bookingId: String?, title: String?, imageUrl: String?, description: String?, startDatetime: String?, endDatetime: String?, coordinate: TRPLocation, cancellation: String?, adultCount: Int, childCount: Int, bookingUrl: String? = nil, duration: Double? = nil, price: TRPSegmentActivityPrice? = nil, cityId: Int? = nil, isFlexible: Bool? = nil, rating: Float? = nil, ratingCount: Int? = nil, isNoLocation: Bool = false) {
+    public init(activityId: String?, bookingId: String?, title: String?, imageUrl: String?, description: String?, startDatetime: String?, endDatetime: String?, coordinate: TRPLocation, cancellation: String?, adultCount: Int, childCount: Int, bookingUrl: String? = nil, duration: Double? = nil, price: TRPSegmentActivityPrice? = nil, cityId: Int? = nil, isFlexible: Bool? = nil, rating: Float? = nil, ratingCount: Int? = nil, isNoLocation: Bool = false, lineId: String? = nil) {
         self.activityId = activityId
         self.bookingId = bookingId
         self.title = title
@@ -183,6 +186,7 @@ public struct TRPSegmentActivityItem: Codable {
         self.rating = rating
         self.ratingCount = ratingCount
         self.isNoLocation = isNoLocation
+        self.lineId = lineId
     }
 
     enum CodingKeys: String, CodingKey {

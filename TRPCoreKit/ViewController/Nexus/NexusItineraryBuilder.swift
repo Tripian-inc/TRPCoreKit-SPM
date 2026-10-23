@@ -155,7 +155,8 @@ enum NexusItineraryBuilder {
                 bookingUrl: p.reservation.detailURL,
                 duration: timing.duration,
                 cityId: cityId,
-                isNoLocation: true
+                isNoLocation: true,
+                lineId: p.reservation.juniperLineId
             )
             activities.append(activity)
         }
