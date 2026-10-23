@@ -356,8 +356,9 @@ public class AddPlanActivityListingViewModel {
             nextOffset = offset + outcome.products.count
             hasMorePages = !newProducts.isEmpty && loadedTours.count < apiTotal
             let isFirstPage = !isPagination && offset == 0
-            let didRebuildCategories = isFirstPage && requestedAllCategories
-                && rebuildFacetCategories(from: outcome.facets)
+            let shouldRebuildCategories = isFirstPage && (requestedAllCategories || !hasLoadedInitialFacets)
+            let didRebuildCategories = shouldRebuildCategories
+                && rebuildFacetCategories(from: outcome.facets, reconcileSelection: requestedAllCategories)
             let didApplyBaselines = applyFirstResponseBaselines(facets: outcome.facets, products: outcome.products)
             if didRebuildCategories || didApplyBaselines {
                 delegate?.facetsDidLoad()
@@ -373,13 +374,16 @@ public class AddPlanActivityListingViewModel {
         }
     }
 
-    /// Replaces the chip strip with the categories of a response and drops selected ids that are no longer offered.
-    /// Callers only pass page-0 responses requested without a category selection.
+    /// Replaces the chip strip with the categories of a page-0 response requested without a category
+    /// selection, or of the first response whatever its selection.
+    /// - Parameter reconcileSelection: drops selected ids the new strip no longer offers.
     /// - Returns: false when the response has no categories, leaving the current strip in place.
-    private func rebuildFacetCategories(from facets: TRPTourFacets?) -> Bool {
+    private func rebuildFacetCategories(from facets: TRPTourFacets?, reconcileSelection: Bool) -> Bool {
         guard let categories = facets?.categories, !categories.isEmpty else { return false }
         facetCategories = categories
-        selectedFacetCategoryIds.formIntersection(categories.map { $0.id })
+        if reconcileSelection {
+            selectedFacetCategoryIds.formIntersection(categories.map { $0.id })
+        }
         return true
     }
 

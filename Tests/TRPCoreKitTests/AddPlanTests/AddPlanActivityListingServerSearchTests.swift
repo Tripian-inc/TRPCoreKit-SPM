@@ -262,7 +262,7 @@ final class AddPlanActivityListingServerSearchTests: XCTestCase {
 
     // MARK: - Facet category chip rebuilding
 
-    func testSecondPageZeroResponseWithAllSelectedReplacesChipStrip() {
+    func testLaterAllCategoriesFirstPageResponseReplacesChipStrip() {
         let repository = FakeTourRepository()
         let delegate = FakeAddPlanActivityListingDelegate()
         let viewModel = makeViewModel(repository: repository, delegate: delegate)
@@ -297,11 +297,59 @@ final class AddPlanActivityListingServerSearchTests: XCTestCase {
         XCTAssertEqual(repository.capturedCalls.count, 2)
         XCTAssertEqual(repository.capturedCalls[1].parameters.categoryIds, ["a"])
 
+        viewModel.selectedFacetCategoryIds = []
         repository.capturedCalls[1].completion(success(count: 1, total: 1, categories: [categoryFacet("x"), categoryFacet("y")]))
 
         XCTAssertEqual(viewModel.facetCategories.map { $0.id }, ["a", "b"])
+        XCTAssertEqual(viewModel.selectedFacetCategoryIds, [])
+        XCTAssertEqual(delegate.facetsDidLoadCount, 0)
+    }
+
+    func testStaleAllCategoriesResponseAfterFilteredRequestDoesNotRebuildChipStrip() {
+        let repository = FakeTourRepository()
+        let delegate = FakeAddPlanActivityListingDelegate()
+        let viewModel = makeViewModel(repository: repository, delegate: delegate)
+
+        viewModel.performInitialSearch()
+        repository.capturedCalls[0].completion(success(count: 1, total: 1, categories: [categoryFacet("a"), categoryFacet("b")]))
+        delegate.facetsDidLoadCount = 0
+
+        viewModel.updateSortOption(.priceLowToHigh)
+        XCTAssertNil(repository.capturedCalls[1].parameters.categoryIds)
+        viewModel.toggleFacetCategory(id: "a")
+        XCTAssertEqual(repository.capturedCalls.count, 3)
+        XCTAssertEqual(repository.capturedCalls[2].parameters.categoryIds, ["a"])
+
+        repository.capturedCalls[1].completion(success(count: 1, total: 1, categories: [categoryFacet("c")]))
+        XCTAssertEqual(viewModel.facetCategories.map { $0.id }, ["a", "b"])
+        XCTAssertEqual(viewModel.selectedFacetCategoryIds, ["a"])
+
+        repository.capturedCalls[2].completion(success(count: 1, total: 1, categories: [categoryFacet("a")]))
+        XCTAssertEqual(viewModel.facetCategories.map { $0.id }, ["a", "b"])
         XCTAssertEqual(viewModel.selectedFacetCategoryIds, ["a"])
         XCTAssertEqual(delegate.facetsDidLoadCount, 0)
+    }
+
+    func testFirstResponseWithPresetSelectionSeedsChipStripWithoutDroppingSelection() {
+        let repository = FakeTourRepository()
+        let delegate = FakeAddPlanActivityListingDelegate()
+        let viewModel = makeViewModel(repository: repository, delegate: delegate)
+
+        viewModel.selectedFacetCategoryIds = ["a", "z"]
+        viewModel.performInitialSearch()
+        XCTAssertEqual(Set(repository.capturedCalls[0].parameters.categoryIds ?? []), ["a", "z"])
+
+        repository.capturedCalls[0].completion(success(count: 1, total: 1, categories: [categoryFacet("a"), categoryFacet("b")]))
+
+        XCTAssertEqual(viewModel.facetCategories.map { $0.id }, ["a", "b"])
+        XCTAssertEqual(viewModel.selectedFacetCategoryIds, ["a", "z"])
+        XCTAssertFalse(viewModel.isFacetsLoading())
+        XCTAssertEqual(delegate.facetsDidLoadCount, 1)
+
+        viewModel.updateSortOption(.priceLowToHigh)
+        repository.capturedCalls[1].completion(success(count: 1, total: 1, categories: [categoryFacet("c")]))
+        XCTAssertEqual(viewModel.facetCategories.map { $0.id }, ["a", "b"])
+        XCTAssertEqual(delegate.facetsDidLoadCount, 1)
     }
 
     func testEmptyCategoriesAndNilFacetsKeepPreviousChipStrip() {
