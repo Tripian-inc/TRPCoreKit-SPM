@@ -35,11 +35,12 @@ private final class FakeTourRepository: TourRepository {
 private final class FakeAddPlanActivityListingDelegate: AddPlanActivityListingViewModelDelegate {
     var loadCount = 0
     var failures: [Error] = []
+    var facetsDidLoadCount = 0
 
     func activitiesDidLoad() { loadCount += 1 }
     func activitiesDidFail(error: Error) { failures.append(error) }
     func showLoading(_ show: Bool) {}
-    func facetsDidLoad() {}
+    func facetsDidLoad() { facetsDidLoadCount += 1 }
     func tourLoadingStateDidChange() {}
     func searchTextDidReset() {}
 }
@@ -78,12 +79,37 @@ final class AddPlanActivityListingServerSearchTests: XCTestCase {
         return viewModel
     }
 
-    private func success(count: Int, total: Int, prefix: String = "p") -> TourResultsValue {
+    private func success(
+        count: Int,
+        total: Int,
+        prefix: String = "p",
+        facets: TRPTourFacets? = nil
+    ) -> TourResultsValue {
         .success(TRPTourSearchOutcome(
             products: makeProducts(count: count, prefix: prefix),
-            facets: nil,
+            facets: facets,
             pagination: TRPTourPagination(total: total, limit: 10, offset: 0)
         ))
+    }
+
+    private func success(
+        count: Int,
+        total: Int,
+        prefix: String = "p",
+        categories: [TRPTourCategoryFacet],
+        priceRange: TRPTourPriceRangeFacet? = nil,
+        durationRange: TRPTourDurationRangeFacet? = nil
+    ) -> TourResultsValue {
+        success(
+            count: count,
+            total: total,
+            prefix: prefix,
+            facets: TRPTourFacets(categories: categories, priceRange: priceRange, durationRange: durationRange)
+        )
+    }
+
+    private func categoryFacet(_ id: String, label: String? = nil) -> TRPTourCategoryFacet {
+        TRPTourCategoryFacet(id: id, key: id, label: label ?? id.capitalized, count: 1)
     }
 
     // MARK: - Base query
@@ -232,5 +258,141 @@ final class AddPlanActivityListingServerSearchTests: XCTestCase {
         XCTAssertEqual(viewModel.getActivities().count, 2)
         XCTAssertTrue(viewModel.getActivities().allSatisfy { $0.productId.hasPrefix("castle") })
         XCTAssertEqual(viewModel.getActivityCount(), 2)
+    }
+
+    // MARK: - Facet category chip rebuilding
+
+    func testSecondPageZeroResponseWithAllSelectedReplacesChipStrip() {
+        let repository = FakeTourRepository()
+        let delegate = FakeAddPlanActivityListingDelegate()
+        let viewModel = makeViewModel(repository: repository, delegate: delegate)
+
+        viewModel.performInitialSearch()
+        repository.capturedCalls[0].completion(success(count: 1, total: 1, categories: [categoryFacet("a"), categoryFacet("b")]))
+        XCTAssertEqual(viewModel.facetCategories.map { $0.id }, ["a", "b"])
+        XCTAssertEqual(delegate.facetsDidLoadCount, 1)
+
+        viewModel.updateSortOption(.priceLowToHigh)
+        repository.capturedCalls[1].completion(success(count: 1, total: 1, categories: [categoryFacet("c")]))
+        XCTAssertEqual(viewModel.facetCategories.map { $0.id }, ["c"])
+        XCTAssertEqual(delegate.facetsDidLoadCount, 2)
+
+        viewModel.updateSearchText("castle")
+        repository.capturedCalls[2].completion(success(count: 1, total: 1, categories: [categoryFacet("a"), categoryFacet("c")]))
+        XCTAssertEqual(viewModel.facetCategories.map { $0.id }, ["a", "c"])
+        XCTAssertEqual(delegate.facetsDidLoadCount, 3)
+    }
+
+    func testResponseToCategoryFilteredRequestDoesNotChangeChipStrip() {
+        let repository = FakeTourRepository()
+        let delegate = FakeAddPlanActivityListingDelegate()
+        let viewModel = makeViewModel(repository: repository, delegate: delegate)
+
+        viewModel.performInitialSearch()
+        repository.capturedCalls[0].completion(success(count: 1, total: 1, categories: [categoryFacet("a"), categoryFacet("b")]))
+        XCTAssertEqual(viewModel.facetCategories.map { $0.id }, ["a", "b"])
+        delegate.facetsDidLoadCount = 0
+
+        viewModel.toggleFacetCategory(id: "a")
+        XCTAssertEqual(repository.capturedCalls.count, 2)
+        XCTAssertEqual(repository.capturedCalls[1].parameters.categoryIds, ["a"])
+
+        repository.capturedCalls[1].completion(success(count: 1, total: 1, categories: [categoryFacet("x"), categoryFacet("y")]))
+
+        XCTAssertEqual(viewModel.facetCategories.map { $0.id }, ["a", "b"])
+        XCTAssertEqual(viewModel.selectedFacetCategoryIds, ["a"])
+        XCTAssertEqual(delegate.facetsDidLoadCount, 0)
+    }
+
+    func testEmptyCategoriesAndNilFacetsKeepPreviousChipStrip() {
+        let repository = FakeTourRepository()
+        let delegate = FakeAddPlanActivityListingDelegate()
+        let viewModel = makeViewModel(repository: repository, delegate: delegate)
+
+        viewModel.performInitialSearch()
+        repository.capturedCalls[0].completion(success(count: 1, total: 1, categories: [categoryFacet("a"), categoryFacet("b")]))
+        XCTAssertEqual(viewModel.facetCategories.map { $0.id }, ["a", "b"])
+        delegate.facetsDidLoadCount = 0
+
+        viewModel.updateSortOption(.priceLowToHigh)
+        repository.capturedCalls[1].completion(success(count: 1, total: 1, categories: []))
+        XCTAssertEqual(viewModel.facetCategories.map { $0.id }, ["a", "b"])
+
+        viewModel.updateSearchText("castle")
+        repository.capturedCalls[2].completion(success(count: 1, total: 1))
+        XCTAssertEqual(viewModel.facetCategories.map { $0.id }, ["a", "b"])
+        XCTAssertEqual(delegate.facetsDidLoadCount, 0)
+    }
+
+    func testPaginationResponseNeverRebuildsChipStrip() {
+        let repository = FakeTourRepository()
+        let delegate = FakeAddPlanActivityListingDelegate()
+        let viewModel = makeViewModel(repository: repository, delegate: delegate)
+
+        viewModel.performInitialSearch()
+        repository.capturedCalls[0].completion(success(count: 10, total: 25, categories: [categoryFacet("a"), categoryFacet("b")]))
+        XCTAssertEqual(viewModel.facetCategories.map { $0.id }, ["a", "b"])
+        delegate.facetsDidLoadCount = 0
+
+        XCTAssertTrue(viewModel.loadMoreActivities())
+        repository.capturedCalls[1].completion(success(count: 10, total: 25, prefix: "page2", categories: [categoryFacet("c"), categoryFacet("d")]))
+
+        XCTAssertEqual(viewModel.facetCategories.map { $0.id }, ["a", "b"])
+        XCTAssertEqual(delegate.facetsDidLoadCount, 0)
+    }
+
+    func testSelectedCategoriesAreIntersectedWithRebuiltChips() {
+        let repository = FakeTourRepository()
+        let delegate = FakeAddPlanActivityListingDelegate()
+        let viewModel = makeViewModel(repository: repository, delegate: delegate)
+
+        viewModel.performInitialSearch()
+        viewModel.selectedFacetCategoryIds = ["a", "gone"]
+
+        repository.capturedCalls[0].completion(success(count: 1, total: 1, categories: [categoryFacet("a"), categoryFacet("b")]))
+
+        XCTAssertEqual(viewModel.selectedFacetCategoryIds, ["a"])
+        XCTAssertFalse(viewModel.isCategoryChipSelected(at: 0))
+    }
+
+    func testSelectedCategoriesBecomeEmptyWhenAllVanish() {
+        let repository = FakeTourRepository()
+        let delegate = FakeAddPlanActivityListingDelegate()
+        let viewModel = makeViewModel(repository: repository, delegate: delegate)
+
+        viewModel.performInitialSearch()
+        viewModel.selectedFacetCategoryIds = ["gone1", "gone2"]
+
+        repository.capturedCalls[0].completion(success(count: 1, total: 1, categories: [categoryFacet("a"), categoryFacet("b")]))
+
+        XCTAssertTrue(viewModel.selectedFacetCategoryIds.isEmpty)
+        XCTAssertTrue(viewModel.isCategoryChipSelected(at: 0))
+    }
+
+    func testPriceAndDurationFacetsStayFromFirstResponseAcrossLaterResponses() {
+        let repository = FakeTourRepository()
+        let delegate = FakeAddPlanActivityListingDelegate()
+        let viewModel = makeViewModel(repository: repository, delegate: delegate)
+
+        let firstPrice = TRPTourPriceRangeFacet(minAmount: 10, maxAmount: 100, currency: "EUR")
+        let firstDuration = TRPTourDurationRangeFacet(minMinutes: 30, maxMinutes: 180)
+
+        viewModel.performInitialSearch()
+        repository.capturedCalls[0].completion(
+            success(count: 1, total: 1, categories: [categoryFacet("a")], priceRange: firstPrice, durationRange: firstDuration)
+        )
+        XCTAssertEqual(viewModel.priceRangeFacet, firstPrice)
+        XCTAssertEqual(viewModel.durationRangeFacet, firstDuration)
+
+        let secondPrice = TRPTourPriceRangeFacet(minAmount: 5, maxAmount: 50, currency: "USD")
+        let secondDuration = TRPTourDurationRangeFacet(minMinutes: 10, maxMinutes: 20)
+
+        viewModel.updateSortOption(.priceLowToHigh)
+        repository.capturedCalls[1].completion(
+            success(count: 1, total: 1, categories: [categoryFacet("b")], priceRange: secondPrice, durationRange: secondDuration)
+        )
+
+        XCTAssertEqual(viewModel.priceRangeFacet, firstPrice)
+        XCTAssertEqual(viewModel.durationRangeFacet, firstDuration)
     }
 }

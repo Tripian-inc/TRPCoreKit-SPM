@@ -324,14 +324,22 @@ public class AddPlanActivityListingViewModel {
         var params = buildSearchParameters()
         params.limit = pageLimit
         params.offset = offset
+        let requestedAllCategories = params.categoryIds?.isEmpty ?? true
 
         tourUseCases?.tourRepository.fetchTours(cityId: cityId, parameters: params) { [weak self] result in
             guard let self = self, generation == self.searchGeneration else { return }
-            self.handlePageResult(result, offset: offset, isPagination: isPagination)
+            self.handlePageResult(result,
+                                  offset: offset,
+                                  isPagination: isPagination,
+                                  requestedAllCategories: requestedAllCategories)
         }
     }
 
-    private func handlePageResult(_ result: TourResultsValue, offset: Int, isPagination: Bool) {
+    /// - Parameter requestedAllCategories: whether the request that produced `result` carried no category selection.
+    private func handlePageResult(_ result: TourResultsValue,
+                                  offset: Int,
+                                  isPagination: Bool,
+                                  requestedAllCategories: Bool) {
         isLoadingMore = false
         if !isPagination {
             isLoadingTours = false
@@ -347,7 +355,13 @@ public class AddPlanActivityListingViewModel {
             apiTotal = outcome.pagination?.total ?? loadedTours.count
             nextOffset = offset + outcome.products.count
             hasMorePages = !newProducts.isEmpty && loadedTours.count < apiTotal
-            applyFirstResponseBaselines(facets: outcome.facets, products: outcome.products)
+            let isFirstPage = !isPagination && offset == 0
+            let didRebuildCategories = isFirstPage && requestedAllCategories
+                && rebuildFacetCategories(from: outcome.facets)
+            let didApplyBaselines = applyFirstResponseBaselines(facets: outcome.facets, products: outcome.products)
+            if didRebuildCategories || didApplyBaselines {
+                delegate?.facetsDidLoad()
+            }
             delegate?.activitiesDidLoad()
         case .failure(let error):
             // 504 retry is handled inside TRPTourSearchService; no client-side retry to avoid compounding.
@@ -359,16 +373,26 @@ public class AddPlanActivityListingViewModel {
         }
     }
 
-    /// Only the first response populates chips and slider bounds, so the filter UI stays stable.
+    /// Replaces the chip strip with the categories of a response and drops selected ids that are no longer offered.
+    /// Callers only pass page-0 responses requested without a category selection.
+    /// - Returns: false when the response has no categories, leaving the current strip in place.
+    private func rebuildFacetCategories(from facets: TRPTourFacets?) -> Bool {
+        guard let categories = facets?.categories, !categories.isEmpty else { return false }
+        facetCategories = categories
+        selectedFacetCategoryIds.formIntersection(categories.map { $0.id })
+        return true
+    }
+
+    /// Only the first response populates slider bounds, so the filter UI stays stable.
     /// Bounds come from the facets (whole result set); the first page's products are the fallback.
-    private func applyFirstResponseBaselines(facets: TRPTourFacets?, products: [TRPTourProduct]) {
-        guard !hasLoadedInitialFacets else { return }
-        facetCategories = facets?.categories ?? []
+    /// - Returns: true when this call applied the baselines.
+    private func applyFirstResponseBaselines(facets: TRPTourFacets?, products: [TRPTourProduct]) -> Bool {
+        guard !hasLoadedInitialFacets else { return false }
         let bounds = computeBoundsFromProducts(products)
         priceRangeFacet = facets?.priceRange ?? bounds.price
         durationRangeFacet = facets?.durationRange ?? bounds.duration
         hasLoadedInitialFacets = true
-        delegate?.facetsDidLoad()
+        return true
     }
 
     /// Returns nil for either side when there's no meaningful range; the filter UI then uses hardcoded bounds.
