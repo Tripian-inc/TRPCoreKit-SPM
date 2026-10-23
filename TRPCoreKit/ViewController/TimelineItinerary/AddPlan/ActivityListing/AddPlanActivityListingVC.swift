@@ -125,6 +125,7 @@ public class AddPlanActivityListingVC: TRPBaseUIViewController {
         tableView.backgroundColor = .white
         tableView.separatorStyle = .none
         tableView.showsVerticalScrollIndicator = false
+        tableView.keyboardDismissMode = .onDrag
         tableView.delegate = self
         tableView.dataSource = self
         tableView.estimatedRowHeight = 120
@@ -235,6 +236,7 @@ public class AddPlanActivityListingVC: TRPBaseUIViewController {
     }
 
     @objc private func infoIconTapped() {
+        dismissKeyboard()
         let title = AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.sortingInfoTitle)
         let message = AddPlanLocalizationKeys.localized(AddPlanLocalizationKeys.sortingInfoMessage)
         let bottomSheetVC = SortingInfoBottomSheetVC(title: title, message: message)
@@ -244,6 +246,7 @@ public class AddPlanActivityListingVC: TRPBaseUIViewController {
 
     // MARK: - Actions
     private func filterButtonTapped() {
+        dismissKeyboard()
         let filterVC = AddPlanFilterVC(filterData: viewModel.filterData)
         filterVC.priceRangeFacet = viewModel.priceRangeFacet
         filterVC.durationRangeFacet = viewModel.durationRangeFacet
@@ -258,6 +261,7 @@ public class AddPlanActivityListingVC: TRPBaseUIViewController {
     }
 
     @objc private func sortButtonTapped() {
+        dismissKeyboard()
         let sortVC = AddPlanSortByVC(selectedOption: viewModel.selectedSortOption)
         sortVC.onSortOptionSelected = { [weak self] option in
             self?.viewModel.updateSortOption(option)
@@ -363,6 +367,7 @@ extension AddPlanActivityListingVC: UITableViewDataSource, UITableViewDelegate {
     public func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         tableView.deselectRow(at: indexPath, animated: true)
         guard !viewModel.isLoadingTours else { return }
+        dismissKeyboard()
 
         // `tour.productId` is `C_{id}_{provider}` from the search mapper — strip to the bare id the host expects.
         if let tour = viewModel.getTourAt(index: indexPath.row) {
@@ -628,6 +633,7 @@ private class CategoryFilterCell: UICollectionViewCell {
 extension AddPlanActivityListingVC: ActivityCardCellDelegate {
 
     func activityCardCellDidTapAdd(_ cell: ActivityCardCell, tour: TRPTourProduct) {
+        dismissKeyboard()
         let timeSelectionVC = AddPlanTimeSelectionVC(tour: tour,
                                                      planData: viewModel.planData,
                                                      plannedActivityIdsByDay: viewModel.plannedActivityIdsByDay())
