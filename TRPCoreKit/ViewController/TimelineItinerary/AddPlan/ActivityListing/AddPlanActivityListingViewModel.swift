@@ -202,8 +202,14 @@ public class AddPlanActivityListingViewModel {
         performSearch(style: .skeleton)
     }
 
+    /// `searchText` trimmed of whitespace and newlines; nil when nothing remains.
+    private var searchKeyword: String? {
+        let keyword = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        return keyword.isEmpty ? nil : keyword
+    }
+
     private var hasServerNarrowing: Bool {
-        return !searchText.isEmpty || !filterData.isEmpty || selectedSortOption != .popularity
+        return searchKeyword != nil || !filterData.isEmpty || selectedSortOption != .popularity
     }
 
     public func hasActiveFilters() -> Bool {
@@ -272,7 +278,7 @@ public class AddPlanActivityListingViewModel {
         params.dateTo = selectedDayString
 
         if !selectedFacetCategoryIds.isEmpty {
-            params.categoryIds = Array(selectedFacetCategoryIds)
+            params.categoryIds = selectedFacetCategoryIds.sorted()
         }
 
         // Server treats minPrice = 1 as "at least 1 unit", excluding free (0-priced) tours.
@@ -281,7 +287,7 @@ public class AddPlanActivityListingViewModel {
         params.sortingType = SortOption.popularity.apiParameters.sortingType
 
         if hasServerNarrowing {
-            params.search = searchText.isEmpty ? nil : searchText
+            params.search = searchKeyword
             params.minPrice = max(1, filterData.minPrice.map { Int($0) } ?? 1)
             params.maxPrice = filterData.maxPrice.map { Int($0) }
             params.minDuration = filterData.minDuration
