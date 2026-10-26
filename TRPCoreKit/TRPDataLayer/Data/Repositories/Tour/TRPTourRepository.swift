@@ -17,9 +17,9 @@ final public class TRPTourRepository: TourRepository {
 
     public var toursWithParameters: [TourParameters : [TRPTourProduct]] = [:]
 
-    /// Cached alongside `toursWithParameters` so a cache hit can still report whether
-    /// another page exists.
-    private var paginationWithParameters: [TourParameters : TRPTourPagination] = [:]
+    /// Full responses cached alongside `toursWithParameters` so a cache hit returns the same
+    /// products, facets and pagination as the network response it replays.
+    private var outcomesWithParameters: [TourParameters : TRPTourSearchOutcome] = [:]
 
     public var remoteApi: TourRemoteApi
 
@@ -39,9 +39,7 @@ final public class TRPTourRepository: TourRepository {
         let checkWithParams = checkParameters(parametersWithCity)
 
         if let toursInCache = checkWithParams.tours, checkWithParams.continue == false {
-            completion(.success(TRPTourSearchOutcome(products: toursInCache,
-                                                    facets: nil,
-                                                    pagination: paginationWithParameters[parametersWithCity])))
+            completion(.success(cachedOutcome(for: parametersWithCity, products: toursInCache)))
             return
         }
 
@@ -49,16 +47,12 @@ final public class TRPTourRepository: TourRepository {
             switch result {
             case .success(let outcome):
                 guard let strongSelf = self else { return }
-                let uniqueProducts = outcome.products.unique()
+                let uniqueOutcome = TRPTourSearchOutcome(products: outcome.products.unique(),
+                                                         facets: outcome.facets,
+                                                         pagination: outcome.pagination)
                 strongSelf.tours.append(contentsOf: outcome.products)
-
-                if strongSelf.USE_CACHE, !strongSelf.toursWithParameters.contains(where: { $0.key == parametersWithCity }) {
-                    strongSelf.toursWithParameters[parametersWithCity] = uniqueProducts
-                    strongSelf.paginationWithParameters[parametersWithCity] = outcome.pagination
-                }
-                completion(.success(TRPTourSearchOutcome(products: uniqueProducts,
-                                                        facets: outcome.facets,
-                                                        pagination: outcome.pagination)))
+                strongSelf.storeInCache(uniqueOutcome, for: parametersWithCity)
+                completion(.success(uniqueOutcome))
             case .failure(let error):
                 completion(.failure(error))
             }
@@ -75,7 +69,7 @@ final public class TRPTourRepository: TourRepository {
         let checkWithParams = checkParameters(parametersWithCity)
 
         if let toursInCache = checkWithParams.tours, checkWithParams.continue == false {
-            completion(.success(TRPTourSearchOutcome(products: toursInCache, facets: nil)))
+            completion(.success(cachedOutcome(for: parametersWithCity, products: toursInCache)))
             return
         }
 
@@ -83,13 +77,12 @@ final public class TRPTourRepository: TourRepository {
             switch result {
             case .success(let outcome):
                 guard let strongSelf = self else { return }
-                let uniqueProducts = outcome.products.unique()
+                let uniqueOutcome = TRPTourSearchOutcome(products: outcome.products.unique(),
+                                                         facets: outcome.facets,
+                                                         pagination: outcome.pagination)
                 strongSelf.tours.append(contentsOf: outcome.products)
-
-                if strongSelf.USE_CACHE, !strongSelf.toursWithParameters.contains(where: { $0.key == parametersWithCity }) {
-                    strongSelf.toursWithParameters[parametersWithCity] = uniqueProducts
-                }
-                completion(.success(TRPTourSearchOutcome(products: uniqueProducts, facets: outcome.facets)))
+                strongSelf.storeInCache(uniqueOutcome, for: parametersWithCity)
+                completion(.success(uniqueOutcome))
             case .failure(let error):
                 completion(.failure(error))
             }
@@ -143,5 +136,20 @@ extension TRPTourRepository {
             return (toursWithParameters[parameters] ?? [], false)
         }
         return (nil, true)
+    }
+
+    /// Replays the cached response for `parameters`; `products` wins when `toursWithParameters`
+    /// was set without a matching response.
+    private func cachedOutcome(for parameters: TourParameters, products: [TRPTourProduct]) -> TRPTourSearchOutcome {
+        let outcome = outcomesWithParameters[parameters]
+        return TRPTourSearchOutcome(products: products,
+                                    facets: outcome?.facets,
+                                    pagination: outcome?.pagination)
+    }
+
+    private func storeInCache(_ outcome: TRPTourSearchOutcome, for parameters: TourParameters) {
+        guard USE_CACHE, !toursWithParameters.contains(where: { $0.key == parameters }) else { return }
+        toursWithParameters[parameters] = outcome.products
+        outcomesWithParameters[parameters] = outcome
     }
 }
