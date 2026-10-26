@@ -32,6 +32,29 @@ private final class FakeTourRepository: TourRepository {
     func getTourScheduleAvailability(items: [String], date: String, currency: String?, lang: String?, completion: @escaping (Result<[TRPTourScheduleAvailability], Error>) -> Void) {}
 }
 
+/// Remote API whose searches are resolved by the test, so a real `TRPTourRepository` cache
+/// sits between it and the view model.
+private final class CapturingTourRemoteApi: TourRemoteApi {
+    struct Call {
+        let parameters: TourParameters
+        let completion: (TourResultsValue) -> Void
+    }
+
+    var capturedCalls: [Call] = []
+
+    func fetchTours(cityId: Int, parameters: TourParameters, completion: @escaping (TourResultsValue) -> Void) {
+        capturedCalls.append(Call(parameters: parameters, completion: completion))
+    }
+
+    func fetchTours(coordinate: TRPLocation, parameters: TourParameters, completion: @escaping (TourResultsValue) -> Void) {}
+
+    func getTourSchedule(productId: String, date: String, to: String?, currency: String, lang: String, completion: @escaping (Result<TRPTourSchedule, Error>) -> Void) {}
+
+    func lookupTourProduct(providerId: Int, productId: String, completion: @escaping (TourResultValue) -> Void) {}
+
+    func getTourScheduleAvailability(items: [String], date: String, currency: String?, lang: String?, completion: @escaping (Result<[TRPTourScheduleAvailability], Error>) -> Void) {}
+}
+
 private final class FakeAddPlanActivityListingDelegate: AddPlanActivityListingViewModelDelegate {
     var loadCount = 0
     var failures: [Error] = []
@@ -65,7 +88,7 @@ final class AddPlanActivityListingServerSearchTests: XCTestCase {
         }
     }
 
-    private func makeViewModel(repository: FakeTourRepository, delegate: FakeAddPlanActivityListingDelegate) -> AddPlanActivityListingViewModel {
+    private func makeViewModel(repository: TourRepository, delegate: FakeAddPlanActivityListingDelegate) -> AddPlanActivityListingViewModel {
         var planData = AddPlanData()
         planData.selectedCity = city
         planData.selectedDay = selectedDay
@@ -191,6 +214,62 @@ final class AddPlanActivityListingServerSearchTests: XCTestCase {
         XCTAssertEqual(repository.capturedCalls.count, 2)
     }
 
+    func testSearchTextIsTrimmedBeforeSending() {
+        let repository = FakeTourRepository()
+        let delegate = FakeAddPlanActivityListingDelegate()
+        let viewModel = makeViewModel(repository: repository, delegate: delegate)
+
+        viewModel.performInitialSearch()
+        repository.capturedCalls[0].completion(success(count: 3, total: 3))
+
+        viewModel.updateSearchText("  museum \n")
+
+        XCTAssertEqual(repository.capturedCalls.count, 2)
+        XCTAssertEqual(repository.capturedCalls[1].parameters.search, "museum")
+    }
+
+    func testWhitespaceOnlySearchTextSendsBaseQuery() {
+        let repository = FakeTourRepository()
+        let delegate = FakeAddPlanActivityListingDelegate()
+        let viewModel = makeViewModel(repository: repository, delegate: delegate)
+
+        viewModel.performInitialSearch()
+        repository.capturedCalls[0].completion(success(count: 3, total: 3))
+
+        viewModel.updateSearchText(" \n\t ")
+
+        XCTAssertEqual(repository.capturedCalls.count, 2)
+        XCTAssertNil(repository.capturedCalls[1].parameters.search)
+        XCTAssertEqual(repository.capturedCalls[1].parameters, repository.capturedCalls[0].parameters)
+    }
+
+    func testClearingSearchServedFromCacheRebuildsBaseChipStrip() {
+        let remote = CapturingTourRemoteApi()
+        let delegate = FakeAddPlanActivityListingDelegate()
+        let viewModel = makeViewModel(repository: TRPTourRepository(remoteApi: remote), delegate: delegate)
+
+        viewModel.performInitialSearch()
+        XCTAssertEqual(remote.capturedCalls.count, 1)
+        remote.capturedCalls[0].completion(
+            success(count: 3, total: 3, categories: [categoryFacet("a"), categoryFacet("b"), categoryFacet("c")])
+        )
+        XCTAssertEqual(viewModel.facetCategories.map { $0.id }, ["a", "b", "c"])
+
+        viewModel.updateSearchText("x")
+        XCTAssertEqual(remote.capturedCalls.count, 2)
+        remote.capturedCalls[1].completion(success(count: 1, total: 1, prefix: "x", categories: [categoryFacet("a")]))
+        XCTAssertEqual(viewModel.facetCategories.map { $0.id }, ["a"])
+        delegate.facetsDidLoadCount = 0
+
+        viewModel.updateSearchText("")
+
+        XCTAssertEqual(remote.capturedCalls.count, 2)
+        XCTAssertEqual(viewModel.facetCategories.map { $0.id }, ["a", "b", "c"])
+        XCTAssertEqual(delegate.facetsDidLoadCount, 1)
+        XCTAssertEqual(viewModel.getActivities().count, 3)
+        XCTAssertEqual(viewModel.getActivityCount(), 3)
+    }
+
     // MARK: - Filter and sort
 
     func testUpdateFilterDataTriggersFetchWithFilterBounds() {
@@ -281,6 +360,23 @@ final class AddPlanActivityListingServerSearchTests: XCTestCase {
         repository.capturedCalls[2].completion(success(count: 1, total: 1, categories: [categoryFacet("a"), categoryFacet("c")]))
         XCTAssertEqual(viewModel.facetCategories.map { $0.id }, ["a", "c"])
         XCTAssertEqual(delegate.facetsDidLoadCount, 3)
+    }
+
+    func testSelectedCategoryIdsAreSentSorted() {
+        let repository = FakeTourRepository()
+        let delegate = FakeAddPlanActivityListingDelegate()
+        let viewModel = makeViewModel(repository: repository, delegate: delegate)
+
+        viewModel.selectedFacetCategoryIds = ["zoo", "art", "museum", "boat"]
+        viewModel.performInitialSearch()
+        viewModel.updateSortOption(.priceLowToHigh)
+        viewModel.updateSortOption(.popularity)
+
+        XCTAssertEqual(repository.capturedCalls.count, 3)
+        repository.capturedCalls.forEach { call in
+            XCTAssertEqual(call.parameters.categoryIds, ["art", "boat", "museum", "zoo"])
+        }
+        XCTAssertEqual(repository.capturedCalls[2].parameters, repository.capturedCalls[0].parameters)
     }
 
     func testResponseToCategoryFilteredRequestDoesNotChangeChipStrip() {
