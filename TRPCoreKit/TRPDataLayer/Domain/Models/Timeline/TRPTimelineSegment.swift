@@ -82,7 +82,21 @@ public class TRPCreateEditTimelineSegmentProfile: TRPTimelineSegment {
     
     public var tripHash: String = ""
     public var segmentIndex: Int?
-    
+
+    /// Backend regeneration flag: 0 on create (no `segmentIndex`), 0 when updating a booked or reserved activity segment, 1 on every other update (itinerary, manual POI); assignments are ignored.
+    public override var doNotGenerate: Int {
+        get {
+            guard segmentIndex != nil else { return 0 }
+            switch segmentType {
+            case .bookedActivity, .reservedActivity:
+                return 0
+            case .itinerary, .manualPoi:
+                return 1
+            }
+        }
+        set { }
+    }
+
     public init(tripHash: String) {
         super.init()
         self.tripHash = tripHash
@@ -129,7 +143,6 @@ extension TRPCreateEditTimelineSegmentProfile {
         self.activityIds           = base.activityIds
         self.smartRecommendation   = base.smartRecommendation
         self.excludedActivityIds   = base.excludedActivityIds
-        self.doNotGenerate         = base.doNotGenerate
 
         // Manual POI properties
         self.poiId                 = base.poiId
