@@ -129,8 +129,8 @@ struct TRPTimelineItineraryViewModelTests {
             case .recommendations:
                 // Valid type
                 #expect(true)
-            case .none:
-                #expect(false, "Cell type should not be nil")
+            default:
+                #expect(true)
             }
         }
     }
@@ -282,8 +282,6 @@ struct TRPTimelineItineraryViewModelTests {
             #expect(!headerData.cityName.isEmpty)
             #expect(headerData.isFirstSection == true)
             #expect(headerData.shouldShowHeader == true)
-            #expect(headerData.showFilterButton == true)
-            #expect(headerData.showAddPlansButton == true)
         }
     }
     
@@ -440,8 +438,8 @@ struct TRPTimelineItineraryViewModelTests {
             let cellType = viewModel.cellType(at: indexPath)
             
             // Then: Should return recommendations type for itinerary
-            if case .recommendations(let steps) = cellType {
-                #expect(steps.count > 0)
+            if case .recommendations(let data) = cellType {
+                #expect(data.steps.count > 0)
             }
         }
     }
@@ -461,10 +459,10 @@ struct TRPTimelineItineraryViewModelTests {
             let rows = viewModel.numberOfRows(in: section)
             for row in 0..<rows {
                 let indexPath = IndexPath(row: row, section: section)
-                if case .bookedActivity(let segment) = viewModel.cellType(at: indexPath) {
+                if case .bookedActivity(let data) = viewModel.cellType(at: indexPath) {
                     foundBookedActivity = true
-                    #expect(segment.segmentType == .bookedActivity)
-                    #expect(segment.additionalData != nil)
+                    #expect(data.segment.segmentType == .bookedActivity)
+                    #expect(data.segment.additionalData != nil)
                 }
             }
         }

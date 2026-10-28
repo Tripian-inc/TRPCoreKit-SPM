@@ -83,6 +83,13 @@ extension TRPTimelineItineraryViewModel {
         return mergedItems
     }
 
+    /// The merged item whose plan holds `step`; `nil` when no displayed plan contains it.
+    internal func mergedItem(containing step: TRPTimelineStep) -> TRPMergedTimelineItem? {
+        return mergedTimeline?.allItems.first { item in
+            item.plan?.steps.contains { $0.id == step.id } == true
+        }
+    }
+
     /// Empty placeholder segments cover the full trip date range and are not displayed.
     internal func isEmptyPlaceholderSegment(_ segment: TRPTimelineSegment) -> Bool {
         return segment.title == "Empty" && segment.available == false

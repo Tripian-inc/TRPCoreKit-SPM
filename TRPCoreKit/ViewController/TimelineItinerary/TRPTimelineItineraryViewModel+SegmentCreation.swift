@@ -314,12 +314,10 @@ extension TRPTimelineItineraryViewModel {
                             self.delegate?.viewModel(hideLottie: .bottomSheet)
                         }
                     } else {
-                        self.delegate?.viewModel(hideLottie: .bottomSheet)
-                        self.delegate?.viewModel(error: NSError(domain: "Timeline", code: -1, userInfo: [NSLocalizedDescriptionKey: "Failed to remove segment"]))
+                        self.hideBottomSheetLottie(thenShow: NSError(domain: "Timeline", code: -1, userInfo: [NSLocalizedDescriptionKey: "Failed to remove segment"]))
                     }
                 case .failure(let error):
-                    self.delegate?.viewModel(hideLottie: .bottomSheet)
-                    self.delegate?.viewModel(error: error)
+                    self.hideBottomSheetLottie(thenShow: error)
                 }
             }
         }
