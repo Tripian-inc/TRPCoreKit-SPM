@@ -351,8 +351,12 @@ public class TRPLottieLoadingVC: UIViewController {
         return showAsSheet(over: presenter, textMode: .single(text))
     }
 
-    /// Dismisses the loading view controller
+    /// Dismisses the loading view controller; `completion` runs right away when it is not presented.
     public func hide(completion: (() -> Void)? = nil) {
+        guard presentingViewController != nil else {
+            completion?()
+            return
+        }
         dismiss(animated: true, completion: completion)
     }
 

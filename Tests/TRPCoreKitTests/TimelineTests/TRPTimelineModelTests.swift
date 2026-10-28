@@ -231,8 +231,11 @@ struct TRPTimelineModelTests {
         }
         
         // When: Getting start date
-        let startDate = plan.getStartDate()
-        
+        guard let startDate = plan.getStartDate() else {
+            #expect(false, "Start date should exist")
+            return
+        }
+
         // Then: Should return valid date
         #expect(startDate.timeIntervalSince1970 > 0)
     }
@@ -247,10 +250,12 @@ struct TRPTimelineModelTests {
         }
         
         // When: Getting end date
-        let endDate = plan.getEndDate()
-        
+        guard let endDate = plan.getEndDate(), let startDate = plan.getStartDate() else {
+            #expect(false, "Start and end dates should exist")
+            return
+        }
+
         // Then: Should return valid date after start date
-        let startDate = plan.getStartDate()
         #expect(endDate >= startDate)
     }
     
@@ -393,8 +398,8 @@ struct TRPTimelineModelTests {
         #expect(!poi.id.isEmpty)
         #expect(!poi.name.isEmpty)
         #expect(poi.cityId == 109)
-        #expect(poi.coordinate.lat != 0)
-        #expect(poi.coordinate.lon != 0)
+        #expect(poi.coordinate?.lat != 0)
+        #expect(poi.coordinate?.lon != 0)
         #expect(poi.categories.count > 0)
     }
     
@@ -434,7 +439,7 @@ struct TRPTimelineModelTests {
         for segment in bookedSegments! {
             #expect(segment.segmentType == .bookedActivity)
             #expect(segment.additionalData != nil)
-            #expect(!segment.additionalData!.activityId.isEmpty)
+            #expect(!(segment.additionalData!.activityId ?? "").isEmpty)
         }
     }
     
@@ -475,11 +480,10 @@ struct TRPTimelineModelTests {
         // Then: Additional data should be complete
         #expect(additionalData.activityId == "COOK-BCN-001")
         #expect(additionalData.bookingId == "BOOKING-12345-BCN")
-        #expect(!additionalData.title.isEmpty)
-        #expect(!additionalData.description.isEmpty)
-        #expect(!additionalData.startDatetime.isEmpty)
-        #expect(!additionalData.endDatetime.isEmpty)
-        #expect(additionalData.coordinate != nil)
+        #expect(!(additionalData.title ?? "").isEmpty)
+        #expect(!(additionalData.description ?? "").isEmpty)
+        #expect(!(additionalData.startDatetime ?? "").isEmpty)
+        #expect(!(additionalData.endDatetime ?? "").isEmpty)
         #expect(additionalData.adultCount > 0)
     }
     

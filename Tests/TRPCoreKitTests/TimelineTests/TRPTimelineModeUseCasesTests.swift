@@ -256,8 +256,8 @@ struct TRPTimelineModeUseCasesTests {
         
         let customPoi = TRPTimelineStepCustomPoi(
             name: "Custom Restaurant",
-            address: "Custom Address, Barcelona",
-            coordinate: TRPLocation(lat: 41.3851, lon: 2.1734)
+            coordinate: TRPLocation(lat: 41.3851, lon: 2.1734),
+            address: "Custom Address, Barcelona"
         )
         
         // When: Adding a custom step
@@ -570,7 +570,7 @@ class MockTimelineStepRepository: TimelineStepRepository {
             id: Int.random(in: 100000...999999),
             poi: nil,
             score: 85.0,
-            planId: step.planId,
+            planId: String(step.planId),
             scoreDetails: [],
             order: 0,
             startDateTimes: "2025-12-07 \(step.startTime ?? "09:00"):00",
@@ -616,15 +616,39 @@ class MockTimelineModelRepository: TimelineModelRepository {
 
 /// Mock POI repository for testing
 class MockPoiRepository: PoiRepository {
+    var pois: [TRPPoi] = []
+    var poisWithParameters: [PoiParameters: [TRPPoi]] = [:]
+    var poiCategories: [TRPPoiCategoyGroup] = []
+
     func addPois(contentsOf pois: [TRPPoi]) {
         // Mock add - do nothing
     }
-    
-    func fetchPoi(cityId: Int, parameters: PoiParameters, completion: @escaping (Result<[TRPPoi], Error>, TRPPagination?) -> Void) {
+
+    func fetchPoi(cityId: Int, parameters: PoiParameters, completion: @escaping (PoiResultsValue) -> Void) {
         // Return mock POIs
         let timeline = TRPTimelineMockData.getMockTimeline()
         let pois = timeline.getPois()
-        completion(.success(pois), nil)
+        completion((.success(pois), nil))
+    }
+
+    func fetchPoi(poiId: String, completion: @escaping (PoiResultValue) -> Void) {
+        completion(.failure(NSError(domain: "Mock", code: 404, userInfo: [NSLocalizedDescriptionKey: "Poi not found"])))
+    }
+
+    func fetchPoi(coordinate: TRPLocation, parameters: PoiParameters, completion: @escaping (PoiResultsValue) -> Void) {
+        completion((.success([]), nil))
+    }
+
+    func fetchPoi(url: String, completion: @escaping (PoiResultsValue) -> Void) {
+        completion((.success([]), nil))
+    }
+
+    func fetchLocalPoi(completion: @escaping (PoiResultsValue) -> Void) {
+        completion((.success(pois), nil))
+    }
+
+    func fetchPoiCategories(completion: @escaping (PoiCategoriesResultValue) -> Void) {
+        completion(.success(poiCategories))
     }
 }
 
