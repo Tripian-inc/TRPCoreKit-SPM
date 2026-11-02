@@ -141,6 +141,7 @@ final class BookingDetailViewController: BookingBaseViewController {
     private let lang: String
     private let layout = BookingScrollLayout()
     private let formatting = BookingFormatting()
+    private lazy var cancelPrompt = BookingCancelPrompt(text: text, formatting: formatting)
 
     init(booking: BookingContract.Booking, client: BookingClient, lang: String, theme: TRPBookingTheme, text: TRPBookingText) {
         self.booking = booking
@@ -215,23 +216,7 @@ final class BookingDetailViewController: BookingBaseViewController {
     }
 
     private var policyText: String? {
-        guard booking.cancellation.allowed else { return nil }
-        var parts: [String] = []
-        if let deadline = booking.cancellation.deadline.flatMap(CheckoutDeadline.date(from:)) {
-            parts.append(text(.cancelUntil, DateFormatter.localizedString(from: deadline, dateStyle: .medium, timeStyle: .short)))
-        }
-        parts.append(refundText)
-        return parts.joined(separator: "\n")
-    }
-
-    private var refundText: String {
-        switch booking.cancellation.refund.value {
-        case .none: return text(.cancelQuoteNoRefund)
-        case .full: return text(.cancelQuoteMessage, formatting.price(booking.amount) ?? booking.amount.amount)
-        case .partial, .unknown:
-            guard let amount = formatting.price(booking.cancellation.refundAmount) else { return text(.cancelQuoteNoRefund) }
-            return text(.cancelQuoteMessage, amount)
-        }
+        cancelPrompt.policy(for: booking, cancellation: booking.cancellation)
     }
 
     private func showCancelled() {
@@ -246,10 +231,30 @@ final class BookingDetailViewController: BookingBaseViewController {
     }
 
     @objc private func confirmCancel() {
-        let alert = UIAlertController(title: text(.cancelBooking), message: refundText, preferredStyle: .alert)
-        alert.addAction(UIAlertAction(title: text(.stay), style: .cancel))
-        alert.addAction(UIAlertAction(title: text(.cancelConfirm), style: .destructive) { [weak self] _ in self?.cancelBooking() })
-        present(alert, animated: true)
+        guard client is BookingCancellationQuoting else {
+            presentCancelPrompt()
+            return
+        }
+        setLoading(true)
+        Task { @MainActor [weak self, client, booking] in
+            let quoted = await BookingCancelPrompt.cancellation(for: booking, client: client)
+            guard let self else { return }
+            self.setLoading(false)
+            self.update(BookingCancelPrompt.booking(self.booking, with: quoted))
+            self.presentCancelPrompt()
+        }
+    }
+
+    private func presentCancelPrompt() {
+        switch cancelPrompt.outcome(for: booking, cancellation: booking.cancellation) {
+        case .notCancellable(let message):
+            show(message: message)
+        case .confirm(let message):
+            let alert = UIAlertController(title: text(.cancelBooking), message: message, preferredStyle: .alert)
+            alert.addAction(UIAlertAction(title: text(.stay), style: .cancel))
+            alert.addAction(UIAlertAction(title: text(.cancelConfirm), style: .destructive) { [weak self] _ in self?.cancelBooking() })
+            present(alert, animated: true)
+        }
     }
 
     private func cancelBooking() {
