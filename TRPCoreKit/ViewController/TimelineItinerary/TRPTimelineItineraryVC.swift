@@ -40,6 +40,9 @@ public class TRPTimelineItineraryVC: TRPBaseUIViewController {
     /// entry point is "add something to this day" rather than "look at this day", which would
     /// otherwise have to wait for the screen to load before it could ask.
     public var opensAddPlanWhenReady: Bool = false
+
+    /// Ends the timeline in place of the screen dismissing itself; set by the coordinator that presented it.
+    var onClose: (() -> Void)?
     internal var map: TRPMapView?
     internal var hasLoadedInitialMapData: Bool = false
     /// Bumped on every route redraw so late completions from a previous day are dropped.

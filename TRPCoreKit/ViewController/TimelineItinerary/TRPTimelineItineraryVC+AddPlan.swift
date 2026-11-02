@@ -215,11 +215,7 @@ extension TRPTimelineItineraryVC: TRPTimelineItineraryViewModelDelegate {
 extension TRPTimelineItineraryVC: TRPNoCityViewDelegate {
 
     func noCityViewDidTapButton(_ view: TRPNoCityView) {
-        if let navController = navigationController {
-            navController.dismiss(animated: true, completion: nil)
-        } else {
-            dismiss(animated: true, completion: nil)
-        }
+        close()
     }
 }
 

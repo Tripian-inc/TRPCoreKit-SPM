@@ -499,8 +499,14 @@ extension TRPTimelineItineraryVC: TRPTimelineCustomNavigationBarDelegate {
             return
         }
 
-        // This is the root screen, so back closes the SDK by dismissing the nav controller.
-        if let navController = navigationController {
+        close()
+    }
+
+    /// Closes the timeline through `onClose` when it is set, otherwise by dismissing the screen's navigation controller.
+    func close() {
+        if let onClose {
+            onClose()
+        } else if let navController = navigationController {
             navController.dismiss(animated: true, completion: nil)
         } else {
             dismiss(animated: true, completion: nil)

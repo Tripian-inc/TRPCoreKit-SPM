@@ -184,6 +184,13 @@ public class TRPTimelineCoordinator: CoordinatorProtocol {
         let viewController = TRPTimelineItineraryVC(viewModel: viewModel)
         viewController.delegate = self
         viewController.opensAddPlanWhenReady = opensAddPlan
+        viewController.onClose = { [weak self, weak viewController] in
+            if let self {
+                self.closeTimeline()
+            } else {
+                (viewController?.navigationController ?? viewController)?.dismiss(animated: true)
+            }
+        }
         opensAddPlan = false
 
         self.timelineViewController = viewController
@@ -300,7 +307,14 @@ extension TRPTimelineCoordinator: TRPTimelineItineraryVCDelegate {
 extension TRPTimelineCoordinator: TRPTimelineCustomNavigationBarDelegate {
 
     func customNavigationBarDidTapBack(_ navigationBar: TRPTimelineCustomNavigationBar) {
-        timelineViewController?.dismiss(animated: true) { [weak self] in
+        closeTimeline()
+    }
+
+    /// Dismisses the timeline's navigation controller and tells the delegate once; a close while one is under way is ignored.
+    func closeTimeline() {
+        guard let timeline = timelineViewController.map({ $0.navigationController ?? $0 }),
+              timeline.presentingViewController != nil, !timeline.isBeingDismissed else { return }
+        timeline.dismiss(animated: true) { [weak self] in
             guard let self = self else { return }
             self.delegate?.timelineCoordinatorDidClose(self)
         }
