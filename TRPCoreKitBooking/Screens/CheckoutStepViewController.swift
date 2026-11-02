@@ -60,10 +60,11 @@ final class CheckoutStepViewController: BookingBaseViewController {
         clearProblems()
         var unplaced: [String] = []
         for error in fieldErrors {
+            let message = text.message(for: error)
             if let row = rowViews[error.field] as? BookingInputRowView {
-                row.show(problem: error.message)
+                row.show(problem: message)
             } else {
-                unplaced.append(error.message)
+                unplaced.append(message)
             }
         }
         if !unplaced.isEmpty { show(message: unplaced.joined(separator: "\n")) }

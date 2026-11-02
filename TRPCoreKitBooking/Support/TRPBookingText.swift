@@ -1,4 +1,5 @@
 import Foundation
+import TRPBookingKit
 
 /// A piece of user-facing text: the key the host translates and the English used until it does.
 public struct TRPBookingTextKey: Hashable, Sendable {
@@ -33,6 +34,13 @@ public struct TRPBookingText {
     func callAsFunction(_ key: TRPBookingTextKey, _ arguments: CVarArg...) -> String {
         String(format: self(key), arguments: arguments)
     }
+
+    /// The text for a field error: the translation of `booking_error_<code>` with the error's message as fallback,
+    /// or the message itself when the error has no code.
+    func message(for error: BookingContract.ErrorData.FieldError) -> String {
+        guard let code = error.code, !code.isEmpty else { return error.message }
+        return self(TRPBookingTextKey("booking_error_\(code)", error.message))
+    }
 }
 
 extension TRPBookingTextKey {
@@ -47,8 +55,36 @@ extension TRPBookingTextKey {
          pendingMessage, failureTitle, reference, voucher, meetingPoint, cancellationPolicy, cancelUntil, refund,
          bookingsEmpty, loadMore, refreshStatus, cancelBooking, cancelQuoteMessage, cancelQuoteNoRefund, cancelConfirm,
          cancelDone, notCancellable, statusOnHold, statusConfirmed, statusPending, statusExpired, statusCancelled,
-         statusRejected, paymentCanceledTitle, paymentCanceledMessage, hostedCheckoutDone]
+         statusRejected, paymentCanceledTitle, paymentCanceledMessage, hostedCheckoutDone] + fieldErrors
     }
+
+    /// The field error codes the booking kit's local flows send, keyed `booking_error_<code>`.
+    static let fieldErrors: [TRPBookingTextKey] = [
+        TRPBookingTextKey("booking_error_product_not_bookable", "This product cannot be booked in the app."),
+        TRPBookingTextKey("booking_error_missing_date", "Choose one of the available dates."),
+        TRPBookingTextKey("booking_error_missing_time", "Choose a start time."),
+        TRPBookingTextKey("booking_error_missing_rate", "Choose a rate."),
+        TRPBookingTextKey("booking_error_missing_option", "Choose a tour and time."),
+        TRPBookingTextKey("booking_error_missing_seats", "Choose available seats."),
+        TRPBookingTextKey("booking_error_missing_tickets", "Choose available tickets."),
+        TRPBookingTextKey("booking_error_invalid_units", "Choose a valid number of travelers."),
+        TRPBookingTextKey("booking_error_invalid_ticket_quantity", "Choose a quantity these tickets are sold in."),
+        TRPBookingTextKey("booking_error_required_first_name", "Enter a first name."),
+        TRPBookingTextKey("booking_error_required_last_name", "Enter a last name."),
+        TRPBookingTextKey("booking_error_required_email", "Enter an email address."),
+        TRPBookingTextKey("booking_error_invalid_email", "Enter a valid email address."),
+        TRPBookingTextKey("booking_error_required_phone", "Enter a phone number."),
+        TRPBookingTextKey("booking_error_required_traveler_name", "Enter the traveler's full name."),
+        TRPBookingTextKey("booking_error_required_traveler_birth_date", "Enter the traveler's date of birth."),
+        TRPBookingTextKey("booking_error_required_billing_address", "Enter the billing address."),
+        TRPBookingTextKey("booking_error_required_billing_city", "Enter the city."),
+        TRPBookingTextKey("booking_error_required_billing_postal_code", "Enter the postal code."),
+        TRPBookingTextKey("booking_error_required_billing_country", "Choose the country."),
+        TRPBookingTextKey("booking_error_required_billing_state", "Choose the state."),
+        TRPBookingTextKey("booking_error_required_terms", "Please accept the terms to continue."),
+        TRPBookingTextKey("booking_error_missing_payment_token", "The payment form returned no token."),
+        TRPBookingTextKey("booking_error_invalid_answer", "Check your answers and try again.")
+    ]
 
     static let bookTitle = TRPBookingTextKey("booking_title", "Book")
     static let myBookingsTitle = TRPBookingTextKey("booking_my_bookings", "My bookings")
