@@ -8,9 +8,16 @@
 
 import Foundation
 
+/// Where `TRPCityCache` keeps its list between launches.
+protocol TRPCityStoring {
+    func load() -> (cities: [TRPCity], fetchedAt: Date)?
+    func save(_ cities: [TRPCity], at date: Date)
+    func clear()
+}
+
 /// Persists the city list on disk so a cold launch can serve `TRPCityCache`
 /// without waiting for the network. Backing file lives in the caches directory.
-final class TRPCityStorage {
+final class TRPCityStorage: TRPCityStoring {
     static let shared = TRPCityStorage()
 
     private struct CachedCities: Codable {
