@@ -28,7 +28,7 @@ let package = Package(
         .package(url: "https://github.com/Tripian-inc/TRPRestKit.git", branch: "master"),
         .package(url: "https://github.com/airbnb/lottie-ios.git", from: "4.4.0"),
         .package(url: "https://github.com/pointfreeco/swift-snapshot-testing", from: "1.17.0"),
-        .package(url: "https://github.com/Tripian-inc/TRPBookingKit.git", branch: "cruise-genie"),
+        .package(url: "https://github.com/Tripian-inc/TRPBookingKit.git", branch: "main"),
 //        .package(url: "https://github.com/mapbox/mapbox-events-ios.git", from: "2.0.0"),
     ],
     targets: [
