@@ -40,4 +40,9 @@ enum NexusTripStore {
         guard isNexusFlow else { return }
         self.tripHash = tripHash
     }
+
+    /// Forgets the stored tripHash so the next open creates a fresh timeline.
+    static func clear() {
+        tripHash = nil
+    }
 }

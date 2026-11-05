@@ -347,10 +347,11 @@ extension TRPSDKCoordinater {
     /// Nexus-specific data processing, run after the splash's light-login. Parses
     /// the host-sent reservations, then:
     ///  - no reservations → My Plans / create-from-scratch;
-    ///  - reservations + a stored timeline whose booked/reserved segments share at
-    ///    least one activityId with the incoming reservations → RESUME it (the
-    ///    fetch+reconcile path syncs: adds new, drops out-of-range/removed-city);
-    ///  - otherwise (no stored timeline, unreachable, or zero overlap) → CREATE new.
+    ///  - reservations + a stored timeline whose date range overlaps the itinerary's
+    ///    → RESUME it (the fetch+reconcile path syncs: adds new, drops
+    ///    out-of-range/removed-city);
+    ///  - stored timeline whose dates do not overlap → clear the stored hash, CREATE new;
+    ///  - no stored timeline or unreachable → CREATE new.
     private func routeNexusEntry() {
         let reservations = pendingNexusReservations
         pendingNexusReservations = nil
@@ -371,33 +372,25 @@ extension TRPSDKCoordinater {
             TRPTimelineRepository().fetchTimeline(tripHash: storedHash) { [weak self] result in
                 guard let self = self else { return }
                 DispatchQueue.main.async {
-                    switch result {
-                    case .success(let existing) where self.reservationsOverlap(itinerary: itinerary, existing: existing):
+                    let decision = NexusResumePolicy.decide(fetchResult: result, itinerary: itinerary)
+                    if decision != .create {
+                        print("[NexusSDK] resume gate: dates overlap=\(decision == .resume)")
+                    }
+                    switch decision {
+                    case .resume:
                         self.logSdkOpened(entry: "resume", reservationCount: reservationCount, tripHash: storedHash)
                         self.openNexusTimeline(itinerary: itinerary, tripHash: storedHash, keepMyPlansRoot: false)
-                    default:
+                    case .recreate:
+                        NexusTripStore.clear()
+                        self.logSdkOpened(entry: "create", reservationCount: reservationCount)
+                        self.openNexusTimeline(itinerary: itinerary, tripHash: nil, keepMyPlansRoot: false)
+                    case .create:
                         self.logSdkOpened(entry: "create", reservationCount: reservationCount)
                         self.openNexusTimeline(itinerary: itinerary, tripHash: nil, keepMyPlansRoot: false)
                     }
                 }
             }
         }
-    }
-
-    /// Resume gate: true when ≥1 incoming reservation activityId is already a
-    /// booked/reserved segment in the stored timeline.
-    private func reservationsOverlap(itinerary: TRPItineraryWithActivities, existing: TRPTimeline) -> Bool {
-        let incoming = Set((itinerary.tripItems ?? []).compactMap { $0.activityId?.trp_activityMatchKey() })
-        guard !incoming.isEmpty else { return false }
-
-        var existingIds = Set<String>()
-        for segment in (existing.segments ?? []) {
-            if let id = segment.additionalData?.activityId { existingIds.insert(id.trp_activityMatchKey()) }
-        }
-        for segment in (existing.tripProfile?.segments ?? []) {
-            if let id = segment.additionalData?.activityId { existingIds.insert(id.trp_activityMatchKey()) }
-        }
-        return !incoming.isDisjoint(with: existingIds)
     }
 
     private func logSdkOpened(entry: String, reservationCount: Int, tripHash: String? = nil) {
