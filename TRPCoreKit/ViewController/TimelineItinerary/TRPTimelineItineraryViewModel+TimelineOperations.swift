@@ -816,6 +816,7 @@ extension TRPTimelineItineraryViewModel {
 
         enum Reason {
             case reservedNowBooked   // reserved activity that host now reports as booked
+            case notInHostReservations // booked activity the host no longer reports
             case cityRemoved         // segment's city is not in the incoming destinations
             case outOfDateRange      // segment's day falls outside the new trip range
         }
@@ -838,6 +839,24 @@ extension TRPTimelineItineraryViewModel {
         guard let tripItems = itinerary.tripItems, !tripItems.isEmpty else { return [] }
         return BookedActivityPairing.pairReserved(tripItems: tripItems, segments: segments).pairs.map {
             SegmentRemovalCandidate(index: $0.storedIndex, segment: segments[$0.storedIndex], reason: .reservedNowBooked)
+        }
+    }
+
+    /// Booked activities with an activity id that pair with no host trip item (see `BookedActivityPairing.pairBooked`),
+    /// i.e. the booking was cancelled on the host. Skipped entirely when no trip item carries an activity id. Pure: no mutation, no I/O.
+    internal func collectBookedSegmentsMissingFromHost(
+        in segments: [TRPTimelineSegment],
+        itinerary: TRPItineraryWithActivities
+    ) -> [SegmentRemovalCandidate] {
+        guard let missing = BookedActivityPairing.bookedSegmentsMissingFromHost(
+            tripItems: itinerary.tripItems ?? [],
+            segments: segments
+        ) else {
+            print("🔁 [Reconcile] notInHostReservations skipped: host trip items carry no activity id")
+            return []
+        }
+        return missing.map {
+            SegmentRemovalCandidate(index: $0, segment: segments[$0], reason: .notInHostReservations)
         }
     }
 
@@ -913,13 +932,14 @@ extension TRPTimelineItineraryViewModel {
         }
 
         let reserved = collectReservedNowBookedSegments(in: segments, itinerary: itinerary)
+        let cancelled = collectBookedSegmentsMissingFromHost(in: segments, itinerary: itinerary)
         let cities   = collectSegmentsForRemovedCities(in: segments, itinerary: itinerary)
         let dates    = collectSegmentsOutOfDateRange(in: segments, itinerary: itinerary)
-        print("🔁 [Reconcile] candidates — reserved→booked: \(reserved.count), cityRemoved: \(cities.count), outOfDateRange: \(dates.count)")
+        print("🔁 [Reconcile] candidates — reserved→booked: \(reserved.count), notInHostReservations: \(cancelled.count), cityRemoved: \(cities.count), outOfDateRange: \(dates.count)")
 
         // Union by index (one DELETE per segment even if it matches multiple reasons); first-wins matches source priority above.
         var byIndex: [Int: SegmentRemovalCandidate] = [:]
-        for candidate in (reserved + cities + dates) where byIndex[candidate.index] == nil {
+        for candidate in (reserved + cancelled + cities + dates) where byIndex[candidate.index] == nil {
             byIndex[candidate.index] = candidate
         }
         let unified = byIndex.values.sorted { $0.index > $1.index }   // highest index first
@@ -962,6 +982,7 @@ extension TRPTimelineItineraryViewModel {
         let reasonTag: String
         switch candidate.reason {
         case .reservedNowBooked: reasonTag = "reservedNowBooked"
+        case .notInHostReservations: reasonTag = "notInHostReservations"
         case .cityRemoved:       reasonTag = "cityRemoved"
         case .outOfDateRange:    reasonTag = "outOfDateRange"
         }
