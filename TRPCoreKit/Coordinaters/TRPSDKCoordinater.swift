@@ -42,6 +42,7 @@ public class TRPSDKCoordinater {
     // light-login; the plugin performs no login/register itself.
     private var nexusFlow = false
     private var pendingNexusReservations: String?
+    private var nexusUniqueId: String?
     
     private var alertMessage: (title: String?, message: String)? {
         didSet {
@@ -336,8 +337,10 @@ extension TRPSDKCoordinater {
         // (uniqueId) + languages, exactly like startWithItinerary; afterwards
         // datasFetchCompleted() calls routeNexusEntry(). No register/plain login.
         pendingNexusReservations = reservations
+        nexusUniqueId = uniqueId
         nexusFlow = true
         NexusTripStore.isNexusFlow = true
+        NexusTripStore.activeUniqueId = uniqueId
         // Nexus uses the Juniper provider (id 7, "J_" activity-id prefix); all
         // provider-dependent code reads TRPCoreKit.shared.provider.
         TRPCoreKit.shared.provider = .nexus
@@ -354,6 +357,7 @@ extension TRPSDKCoordinater {
     ///  - no stored timeline or unreachable → CREATE new.
     private func routeNexusEntry() {
         let reservations = pendingNexusReservations
+        let uniqueId = nexusUniqueId
         pendingNexusReservations = nil
         NexusItineraryBuilder.build(reservationsJson: reservations) { [weak self] itinerary in
             guard let self = self else { return }
@@ -364,7 +368,7 @@ extension TRPSDKCoordinater {
                 return
             }
             let reservationCount = itinerary.tripItems?.count ?? 0
-            guard let storedHash = NexusTripStore.tripHash else {
+            guard let storedHash = NexusTripStore.tripHash(for: uniqueId) else {
                 self.logSdkOpened(entry: "create", reservationCount: reservationCount)
                 self.openNexusTimeline(itinerary: itinerary, tripHash: nil, keepMyPlansRoot: false)
                 return
@@ -381,7 +385,7 @@ extension TRPSDKCoordinater {
                         self.logSdkOpened(entry: "resume", reservationCount: reservationCount, tripHash: storedHash)
                         self.openNexusTimeline(itinerary: itinerary, tripHash: storedHash, keepMyPlansRoot: false)
                     case .recreate:
-                        NexusTripStore.clear()
+                        NexusTripStore.clear(for: uniqueId)
                         self.logSdkOpened(entry: "create", reservationCount: reservationCount)
                         self.openNexusTimeline(itinerary: itinerary, tripHash: nil, keepMyPlansRoot: false)
                     case .create:

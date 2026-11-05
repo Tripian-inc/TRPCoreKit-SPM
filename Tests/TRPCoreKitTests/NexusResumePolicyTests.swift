@@ -184,21 +184,23 @@ struct NexusResumePolicyTests {
 
     @Test("NexusTripStore.clear removes the stored hash")
     func testNexusTripStoreClearRemovesStoredHash() {
-        let previous = UserDefaults.standard.string(forKey: userDefaultsKey)
+        let uniqueId = "resume-policy-user"
+        let key = "\(userDefaultsKey).\(uniqueId)"
+        let previous = UserDefaults.standard.string(forKey: key)
         defer {
             if let previous {
-                UserDefaults.standard.set(previous, forKey: userDefaultsKey)
+                UserDefaults.standard.set(previous, forKey: key)
             } else {
-                UserDefaults.standard.removeObject(forKey: userDefaultsKey)
+                UserDefaults.standard.removeObject(forKey: key)
             }
         }
 
-        NexusTripStore.tripHash = "abc123"
-        #expect(UserDefaults.standard.string(forKey: userDefaultsKey) == "abc123")
+        NexusTripStore.setTripHash("abc123", for: uniqueId)
+        #expect(UserDefaults.standard.string(forKey: key) == "abc123")
 
-        NexusTripStore.clear()
+        NexusTripStore.clear(for: uniqueId)
 
-        #expect(UserDefaults.standard.string(forKey: userDefaultsKey) == nil)
-        #expect(NexusTripStore.tripHash == nil)
+        #expect(UserDefaults.standard.string(forKey: key) == nil)
+        #expect(NexusTripStore.tripHash(for: uniqueId) == nil)
     }
 }
