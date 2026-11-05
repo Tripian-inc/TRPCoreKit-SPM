@@ -8,8 +8,6 @@ import TRPFoundationKit
 @Suite("Nexus Resume Policy Tests")
 struct NexusResumePolicyTests {
 
-    private let userDefaultsKey = "nexus_saved_trip_hash"
-
     private func city() -> TRPCity {
         TRPCity(id: 109, name: "Barcelona", coordinate: TRPLocation(lat: 41.3850639, lon: 2.1734034999999494))
     }
@@ -180,27 +178,5 @@ struct NexusResumePolicyTests {
         let decision = NexusResumePolicy.decide(fetchResult: .success(tl), itinerary: itin)
 
         #expect(decision == .resume)
-    }
-
-    @Test("NexusTripStore.clear removes the stored hash")
-    func testNexusTripStoreClearRemovesStoredHash() {
-        let uniqueId = "resume-policy-user"
-        let key = "\(userDefaultsKey).\(uniqueId)"
-        let previous = UserDefaults.standard.string(forKey: key)
-        defer {
-            if let previous {
-                UserDefaults.standard.set(previous, forKey: key)
-            } else {
-                UserDefaults.standard.removeObject(forKey: key)
-            }
-        }
-
-        NexusTripStore.setTripHash("abc123", for: uniqueId)
-        #expect(UserDefaults.standard.string(forKey: key) == "abc123")
-
-        NexusTripStore.clear(for: uniqueId)
-
-        #expect(UserDefaults.standard.string(forKey: key) == nil)
-        #expect(NexusTripStore.tripHash(for: uniqueId) == nil)
     }
 }

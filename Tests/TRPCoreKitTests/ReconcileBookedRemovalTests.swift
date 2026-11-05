@@ -56,6 +56,21 @@ struct ReconcileBookedRemovalTests {
         #expect(result == nil)
     }
 
+    @Test("Partial host payload with one id-less trip item trips the guard and keeps all booked segments")
+    func testPartialHostPayloadKeepsAllBookedSegments() {
+        let keyedHost = tripItem(activityId: "100", lineId: "L1", cityId: 1, start: "2026-10-21 09:00")
+        let idLessHost = tripItem(activityId: nil, lineId: "L2", cityId: 2, start: "2026-10-22 09:00")
+        let stillBooked = bookedSegment(activityId: "100", lineId: "L1", cityId: 1, start: "2026-10-21 09:00")
+        let unmatched = bookedSegment(activityId: "200", lineId: "L2", cityId: 2, start: "2026-10-22 09:00")
+
+        let result = BookedActivityPairing.bookedSegmentsMissingFromHost(
+            tripItems: [keyedHost, idLessHost],
+            segments: [stillBooked, unmatched]
+        )
+
+        #expect(result == nil)
+    }
+
     @Test("Two legs sharing a product id by line id: only the cancelled leg is removed")
     func testTwoLegsSameProductIdDifferentLineIdOnlyCancelledLegRemoved() {
         let inbound = tripItem(activityId: "100", lineId: "L-IN", cityId: 1, start: "2026-10-21 09:00")

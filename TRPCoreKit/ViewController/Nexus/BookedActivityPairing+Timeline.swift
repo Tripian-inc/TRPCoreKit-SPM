@@ -50,10 +50,10 @@ extension BookedActivityPairing {
     }
 
     /// Indices of the booked-activity segments in `segments` that pair with no host trip item, ascending.
-    /// Nil when no trip item carries an activity id, so an id-less host payload never removes booked segments.
+    /// Nil when the host list is empty or any trip item lacks an activity id, so a partial host payload never removes booked segments.
     static func bookedSegmentsMissingFromHost(tripItems: [TRPSegmentActivityItem],
                                               segments: [TRPTimelineSegment]) -> [Int]? {
-        guard !entries(tripItems).isEmpty else { return nil }
+        guard !tripItems.isEmpty, entries(tripItems).count == tripItems.count else { return nil }
         return pairBooked(tripItems: tripItems, segments: segments).unmatchedStored
     }
 

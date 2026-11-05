@@ -816,7 +816,7 @@ extension TRPTimelineItineraryViewModel {
 
         enum Reason {
             case reservedNowBooked   // reserved activity that host now reports as booked
-            case notInHostReservations // booked activity the host no longer reports
+            case notInHostReservations
             case cityRemoved         // segment's city is not in the incoming destinations
             case outOfDateRange      // segment's day falls outside the new trip range
         }
@@ -843,7 +843,7 @@ extension TRPTimelineItineraryViewModel {
     }
 
     /// Booked activities with an activity id that pair with no host trip item (see `BookedActivityPairing.pairBooked`),
-    /// i.e. the booking was cancelled on the host. Skipped entirely when no trip item carries an activity id. Pure: no mutation, no I/O.
+    /// i.e. the booking was cancelled on the host. Skipped entirely when any trip item lacks an activity id. Pure: no mutation, no I/O.
     internal func collectBookedSegmentsMissingFromHost(
         in segments: [TRPTimelineSegment],
         itinerary: TRPItineraryWithActivities
@@ -852,7 +852,7 @@ extension TRPTimelineItineraryViewModel {
             tripItems: itinerary.tripItems ?? [],
             segments: segments
         ) else {
-            print("🔁 [Reconcile] notInHostReservations skipped: host trip items carry no activity id")
+            print("🔁 [Reconcile] notInHostReservations skipped: host trip items missing or without activity id")
             return []
         }
         return missing.map {
