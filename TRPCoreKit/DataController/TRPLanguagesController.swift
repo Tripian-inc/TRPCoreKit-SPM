@@ -49,6 +49,15 @@ public class TRPLanguagesController {
         self.languageResult = translationsByLanguage[TRPClient.getLanguage()] ?? [:]
     }
 
+    /// Applies the cached translations of `TRPClient.getLanguage()` and returns whether that
+    /// language has any, fresh or stale.
+    func applyCachedCurrentLanguage() -> Bool {
+        return syncQueue.sync {
+            applyCurrentLanguageLocked()
+            return !languageResult.isEmpty
+        }
+    }
+
     /// Fetches translations only when the current language has never been cached.
     @available(*, deprecated, message: "TRPCoreKit fetches translations when the SDK opens; call getLanguages(completion:) to fetch earlier.")
     public func prefetchLanguagesIfNeeded() {

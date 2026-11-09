@@ -95,6 +95,8 @@ public class TRPSDKCoordinater {
         return makeMyTrip()
     }()
     
+    private static let translationsWaitTimeout: TimeInterval = 30
+
     public init(navigationController: UINavigationController, canBack: Bool = true) {
         self.navigationController = navigationController
         self.canBackFromMyTrip = canBack
@@ -179,18 +181,30 @@ public class TRPSDKCoordinater {
         }
     }
 
-    /// Runs `action` on the main queue once the current language's translations are available.
+    /// Runs `action` once on the main queue when the current language's translations are available.
     /// Entry points that bypass the splash use this; a cached translation set opens immediately
-    /// and is refreshed in the background, otherwise the fetch is awaited (success or failure).
+    /// and is refreshed in the background, otherwise the fetch is awaited behind the window loader
+    /// for at most `translationsWaitTimeout`, after which the screen opens with fallback strings.
     private func runWhenTranslationsReady(_ action: @escaping () -> Void) {
         let languages = TRPLanguagesController.shared
-        guard !languages.isFetched else {
+        guard !languages.applyCachedCurrentLanguage() else {
             languages.getLanguages()
             DispatchQueue.main.async(execute: action)
             return
         }
+        var finished = false
+        let finish = {
+            guard !finished else { return }
+            finished = true
+            TRPLottieLoadingVC.shared.hideFromWindow(completion: action)
+        }
+        DispatchQueue.main.async {
+            guard !finished else { return }
+            TRPLottieLoadingVC.shared.showOnWindow(textMode: .none)
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + Self.translationsWaitTimeout, execute: finish)
         languages.getLanguages { _ in
-            action()
+            finish()
         }
     }
     
