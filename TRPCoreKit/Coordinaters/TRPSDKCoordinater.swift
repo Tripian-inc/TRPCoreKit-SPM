@@ -167,7 +167,24 @@ public class TRPSDKCoordinater {
         TRPCityCache.shared.fetchCitiesIfNeeded()
         // Prefetch POI categories for filtering (async, no auth required)
         TRPPoiUseCases.prefetchCategories()
-        startFirstVC()
+        runWhenTranslationsReady {
+            self.startFirstVC()
+        }
+    }
+
+    /// Runs `action` on the main queue once the current language's translations are available.
+    /// Entry points that bypass the splash use this; a cached translation set opens immediately
+    /// and is refreshed in the background, otherwise the fetch is awaited (success or failure).
+    private func runWhenTranslationsReady(_ action: @escaping () -> Void) {
+        let languages = TRPLanguagesController.shared
+        guard !languages.isFetched else {
+            languages.getLanguages()
+            DispatchQueue.main.async(execute: action)
+            return
+        }
+        languages.getLanguages { _ in
+            action()
+        }
     }
     
     private func startFirstVC() {
@@ -188,13 +205,11 @@ public class TRPSDKCoordinater {
         // Note: userProfile() moved to datasFetchCompleted() - must be called after lightLogin
         // Fetch cities for coordinate-based city lookup (async, no auth required)
         TRPCityCache.shared.fetchCitiesIfNeeded()
-        let vc = myTrip
-        vc.bookingDetailUrl = bookingDetailUrl
-        //navigationController.pushViewController(vc, animated: true)
-        DispatchQueue.main.async {
+        runWhenTranslationsReady {
+            let vc = self.myTrip
+            vc.bookingDetailUrl = bookingDetailUrl
             self.navigationController.pushViewController(vc, animated: true)
             self.setupSomeGeneralAppearances()
-            // Show onboarding after VC is visible
             self.showOnboardingIfNeeded(from: vc)
         }
         //navigationController.pushViewController(makePaymetnViewController(), animated: true)
