@@ -49,6 +49,15 @@ public class TRPLanguagesController {
         self.languageResult = translationsByLanguage[TRPClient.getLanguage()] ?? [:]
     }
 
+    /// Applies the cached translations of `TRPClient.getLanguage()` and returns whether that
+    /// language has any, fresh or stale.
+    func applyCachedCurrentLanguage() -> Bool {
+        return syncQueue.sync {
+            applyCurrentLanguageLocked()
+            return !languageResult.isEmpty
+        }
+    }
+
     public func getLanguages(completion: ((Result<Bool, Error>) -> Void)? = nil) {
         let language = TRPClient.getLanguage()
         enum Action { case alreadyFresh, queued, startFetch }
