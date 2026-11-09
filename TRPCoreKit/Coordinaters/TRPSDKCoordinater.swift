@@ -193,17 +193,22 @@ public class TRPSDKCoordinater {
             DispatchQueue.main.async(execute: action)
             return
         }
-        var finished = false
+        var pendingAction: (() -> Void)? = action
+        var timeout: DispatchWorkItem?
         let finish = {
-            guard !finished else { return }
-            finished = true
+            guard let action = pendingAction else { return }
+            pendingAction = nil
+            timeout?.cancel()
+            timeout = nil
             TRPLottieLoadingVC.shared.hideFromWindow(completion: action)
         }
+        let timeoutItem = DispatchWorkItem(block: finish)
+        timeout = timeoutItem
         DispatchQueue.main.async {
-            guard !finished else { return }
+            guard pendingAction != nil else { return }
             TRPLottieLoadingVC.shared.showOnWindow(textMode: .none)
         }
-        DispatchQueue.main.asyncAfter(deadline: .now() + Self.translationsWaitTimeout, execute: finish)
+        DispatchQueue.main.asyncAfter(deadline: .now() + Self.translationsWaitTimeout, execute: timeoutItem)
         languages.getLanguages { _ in
             finish()
         }
