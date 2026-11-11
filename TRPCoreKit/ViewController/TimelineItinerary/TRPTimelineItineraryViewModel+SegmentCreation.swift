@@ -57,69 +57,12 @@ extension TRPTimelineItineraryViewModel {
         return ids
     }
 
-    /// "Recommendations", "Recommendations 2", … unique per day/city. Only applies to `.itinerary` segments.
-    internal func generateSegmentTitle(for city: TRPCity, on startDate: String) -> String {
-        guard let timeline = timeline else {
-            return "Recommendations"
-        }
+    /// Base of the server-side title of smart-recommendation segments; the card header is derived at display time.
+    static let recommendationSegmentTitleBase = "Recommendations"
 
-        var allSegments: [TRPTimelineSegment] = []
-        var addedSegmentIds = Set<String>()
-
-        if let segments = timeline.segments {
-            for segment in segments {
-                let segmentId = getSegmentUniqueId(segment)
-                if !addedSegmentIds.contains(segmentId) {
-                    allSegments.append(segment)
-                    addedSegmentIds.insert(segmentId)
-                }
-            }
-        }
-
-        if let profileSegments = timeline.tripProfile?.segments {
-            for segment in profileSegments {
-                let segmentId = getSegmentUniqueId(segment)
-                if !addedSegmentIds.contains(segmentId) {
-                    allSegments.append(segment)
-                    addedSegmentIds.insert(segmentId)
-                }
-            }
-        }
-
-        let targetDate = String(startDate.prefix(10))
-
-        var existingNumbers: [Int] = []
-
-        for segment in allSegments {
-            if isDateBoundarySegment(segment) { continue }
-
-            guard segment.segmentType == .itinerary else { continue }
-
-            guard segment.city?.id == city.id else { continue }
-
-            guard let segmentStartDate = segment.startDate,
-                  String(segmentStartDate.prefix(10)) == targetDate else { continue }
-
-            guard let title = segment.title else { continue }
-
-            if title == "Recommendations" {
-                existingNumbers.append(1)
-            } else if title.hasPrefix("Recommendations ") {
-                let numberPart = title.replacingOccurrences(of: "Recommendations ", with: "")
-                if let number = Int(numberPart) {
-                    existingNumbers.append(number)
-                }
-            }
-        }
-
-        if existingNumbers.isEmpty {
-            return "Recommendations"
-        }
-
-        let maxNumber = existingNumbers.max() ?? 0
-        let nextNumber = maxNumber + 1
-
-        return "Recommendations \(nextNumber)"
+    /// Unique server-side title of a new smart-recommendation segment, `Recommendations-<token>`; it identifies the created segment after the PUT.
+    internal func makeRecommendationSegmentTitle() -> String {
+        return Self.recommendationSegmentTitleBase + "-" + makeRecommendationTitleToken()
     }
 
     /// True from the PUT of a smart recommendation until its generation result has been applied; a new one is refused meanwhile.
@@ -187,7 +130,7 @@ extension TRPTimelineItineraryViewModel {
         profile.startDate = dateFormatter.string(from: startTime)
         profile.endDate = dateFormatter.string(from: endTime)
 
-        profile.title = generateSegmentTitle(for: city, on: profile.startDate ?? "")
+        profile.title = makeRecommendationSegmentTitle()
 
         if !data.selectedCategories.isEmpty {
             profile.activityFreeText = data.selectedCategories.joined(separator: ",")

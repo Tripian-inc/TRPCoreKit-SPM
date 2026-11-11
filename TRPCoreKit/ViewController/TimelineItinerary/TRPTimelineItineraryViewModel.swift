@@ -140,6 +140,9 @@ public class TRPTimelineItineraryViewModel {
                                                                                        ignoredPlanIds: ignoredPlanIds))
     }
 
+    /// Token appended to the title of each new smart-recommendation segment so the created segment can be told apart.
+    internal var makeRecommendationTitleToken: () -> String = { UUID().uuidString.lowercased() }
+
     /// Recommendations generating in the background; registered here while this screen's create flow runs in the background.
     internal var backgroundGenerationRegistry: TRPBackgroundGenerationRegistry = .shared
 

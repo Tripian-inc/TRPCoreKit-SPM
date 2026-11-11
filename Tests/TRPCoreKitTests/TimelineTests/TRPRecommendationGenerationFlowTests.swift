@@ -59,6 +59,7 @@ final class TRPRecommendationGenerationFlowTests: XCTestCase {
     private static let createdPlanId = 990001
     private static let segmentStart = "2025-12-09 10:00"
     private static let segmentEnd = "2025-12-09 18:00"
+    private static let titleToken = "created-token"
 
     private var log: GenerationEventLog!
     private var repository: ScriptedTimelineRepository!
@@ -78,6 +79,7 @@ final class TRPRecommendationGenerationFlowTests: XCTestCase {
         viewModel.timelineRepository = repository
         registry = TRPBackgroundGenerationRegistry()
         viewModel.backgroundGenerationRegistry = registry
+        viewModel.makeRecommendationTitleToken = { Self.titleToken }
         viewModel.makeGenerationCheckUseCase = { [unowned self] repository, maxAttempts, ignoredPlanIds in
             TRPTimelineCheckAllPlanUseCases(
                 timelineRepository: repository,
@@ -139,7 +141,7 @@ final class TRPRecommendationGenerationFlowTests: XCTestCase {
     }
 
     private func expectedTitle() -> String {
-        viewModel.generateSegmentTitle(for: GenerationFixtures.barcelona, on: Self.segmentStart)
+        TRPTimelineItineraryViewModel.recommendationSegmentTitleBase + "-" + Self.titleToken
     }
 
     private func runCreateFlow() {
@@ -233,7 +235,126 @@ final class TRPRecommendationGenerationFlowTests: XCTestCase {
     private static let foregroundAttempts = TRPTimelineItineraryViewModel.recommendationForegroundAttempts
     private static let maxAttempts = TRPTimelineItineraryViewModel.recommendationMaxAttempts
 
+    /// A preexisting itinerary segment on the same day and city as the one about to be created, with a different unique title.
+    private func preexistingSegment() -> TRPTimelineSegment {
+        GenerationFixtures.itinerarySegment(title: "Recommendations-other",
+                                            startDate: "2025-12-09 09:00",
+                                            endDate: "2025-12-09 09:30",
+                                            planId: 777)
+    }
+
+    /// Server timeline with `preexistingSegment()` plus the created segment appended, both for 2025-12-09 in Barcelona.
+    private func serverTimelineWithPreexisting(title: String, generatedStatus: Int, stepCount: Int) -> (TRPTimeline, preexistingIndex: Int, createdIndex: Int) {
+        var timeline = GenerationFixtures.generatedMockTimeline()
+        timeline.tripProfile?.segments.append(preexistingSegment())
+        let created = GenerationFixtures.itinerarySegment(title: title,
+                                                          startDate: Self.segmentStart,
+                                                          endDate: Self.segmentEnd,
+                                                          planId: Self.createdPlanId)
+        timeline.tripProfile?.segments.append(created)
+        timeline.plans = (timeline.plans ?? []) + [GenerationFixtures.plan(id: "\(Self.createdPlanId)",
+                                                                           generatedStatus: generatedStatus,
+                                                                           stepCount: stepCount)]
+        let count = timeline.tripProfile?.segments.count ?? 0
+        return (timeline, count - 2, count - 1)
+    }
+
     // MARK: - Tests
+
+    func testMakeRecommendationSegmentTitleProducesUniquePrefixedTitles() {
+        let freshViewModel = TRPTimelineItineraryViewModel(timeline: GenerationFixtures.generatedMockTimeline())
+
+        let first = freshViewModel.makeRecommendationSegmentTitle()
+        let second = freshViewModel.makeRecommendationSegmentTitle()
+
+        XCTAssertNotEqual(first, second)
+        XCTAssertTrue(first.hasPrefix(TRPTimelineItineraryViewModel.recommendationSegmentTitleBase + "-"))
+        XCTAssertTrue(second.hasPrefix(TRPTimelineItineraryViewModel.recommendationSegmentTitleBase + "-"))
+    }
+
+    func testCreateSmartRecommendationSegmentPutsTheInjectedTokenTitle() {
+        let title = expectedTitle()
+        let (server, _) = serverTimeline(title: title, generatedStatus: 1, stepCount: 3)
+        repository.fetchResponder = { _ in .success(server) }
+
+        runCreateFlow()
+
+        XCTAssertEqual(repository.createEditCalls.first?.title, TRPTimelineItineraryViewModel.recommendationSegmentTitleBase + "-" + Self.titleToken)
+    }
+
+    func testLocateCreatedRecommendationReturnsTheSegmentMatchingTheRequestKeyEvenWhenItIsSecond() {
+        let title = expectedTitle()
+        let timeline = GenerationFixtures.generatedMockTimeline()
+        let other = GenerationFixtures.itinerarySegment(title: "Recommendations-other",
+                                                        startDate: Self.segmentStart,
+                                                        endDate: Self.segmentEnd,
+                                                        planId: 555)
+        let created = GenerationFixtures.itinerarySegment(title: title,
+                                                          startDate: Self.segmentStart,
+                                                          endDate: Self.segmentEnd,
+                                                          planId: Self.createdPlanId)
+        timeline.tripProfile?.segments.append(contentsOf: [other, created])
+        let secondIndex = (timeline.tripProfile?.segments.count ?? 0) - 1
+
+        let request = TRPRecommendationGenerationRequest(
+            tripHash: timeline.tripHash,
+            key: TRPRecommendationSegmentKey(title: title, startDate: Self.segmentStart, cityId: GenerationFixtures.barcelona.id),
+            preexistingKeys: [],
+            targetDayIndex: nil
+        )
+
+        let located = viewModel.locateCreatedRecommendation(request, in: timeline)
+
+        XCTAssertEqual(located?.segmentIndex, secondIndex)
+    }
+
+    func testForegroundFailureDeletesTheCreatedSegmentNotThePreexistingOne() {
+        viewModel.timeline?.tripProfile?.segments.append(preexistingSegment())
+        let title = expectedTitle()
+        let (server, preexistingIndex, createdIndex) = serverTimelineWithPreexisting(title: title, generatedStatus: -1, stepCount: 0)
+        repository.fetchResponder = { _ in .success(server) }
+
+        runCreateFlow()
+
+        XCTAssertEqual(repository.deletedSegmentIndexes, [createdIndex])
+        XCTAssertFalse(repository.deletedSegmentIndexes.contains(preexistingIndex))
+    }
+
+    func testBackgroundFailureDeletesTheCreatedSegmentNotThePreexistingOne() {
+        viewModel.timeline?.tripProfile?.segments.append(preexistingSegment())
+        let title = expectedTitle()
+        let (pending, preexistingIndex, createdIndex) = serverTimelineWithPreexisting(title: title, generatedStatus: 0, stepCount: 0)
+        repository.fetchResponder = { _ in .success(pending) }
+
+        let scheduler = startCreateFlowWithManualPolling()
+        moveToBackgroundPhase(scheduler)
+        finishPolling(scheduler)
+
+        XCTAssertEqual(repository.deletedSegmentIndexes, [createdIndex])
+        XCTAssertFalse(repository.deletedSegmentIndexes.contains(preexistingIndex))
+    }
+
+    func testBackgroundSuccessDoesNotTouchThePreexistingSegment() {
+        viewModel.timeline?.tripProfile?.segments.append(preexistingSegment())
+        let title = expectedTitle()
+        let (pending, _, _) = serverTimelineWithPreexisting(title: title, generatedStatus: 0, stepCount: 0)
+        let (generated, preexistingIndex, createdIndex) = serverTimelineWithPreexisting(title: title, generatedStatus: 1, stepCount: 3)
+        repository.fetchResponder = { index in index < Self.foregroundAttempts + 4 ? .success(pending) : .success(generated) }
+
+        let scheduler = startCreateFlowWithManualPolling()
+        moveToBackgroundPhase(scheduler)
+        finishPolling(scheduler)
+
+        XCTAssertTrue(repository.deletedSegmentIndexes.isEmpty)
+        XCTAssertEqual(spy.messages.map { $0.text }, [continuesText, readyText])
+        guard let segments = viewModel.timeline?.tripProfile?.segments, segments.count == createdIndex + 1 else {
+            return XCTFail("expected the preexisting and the created segment in the refreshed timeline")
+        }
+        XCTAssertEqual(segments[createdIndex].title, title)
+        XCTAssertEqual(segments[createdIndex].dayIds, [Self.createdPlanId])
+        XCTAssertEqual(segments[preexistingIndex].title, preexistingSegment().title)
+        XCTAssertTrue(registry.isEmpty)
+    }
 
     func testGeneratedPlanWithStepsKeepsTheSegmentAndHidesTheLoaderOnceAtTheEnd() {
         let title = expectedTitle()
