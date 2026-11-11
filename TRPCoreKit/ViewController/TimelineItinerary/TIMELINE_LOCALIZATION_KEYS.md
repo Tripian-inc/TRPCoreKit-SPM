@@ -59,6 +59,12 @@ This document contains all localization keys used in the Timeline Itinerary feat
 | `timeline.error.generationFailed` | "Failed to generate your itinerary. Please try again." |
 | `timeline.error.timeout` | "Request timed out. Please try again." |
 
+### Recommendation Generation
+| Key | Default English Value |
+|-----|----------------------|
+| `timeline.info.recommendationGenerationContinues` | "Your recommendations are still being prepared. The list will update automatically when they're ready." |
+| `timeline.info.recommendationGenerationReady` | "Your recommendations are ready." |
+
 ## Implementation
 
 All localization is handled through `TimelineLocalizationKeys.swift` with automatic fallback to English.
@@ -115,6 +121,11 @@ To add translations for these keys:
 - `TimelineGenerateController.swift` - Uses error messages (somethingWentWrong, generationFailed, timeout)
 
 ## Changelog
+
+### November 11, 2026
+- Added Recommendation Generation notice keys:
+  - `timeline.info.recommendationGenerationContinues` - Generation continues in the background
+  - `timeline.info.recommendationGenerationReady` - Background generation finished with results
 
 ### January 5, 2026
 - Added Timeline Generation Error keys:

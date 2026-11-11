@@ -15,6 +15,7 @@ final class ScriptedTimelineRepository: TimelineRepository {
         .failure(GeneralError.customMessage("no timeline scripted"))
     }
     var defersFetchCompletions = false
+    var defersDeleteCompletions = false
     var createEditResult: TimelineResultStatus = .success(true)
     var deleteResult: TimelineResultStatus = .success(true)
 
@@ -22,6 +23,7 @@ final class ScriptedTimelineRepository: TimelineRepository {
     private(set) var pendingFetchCompletions: [(TimelineResultValue) -> Void] = []
     private(set) var createEditCalls: [TRPCreateEditTimelineSegmentProfile] = []
     private(set) var deletedSegmentIndexes: [Int] = []
+    private(set) var pendingDeleteCompletions: [(TimelineResultStatus) -> Void] = []
 
     init(log: GenerationEventLog = GenerationEventLog()) {
         self.log = log
@@ -55,7 +57,19 @@ final class ScriptedTimelineRepository: TimelineRepository {
     func deleteTimelineSegment(tripHash: String, segmentIndex: Int, completion: @escaping (TimelineResultStatus) -> Void) {
         deletedSegmentIndexes.append(segmentIndex)
         log.events.append("delete:\(segmentIndex)")
+        if defersDeleteCompletions {
+            pendingDeleteCompletions.append(completion)
+            return
+        }
         completion(deleteResult)
+    }
+
+    /// Delivers `deleteResult` to the oldest deferred delete; returns false when none is waiting.
+    @discardableResult
+    func completeNextDelete() -> Bool {
+        guard !pendingDeleteCompletions.isEmpty else { return false }
+        pendingDeleteCompletions.removeFirst()(deleteResult)
+        return true
     }
 
     func fetchLocalTimeline(tripHash: String, completion: @escaping (TimelineResultValue) -> Void) {

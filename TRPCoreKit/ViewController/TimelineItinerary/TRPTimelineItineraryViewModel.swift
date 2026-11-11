@@ -128,10 +128,30 @@ public class TRPTimelineItineraryViewModel {
     /// Poller of the running smart-recommendation create flow, kept apart from `checkAllPlanUseCase` so other flows cannot release it.
     internal var recommendationGenerationUseCase: TRPTimelineCheckAllPlanUseCases?
 
-    /// Builds the generation poller for the smart-recommendation create flow.
-    internal var makeGenerationCheckUseCase: (TimelineRepository) -> TRPTimelineCheckAllPlanUseCases = { repository in
-        TRPTimelineCheckAllPlanUseCases(timelineRepository: repository)
+    /// Builds a generation poller that ends after `maxAttempts` polls and does not wait for the plans `ignoredPlanIds` returns.
+    internal var makeGenerationCheckUseCase: (
+        _ repository: TimelineRepository,
+        _ maxAttempts: Int,
+        _ ignoredPlanIds: @escaping TimelineGenerateController.IgnoredPlanIds
+    ) -> TRPTimelineCheckAllPlanUseCases = { repository, maxAttempts, ignoredPlanIds in
+        TRPTimelineCheckAllPlanUseCases(timelineRepository: repository,
+                                        timelineModelRepository: TRPTimelineModelRepository(),
+                                        generateController: TimelineGenerateController(maxAttempts: maxAttempts,
+                                                                                       ignoredPlanIds: ignoredPlanIds))
     }
+
+    /// Recommendations generating in the background; registered here while this screen's create flow runs in the background.
+    internal var backgroundGenerationRegistry: TRPBackgroundGenerationRegistry = .shared
+
+    /// The smart-recommendation create flow in progress, from its PUT until its result has been applied.
+    internal var activeRecommendationGeneration: TRPRecommendationGenerationRequest?
+
+    /// True while the timeline screen is on screen; maintained by the view controller and used to decide whether notices are shown.
+    internal var isViewVisible: Bool = false
+
+    /// True while a segment delete or index-based edit runs; further ones wait in `queuedSegmentMutations`.
+    internal var isSegmentMutationInFlight: Bool = false
+    internal var queuedSegmentMutations: [TRPSegmentMutation] = []
 
     /// Retained to prevent deallocation during async operations.
     internal var activeRouteCalculators: [TRPRouteCalculator] = []

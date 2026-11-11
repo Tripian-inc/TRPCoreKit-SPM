@@ -89,6 +89,10 @@ public struct TimelineLocalizationKeys {
     public static let errorTimeout = "timeline.error.timeout"
     public static let tryAgain = "trips.myTrips.localExperiences.tourDetails.tryAgain"
 
+    // MARK: - Recommendation Generation
+    public static let infoRecommendationGenerationContinues = "timeline.info.recommendationGenerationContinues"
+    public static let infoRecommendationGenerationReady = "timeline.info.recommendationGenerationReady"
+
     // MARK: - Default English Values
     private static let defaultValues: [String: String] = [
         navigationTitle: "Plan Your Itinerary",
@@ -130,6 +134,8 @@ public struct TimelineLocalizationKeys {
         errorGenerationFailed: "Failed to generate your itinerary. Please try again.",
         errorTimeout: "Request timed out. Please try again.",
         tryAgain: "Try Again",
+        infoRecommendationGenerationContinues: "Your recommendations are still being prepared. The list will update automatically when they're ready.",
+        infoRecommendationGenerationReady: "Your recommendations are ready.",
         mapMainView: "Main View",
         timeOverlap: "Time Overlap",
         conflictWarning: "Some of your planned activities overlap. Please review the timing to resolve any conflicts.",

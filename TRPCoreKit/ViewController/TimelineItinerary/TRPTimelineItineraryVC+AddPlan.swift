@@ -151,6 +151,10 @@ extension TRPTimelineItineraryVC: AddPlanContainerVCDelegate {
     // MARK: - Smart Recommendations Segment Creation
 
     internal func createSmartRecommendationSegment(from data: AddPlanData, containerVC: AddPlanContainerVC) {
+        guard !viewModel.isRecommendationGenerationPending else {
+            viewModel.createSmartRecommendationSegment(from: data)
+            return
+        }
         // Dismiss AddPlan first to avoid an "already presenting" error when the Lottie loading appears.
         containerVC.dismiss(animated: true) { [weak self] in
             self?.viewModel.createSmartRecommendationSegment(from: data)

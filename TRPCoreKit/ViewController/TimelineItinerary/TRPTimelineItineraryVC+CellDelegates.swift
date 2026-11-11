@@ -100,17 +100,22 @@ extension TRPTimelineItineraryVC: TRPTimelineActivityCellDelegate {
         planData.segmentIndex = viewModel.getSegmentIndex(for: segment)
 
         let timeSelectionVC = AddPlanTimeSelectionVC(segment: segment, planData: planData)
-
-        // Sheet keeps its inline loader through the update API and host refresh; dismiss after to avoid a loader→loader jump.
-        timeSelectionVC.onSegmentUpdated = { [weak self, weak timeSelectionVC] in
-            guard let self = self else { return }
-            // Picker only offers live-available slots, so drop the segment's stale "not available" key.
-            self.viewModel.clearCachedAvailability(for: segment)
-            self.viewModel.fetchAndRefreshTimeline { _ in
+        timeSelectionVC.segmentEditRunner = { [weak self, weak timeSelectionVC] segment, commit in
+            guard let viewModel = self?.viewModel else { return }
+            viewModel.performRefreshingSegmentEdit(of: segment, onSegmentGone: {
+                timeSelectionVC?.dismiss(animated: true)
+            }, send: { [weak viewModel] segmentIndex, finished in
+                commit(segmentIndex) { succeeded in
+                    if succeeded {
+                        viewModel?.clearCachedAvailability(for: segment)
+                    }
+                    finished(succeeded)
+                }
+            }, onRefreshed: {
                 DispatchQueue.main.async {
                     timeSelectionVC?.dismiss(animated: true)
                 }
-            }
+            })
         }
 
         // Confirm is shown by the sheet; here we just run the removal.

@@ -223,4 +223,167 @@ final class TimelineGenerateControllerTests: XCTestCase {
         XCTAssertEqual(useCase.allSegmentGenerated.value, false)
         XCTAssertNotNil(useCase.generationError.value ?? nil)
     }
+
+    func testAttemptCallbackReportsEveryNonTerminalAttemptButNotTheTerminalOne() {
+        script([
+            .success(GenerationFixtures.timeline(planStatuses: [0])),
+            .success(GenerationFixtures.timeline(planStatuses: [0])),
+            .success(GenerationFixtures.timeline(planStatuses: [0])),
+            .success(GenerationFixtures.timeline(planStatuses: [1]))
+        ])
+        var attempts: [Int] = []
+
+        controller.fetchTimeline(hash: "generation-hash", onAttemptCompleted: { attempts.append($0) }) { [unowned self] result in
+            self.results.append(result)
+        }
+        scheduler.runUntilIdle()
+
+        XCTAssertEqual(attempts, [1, 2, 3])
+        XCTAssertEqual(repository.fetchCallCount, 4)
+        XCTAssertEqual(results.count, 1)
+        guard case .success? = results.first else { return XCTFail("expected success") }
+    }
+
+    func testAttemptCallbackIsNotCalledForTheFailureThatExhaustsTheBudget() {
+        script([.failure(networkError)])
+        var attempts: [Int] = []
+
+        controller.fetchTimeline(hash: "generation-hash", onAttemptCompleted: { attempts.append($0) }) { [unowned self] result in
+            self.results.append(result)
+        }
+        scheduler.runUntilIdle()
+
+        XCTAssertEqual(attempts, [1, 2])
+        XCTAssertEqual(results.count, 1)
+        guard case .failure? = results.first else { return XCTFail("expected failure") }
+    }
+
+    func testSixtyAttemptLimitIsHonouredAndReportsFiftyNineProgressCallbacks() {
+        controller = TimelineGenerateController(maxAttempts: 60, schedule: scheduler.schedule)
+        controller.repository = repository
+        script([.success(GenerationFixtures.timeline(planStatuses: [0]))])
+        var attempts: [Int] = []
+
+        controller.fetchTimeline(hash: "generation-hash", onAttemptCompleted: { attempts.append($0) }) { [unowned self] result in
+            self.results.append(result)
+        }
+        scheduler.runUntilIdle(maxSteps: 200)
+
+        XCTAssertEqual(repository.fetchCallCount, 60)
+        XCTAssertEqual(scheduler.scheduledCount, 59)
+        XCTAssertFalse(scheduler.hasPendingWork)
+        XCTAssertEqual(attempts, Array(1...59))
+        XCTAssertEqual(results.count, 1)
+        guard case .failure(let error)? = results.first else { return XCTFail("expected failure") }
+        guard case TimelineGenerateError.timeout = error else { return XCTFail("expected timeout, got \(error)") }
+    }
+
+    func testDefaultAttemptLimitStaysThirty() {
+        script([.success(GenerationFixtures.timeline(planStatuses: [0]))])
+
+        start()
+        scheduler.runUntilIdle(maxSteps: 200)
+
+        XCTAssertEqual(repository.fetchCallCount, 30)
+    }
+
+    /// Mock timeline plus one pending itinerary plan per title, each linked to its segment through `dayIds`.
+    private func timelineWithPendingSegments(_ titles: [String]) -> (TRPTimeline, [TRPTimelineSegment]) {
+        var timeline = GenerationFixtures.generatedMockTimeline()
+        var segments: [TRPTimelineSegment] = []
+        for (offset, title) in titles.enumerated() {
+            let planId = 9001 + offset
+            let segment = GenerationFixtures.itinerarySegment(title: title,
+                                                              startDate: "2025-12-09 10:00",
+                                                              endDate: "2025-12-09 18:00",
+                                                              planId: planId)
+            timeline.tripProfile?.segments.append(segment)
+            timeline.plans = (timeline.plans ?? []) + [GenerationFixtures.plan(id: "\(planId)", generatedStatus: 0)]
+            segments.append(segment)
+        }
+        return (timeline, segments)
+    }
+
+    func testTrackedSegmentsPendingPlanDoesNotKeepTheRunPendingWhileAnUntrackedOneDoes() {
+        let registry = TRPBackgroundGenerationRegistry()
+        let ignoring = TimelineGenerateController(ignoredPlanIds: { registry.ignoredPlanIds(in: $0) }, schedule: scheduler.schedule)
+        let (trackedOnly, trackedSegments) = timelineWithPendingSegments(["Tracked"])
+        let (mixed, mixedSegments) = timelineWithPendingSegments(["Tracked", "Untracked"])
+
+        XCTAssertTrue(ignoring.isGenerationPending(trackedOnly), "nothing is tracked yet")
+
+        registry.register(TRPRecommendationSegmentKey(segment: trackedSegments[0]), tripHash: trackedOnly.tripHash)
+
+        XCTAssertFalse(ignoring.isGenerationPending(trackedOnly))
+        XCTAssertTrue(registry.isTracked(mixedSegments[0], tripHash: mixed.tripHash))
+        XCTAssertFalse(registry.isTracked(mixedSegments[1], tripHash: mixed.tripHash))
+        XCTAssertTrue(ignoring.isGenerationPending(mixed), "the untracked pending plan keeps the run pending")
+
+        let ignoringNothing = TimelineGenerateController(ignoredPlanIds: TimelineGenerateController.ignoresNoPlan,
+                                                         schedule: scheduler.schedule)
+        XCTAssertTrue(ignoringNothing.isGenerationPending(trackedOnly))
+    }
+
+    func testRunCompletesOnTheFirstFetchWhenOnlyATrackedSegmentIsPending() {
+        let registry = TRPBackgroundGenerationRegistry()
+        let (trackedOnly, segments) = timelineWithPendingSegments(["Tracked"])
+        registry.register(TRPRecommendationSegmentKey(segment: segments[0]), tripHash: trackedOnly.tripHash)
+        controller = TimelineGenerateController(ignoredPlanIds: { registry.ignoredPlanIds(in: $0) }, schedule: scheduler.schedule)
+        controller.repository = repository
+        script([.success(trackedOnly)])
+
+        start()
+        scheduler.runUntilIdle()
+
+        XCTAssertEqual(repository.fetchCallCount, 1)
+        XCTAssertEqual(results.count, 1)
+        guard case .success? = results.first else { return XCTFail("expected success") }
+        XCTAssertFalse(scheduler.hasPendingWork)
+    }
+
+    func testCheckAllPlanUseCaseReportsGeneratedWhenOnlyATrackedSegmentIsPending() {
+        let registry = TRPBackgroundGenerationRegistry()
+        let (trackedOnly, segments) = timelineWithPendingSegments(["Tracked"])
+        registry.register(TRPRecommendationSegmentKey(segment: segments[0]), tripHash: trackedOnly.tripHash)
+        controller = TimelineGenerateController(ignoredPlanIds: { registry.ignoredPlanIds(in: $0) }, schedule: scheduler.schedule)
+        let useCase = TRPTimelineCheckAllPlanUseCases(timelineRepository: repository,
+                                                      timelineModelRepository: MockTimelineModelRepository(),
+                                                      generateController: controller)
+        script([.success(trackedOnly)])
+        var generatedValues: [Bool] = []
+        useCase.allSegmentGenerated.addObserver(self) { generatedValues.append($0) }
+
+        useCase.executeFetchTimelineCheckAllPlanGenerate(tripHash: "generation-hash", completion: nil)
+        scheduler.runUntilIdle()
+
+        XCTAssertEqual(repository.fetchCallCount, 1)
+        XCTAssertEqual(generatedValues.last, true)
+    }
+
+    func testMergedPlanOfATrackedSegmentIsIgnoredOnlyWhenAllOfItsDayIdsAreTracked() {
+        let registry = TRPBackgroundGenerationRegistry()
+        let ignoring = TimelineGenerateController(ignoredPlanIds: { registry.ignoredPlanIds(in: $0) }, schedule: scheduler.schedule)
+        var timeline = GenerationFixtures.generatedMockTimeline()
+        let segment = GenerationFixtures.itinerarySegment(title: "Merged", startDate: "2025-12-09 10:00", endDate: "2025-12-09 18:00", planId: 2188)
+        segment.dayIds = [2188, 2189]
+        timeline.tripProfile?.segments.append(segment)
+        timeline.plans = (timeline.plans ?? []) + [GenerationFixtures.plan(id: "2188-2189", generatedStatus: 0)]
+
+        XCTAssertTrue(ignoring.isGenerationPending(timeline), "nothing is tracked yet")
+
+        registry.register(TRPRecommendationSegmentKey(segment: segment), tripHash: timeline.tripHash)
+        XCTAssertFalse(ignoring.isGenerationPending(timeline))
+
+        segment.dayIds = [2188]
+        XCTAssertTrue(ignoring.isGenerationPending(timeline), "day 2189 of the merged plan is not tracked")
+    }
+
+    func testPlanWithoutNumericDayIdsAlwaysCountsAsPending() {
+        let registry = TRPBackgroundGenerationRegistry()
+        let ignoring = TimelineGenerateController(ignoredPlanIds: { registry.ignoredPlanIds(in: $0) }, schedule: scheduler.schedule)
+        var timeline = GenerationFixtures.generatedMockTimeline()
+        timeline.plans = (timeline.plans ?? []) + [GenerationFixtures.plan(id: "unparsable", generatedStatus: 0)]
+
+        XCTAssertTrue(ignoring.isGenerationPending(timeline))
+    }
 }

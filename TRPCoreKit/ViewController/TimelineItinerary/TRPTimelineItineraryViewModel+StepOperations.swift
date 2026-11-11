@@ -16,43 +16,69 @@ import TRPFoundationKit
 extension TRPTimelineItineraryViewModel {
 
     /// Updates a step's start/end times (format "HH:mm"), first widening the owning segment when the new times fall outside it.
+    /// The widening runs behind any segment delete in flight and targets the segment's index once that delete has finished.
     public func updateStepTime(step: TRPTimelineStep, startTime: String, endTime: String, completion: @escaping (Result<TRPTimelineStep, Error>) -> Void) {
         let changingTimeText = LoadingLocalizationKeys.localized(LoadingLocalizationKeys.changingTime)
         delegate?.viewModel(showLottie: .bottomSheet, textMode: .single(changingTimeText))
 
-        guard let widenedSegmentProfile = widenedSegmentProfile(for: step, startTime: startTime, endTime: endTime) else {
+        guard let widening = segmentWidening(for: step, startTime: startTime, endTime: endTime) else {
             editStepHour(step: step, startTime: startTime, endTime: endTime, segmentWasWidened: false, completion: completion)
             return
         }
 
-        submitSegmentEdit(widenedSegmentProfile) { [weak self] result in
-            guard let self = self else { return }
-
-            switch result {
-            case .success:
-                self.editStepHour(step: step, startTime: startTime, endTime: endTime, segmentWasWidened: true, completion: completion)
-            case .failure(let error):
-                self.hideBottomSheetLottie(thenShow: error)
-                completion(.failure(error))
+        performSegmentEdit(of: widening.segment, onSegmentGone: { [weak self] in
+            self?.delegate?.viewModel(hideLottie: .bottomSheet)
+            completion(.failure(TRPTimelineItineraryViewModel.segmentNotFoundError))
+        }, edit: { [weak self] segmentIndex, done in
+            guard let self = self else { return done() }
+            guard let profile = self.makeSegmentEditProfile(for: widening.segment, at: segmentIndex) else {
+                done()
+                self.hideBottomSheetLottie(thenShow: TRPTimelineItineraryViewModel.segmentNotFoundError)
+                completion(.failure(TRPTimelineItineraryViewModel.segmentNotFoundError))
+                return
             }
-        }
+            profile.startDate = TRPDateHelper.formatDateTime(widening.start)
+            profile.endDate = TRPDateHelper.formatDateTime(widening.end)
+
+            self.submitSegmentEdit(profile) { [weak self] result in
+                guard let self = self else { return done() }
+
+                switch result {
+                case .success:
+                    self.editStepHour(step: step, startTime: startTime, endTime: endTime, segmentWasWidened: true, onFinished: done, completion: completion)
+                case .failure(let error):
+                    done()
+                    self.hideBottomSheetLottie(thenShow: error)
+                    completion(.failure(error))
+                }
+            }
+        })
     }
 
-    private func editStepHour(step: TRPTimelineStep, startTime: String, endTime: String, segmentWasWidened: Bool, completion: @escaping (Result<TRPTimelineStep, Error>) -> Void) {
+    /// Sends the step time edit; `onFinished` runs once the follow-up refresh has finished, or right after a failure that needs none.
+    private func editStepHour(step: TRPTimelineStep,
+                              startTime: String,
+                              endTime: String,
+                              segmentWasWidened: Bool,
+                              onFinished: @escaping () -> Void = {},
+                              completion: @escaping (Result<TRPTimelineStep, Error>) -> Void) {
         timelineModeUseCases.executeEditStepHour(id: step.id, startTime: startTime, endTime: endTime) { [weak self] result in
-            guard let self = self else { return }
+            guard let self = self else { return onFinished() }
 
             DispatchQueue.main.async {
                 switch result {
                 case .success(let updatedStep):
                     self.fetchAndRefreshTimeline { _ in
+                        onFinished()
                         completion(.success(updatedStep))
                     }
 
                 case .failure(let error):
                     self.hideBottomSheetLottie(thenShow: error)
                     if segmentWasWidened {
-                        self.fetchAndRefreshTimeline(completion: nil)
+                        self.fetchAndRefreshTimeline { _ in onFinished() }
+                    } else {
+                        onFinished()
                     }
                     completion(.failure(error))
                 }
@@ -60,8 +86,8 @@ extension TRPTimelineItineraryViewModel {
         }
     }
 
-    /// Edit profile that grows the step's owning segment to cover the new step times; `nil` when no widening is needed or the segment cannot be resolved.
-    private func widenedSegmentProfile(for step: TRPTimelineStep, startTime: String, endTime: String) -> TRPCreateEditTimelineSegmentProfile? {
+    /// The step's owning segment and the range it must grow to so it covers the new step times; `nil` when no widening is needed.
+    private func segmentWidening(for step: TRPTimelineStep, startTime: String, endTime: String) -> (segment: TRPTimelineSegment, start: Date, end: Date)? {
         guard let segment = mergedItem(containing: step)?.segment,
               let segmentStart = TRPDateHelper.parseDateTime(segment.startDate),
               let segmentEnd = TRPDateHelper.parseDateTime(segment.endDate),
@@ -69,14 +95,10 @@ extension TRPTimelineItineraryViewModel {
               let widenedRange = TRPSegmentTimeRangeAdjustment.widenedRange(segmentStart: segmentStart,
                                                                              segmentEnd: segmentEnd,
                                                                              stepStart: stepRange.start,
-                                                                             stepEnd: stepRange.end),
-              case .success(let profile) = makeSegmentEditProfile(for: segment) else {
+                                                                             stepEnd: stepRange.end) else {
             return nil
         }
-
-        profile.startDate = TRPDateHelper.formatDateTime(widenedRange.start)
-        profile.endDate = TRPDateHelper.formatDateTime(widenedRange.end)
-        return profile
+        return (segment, widenedRange.start, widenedRange.end)
     }
 
     internal func updateStepInTimeline(_ updatedStep: TRPTimelineStep) {
@@ -139,56 +161,53 @@ extension TRPTimelineItineraryViewModel {
 
     // MARK: - Segment Time Update
 
-    /// Updates a segment's start/end times (format "HH:mm").
+    /// Updates a segment's start/end times (format "HH:mm"). The edit runs behind any segment delete in flight and targets
+    /// the segment's index once that delete has finished; a segment that is gone by then is not sent.
     public func updateSegmentTime(segment: TRPTimelineSegment, startTime: String, endTime: String, completion: @escaping (Result<Bool, Error>) -> Void) {
-        let profile: TRPCreateEditTimelineSegmentProfile
-        switch makeSegmentEditProfile(for: segment) {
-        case .success(let segmentProfile):
-            profile = segmentProfile
-        case .failure(let error):
-            completion(.failure(error))
-            return
-        }
-
         guard let existingStartDate = segment.startDate,
               let datePart = extractDatePart(from: existingStartDate) else {
             completion(.failure(NSError(domain: "Timeline", code: -1, userInfo: [NSLocalizedDescriptionKey: "Invalid segment date"])))
             return
         }
 
-        profile.startDate = "\(datePart) \(startTime)"
-        profile.endDate = "\(datePart) \(endTime)"
-
         let changingTimeText = LoadingLocalizationKeys.localized(LoadingLocalizationKeys.changingTime)
         delegate?.viewModel(showLottie: .bottomSheet, textMode: .single(changingTimeText))
 
-        submitSegmentEdit(profile) { [weak self] result in
-            guard let self = self else { return }
-
-            switch result {
-            case .success:
-                self.fetchAndRefreshTimeline { _ in
-                    completion(.success(true))
-                }
-            case .failure(let error):
-                self.hideBottomSheetLottie(thenShow: error)
-                completion(.failure(error))
+        performRefreshingSegmentEdit(of: segment, onSegmentGone: { [weak self] in
+            self?.delegate?.viewModel(hideLottie: .bottomSheet)
+            completion(.failure(TRPTimelineItineraryViewModel.segmentNotFoundError))
+        }, send: { [weak self] segmentIndex, finished in
+            guard let self = self else { return finished(false) }
+            guard let profile = self.makeSegmentEditProfile(for: segment, at: segmentIndex) else {
+                finished(false)
+                self.hideBottomSheetLottie(thenShow: TRPTimelineItineraryViewModel.segmentNotFoundError)
+                completion(.failure(TRPTimelineItineraryViewModel.segmentNotFoundError))
+                return
             }
-        }
+            profile.startDate = "\(datePart) \(startTime)"
+            profile.endDate = "\(datePart) \(endTime)"
+
+            self.submitSegmentEdit(profile) { [weak self] result in
+                switch result {
+                case .success:
+                    finished(true)
+                case .failure(let error):
+                    finished(false)
+                    self?.hideBottomSheetLottie(thenShow: error)
+                    completion(.failure(error))
+                }
+            }
+        }, onRefreshed: {
+            completion(.success(true))
+        })
     }
 
-    /// Edit profile for `segment` at its index in `tripProfile.segments`, carrying over all of its current values.
-    private func makeSegmentEditProfile(for segment: TRPTimelineSegment) -> Result<TRPCreateEditTimelineSegmentProfile, Error> {
-        guard let timeline = timeline,
-              let segments = timeline.tripProfile?.segments else {
-            return .failure(NSError(domain: "Timeline", code: -1, userInfo: [NSLocalizedDescriptionKey: "Timeline not available"]))
-        }
+    private static let segmentNotFoundError = NSError(domain: "Timeline", code: -1, userInfo: [NSLocalizedDescriptionKey: "Segment not found"])
 
-        guard let segmentIndex = segments.firstIndex(where: { $0 === segment }) else {
-            return .failure(NSError(domain: "Timeline", code: -1, userInfo: [NSLocalizedDescriptionKey: "Segment not found"]))
-        }
-
-        return .success(TRPCreateEditTimelineSegmentProfile(from: segment, tripHash: timeline.tripHash, segmentIndex: segmentIndex))
+    /// Edit profile for `segment` at `segmentIndex` in `tripProfile.segments`, carrying over all of its current values.
+    private func makeSegmentEditProfile(for segment: TRPTimelineSegment, at segmentIndex: Int) -> TRPCreateEditTimelineSegmentProfile? {
+        guard let tripHash = timeline?.tripHash else { return nil }
+        return TRPCreateEditTimelineSegmentProfile(from: segment, tripHash: tripHash, segmentIndex: segmentIndex)
     }
 
     /// Sends the segment edit and reports on the main queue; an `updated: false` answer is reported as a failure.

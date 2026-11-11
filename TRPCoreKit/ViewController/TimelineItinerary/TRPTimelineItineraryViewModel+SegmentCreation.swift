@@ -122,7 +122,17 @@ extension TRPTimelineItineraryViewModel {
         return "Recommendations \(nextNumber)"
     }
 
+    /// True from the PUT of a smart recommendation until its generation result has been applied; a new one is refused meanwhile.
+    public var isRecommendationGenerationPending: Bool {
+        return activeRecommendationGeneration != nil
+    }
+
     public func createSmartRecommendationSegment(from data: AddPlanData) {
+        guard !isRecommendationGenerationPending else {
+            showRecommendationGenerationContinuesNotice()
+            return
+        }
+
         guard let timeline = timeline,
               let city = data.selectedCity,
               let startTime = data.startTime,
@@ -139,9 +149,8 @@ extension TRPTimelineItineraryViewModel {
 
         let tripHash = timeline.tripHash
 
-        if let selectedDay = data.selectedDay,
-           let index = data.availableDays.firstIndex(where: { Calendar.current.isDate($0, inSameDayAs: selectedDay) }) {
-            pendingNavigationDayIndex = index
+        let targetDayIndex = data.selectedDay.flatMap { selectedDay in
+            data.availableDays.firstIndex(where: { Calendar.current.isDate($0, inSameDayAs: selectedDay) })
         }
 
         delegate?.timelineItineraryViewModel(showLottieLoading: true)
@@ -198,10 +207,13 @@ extension TRPTimelineItineraryViewModel {
             profile.excludedActivityIds = excludedActivityIds
         }
 
-        let request = TRPCreatedRecommendationRequest(
+        let request = TRPRecommendationGenerationRequest(
+            tripHash: tripHash,
             key: TRPRecommendationSegmentKey(title: profile.title, startDate: profile.startDate, cityId: city.id),
-            preexistingKeys: recommendationSegmentKeys(in: timeline)
+            preexistingKeys: recommendationSegmentKeys(in: timeline),
+            targetDayIndex: targetDayIndex
         )
+        activeRecommendationGeneration = request
 
         timelineRepository.createEditTimelineSegment(profile: profile) { [weak self] result in
             guard let self = self else { return }
@@ -212,6 +224,7 @@ extension TRPTimelineItineraryViewModel {
                     if success {
                         self.awaitRecommendationGeneration(tripHash: tripHash, request: request)
                     } else {
+                        self.endRecommendationGeneration(request)
                         self.delegate?.timelineItineraryViewModel(showLottieLoading: false)
                         self.delegate?.viewModel(error: NSError(
                             domain: "TRPTimelineItinerary",
@@ -221,6 +234,7 @@ extension TRPTimelineItineraryViewModel {
                     }
 
                 case .failure(let error):
+                    self.endRecommendationGeneration(request)
                     self.delegate?.timelineItineraryViewModel(showLottieLoading: false)
                     self.delegate?.viewModel(error: error)
                 }
@@ -235,13 +249,12 @@ extension TRPTimelineItineraryViewModel {
         }
         TRPTimelineRefreshState.shared.setRefreshing()
 
-        let repository = TRPTimelineRepository()
-        let modelRepository = TRPTimelineModelRepository()
-
+        let registry = backgroundGenerationRegistry
         // Stored as instance var to prevent deallocation mid-poll.
-        checkAllPlanUseCase = TRPTimelineCheckAllPlanUseCases(
-            timelineRepository: repository,
-            timelineModelRepository: modelRepository
+        checkAllPlanUseCase = makeGenerationCheckUseCase(
+            timelineRepository,
+            TimelineGenerateController.defaultMaxAttempts,
+            { timeline in registry.ignoredPlanIds(in: timeline) }
         )
 
         checkAllPlanUseCase?.allSegmentGenerated.addObserver(self) { [weak self] isGenerated in
@@ -280,42 +293,73 @@ extension TRPTimelineItineraryViewModel {
 
     // MARK: - Smart Recommendation Generation
 
-    /// Polls the created recommendation until generation ends, keeping the window loader visible until it is evaluated.
-    internal func awaitRecommendationGeneration(tripHash: String, request: TRPCreatedRecommendationRequest) {
+    /// Number of polls during which the window loader stays up.
+    static let recommendationForegroundAttempts = 20
+
+    /// Total poll attempts of the smart-recommendation create flow, foreground and background together.
+    static let recommendationMaxAttempts = 60
+
+    /// Polls the created recommendation until generation ends. The window loader stays up for the first
+    /// `recommendationForegroundAttempts` polls; after that the screen is released and polling continues in the background.
+    internal func awaitRecommendationGeneration(tripHash: String, request: TRPRecommendationGenerationRequest) {
         TRPTimelineRefreshState.shared.setRefreshing()
 
         recommendationGenerationUseCase?.cancelPolling()
-        let useCase = makeGenerationCheckUseCase(timelineRepository)
+        let useCase = makeGenerationCheckUseCase(timelineRepository,
+                                                 Self.recommendationMaxAttempts,
+                                                 TimelineGenerateController.ignoresNoPlan)
         recommendationGenerationUseCase = useCase
 
-        useCase.executeFetchTimelineCheckAllPlanGenerate(tripHash: tripHash) { [weak self] result in
-            DispatchQueue.main.async {
-                guard let self = self else { return }
-                if self.recommendationGenerationUseCase === useCase {
-                    self.recommendationGenerationUseCase = nil
+        useCase.executeFetchTimelineCheckAllPlanGenerate(
+            tripHash: tripHash,
+            onAttemptCompleted: { [weak self] attempt in
+                guard attempt == Self.recommendationForegroundAttempts else { return }
+                DispatchQueue.main.async {
+                    self?.moveRecommendationGenerationToBackground(request)
                 }
-                self.concludeRecommendationGeneration(pollResult: result, request: request)
+            },
+            completion: { [weak self] result in
+                DispatchQueue.main.async {
+                    guard let self = self else { return }
+                    if self.recommendationGenerationUseCase === useCase {
+                        self.recommendationGenerationUseCase = nil
+                    }
+                    self.concludeRecommendationGeneration(pollResult: result, request: request)
+                }
             }
-        }
+        )
     }
 
-    /// Ends a failed or empty recommendation: deletes the created segment when known, refreshes, then reports the error.
+    /// Ends a failed or empty foreground recommendation: deletes the created segment when known, refreshes, then reports the error.
     /// - Parameters:
     ///   - created: The created segment as located in the timeline it was found in; nil when it could not be identified.
     ///   - message: Text shown to the user; the generation-failed text is used when nil.
-    internal func handleRecommendationGenerationFailure(created: TRPLocatedRecommendationSegment?, message: String?) {
+    internal func handleRecommendationGenerationFailure(created: TRPLocatedRecommendationSegment?,
+                                                        request: TRPRecommendationGenerationRequest,
+                                                        message: String?) {
         let error = GeneralError.customMessage(
             message ?? TimelineLocalizationKeys.localized(TimelineLocalizationKeys.errorGenerationFailed)
         )
 
         guard let created = created, let tripHash = timeline?.tripHash else {
-            reportRecommendationGenerationFailure(error)
+            reportRecommendationGenerationFailure(error, request: request)
             return
         }
 
-        deleteSegment(created.segment, at: created.segmentIndex, tripHash: tripHash) { [weak self] _ in
-            self?.fetchAndRefreshTimeline(hidesLoader: false) { _ in
-                self?.reportRecommendationGenerationFailure(error)
+        let mustRelocate = isSegmentMutationInFlight
+        performSegmentMutation { [weak self] done in
+            guard let self = self else { return done() }
+            let target = mustRelocate ? self.locateCreatedRecommendation(request, in: self.timeline) : created
+            guard let target = target else {
+                done()
+                self.reportRecommendationGenerationFailure(error, request: request)
+                return
+            }
+            self.deleteSegment(target.segment, at: target.segmentIndex, tripHash: tripHash) { [weak self] _ in
+                self?.fetchAndRefreshTimeline(hidesLoader: false) { _ in
+                    done()
+                    self?.reportRecommendationGenerationFailure(error, request: request)
+                }
             }
         }
     }
@@ -328,7 +372,7 @@ extension TRPTimelineItineraryViewModel {
 
     /// The segment created by `request` in `timeline`, with its API segment index and matching plan.
     internal func locateCreatedRecommendation(
-        _ request: TRPCreatedRecommendationRequest,
+        _ request: TRPRecommendationGenerationRequest,
         in timeline: TRPTimeline?
     ) -> TRPLocatedRecommendationSegment? {
         guard let segments = timeline?.tripProfile?.segments else { return nil }
@@ -349,10 +393,29 @@ extension TRPTimelineItineraryViewModel {
         return plan.generatedStatus >= 1 && !plan.steps.isEmpty
     }
 
-    private func concludeRecommendationGeneration(pollResult: Result<TRPTimeline, Error>,
-                                                  request: TRPCreatedRecommendationRequest) {
-        applyPendingNavigationDay()
+    private func moveRecommendationGenerationToBackground(_ request: TRPRecommendationGenerationRequest) {
+        guard activeRecommendationGeneration === request, request.phase == .foreground else { return }
+        request.phase = .background
+        backgroundGenerationRegistry.register(request.key, tripHash: request.tripHash)
+        delegate?.timelineItineraryViewModel(showLottieLoading: false)
+        TRPTimelineRefreshState.shared.setIdle()
+        if isViewVisible {
+            showRecommendationGenerationContinuesNotice()
+        }
+    }
 
+    private func concludeRecommendationGeneration(pollResult: Result<TRPTimeline, Error>,
+                                                  request: TRPRecommendationGenerationRequest) {
+        switch request.phase {
+        case .foreground:
+            concludeForegroundRecommendationGeneration(pollResult: pollResult, request: request)
+        case .background:
+            concludeBackgroundRecommendationGeneration(pollResult: pollResult, request: request)
+        }
+    }
+
+    private func concludeForegroundRecommendationGeneration(pollResult: Result<TRPTimeline, Error>,
+                                                            request: TRPRecommendationGenerationRequest) {
         fetchAndRefreshTimeline(hidesLoader: false) { [weak self] _ in
             guard let self = self else { return }
 
@@ -362,45 +425,97 @@ extension TRPTimelineItineraryViewModel {
                     ?? self.locateCreatedRecommendation(request, in: polledTimeline)
                 guard let created = created else {
                     Log.w("Created recommendation segment not found after generation")
-                    self.finishRecommendationGeneration()
+                    self.finishRecommendationGeneration(request)
                     return
                 }
                 if Self.hasRenderableRecommendation(created.plan) {
-                    self.finishRecommendationGeneration()
+                    self.openTargetDay(of: request)
+                    self.finishRecommendationGeneration(request)
                 } else {
-                    self.handleRecommendationGenerationFailure(created: created, message: nil)
+                    self.handleRecommendationGenerationFailure(created: created, request: request, message: nil)
                 }
 
-            case .failure(let error):
+            case .failure:
                 let created = self.locateCreatedRecommendation(request, in: self.timeline)
-                self.handleRecommendationGenerationFailure(
-                    created: created,
-                    message: Self.recommendationPollingFailureMessage(for: error)
-                )
+                self.handleRecommendationGenerationFailure(created: created, request: request, message: nil)
             }
         }
     }
 
-    private static func recommendationPollingFailureMessage(for error: Error) -> String? {
-        guard case TimelineGenerateError.timeout = error else { return nil }
-        return TimelineLocalizationKeys.localized(TimelineLocalizationKeys.errorTimeout)
+    /// Applies a result that arrived after the screen was released: waits for any running segment delete, re-reads the
+    /// timeline, keeps a renderable recommendation and deletes an empty or unfinished one. When the segment is not found it
+    /// stays silent after a successful poll and shows the error notice after a failed one, since the timeline may then be stale.
+    /// Never moves the selected day and never shows a blocking alert.
+    private func concludeBackgroundRecommendationGeneration(pollResult: Result<TRPTimeline, Error>,
+                                                            request: TRPRecommendationGenerationRequest) {
+        performSegmentMutation { [weak self] done in
+            guard let self = self else { return done() }
+            self.fetchAndRefreshTimeline(hidesLoader: false) { [weak self] _ in
+                guard let self = self else { return done() }
+                guard let created = self.locateCreatedRecommendation(request, in: self.timeline),
+                      let tripHash = self.timeline?.tripHash else {
+                    done()
+                    self.endRecommendationGeneration(request)
+                    if case .failure = pollResult {
+                        self.showRecommendationNoticeIfVisible(TimelineLocalizationKeys.errorGenerationFailed, type: .error)
+                    }
+                    return
+                }
+                guard !Self.hasRenderableRecommendation(created.plan) else {
+                    done()
+                    self.endRecommendationGeneration(request)
+                    self.showRecommendationNoticeIfVisible(TimelineLocalizationKeys.infoRecommendationGenerationReady, type: .info)
+                    return
+                }
+                self.deleteSegment(created.segment, at: created.segmentIndex, tripHash: tripHash) { [weak self] _ in
+                    self?.fetchAndRefreshTimeline(hidesLoader: false) { _ in
+                        done()
+                        self?.endRecommendationGeneration(request)
+                        self?.showRecommendationNoticeIfVisible(TimelineLocalizationKeys.errorGenerationFailed, type: .error)
+                    }
+                }
+            }
+        }
     }
 
-    private func applyPendingNavigationDay() {
-        guard let dayIndex = pendingNavigationDayIndex else { return }
-        selectedDayIndex = dayIndex
-        pendingNavigationDayIndex = nil
+    private func openTargetDay(of request: TRPRecommendationGenerationRequest) {
+        guard let dayIndex = request.targetDayIndex, dayIndex != selectedDayIndex else { return }
+        selectDay(at: dayIndex)
+        delegate?.timelineItineraryViewModel(didUpdateTimeline: true)
     }
 
-    private func finishRecommendationGeneration() {
+    private func finishRecommendationGeneration(_ request: TRPRecommendationGenerationRequest) {
+        endRecommendationGeneration(request)
         delegate?.timelineItineraryViewModel(showLottieLoading: false)
         TRPTimelineRefreshState.shared.setIdle()
     }
 
-    private func reportRecommendationGenerationFailure(_ error: Error) {
+    private func reportRecommendationGenerationFailure(_ error: Error, request: TRPRecommendationGenerationRequest) {
+        endRecommendationGeneration(request)
         TRPTimelineRefreshState.shared.setFailed(error)
         delegate?.timelineItineraryViewModel(showLottieLoading: false)
         delegate?.viewModel(error: error)
+    }
+
+    /// Clears the flow's pending state and, once it ran in the background, stops excluding its segment from generic pollers.
+    private func endRecommendationGeneration(_ request: TRPRecommendationGenerationRequest) {
+        if request.phase == .background {
+            backgroundGenerationRegistry.unregister(request.key, tripHash: request.tripHash)
+        }
+        guard activeRecommendationGeneration === request else { return }
+        activeRecommendationGeneration = nil
+    }
+
+    private func showRecommendationGenerationContinuesNotice() {
+        delegate?.viewModel(
+            showMessage: TimelineLocalizationKeys.localized(TimelineLocalizationKeys.infoRecommendationGenerationContinues),
+            type: .info
+        )
+    }
+
+    private func showRecommendationNoticeIfVisible(_ key: String, type: EvrAlertLevel) {
+        guard isViewVisible else { return }
+        delegate?.viewModel(showMessage: TimelineLocalizationKeys.localized(key), type: type)
     }
 
     // MARK: - Remove Segment
@@ -409,7 +524,7 @@ extension TRPTimelineItineraryViewModel {
         guard let timeline = timeline,
               let segments = timeline.tripProfile?.segments else { return }
 
-        guard let segmentIndex = segments.firstIndex(where: { $0 === segment }) else {
+        guard segments.contains(where: { $0 === segment }) else {
             delegate?.viewModel(error: NSError(domain: "Timeline", code: -1, userInfo: [NSLocalizedDescriptionKey: "Segment not found"]))
             return
         }
@@ -417,17 +532,114 @@ extension TRPTimelineItineraryViewModel {
         let removingText = LoadingLocalizationKeys.localized(LoadingLocalizationKeys.removingFromPlan)
         delegate?.viewModel(showLottie: .bottomSheet, textMode: .single(removingText))
 
-        deleteSegment(segment, at: segmentIndex, tripHash: timeline.tripHash) { [weak self] result in
-            guard let self = self else { return }
-
-            switch result {
-            case .success:
-                self.fetchAndRefreshTimeline { _ in
-                    self.delegate?.viewModel(hideLottie: .bottomSheet)
-                }
-            case .failure(let error):
-                self.hideBottomSheetLottie(thenShow: error)
+        performSegmentMutation { [weak self] done in
+            guard let self = self else { return done() }
+            guard let tripHash = self.timeline?.tripHash,
+                  let segmentIndex = self.currentIndex(of: segment) else {
+                done()
+                self.delegate?.viewModel(hideLottie: .bottomSheet)
+                return
             }
+
+            self.deleteSegment(segment, at: segmentIndex, tripHash: tripHash) { [weak self] result in
+                guard let self = self else { return done() }
+
+                switch result {
+                case .success:
+                    self.fetchAndRefreshTimeline { _ in
+                        done()
+                        self.delegate?.viewModel(hideLottie: .bottomSheet)
+                    }
+                case .failure(let error):
+                    done()
+                    self.hideBottomSheetLottie(thenShow: error)
+                }
+            }
+        }
+    }
+
+    /// Runs `send` through `performSegmentEdit` and, when it reports success, refreshes the timeline before the next segment
+    /// mutation may start and then calls `onRefreshed`. A failed `send` releases the next mutation at once.
+    internal func performRefreshingSegmentEdit(of segment: TRPTimelineSegment,
+                                               onSegmentGone: @escaping () -> Void,
+                                               send: @escaping (_ segmentIndex: Int, _ finished: @escaping (_ succeeded: Bool) -> Void) -> Void,
+                                               onRefreshed: @escaping () -> Void) {
+        performSegmentEdit(of: segment, onSegmentGone: onSegmentGone) { [weak self] segmentIndex, done in
+            send(segmentIndex) { succeeded in
+                guard succeeded, let self = self else { return done() }
+                self.fetchAndRefreshTimeline { _ in
+                    done()
+                    onRefreshed()
+                }
+            }
+        }
+    }
+
+    /// Runs an index-based edit of `segment` behind any running segment delete, with the API index the segment has once
+    /// that delete and its refresh have finished; `edit` must call `done` once its follow-up refresh has finished, or right
+    /// after a failed request. When the segment is no longer in the timeline nothing is sent: `onSegmentGone` runs, an
+    /// error notice is shown and the timeline is refreshed.
+    internal func performSegmentEdit(of segment: TRPTimelineSegment,
+                                     onSegmentGone: @escaping () -> Void,
+                                     edit: @escaping (_ segmentIndex: Int, _ done: @escaping () -> Void) -> Void) {
+        performSegmentMutation { [weak self] done in
+            guard let self = self else { return done() }
+            guard let segmentIndex = self.currentIndex(of: segment) else {
+                done()
+                onSegmentGone()
+                self.delegate?.viewModel(
+                    showMessage: TimelineLocalizationKeys.localized(TimelineLocalizationKeys.errorSomethingWentWrong),
+                    type: .error
+                )
+                self.refreshTimeline()
+                return
+            }
+            edit(segmentIndex, done)
+        }
+    }
+
+    /// Runs segment deletes and index-based segment edits one at a time on the main queue, in request order. `operation`
+    /// must call `done` when it has finished, including its follow-up refresh; extra calls are ignored.
+    internal func performSegmentMutation(_ operation: @escaping TRPSegmentMutation) {
+        guard !isSegmentMutationInFlight else {
+            queuedSegmentMutations.append(operation)
+            return
+        }
+        runSegmentMutation(operation)
+    }
+
+    private func runSegmentMutation(_ operation: @escaping TRPSegmentMutation) {
+        isSegmentMutationInFlight = true
+        var isDone = false
+        operation { [weak self] in
+            guard !isDone else { return }
+            isDone = true
+            self?.runNextSegmentMutation()
+        }
+    }
+
+    private func runNextSegmentMutation() {
+        guard !queuedSegmentMutations.isEmpty else {
+            isSegmentMutationInFlight = false
+            return
+        }
+        runSegmentMutation(queuedSegmentMutations.removeFirst())
+    }
+
+    /// API index of `segment` in the current timeline: the same instance, or after a refresh the segment with the same identity.
+    private func currentIndex(of segment: TRPTimelineSegment) -> Int? {
+        guard let segments = timeline?.tripProfile?.segments else { return nil }
+        if let index = segments.firstIndex(where: { $0 === segment }) {
+            return index
+        }
+        return segments.firstIndex { candidate in
+            candidate.segmentType == segment.segmentType &&
+            candidate.title == segment.title &&
+            candidate.startDate == segment.startDate &&
+            candidate.endDate == segment.endDate &&
+            (candidate.cityId ?? candidate.city?.id) == (segment.cityId ?? segment.city?.id) &&
+            candidate.poiId == segment.poiId &&
+            candidate.additionalData?.activityId == segment.additionalData?.activityId
         }
     }
 
@@ -452,28 +664,31 @@ extension TRPTimelineItineraryViewModel {
     }
 }
 
-/// Day-level identity of an itinerary segment: title, start day (yyyy-MM-dd) and city.
-struct TRPRecommendationSegmentKey: Hashable {
-    let title: String?
-    let day: String?
-    let cityId: Int?
-
-    init(title: String?, startDate: String?, cityId: Int?) {
-        self.title = title
-        self.day = startDate.map { String($0.prefix(10)) }
-        self.cityId = cityId
-    }
-
-    init(segment: TRPTimelineSegment) {
-        self.init(title: segment.title, startDate: segment.startDate, cityId: segment.cityId ?? segment.city?.id)
-    }
+/// Whether a smart-recommendation create flow still holds the window loader or has released the screen.
+enum TRPRecommendationGenerationPhase {
+    case foreground
+    case background
 }
 
-/// What the create flow sent and which itinerary segments existed right before the request.
-struct TRPCreatedRecommendationRequest {
+/// One smart-recommendation create flow: its trip, what was sent, which itinerary segments existed right before the
+/// request, the day to open on a foreground success and the current phase. Main-queue confined.
+final class TRPRecommendationGenerationRequest {
+    let tripHash: String
     let key: TRPRecommendationSegmentKey
     let preexistingKeys: Set<TRPRecommendationSegmentKey>
+    let targetDayIndex: Int?
+    var phase: TRPRecommendationGenerationPhase = .foreground
+
+    init(tripHash: String, key: TRPRecommendationSegmentKey, preexistingKeys: Set<TRPRecommendationSegmentKey>, targetDayIndex: Int?) {
+        self.tripHash = tripHash
+        self.key = key
+        self.preexistingKeys = preexistingKeys
+        self.targetDayIndex = targetDayIndex
+    }
 }
+
+/// A queued segment delete or index-based edit; it receives a `done` closure to call once it has finished.
+typealias TRPSegmentMutation = (_ done: @escaping () -> Void) -> Void
 
 /// A created recommendation segment, its API segment index and its plan, all taken from the same timeline.
 struct TRPLocatedRecommendationSegment {

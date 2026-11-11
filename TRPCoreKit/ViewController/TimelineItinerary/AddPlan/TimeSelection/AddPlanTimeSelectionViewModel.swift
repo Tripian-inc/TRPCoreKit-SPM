@@ -58,6 +58,17 @@ public class AddPlanTimeSelectionViewModel {
 
     private var segment: TRPTimelineSegment?
     private var step: TRPTimelineStep?
+
+    /// Runs the commit of a segment edit with the API index the segment has at commit time; `commit` reports through its
+    /// `finished` callback whether the edit was accepted. The runner does not call `commit` when the segment is gone.
+    typealias SegmentEditRunner = (_ segment: TRPTimelineSegment,
+                                   _ commit: @escaping (_ segmentIndex: Int, _ finished: @escaping (_ succeeded: Bool) -> Void) -> Void) -> Void
+
+    /// Set by the timeline screen; without it the segment index captured in `planData` is used.
+    internal var segmentEditRunner: SegmentEditRunner?
+
+    internal lazy var timelineRepository: TimelineRepository = TRPTimelineRepository()
+
     public var isEditMode: Bool { segment != nil || step != nil }
     public var isStepEditMode: Bool { step != nil }
 
@@ -661,8 +672,7 @@ public class AddPlanTimeSelectionViewModel {
             return
         }
 
-        guard let segmentIndex = planData.segmentIndex,
-              let segment = segment else {
+        guard let segment = segment, segmentEditRunner != nil || planData.segmentIndex != nil else {
             delegate?.viewModel(error: makeLocalizedError(code: -2, key: AddPlanLocalizationKeys.errorSegmentNotFound))
             return
         }
@@ -690,7 +700,7 @@ public class AddPlanTimeSelectionViewModel {
         updatedAdditionalData?.isFlexible = isFlexible ? true : nil
         updatedAdditionalData?.price = resolveActivityPrice()
 
-        let profile = TRPCreateEditTimelineSegmentProfile(from: segment, tripHash: tripHash, segmentIndex: segmentIndex)
+        let profile = TRPCreateEditTimelineSegmentProfile(from: segment, tripHash: tripHash, segmentIndex: planData.segmentIndex)
         profile.startDate = startDateString
         profile.endDate = endDateString
         profile.additionalData = updatedAdditionalData
@@ -699,11 +709,26 @@ public class AddPlanTimeSelectionViewModel {
         let changingTimeText = LoadingLocalizationKeys.localized(LoadingLocalizationKeys.changingTime)
         delegate?.viewModel(showLottie: .inView, textMode: .single(changingTimeText))
 
-        let repository = TRPTimelineRepository()
-        repository.createEditTimelineSegment(profile: profile) { [weak self] result in
-            guard let self = self else { return }
+        let commit: (Int, @escaping (Bool) -> Void) -> Void = { [weak self] segmentIndex, finished in
+            guard let self = self else { return finished(false) }
+            profile.segmentIndex = segmentIndex
+            self.submitSegmentUpdate(profile, finished: finished)
+        }
 
+        if let segmentEditRunner = segmentEditRunner {
+            segmentEditRunner(segment, commit)
+        } else if let capturedIndex = planData.segmentIndex {
+            commit(capturedIndex, { _ in })
+        }
+    }
+
+    /// Sends the reserved-activity edit; `finished` is called on the main queue with whether the edit was accepted, before
+    /// the delegate is told.
+    private func submitSegmentUpdate(_ profile: TRPCreateEditTimelineSegmentProfile, finished: @escaping (Bool) -> Void) {
+        timelineRepository.createEditTimelineSegment(profile: profile) { [weak self] result in
             DispatchQueue.main.async {
+                finished((try? result.get()) == true)
+                guard let self = self else { return }
                 switch result {
                 case .success(let success):
                     if success {

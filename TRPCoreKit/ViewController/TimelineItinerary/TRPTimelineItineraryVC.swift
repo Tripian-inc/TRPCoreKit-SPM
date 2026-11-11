@@ -258,6 +258,12 @@ public class TRPTimelineItineraryVC: TRPBaseUIViewController {
     public override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         navigationController?.setNavigationBarHidden(true, animated: false)
+        viewModel.isViewVisible = true
+    }
+
+    public override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+        viewModel.isViewVisible = false
     }
 
     public override func setupViews() {

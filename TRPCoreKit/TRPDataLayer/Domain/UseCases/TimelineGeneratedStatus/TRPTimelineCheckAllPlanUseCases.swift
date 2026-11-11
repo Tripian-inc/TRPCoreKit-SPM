@@ -63,20 +63,9 @@ public final class TRPTimelineCheckAllPlanUseCases {
 
         if allSegmentGenerated.value == true {return}
 
-        // If there are no plans (only booked/reserved activities), consider it as generated
-        guard let plans = timeline.plans, !plans.isEmpty else {
-            allSegmentGenerated.value = true
-            return
-        }
-
-        var notGenerated = false
-        for plan in plans {
-            if plan.generatedStatus == 0 {
-                notGenerated = true
-                break
-            }
-        }
-        if !notGenerated {
+        let isPending = generateController?.isGenerationPending(timeline)
+            ?? (timeline.plans?.contains(where: { $0.generatedStatus == 0 }) ?? false)
+        if !isPending {
             allSegmentGenerated.value = true
         }
     }
@@ -102,9 +91,17 @@ extension TRPTimelineCheckAllPlanUseCases: ObserveTimelineCheckAllPlanUseCase{
 
 extension TRPTimelineCheckAllPlanUseCases: FetchTimelineCheckAllPlanUseCase {
     public func executeFetchTimelineCheckAllPlanGenerate(tripHash: String, completion: ((Result<TRPTimeline, any Error>) -> Void)?) {
+        executeFetchTimelineCheckAllPlanGenerate(tripHash: tripHash, onAttemptCompleted: nil, completion: completion)
+    }
+
+    /// Same as `executeFetchTimelineCheckAllPlanGenerate(tripHash:completion:)`; `onAttemptCompleted` receives the number
+    /// of every poll attempt that did not end the run, whether a plan was still pending or the fetch failed, on the polling thread.
+    func executeFetchTimelineCheckAllPlanGenerate(tripHash: String,
+                                                  onAttemptCompleted: ((Int) -> Void)?,
+                                                  completion: ((Result<TRPTimeline, any Error>) -> Void)?) {
         let onComplete = completion ?? { result in }
         allSegmentGenerated.value = false
-        generateController?.fetchTimeline(hash: tripHash, completion: { [weak self] result in
+        generateController?.fetchTimeline(hash: tripHash, onAttemptCompleted: onAttemptCompleted, completion: { [weak self] result in
             switch result {
             case .success(let timeline):
                 self?.timelineModelRepository.timeline.value = timeline

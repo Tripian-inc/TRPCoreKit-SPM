@@ -114,6 +114,12 @@ public class AddPlanTimeSelectionVC: TRPBaseUIViewController, DynamicHeightPrese
     /// "remove from plan" flow when the Remove button is tapped.
     public var onRemoveFromPlan: (() -> Void)?
 
+    /// Set by the timeline screen so a segment edit targets the segment's index at commit time.
+    internal var segmentEditRunner: AddPlanTimeSelectionViewModel.SegmentEditRunner? {
+        get { viewModel.segmentEditRunner }
+        set { viewModel.segmentEditRunner = newValue }
+    }
+
     private var isSavedPlansContext: Bool { onRemoveFavourite != nil }
 
     /// Remove button shows for SavedPlans (remove favourite) and change-time edit (remove from plan).
