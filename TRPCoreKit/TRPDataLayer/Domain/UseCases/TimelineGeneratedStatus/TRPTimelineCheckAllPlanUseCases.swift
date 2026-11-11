@@ -19,13 +19,25 @@ public final class TRPTimelineCheckAllPlanUseCases {
     
     private var generatedStatus: Int = 0
     
-    public init(timelineRepository: TimelineRepository = TRPTimelineRepository(),
-                timelineModelRepository: TimelineModelRepository = TRPTimelineModelRepository()) {
+    public convenience init(timelineRepository: TimelineRepository = TRPTimelineRepository(),
+                            timelineModelRepository: TimelineModelRepository = TRPTimelineModelRepository()) {
+        self.init(timelineRepository: timelineRepository,
+                  timelineModelRepository: timelineModelRepository,
+                  generateController: TimelineGenerateController())
+    }
+
+    init(timelineRepository: TimelineRepository,
+         timelineModelRepository: TimelineModelRepository,
+         generateController: TimelineGenerateController) {
         self.timelineRepository = timelineRepository
         self.timelineModelRepository = timelineModelRepository
-        
-        generateController = TimelineGenerateController()
-        generateController?.repository = self.timelineRepository
+        self.generateController = generateController
+        generateController.repository = timelineRepository
+    }
+
+    /// Stops the running poll; its completion and observers are not notified afterwards.
+    func cancelPolling() {
+        generateController?.cancel()
     }
     
     private func checkFirstSegmentStatus(timeline: TRPTimeline) {

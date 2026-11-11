@@ -125,6 +125,14 @@ public class TRPTimelineItineraryViewModel {
     /// Retained to prevent deallocation during async operations.
     internal var checkAllPlanUseCase: TRPTimelineCheckAllPlanUseCases?
 
+    /// Poller of the running smart-recommendation create flow, kept apart from `checkAllPlanUseCase` so other flows cannot release it.
+    internal var recommendationGenerationUseCase: TRPTimelineCheckAllPlanUseCases?
+
+    /// Builds the generation poller for the smart-recommendation create flow.
+    internal var makeGenerationCheckUseCase: (TimelineRepository) -> TRPTimelineCheckAllPlanUseCases = { repository in
+        TRPTimelineCheckAllPlanUseCases(timelineRepository: repository)
+    }
+
     /// Retained to prevent deallocation during async operations.
     internal var activeRouteCalculators: [TRPRouteCalculator] = []
 

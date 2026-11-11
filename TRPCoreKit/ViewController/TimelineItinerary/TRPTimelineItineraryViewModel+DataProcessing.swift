@@ -122,7 +122,7 @@ extension TRPTimelineItineraryViewModel {
 
         let selectedDate = allTripDates[selectedDayIndex]
 
-        let dayItems = mergedTimeline.items(for: selectedDate)
+        let dayItems = mergedTimeline.items(for: selectedDate).filter(Self.isDisplayable)
 
         // Detect conflicts before grouping so all items on the day are checked against each other.
         detectTimeConflicts(items: dayItems)
@@ -130,8 +130,10 @@ extension TRPTimelineItineraryViewModel {
         let cityGroups = mergedTimeline.itemsGroupedByCity(for: selectedDate)
 
         // Pin flexible-time activities to the top of each city section so their 00:00/23:59 times don't misplace them.
-        displayItems = cityGroups.map { group in
-            let reordered = group.items.sorted { lhs, rhs in
+        displayItems = cityGroups.compactMap { group -> TRPTimelineCityGroup? in
+            let visibleItems = group.items.filter(Self.isDisplayable)
+            guard !visibleItems.isEmpty else { return nil }
+            let reordered = visibleItems.sorted { lhs, rhs in
                 if lhs.isFlexibleActivity != rhs.isFlexibleActivity {
                     return lhs.isFlexibleActivity
                 }
@@ -143,6 +145,11 @@ extension TRPTimelineItineraryViewModel {
         }
 
         calculateUnifiedOrders()
+    }
+
+    /// Recommendation cards without steps are never shown.
+    internal static func isDisplayable(_ item: TRPMergedTimelineItem) -> Bool {
+        return !(item.isItinerary && item.steps.isEmpty)
     }
 
     // MARK: - Time Conflict Detection

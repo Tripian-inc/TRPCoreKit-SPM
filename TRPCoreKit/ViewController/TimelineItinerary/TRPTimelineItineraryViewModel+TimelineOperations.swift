@@ -620,10 +620,12 @@ extension TRPTimelineItineraryViewModel {
         fetchAndRefreshTimeline(completion: nil)
     }
 
-    internal func fetchAndRefreshTimeline(completion: ((Bool) -> Void)?) {
+    /// Re-fetches the timeline and reprocesses it. When `hidesLoader` is false the preloader and Lottie loader are left to the caller.
+    internal func fetchAndRefreshTimeline(hidesLoader: Bool = true, completion: ((Bool) -> Void)?) {
         guard let tripHash = timeline?.tripHash else {
-            delegate?.viewModel(showPreloader: false)
-            delegate?.timelineItineraryViewModel(showLottieLoading: false)
+            if hidesLoader {
+                hideRefreshLoaders()
+            }
             completion?(true)
             return
         }
@@ -641,8 +643,9 @@ extension TRPTimelineItineraryViewModel {
                 self.resolveFavouriteItemCities { [weak self] in
                     guard let self = self else { return }
                     DispatchQueue.main.async {
-                        self.delegate?.viewModel(showPreloader: false)
-                        self.delegate?.timelineItineraryViewModel(showLottieLoading: false)
+                        if hidesLoader {
+                            self.hideRefreshLoaders()
+                        }
                         self.processTimelineData()
                         self.delegate?.timelineItineraryViewModel(didUpdateTimeline: true)
                         completion?(true)
@@ -651,14 +654,20 @@ extension TRPTimelineItineraryViewModel {
 
             case .failure:
                 DispatchQueue.main.async {
-                    self.delegate?.viewModel(showPreloader: false)
-                    self.delegate?.timelineItineraryViewModel(showLottieLoading: false)
+                    if hidesLoader {
+                        self.hideRefreshLoaders()
+                    }
                     // Refresh failed — reload with local data anyway.
                     self.delegate?.timelineItineraryViewModel(didUpdateTimeline: true)
                     completion?(true)
                 }
             }
         }
+    }
+
+    private func hideRefreshLoaders() {
+        delegate?.viewModel(showPreloader: false)
+        delegate?.timelineItineraryViewModel(showLottieLoading: false)
     }
 
     // MARK: - Destination Sync

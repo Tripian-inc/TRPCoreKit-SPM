@@ -29,7 +29,7 @@ public final class TRPTimelineRefreshState {
 
     public static let shared = TRPTimelineRefreshState()
 
-    /// Observe transitions: `.idle` → `.refreshing` → `.completed` / `.failed`.
+    /// Observe transitions: `.idle` → `.refreshing` → `.completed` / `.failed` / `.idle` (a flow that refreshed its own data).
     /// Subscribe via `status.addObserver(self) { newStatus in ... }`.
     public let status: ValueObserver<TRPTimelineRefreshStatus> = ValueObserver(.idle)
 
